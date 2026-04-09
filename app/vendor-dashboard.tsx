@@ -470,9 +470,9 @@ export default function VendorDashboardScreen() {
           </View>
         )}
 
-        {/* CLIENTS */}
-        {activeTab === 'Clients' && (
-          <View style={styles.tabPane}>
+        } else if (!user && !inAuthGroup) {
+      router.replace('/home');
+    }
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={styles.sectionLabel}>My Clients</Text>
               <TouchableOpacity style={styles.addClientBtn}>
