@@ -1,9 +1,19 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -12,6 +22,41 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
+
+// Socket.io real-time messaging
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('join_conversation', ({ userId, vendorId }) => {
+    const room = `conversation_${userId}_${vendorId}`;
+    socket.join(room);
+    console.log(`User ${userId} joined room ${room}`);
+  });
+
+  socket.on('send_message', async ({ userId, vendorId, message, senderType }) => {
+    const room = `conversation_${userId}_${vendorId}`;
+    const messageData = {
+      user_id: userId,
+      vendor_id: vendorId,
+      message,
+      sender_type: senderType,
+      created_at: new Date().toISOString(),
+    };
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([messageData])
+      .select()
+      .single();
+    if (!error) {
+      io.to(room).emit('receive_message', data);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
 // Test route
 app.get('/', (req, res) => {
@@ -22,7 +67,6 @@ app.get('/', (req, res) => {
 // VENDOR ROUTES
 // ==================
 
-// Get all vendors (with optional filters)
 app.get('/api/vendors', async (req, res) => {
   try {
     const { category, city, vibe } = req.query;
@@ -37,7 +81,6 @@ app.get('/api/vendors', async (req, res) => {
   }
 });
 
-// Get single vendor
 app.get('/api/vendors/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -52,7 +95,6 @@ app.get('/api/vendors/:id', async (req, res) => {
   }
 });
 
-// Create vendor
 app.post('/api/vendors', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -67,7 +109,6 @@ app.post('/api/vendors', async (req, res) => {
   }
 });
 
-// Update vendor
 app.patch('/api/vendors/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -87,20 +128,15 @@ app.patch('/api/vendors/:id', async (req, res) => {
 // USER ROUTES
 // ==================
 
-// Create or get user
 app.post('/api/users', async (req, res) => {
   try {
     const { phone, name, email } = req.body;
-    // Check if user exists
     const { data: existing } = await supabase
       .from('users')
       .select('*')
       .eq('phone', phone)
       .single();
-    if (existing) {
-      return res.json({ success: true, data: existing, isNew: false });
-    }
-    // Create new user
+    if (existing) return res.json({ success: true, data: existing, isNew: false });
     const { data, error } = await supabase
       .from('users')
       .insert([{ phone, name, email }])
@@ -113,7 +149,6 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Get user
 app.get('/api/users/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -128,7 +163,6 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// Update user
 app.patch('/api/users/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -148,7 +182,6 @@ app.patch('/api/users/:id', async (req, res) => {
 // MOODBOARD ROUTES
 // ==================
 
-// Get user moodboard
 app.get('/api/moodboard/:userId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -163,7 +196,6 @@ app.get('/api/moodboard/:userId', async (req, res) => {
   }
 });
 
-// Add to moodboard
 app.post('/api/moodboard', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -178,7 +210,6 @@ app.post('/api/moodboard', async (req, res) => {
   }
 });
 
-// Remove from moodboard
 app.delete('/api/moodboard/:id', async (req, res) => {
   try {
     const { error } = await supabase
@@ -196,7 +227,6 @@ app.delete('/api/moodboard/:id', async (req, res) => {
 // BOOKING ROUTES
 // ==================
 
-// Create booking
 app.post('/api/bookings', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -211,7 +241,6 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
-// Get user bookings
 app.get('/api/bookings/user/:userId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -226,7 +255,6 @@ app.get('/api/bookings/user/:userId', async (req, res) => {
   }
 });
 
-// Get vendor bookings
 app.get('/api/bookings/vendor/:vendorId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -241,7 +269,6 @@ app.get('/api/bookings/vendor/:vendorId', async (req, res) => {
   }
 });
 
-// Update booking status
 app.patch('/api/bookings/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -261,7 +288,6 @@ app.patch('/api/bookings/:id', async (req, res) => {
 // MESSAGING ROUTES
 // ==================
 
-// Get conversation
 app.get('/api/messages/:userId/:vendorId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -277,7 +303,6 @@ app.get('/api/messages/:userId/:vendorId', async (req, res) => {
   }
 });
 
-// Send message
 app.post('/api/messages', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -296,7 +321,6 @@ app.post('/api/messages', async (req, res) => {
 // GUEST ROUTES
 // ==================
 
-// Get guests
 app.get('/api/guests/:userId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -311,7 +335,6 @@ app.get('/api/guests/:userId', async (req, res) => {
   }
 });
 
-// Add guest
 app.post('/api/guests', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -326,7 +349,6 @@ app.post('/api/guests', async (req, res) => {
   }
 });
 
-// Update guest
 app.patch('/api/guests/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -343,10 +365,9 @@ app.patch('/api/guests/:id', async (req, res) => {
 });
 
 // ==================
-// VENDOR LEADS ROUTES
+// LEADS ROUTES
 // ==================
 
-// Get vendor leads
 app.get('/api/leads/:vendorId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -361,7 +382,6 @@ app.get('/api/leads/:vendorId', async (req, res) => {
   }
 });
 
-// Add lead
 app.post('/api/leads', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -376,7 +396,6 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-// Update lead
 app.patch('/api/leads/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -396,7 +415,6 @@ app.patch('/api/leads/:id', async (req, res) => {
 // INVOICE ROUTES
 // ==================
 
-// Get vendor invoices
 app.get('/api/invoices/:vendorId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -411,7 +429,6 @@ app.get('/api/invoices/:vendorId', async (req, res) => {
   }
 });
 
-// Create invoice
 app.post('/api/invoices', async (req, res) => {
   try {
     const { amount } = req.body;
@@ -433,7 +450,6 @@ app.post('/api/invoices', async (req, res) => {
 // NOTIFICATIONS ROUTES
 // ==================
 
-// Get notifications
 app.get('/api/notifications/:userId', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -448,7 +464,6 @@ app.get('/api/notifications/:userId', async (req, res) => {
   }
 });
 
-// Mark notification read
 app.patch('/api/notifications/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -471,132 +486,24 @@ app.patch('/api/notifications/:id', async (req, res) => {
 app.post('/api/seed', async (req, res) => {
   try {
     const vendors = [
-      {
-        name: 'Joseph Radhik',
-        category: 'photographers',
-        city: 'Mumbai',
-        vibe_tags: ['Candid', 'Luxury'],
-        instagram_url: '@josephradhik',
-        starting_price: 300000,
-        max_price: 800000,
-        is_verified: true,
-        rating: 5.0,
-        review_count: 312,
-        subscription_active: true,
-        about: 'One of India\'s most celebrated wedding photographers.',
-        equipment: 'Leica, Nikon D6, DJI Inspire 2',
-        delivery_time: '8-12 weeks',
-        portfolio_images: ['https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800'],
-      },
-      {
-        name: 'The Leela Palace',
-        category: 'venues',
-        city: 'Delhi NCR',
-        vibe_tags: ['Luxury', 'Royal'],
-        instagram_url: '@theleela',
-        starting_price: 1500000,
-        max_price: 5000000,
-        is_verified: true,
-        rating: 4.9,
-        review_count: 189,
-        subscription_active: true,
-        about: 'One of India\'s finest luxury wedding venues.',
-        equipment: 'Capacity: 50-2000 guests · Indoor & Outdoor',
-        delivery_time: 'In-house catering included',
-        portfolio_images: ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800'],
-      },
-      {
-        name: 'Namrata Soni',
-        category: 'mua',
-        city: 'Mumbai',
-        vibe_tags: ['Luxury', 'Cinematic'],
-        instagram_url: '@namratasoni',
-        starting_price: 150000,
-        max_price: 500000,
-        is_verified: true,
-        rating: 4.9,
-        review_count: 445,
-        subscription_active: true,
-        about: 'Celebrity makeup artist to Bollywood\'s finest.',
-        equipment: 'Charlotte Tilbury, La Mer, Armani Beauty',
-        delivery_time: 'Trial session included',
-        portfolio_images: ['https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800'],
-      },
-      {
-        name: 'Sabyasachi Mukherjee',
-        category: 'designers',
-        city: 'Kolkata',
-        vibe_tags: ['Luxury', 'Traditional'],
-        instagram_url: '@sabyasachiofficial',
-        starting_price: 500000,
-        max_price: 3000000,
-        is_verified: true,
-        rating: 5.0,
-        review_count: 892,
-        subscription_active: true,
-        about: 'India\'s most celebrated bridal designer.',
-        equipment: 'Lead time: 6 months · Fully customised',
-        delivery_time: '6 months lead time',
-        portfolio_images: ['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800'],
-      },
-      {
-        name: 'DJ Chetas',
-        category: 'dj',
-        city: 'Mumbai',
-        vibe_tags: ['Festive', 'Luxury'],
-        instagram_url: '@djchetas',
-        starting_price: 500000,
-        max_price: 2000000,
-        is_verified: true,
-        rating: 4.9,
-        review_count: 234,
-        subscription_active: true,
-        about: 'India\'s most sought after celebrity DJ.',
-        equipment: 'Full sound system · LED setup included',
-        delivery_time: 'Setup included',
-        portfolio_images: ['https://images.unsplash.com/photo-1571266028243-d220c6a5d70b?w=800'],
-      },
-      {
-        name: 'Wizcraft International',
-        category: 'event-managers',
-        city: 'Mumbai',
-        vibe_tags: ['Luxury', 'Destination'],
-        instagram_url: '@wizcraft',
-        starting_price: 2000000,
-        max_price: 50000000,
-        is_verified: true,
-        rating: 5.0,
-        review_count: 445,
-        subscription_active: true,
-        about: 'India\'s premier luxury event management company.',
-        equipment: 'Full service · Destination weddings specialists',
-        delivery_time: 'Full planning included',
-        portfolio_images: ['https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800'],
-      },
-      {
-        name: 'Anmol Jewellers',
-        category: 'jewellery',
-        city: 'Delhi NCR',
-        vibe_tags: ['Luxury', 'Traditional'],
-        instagram_url: '@anmoljewellers',
-        starting_price: 200000,
-        max_price: 10000000,
-        is_verified: true,
-        rating: 4.8,
-        review_count: 189,
-        subscription_active: true,
-        about: 'India\'s finest bridal jewellery designers.',
-        equipment: 'Custom design · Gold & diamond specialists',
-        delivery_time: '3-4 months for custom pieces',
-        portfolio_images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800'],
-      },
+      { name: 'Joseph Radhik', category: 'photographers', city: 'Mumbai', vibe_tags: ['Candid', 'Luxury'], instagram_url: '@josephradhik', starting_price: 300000, max_price: 800000, is_verified: true, rating: 5.0, review_count: 312, subscription_active: true, about: 'One of India\'s most celebrated wedding photographers.', equipment: 'Leica, Nikon D6, DJI Inspire 2', delivery_time: '8-12 weeks', portfolio_images: ['https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800'] },
+      { name: 'The Leela Palace', category: 'venues', city: 'Delhi NCR', vibe_tags: ['Luxury', 'Royal'], instagram_url: '@theleela', starting_price: 1500000, max_price: 5000000, is_verified: true, rating: 4.9, review_count: 189, subscription_active: true, about: 'One of India\'s finest luxury wedding venues.', equipment: 'Capacity: 50-2000 guests · Indoor & Outdoor', delivery_time: 'In-house catering included', portfolio_images: ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800'] },
+      { name: 'Namrata Soni', category: 'mua', city: 'Mumbai', vibe_tags: ['Luxury', 'Cinematic'], instagram_url: '@namratasoni', starting_price: 150000, max_price: 500000, is_verified: true, rating: 4.9, review_count: 445, subscription_active: true, about: 'Celebrity makeup artist to Bollywood\'s finest.', equipment: 'Charlotte Tilbury, La Mer, Armani Beauty', delivery_time: 'Trial session included', portfolio_images: ['https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800'] },
+      { name: 'Sabyasachi Mukherjee', category: 'designers', city: 'Kolkata', vibe_tags: ['Luxury', 'Traditional'], instagram_url: '@sabyasachiofficial', starting_price: 500000, max_price: 3000000, is_verified: true, rating: 5.0, review_count: 892, subscription_active: true, about: 'India\'s most celebrated bridal designer.', equipment: 'Lead time: 6 months · Fully customised', delivery_time: '6 months lead time', portfolio_images: ['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800'] },
+      { name: 'DJ Chetas', category: 'dj', city: 'Mumbai', vibe_tags: ['Festive', 'Luxury'], instagram_url: '@djchetas', starting_price: 500000, max_price: 2000000, is_verified: true, rating: 4.9, review_count: 234, subscription_active: true, about: 'India\'s most sought after celebrity DJ.', equipment: 'Full sound system · LED setup included', delivery_time: 'Setup included', portfolio_images: ['https://images.unsplash.com/photo-1571266028243-d220c6a5d70b?w=800'] },
+      { name: 'Wizcraft International', category: 'event-managers', city: 'Mumbai', vibe_tags: ['Luxury', 'Destination'], instagram_url: '@wizcraft', starting_price: 2000000, max_price: 50000000, is_verified: true, rating: 5.0, review_count: 445, subscription_active: true, about: 'India\'s premier luxury event management company.', equipment: 'Full service · Destination weddings specialists', delivery_time: 'Full planning included', portfolio_images: ['https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800'] },
+      { name: 'Anmol Jewellers', category: 'jewellery', city: 'Delhi NCR', vibe_tags: ['Luxury', 'Traditional'], instagram_url: '@anmoljewellers', starting_price: 200000, max_price: 10000000, is_verified: true, rating: 4.8, review_count: 189, subscription_active: true, about: 'India\'s finest bridal jewellery designers.', equipment: 'Custom design · Gold & diamond specialists', delivery_time: '3-4 months for custom pieces', portfolio_images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800'] },
+      { name: 'Arjun Mehta Photography', category: 'photographers', city: 'Delhi NCR', vibe_tags: ['Candid', 'Editorial'], instagram_url: '@arjunmehta', starting_price: 150000, max_price: 400000, is_verified: true, rating: 4.8, review_count: 156, subscription_active: true, about: 'Editorial wedding photographer based in Delhi.', equipment: 'Canon R5, Sony A7IV', delivery_time: '6-8 weeks', portfolio_images: ['https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=800'] },
+      { name: 'Shakti Mohan', category: 'choreographers', city: 'Mumbai', vibe_tags: ['Festive', 'Contemporary'], instagram_url: '@shaktimohan', starting_price: 200000, max_price: 800000, is_verified: true, rating: 5.0, review_count: 312, subscription_active: true, about: 'Bollywood choreographer for sangeet ceremonies.', equipment: 'Full team · Rehearsal space included', delivery_time: '3-4 rehearsal sessions', portfolio_images: ['https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800'] },
+      { name: 'Ambika Pillai', category: 'mua', city: 'Delhi NCR', vibe_tags: ['Traditional', 'Luxury'], instagram_url: '@ambika_pillai', starting_price: 100000, max_price: 350000, is_verified: true, rating: 4.9, review_count: 567, subscription_active: true, about: 'India\'s most trusted bridal makeup artist.', equipment: 'MAC, NARS, Huda Beauty', delivery_time: 'Trial session included', portfolio_images: ['https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800'] },
+      { name: 'Umaid Bhawan Palace', category: 'venues', city: 'Jodhpur', vibe_tags: ['Royal', 'Destination', 'Luxury'], instagram_url: '@umaidbhawan', starting_price: 5000000, max_price: 50000000, is_verified: true, rating: 5.0, review_count: 89, subscription_active: true, about: 'The world\'s most spectacular wedding venue.', equipment: 'Capacity: 20-1000 guests · Full palace', delivery_time: 'All inclusive packages', portfolio_images: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800'] },
+      { name: 'Tarun Tahiliani', category: 'designers', city: 'Delhi NCR', vibe_tags: ['Luxury', 'Fusion'], instagram_url: '@taruntahiliani', starting_price: 300000, max_price: 2000000, is_verified: true, rating: 4.9, review_count: 445, subscription_active: true, about: 'Pioneer of Indian bridal couture.', equipment: 'Lead time: 4 months · Fully customised', delivery_time: '4 months lead time', portfolio_images: ['https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800'] },
+      { name: 'BTS by Zara', category: 'content-creators', city: 'Mumbai', vibe_tags: ['Candid', 'Cinematic'], instagram_url: '@btsbyzara', starting_price: 50000, max_price: 200000, is_verified: true, rating: 4.9, review_count: 234, subscription_active: true, about: 'Behind the scenes wedding content creator.', equipment: 'iPhone 15 Pro, GoPro, Gimbal', delivery_time: 'Same day reels', portfolio_images: ['https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800'] },
+      { name: 'Reel Moments', category: 'content-creators', city: 'Delhi NCR', vibe_tags: ['Cinematic', 'Editorial'], instagram_url: '@reelmoments', starting_price: 40000, max_price: 150000, is_verified: true, rating: 4.8, review_count: 189, subscription_active: true, about: 'Viral wedding reels specialist.', equipment: 'Sony ZV-E1, DJI OM6', delivery_time: '24 hour delivery', portfolio_images: ['https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800'] },
+      { name: 'Kapoor Wedding Films', category: 'photographers', city: 'Delhi NCR', vibe_tags: ['Cinematic', 'Luxury'], instagram_url: '@kapoorfilms', starting_price: 200000, max_price: 600000, is_verified: true, rating: 4.9, review_count: 178, subscription_active: true, about: 'Cinematic wedding films that tell your story.', equipment: 'RED Cinema, DJI Ronin', delivery_time: '10-14 weeks', portfolio_images: ['https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800'] },
     ];
 
-    const { data, error } = await supabase
-      .from('vendors')
-      .insert(vendors)
-      .select();
-
+    const { data, error } = await supabase.from('vendors').insert(vendors).select();
     if (error) throw error;
     res.json({ success: true, message: `${data.length} vendors seeded!`, data });
   } catch (error) {
@@ -604,7 +511,7 @@ app.post('/api/seed', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
   console.log(`The Dream Wedding API running on port ${PORT} 🎉`);
 });
