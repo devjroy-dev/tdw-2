@@ -8,60 +8,34 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
+  cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
 app.use(cors());
 app.use(express.json());
 
-// Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-// Socket.io real-time messaging
+// Socket.io
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-
   socket.on('join_conversation', ({ userId, vendorId }) => {
     const room = `conversation_${userId}_${vendorId}`;
     socket.join(room);
-    console.log(`User ${userId} joined room ${room}`);
   });
-
   socket.on('send_message', async ({ userId, vendorId, message, senderType }) => {
     const room = `conversation_${userId}_${vendorId}`;
-    const messageData = {
-      user_id: userId,
-      vendor_id: vendorId,
-      message,
-      sender_type: senderType,
-      created_at: new Date().toISOString(),
-    };
-    // Save to Supabase
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([messageData])
-      .select()
-      .single();
-    if (!error) {
-      io.to(room).emit('receive_message', data);
-    }
+    const messageData = { user_id: userId, vendor_id: vendorId, message, sender_type: senderType, created_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('messages').insert([messageData]).select().single();
+    if (!error) io.to(room).emit('receive_message', data);
   });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
+  socket.on('disconnect', () => console.log('User disconnected:', socket.id));
 });
 
-// Test route
-app.get('/', (req, res) => {
-  res.json({ message: 'The Dream Wedding API is live 🎉' });
-});
+app.get('/', (req, res) => res.json({ message: 'The Dream Wedding API is live 🎉' }));
 
 // ==================
 // VENDOR ROUTES
@@ -69,7 +43,7 @@ app.get('/', (req, res) => {
 
 app.get('/api/vendors', async (req, res) => {
   try {
-    const { category, city, vibe } = req.query;
+    const { category, city } = req.query;
     let query = supabase.from('vendors').select('*').eq('subscription_active', true);
     if (category) query = query.eq('category', category);
     if (city) query = query.eq('city', city);
@@ -83,11 +57,7 @@ app.get('/api/vendors', async (req, res) => {
 
 app.get('/api/vendors/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendors')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
+    const { data, error } = await supabase.from('vendors').select('*').eq('id', req.params.id).single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -97,11 +67,7 @@ app.get('/api/vendors/:id', async (req, res) => {
 
 app.post('/api/vendors', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendors')
-      .insert([req.body])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('vendors').insert([req.body]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -111,12 +77,7 @@ app.post('/api/vendors', async (req, res) => {
 
 app.patch('/api/vendors/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendors')
-      .update(req.body)
-      .eq('id', req.params.id)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('vendors').update(req.body).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -131,17 +92,9 @@ app.patch('/api/vendors/:id', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   try {
     const { phone, name, email } = req.body;
-    const { data: existing } = await supabase
-      .from('users')
-      .select('*')
-      .eq('phone', phone)
-      .single();
+    const { data: existing } = await supabase.from('users').select('*').eq('phone', phone).single();
     if (existing) return res.json({ success: true, data: existing, isNew: false });
-    const { data, error } = await supabase
-      .from('users')
-      .insert([{ phone, name, email }])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('users').insert([{ phone, name, email }]).select().single();
     if (error) throw error;
     res.json({ success: true, data, isNew: true });
   } catch (error) {
@@ -151,11 +104,7 @@ app.post('/api/users', async (req, res) => {
 
 app.get('/api/users/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
+    const { data, error } = await supabase.from('users').select('*').eq('id', req.params.id).single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -165,12 +114,7 @@ app.get('/api/users/:id', async (req, res) => {
 
 app.patch('/api/users/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .update(req.body)
-      .eq('id', req.params.id)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('users').update(req.body).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -184,11 +128,7 @@ app.patch('/api/users/:id', async (req, res) => {
 
 app.get('/api/moodboard/:userId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('moodboard_items')
-      .select('*, vendors(*)')
-      .eq('user_id', req.params.userId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('moodboard_items').select('*, vendors(*)').eq('user_id', req.params.userId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -198,11 +138,7 @@ app.get('/api/moodboard/:userId', async (req, res) => {
 
 app.post('/api/moodboard', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('moodboard_items')
-      .insert([req.body])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('moodboard_items').insert([req.body]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -212,10 +148,7 @@ app.post('/api/moodboard', async (req, res) => {
 
 app.delete('/api/moodboard/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('moodboard_items')
-      .delete()
-      .eq('id', req.params.id);
+    const { error } = await supabase.from('moodboard_items').delete().eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
   } catch (error) {
@@ -229,11 +162,7 @@ app.delete('/api/moodboard/:id', async (req, res) => {
 
 app.post('/api/bookings', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert([req.body])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('bookings').insert([req.body]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -243,11 +172,7 @@ app.post('/api/bookings', async (req, res) => {
 
 app.get('/api/bookings/user/:userId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*, vendors(*)')
-      .eq('user_id', req.params.userId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('bookings').select('*, vendors(*)').eq('user_id', req.params.userId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -257,11 +182,7 @@ app.get('/api/bookings/user/:userId', async (req, res) => {
 
 app.get('/api/bookings/vendor/:vendorId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*, users(*)')
-      .eq('vendor_id', req.params.vendorId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('bookings').select('*, users(*)').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -271,12 +192,7 @@ app.get('/api/bookings/vendor/:vendorId', async (req, res) => {
 
 app.patch('/api/bookings/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('bookings')
-      .update(req.body)
-      .eq('id', req.params.id)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('bookings').update(req.body).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -290,12 +206,7 @@ app.patch('/api/bookings/:id', async (req, res) => {
 
 app.get('/api/messages/:userId/:vendorId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('user_id', req.params.userId)
-      .eq('vendor_id', req.params.vendorId)
-      .order('created_at', { ascending: true });
+    const { data, error } = await supabase.from('messages').select('*').eq('user_id', req.params.userId).eq('vendor_id', req.params.vendorId).order('created_at', { ascending: true });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -305,11 +216,7 @@ app.get('/api/messages/:userId/:vendorId', async (req, res) => {
 
 app.post('/api/messages', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([req.body])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('messages').insert([req.body]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -323,11 +230,7 @@ app.post('/api/messages', async (req, res) => {
 
 app.get('/api/guests/:userId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('guests')
-      .select('*')
-      .eq('user_id', req.params.userId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('guests').select('*').eq('user_id', req.params.userId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -337,11 +240,7 @@ app.get('/api/guests/:userId', async (req, res) => {
 
 app.post('/api/guests', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('guests')
-      .insert([req.body])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('guests').insert([req.body]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -351,12 +250,7 @@ app.post('/api/guests', async (req, res) => {
 
 app.patch('/api/guests/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('guests')
-      .update(req.body)
-      .eq('id', req.params.id)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('guests').update(req.body).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -370,11 +264,7 @@ app.patch('/api/guests/:id', async (req, res) => {
 
 app.get('/api/leads/:vendorId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendor_leads')
-      .select('*')
-      .eq('vendor_id', req.params.vendorId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('vendor_leads').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -384,11 +274,7 @@ app.get('/api/leads/:vendorId', async (req, res) => {
 
 app.post('/api/leads', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendor_leads')
-      .insert([req.body])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('vendor_leads').insert([req.body]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -398,12 +284,7 @@ app.post('/api/leads', async (req, res) => {
 
 app.patch('/api/leads/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendor_leads')
-      .update(req.body)
-      .eq('id', req.params.id)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('vendor_leads').update(req.body).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -417,11 +298,7 @@ app.patch('/api/leads/:id', async (req, res) => {
 
 app.get('/api/invoices/:vendorId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vendor_invoices')
-      .select('*')
-      .eq('vendor_id', req.params.vendorId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('vendor_invoices').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -434,11 +311,7 @@ app.post('/api/invoices', async (req, res) => {
     const { amount } = req.body;
     const gst_amount = amount * 0.18;
     const total_amount = amount + gst_amount;
-    const { data, error } = await supabase
-      .from('vendor_invoices')
-      .insert([{ ...req.body, gst_amount, total_amount }])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('vendor_invoices').insert([{ ...req.body, gst_amount, total_amount }]).select().single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -452,11 +325,7 @@ app.post('/api/invoices', async (req, res) => {
 
 app.get('/api/notifications/:userId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', req.params.userId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('notifications').select('*').eq('user_id', req.params.userId).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ success: true, data });
   } catch (error) {
@@ -466,14 +335,38 @@ app.get('/api/notifications/:userId', async (req, res) => {
 
 app.patch('/api/notifications/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', req.params.id)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('notifications').update({ read: true }).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================
+// BENCHMARKING
+// ==================
+
+app.get('/api/benchmark/:category/:city', async (req, res) => {
+  try {
+    const { category, city } = req.params;
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('name, starting_price, max_price, rating')
+      .eq('category', category)
+      .eq('city', city)
+      .eq('subscription_active', true);
+    if (error) throw error;
+    if (!data || data.length === 0) return res.json({ success: true, data: null });
+    const prices = data.map(v => v.starting_price).filter(Boolean);
+    const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const avgRating = (data.reduce((a, b) => a + (b.rating || 0), 0) / data.length).toFixed(1);
+    res.json({
+      success: true,
+      data: { category, city, vendorCount: data.length, avgStartingPrice: avgPrice, minStartingPrice: minPrice, maxStartingPrice: maxPrice, avgRating, vendors: data }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -502,7 +395,6 @@ app.post('/api/seed', async (req, res) => {
       { name: 'Reel Moments', category: 'content-creators', city: 'Delhi NCR', vibe_tags: ['Cinematic', 'Editorial'], instagram_url: '@reelmoments', starting_price: 40000, max_price: 150000, is_verified: true, rating: 4.8, review_count: 189, subscription_active: true, about: 'Viral wedding reels specialist.', equipment: 'Sony ZV-E1, DJI OM6', delivery_time: '24 hour delivery', portfolio_images: ['https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800'] },
       { name: 'Kapoor Wedding Films', category: 'photographers', city: 'Delhi NCR', vibe_tags: ['Cinematic', 'Luxury'], instagram_url: '@kapoorfilms', starting_price: 200000, max_price: 600000, is_verified: true, rating: 4.9, review_count: 178, subscription_active: true, about: 'Cinematic wedding films that tell your story.', equipment: 'RED Cinema, DJI Ronin', delivery_time: '10-14 weeks', portfolio_images: ['https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800'] },
     ];
-
     const { data, error } = await supabase.from('vendors').insert(vendors).select();
     if (error) throw error;
     res.json({ success: true, message: `${data.length} vendors seeded!`, data });
