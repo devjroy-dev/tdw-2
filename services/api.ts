@@ -180,3 +180,12 @@ export const markNotificationRead = async (id: string) => {
   const response = await api.patch(`/notifications/${id}`, { read: true });
   return response.data;
 };
+
+// ==================
+// BENCHMARKING
+// ==================
+
+export const getBenchmark = async (category: string, city: string) => {
+  const response = await api.get(`/benchmark/${category}/${city}`);
+  return response.data;
+};
