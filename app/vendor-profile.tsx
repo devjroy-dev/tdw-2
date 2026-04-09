@@ -1,96 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, ScrollView, Image
+  Dimensions, ScrollView, Image, ActivityIndicator
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { getVendor } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
-
-const MOCK_VENDOR_DETAILS: Record<string, any> = {
-  '1': {
-    id: '1',
-    name: 'Joseph Radhik',
-    category: 'Photographer',
-    city: 'Mumbai',
-    price: '₹3,00,000 onwards',
-    vibe: ['Candid', 'Luxury'],
-    rating: 5.0,
-    reviews: 312,
-    verified: true,
-    instagram: '@josephradhik',
-    about: 'One of India\'s most celebrated wedding photographers. Known for capturing raw, emotional moments with a cinematic touch. Has shot weddings across India, Europe and Southeast Asia for some of the country\'s most prominent families.',
-    equipment: 'Leica, Nikon D6, DJI Inspire 2',
-    delivery: '8–12 weeks post wedding',
-    images: [
-      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
-      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
-    ],
-    videoReviews: [
-      { id: '1', client: 'Priya & Rahul', rating: 5, thumbnail: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400' },
-      { id: '2', client: 'Ananya & Dev', rating: 5, thumbnail: 'https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=400' },
-    ],
-  },
-  '2': {
-    id: '2',
-    name: 'The Leela Palace',
-    category: 'Venue',
-    city: 'Delhi NCR',
-    price: '₹15,00,000 onwards',
-    vibe: ['Luxury', 'Royal'],
-    rating: 4.9,
-    reviews: 189,
-    verified: true,
-    instagram: '@theleela',
-    about: 'The Leela Palace New Delhi is one of India\'s finest luxury hotels offering spectacular wedding venues. From grand ballrooms to lush gardens, every space is designed to make your celebration truly unforgettable.',
-    equipment: 'Capacity: 50–2000 guests · Indoor & Outdoor · In-house catering',
-    delivery: 'In-house catering & décor included',
-    images: [
-      'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
-      'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
-      'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
-      'https://images.unsplash.com/photo-1510076857177-7470076d4098?w=800',
-    ],
-    videoReviews: [
-      { id: '1', client: 'Sneha & Arjun', rating: 5, thumbnail: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400' },
-    ],
-  },
-  '3': {
-    id: '3',
-    name: 'Namrata Soni',
-    category: 'MUA',
-    city: 'Mumbai',
-    price: '₹1,50,000 onwards',
-    vibe: ['Luxury', 'Cinematic'],
-    rating: 4.9,
-    reviews: 445,
-    verified: true,
-    instagram: '@namratasoni',
-    about: 'Celebrity makeup artist to Bollywood\'s finest. Namrata Soni has worked with Deepika Padukone, Sonam Kapoor and countless brides seeking that perfect, camera-ready look. Known for her flawless skin finish and editorial eye.',
-    equipment: 'Charlotte Tilbury, La Mer, Armani Beauty, NARS',
-    delivery: 'Trial session included · Team available for full wedding party',
-    images: [
-      'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
-      'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
-      'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800',
-      'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=800',
-    ],
-    videoReviews: [
-      { id: '1', client: 'Riya & Karan', rating: 5, thumbnail: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400' },
-    ],
-  },
-};
 
 export default function VendorProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const [vendor, setVendor] = useState<any>(null);
   const [hearted, setHearted] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const vendor = MOCK_VENDOR_DETAILS[id as string] || MOCK_VENDOR_DETAILS['1'];
+  useEffect(() => {
+    loadVendor();
+  }, [id]);
+
+  const loadVendor = async () => {
+    try {
+      setLoading(true);
+      const result = await getVendor(id as string);
+      if (result.success) {
+        setVendor(result.data);
+      }
+    } catch (error) {
+      console.log('Error loading vendor:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#C9A84C" />
+      </View>
+    );
+  }
+
+  if (!vendor) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Vendor not found</Text>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backLink}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const images = vendor.portfolio_images || [];
 
   return (
     <View style={styles.container}>
@@ -111,36 +74,43 @@ export default function VendorProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Gallery */}
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={e => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / width);
-            setActiveImage(index);
-          }}
-          scrollEventThrottle={16}
-        >
-          {vendor.images.map((img: string, i: number) => (
-            <Image key={i} source={{ uri: img }} style={styles.galleryImage} />
-          ))}
-        </ScrollView>
+        {images.length > 0 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={e => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / width);
+              setActiveImage(index);
+            }}
+            scrollEventThrottle={16}
+          >
+            {images.map((img: string, i: number) => (
+              <Image key={i} source={{ uri: img }} style={styles.galleryImage} />
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.placeholderImage}>
+            <Text style={styles.placeholderText}>{vendor.name[0]}</Text>
+          </View>
+        )}
 
         {/* Dots */}
-        <View style={styles.dots}>
-          {vendor.images.map((_: any, i: number) => (
-            <View key={i} style={[styles.dot, activeImage === i && styles.dotActive]} />
-          ))}
-        </View>
+        {images.length > 1 && (
+          <View style={styles.dots}>
+            {images.map((_: any, i: number) => (
+              <View key={i} style={[styles.dot, activeImage === i && styles.dotActive]} />
+            ))}
+          </View>
+        )}
 
         <View style={styles.content}>
 
-          {/* Name & Rating */}
           <View style={styles.nameRow}>
             <View style={styles.nameCol}>
               <View style={styles.nameWithBadge}>
                 <Text style={styles.vendorName}>{vendor.name}</Text>
-                {vendor.verified && (
+                {vendor.is_verified && (
                   <View style={styles.verifiedBadge}>
                     <Text style={styles.verifiedText}>✓</Text>
                   </View>
@@ -150,15 +120,16 @@ export default function VendorProfileScreen() {
             </View>
             <View style={styles.ratingBox}>
               <Text style={styles.ratingScore}>★ {vendor.rating}</Text>
-              <Text style={styles.ratingCount}>{vendor.reviews} reviews</Text>
+              <Text style={styles.ratingCount}>{vendor.review_count} reviews</Text>
             </View>
           </View>
 
-          {/* Price & Vibe */}
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{vendor.price}</Text>
+            <Text style={styles.price}>
+              ₹{(vendor.starting_price / 100000).toFixed(0)}L onwards
+            </Text>
             <View style={styles.vibeTags}>
-              {vendor.vibe.map((v: string) => (
+              {vendor.vibe_tags?.map((v: string) => (
                 <View key={v} style={styles.vibeTag}>
                   <Text style={styles.vibeTagText}>{v}</Text>
                 </View>
@@ -168,7 +139,6 @@ export default function VendorProfileScreen() {
 
           <View style={styles.divider} />
 
-          {/* About */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>About</Text>
             <Text style={styles.sectionText}>{vendor.about}</Text>
@@ -176,60 +146,52 @@ export default function VendorProfileScreen() {
 
           <View style={styles.divider} />
 
-          {/* Details */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Details</Text>
             <View style={styles.detailsList}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailKey}>Equipment</Text>
-                <Text style={styles.detailVal}>{vendor.equipment}</Text>
-              </View>
-              <View style={styles.detailDivider} />
-              <View style={styles.detailRow}>
-                <Text style={styles.detailKey}>Delivery</Text>
-                <Text style={styles.detailVal}>{vendor.delivery}</Text>
-              </View>
-              <View style={styles.detailDivider} />
-              <View style={styles.detailRow}>
-                <Text style={styles.detailKey}>Instagram</Text>
-                <Text style={[styles.detailVal, styles.instagram]}>{vendor.instagram}</Text>
-              </View>
+              {vendor.equipment && (
+                <>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Equipment</Text>
+                    <Text style={styles.detailVal}>{vendor.equipment}</Text>
+                  </View>
+                  <View style={styles.detailDivider} />
+                </>
+              )}
+              {vendor.delivery_time && (
+                <>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Delivery</Text>
+                    <Text style={styles.detailVal}>{vendor.delivery_time}</Text>
+                  </View>
+                  <View style={styles.detailDivider} />
+                </>
+              )}
+              {vendor.instagram_url && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Instagram</Text>
+                  <Text style={[styles.detailVal, styles.instagram]}>{vendor.instagram_url}</Text>
+                </View>
+              )}
             </View>
           </View>
 
           <View style={styles.divider} />
 
-          {/* Reviews */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Client Reviews</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.reviewRow}>
-                {vendor.videoReviews.map((review: any) => (
-                  <TouchableOpacity key={review.id} style={styles.reviewCard}>
-                    <Image source={{ uri: review.thumbnail }} style={styles.reviewThumb} />
-                    <View style={styles.playBtn}>
-                      <Text style={styles.playBtnText}>▶</Text>
-                    </View>
-                    <View style={styles.reviewInfo}>
-                      <Text style={styles.reviewClient}>{review.client}</Text>
-                      <Text style={styles.reviewRating}>{'★'.repeat(review.rating)}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            <Text style={styles.sectionLabel}>Find Similar</Text>
+            <TouchableOpacity
+              style={styles.lookalikeBtn}
+              onPress={() => router.push(`/lookalike?vendorName=${vendor.name}&category=${vendor.category}`)}
+            >
+              <Text style={styles.lookalikeBtnText}>Find similar style in my budget →</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Look-alike */}
-          <TouchableOpacity style={styles.lookalikeBtn}>
-            <Text style={styles.lookalikeBtnText}>Find similar style in my budget →</Text>
-          </TouchableOpacity>
 
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
-      {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.quoteBtn}
@@ -259,6 +221,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F0E8',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#F5F0E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8C7B6E',
+  },
+  backLink: {
+    fontSize: 14,
+    color: '#C9A84C',
   },
   backBtn: {
     position: 'absolute',
@@ -302,6 +279,18 @@ const styles = StyleSheet.create({
     width,
     height: height * 0.48,
     resizeMode: 'cover',
+  },
+  placeholderImage: {
+    width,
+    height: height * 0.48,
+    backgroundColor: '#2C2420',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 80,
+    color: '#C9A84C',
+    fontWeight: '300',
   },
   dots: {
     flexDirection: 'row',
@@ -453,58 +442,12 @@ const styles = StyleSheet.create({
   instagram: {
     color: '#C9A84C',
   },
-  reviewRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  reviewCard: {
-    width: 140,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-  },
-  reviewThumb: {
-    width: 140,
-    height: 100,
-    resizeMode: 'cover',
-  },
-  playBtn: {
-    position: 'absolute',
-    top: 36,
-    left: 56,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playBtnText: {
-    color: '#F5F0E8',
-    fontSize: 10,
-  },
-  reviewInfo: {
-    padding: 10,
-    gap: 3,
-  },
-  reviewClient: {
-    fontSize: 12,
-    color: '#2C2420',
-    fontWeight: '500',
-  },
-  reviewRating: {
-    fontSize: 10,
-    color: '#C9A84C',
-  },
   lookalikeBtn: {
     borderWidth: 1,
     borderColor: '#E8E0D5',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 4,
     backgroundColor: '#FFFFFF',
   },
   lookalikeBtnText: {

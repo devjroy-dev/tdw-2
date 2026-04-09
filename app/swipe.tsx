@@ -1,183 +1,47 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Dimensions, Animated, PanResponder, Image, Platform
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { getVendors } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
-
-const ALL_VENDORS = [
-  {
-    id: '1',
-    name: 'Joseph Radhik',
-    category: 'photographers',
-    city: 'Mumbai',
-    price: '₹3,00,000 onwards',
-    vibe: ['Candid', 'Luxury'],
-    rating: 5.0,
-    reviews: 312,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
-  },
-  {
-    id: '2',
-    name: 'The Leela Palace',
-    category: 'venues',
-    city: 'Delhi NCR',
-    price: '₹15,00,000 onwards',
-    vibe: ['Luxury', 'Royal'],
-    rating: 4.9,
-    reviews: 189,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
-  },
-  {
-    id: '3',
-    name: 'Namrata Soni',
-    category: 'mua',
-    city: 'Mumbai',
-    price: '₹1,50,000 onwards',
-    vibe: ['Luxury', 'Cinematic'],
-    rating: 4.9,
-    reviews: 445,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
-  },
-  {
-    id: '4',
-    name: 'Reel Moments',
-    category: 'content-creators',
-    city: 'Mumbai',
-    price: '₹15,000 onwards',
-    vibe: ['Candid', 'Cinematic'],
-    rating: 4.9,
-    reviews: 67,
-    verified: false,
-    image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
-  },
-  {
-    id: '5',
-    name: 'Sabyasachi Mukherjee',
-    category: 'designers',
-    city: 'Kolkata',
-    price: '₹5,00,000 onwards',
-    vibe: ['Luxury', 'Traditional'],
-    rating: 5.0,
-    reviews: 892,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800',
-  },
-  {
-    id: '6',
-    name: 'Shakti Mohan',
-    category: 'choreographers',
-    city: 'Mumbai',
-    price: '₹2,00,000 onwards',
-    vibe: ['Festive', 'Contemporary'],
-    rating: 4.9,
-    reviews: 156,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1545959570-a94084071b5d?w=800',
-  },
-  {
-    id: '7',
-    name: 'Tarun Tahiliani',
-    category: 'designers',
-    city: 'Delhi NCR',
-    price: '₹8,00,000 onwards',
-    vibe: ['Luxury', 'Contemporary'],
-    rating: 5.0,
-    reviews: 634,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-  },
-  {
-    id: '8',
-    name: 'Umaid Bhawan Palace',
-    category: 'venues',
-    city: 'Jaipur',
-    price: '₹50,00,000 onwards',
-    vibe: ['Royal', 'Luxury', 'Destination'],
-    rating: 5.0,
-    reviews: 278,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
-  },
-  {
-    id: '9',
-    name: 'Ambika Pillai',
-    category: 'mua',
-    city: 'Delhi NCR',
-    price: '₹2,00,000 onwards',
-    vibe: ['Luxury', 'Traditional'],
-    rating: 4.9,
-    reviews: 567,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
-  },
-  {
-    id: '10',
-    name: 'BTS by Zara',
-    category: 'content-creators',
-    city: 'Delhi NCR',
-    price: '₹20,000 onwards',
-    vibe: ['Candid', 'Boho'],
-    rating: 4.7,
-    reviews: 43,
-    verified: false,
-    image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
-  },
-  {
-    id: '11',
-    name: 'DJ Chetas',
-    category: 'dj',
-    city: 'Mumbai',
-    price: '₹5,00,000 onwards',
-    vibe: ['Festive', 'Luxury'],
-    rating: 4.9,
-    reviews: 234,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1571266028243-d220c6a5d70b?w=800',
-  },
-  {
-    id: '12',
-    name: 'Wizcraft International',
-    category: 'event-managers',
-    city: 'Mumbai',
-    price: '₹20,00,000 onwards',
-    vibe: ['Luxury', 'Destination', 'Contemporary'],
-    rating: 5.0,
-    reviews: 445,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
-  },
-  {
-    id: '13',
-    name: 'Anmol Jewellers',
-    category: 'jewellery',
-    city: 'Delhi NCR',
-    price: '₹2,00,000 onwards',
-    vibe: ['Luxury', 'Traditional', 'Royal'],
-    rating: 4.8,
-    reviews: 189,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800',
-  },
-];
 
 export default function SwipeScreen() {
   const router = useRouter();
   const { category } = useLocalSearchParams();
+  const [vendors, setVendors] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [showToast, setShowToast] = useState(false);
+  const [loading, setLoading] = useState(true);
   const position = useRef(new Animated.ValueXY()).current;
   const isDragging = useRef(false);
   const startX = useRef(0);
   const startY = useRef(0);
 
-  const vendors = ALL_VENDORS.filter(v => v.category === category);
+  useEffect(() => {
+    loadVendors();
+  }, [category]);
+
+  const loadVendors = async () => {
+    try {
+      setLoading(true);
+      const result = await getVendors(category as string);
+      if (result.success && result.data.length > 0) {
+        setVendors(result.data);
+      } else {
+        // Fallback to mock data if no real vendors yet
+        setVendors(MOCK_VENDORS.filter(v => v.category === category));
+      }
+    } catch (error) {
+      // Fallback to mock data on error
+      setVendors(MOCK_VENDORS.filter((v: any) => v.category === category));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const rotation = position.x.interpolate({
     inputRange: [-width / 2, 0, width / 2],
@@ -283,6 +147,14 @@ export default function SwipeScreen() {
     onTouchEnd: handleMouseUp,
   } : {};
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Finding vendors...</Text>
+      </View>
+    );
+  }
+
   if (!vendor) {
     return (
       <View style={styles.emptyContainer}>
@@ -298,14 +170,12 @@ export default function SwipeScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Toast */}
       {showToast && (
         <Animated.View style={styles.toast}>
           <Text style={styles.toastText}>Saved to Moodboard ✓</Text>
         </Animated.View>
       )}
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backBtn}>←</Text>
@@ -321,18 +191,19 @@ export default function SwipeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Hint */}
       <View style={styles.hintRow}>
         <Text style={styles.hint}>Pass ←</Text>
         <View style={styles.hintDot} />
         <Text style={styles.hint}>→ Save</Text>
       </View>
 
-      {/* Card Stack */}
       <View style={styles.cardContainer}>
         {nextVendor && (
           <View style={[styles.card, styles.cardBehind]}>
-            <Image source={{ uri: nextVendor.image }} style={styles.cardImage} />
+            <Image
+              source={{ uri: nextVendor.portfolio_images?.[0] || nextVendor.image }}
+              style={styles.cardImage}
+            />
           </View>
         )}
 
@@ -355,9 +226,12 @@ export default function SwipeScreen() {
             onPress={() => router.push(`/vendor-profile?id=${vendor.id}`)}
             activeOpacity={1}
           >
-            <Image source={{ uri: vendor.image }} style={styles.cardImage} />
+            <Image
+              source={{ uri: vendor.portfolio_images?.[0] || vendor.image }}
+              style={styles.cardImage}
+            />
 
-            {vendor.verified && (
+            {vendor.is_verified && (
               <View style={styles.verifiedBadge}>
                 <Text style={styles.verifiedText}>✓ Verified</Text>
               </View>
@@ -383,9 +257,11 @@ export default function SwipeScreen() {
               </View>
 
               <View style={styles.cardInfoBottom}>
-                <Text style={styles.vendorPrice}>{vendor.price}</Text>
+                <Text style={styles.vendorPrice}>
+                  ₹{(vendor.starting_price / 100000).toFixed(0)}L onwards
+                </Text>
                 <View style={styles.vibeTags}>
-                  {vendor.vibe.slice(0, 2).map(v => (
+                  {vendor.vibe_tags?.slice(0, 2).map((v: string) => (
                     <View key={v} style={styles.vibeTag}>
                       <Text style={styles.vibeTagText}>{v}</Text>
                     </View>
@@ -404,7 +280,6 @@ export default function SwipeScreen() {
         </Animated.View>
       </View>
 
-      {/* Actions */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.passBtn} onPress={swipeLeft}>
           <Text style={styles.passBtnText}>✕</Text>
@@ -414,7 +289,6 @@ export default function SwipeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Genie Bar */}
       <View style={styles.genieBar}>
         <Text style={styles.genieText}>Genie · Estimated spend: ₹0 of ₹25L budget</Text>
       </View>
@@ -423,11 +297,103 @@ export default function SwipeScreen() {
   );
 }
 
+// Fallback mock data
+const MOCK_VENDORS = [
+  {
+    id: '1',
+    name: 'Joseph Radhik',
+    category: 'photographers',
+    city: 'Mumbai',
+    starting_price: 300000,
+    vibe_tags: ['Candid', 'Luxury'],
+    rating: 5.0,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800'],
+  },
+  {
+    id: '2',
+    name: 'The Leela Palace',
+    category: 'venues',
+    city: 'Delhi NCR',
+    starting_price: 1500000,
+    vibe_tags: ['Luxury', 'Royal'],
+    rating: 4.9,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800'],
+  },
+  {
+    id: '3',
+    name: 'Namrata Soni',
+    category: 'mua',
+    city: 'Mumbai',
+    starting_price: 150000,
+    vibe_tags: ['Luxury', 'Cinematic'],
+    rating: 4.9,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800'],
+  },
+  {
+    id: '4',
+    name: 'Sabyasachi Mukherjee',
+    category: 'designers',
+    city: 'Kolkata',
+    starting_price: 500000,
+    vibe_tags: ['Luxury', 'Traditional'],
+    rating: 5.0,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800'],
+  },
+  {
+    id: '5',
+    name: 'DJ Chetas',
+    category: 'dj',
+    city: 'Mumbai',
+    starting_price: 500000,
+    vibe_tags: ['Festive', 'Luxury'],
+    rating: 4.9,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1571266028243-d220c6a5d70b?w=800'],
+  },
+  {
+    id: '6',
+    name: 'Wizcraft International',
+    category: 'event-managers',
+    city: 'Mumbai',
+    starting_price: 2000000,
+    vibe_tags: ['Luxury', 'Destination'],
+    rating: 5.0,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800'],
+  },
+  {
+    id: '7',
+    name: 'Anmol Jewellers',
+    category: 'jewellery',
+    city: 'Delhi NCR',
+    starting_price: 200000,
+    vibe_tags: ['Luxury', 'Traditional'],
+    rating: 4.8,
+    is_verified: true,
+    portfolio_images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800'],
+  },
+];
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F0E8',
     paddingTop: 60,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#F5F0E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8C7B6E',
+    letterSpacing: 0.5,
   },
   toast: {
     position: 'absolute',
