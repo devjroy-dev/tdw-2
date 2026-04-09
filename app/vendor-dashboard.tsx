@@ -1,17 +1,19 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Dimensions, ScrollView,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Alert,
-  ActivityIndicator,
-  Image
+  View
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../services/cloudinary';
 
 const { width } = Dimensions.get('window');
@@ -34,7 +36,7 @@ const LEAD_PIPELINE = [
   { id: '5', name: 'Meera & Vikram', stage: 'Completed', date: 'Oct 10', value: '₹3,00,000' },
 ];
 
-const MOCK_CLIENTS = [
+const INITIAL_CLIENTS = [
   { id: '1', name: 'Rohit & Simran', phone: '9876543210', wedding_date: 'March 15, 2026', status: 'upcoming', invited: false },
   { id: '2', name: 'Amit & Pooja', phone: '9988776655', wedding_date: 'February 8, 2026', status: 'upcoming', invited: true },
   { id: '3', name: 'Vikram & Neha', phone: '9123456789', wedding_date: 'October 20, 2025', status: 'completed', invited: false },
@@ -47,6 +49,11 @@ const STAGE_COLORS: Record<string, string> = {
   'Completed': '#2C2420',
 };
 
+const PROMOS = [
+  { id: '1', title: '15% Off December Bookings', expires: 'Nov 30, 2025', active: true, leads: 12 },
+  { id: '2', title: 'Free Pre-Wedding Shoot', expires: 'Dec 15, 2025', active: false, leads: 0 },
+];
+
 export default function VendorDashboardScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Overview');
@@ -56,7 +63,15 @@ export default function VendorDashboardScreen() {
   const [invoiceAmount, setInvoiceAmount] = useState('');
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [clients, setClients] = useState(MOCK_CLIENTS);
+  const [clients, setClients] = useState(INITIAL_CLIENTS);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientDate, setNewClientDate] = useState('');
+  const [promos, setPromos] = useState(PROMOS);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [newPromoTitle, setNewPromoTitle] = useState('');
+  const [newPromoExpiry, setNewPromoExpiry] = useState('');
 
   const handleImageUpload = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -88,8 +103,117 @@ export default function VendorDashboardScreen() {
     Alert.alert('Invite Sent!', 'Your client will receive a WhatsApp message to join The Dream Wedding.');
   };
 
+  const handleAddClient = () => {
+    if (!newClientName || !newClientPhone || !newClientDate) {
+      Alert.alert('Missing info', 'Please fill in all fields.');
+      return;
+    }
+    const newClient = {
+      id: Date.now().toString(),
+      name: newClientName,
+      phone: newClientPhone,
+      wedding_date: newClientDate,
+      status: 'upcoming',
+      invited: false,
+    };
+    setClients(prev => [...prev, newClient]);
+    setNewClientName('');
+    setNewClientPhone('');
+    setNewClientDate('');
+    setShowAddClient(false);
+    Alert.alert('Client Added!', `${newClientName} has been added. Send them an invite to join The Dream Wedding.`);
+  };
+
+  const handleCreatePromo = () => {
+    if (!newPromoTitle || !newPromoExpiry) {
+      Alert.alert('Missing info', 'Please fill in all fields.');
+      return;
+    }
+    const newPromo = {
+      id: Date.now().toString(),
+      title: newPromoTitle,
+      expires: newPromoExpiry,
+      active: true,
+      leads: 0,
+    };
+    setPromos(prev => [...prev, newPromo]);
+    setNewPromoTitle('');
+    setNewPromoExpiry('');
+    setShowPromoForm(false);
+    Alert.alert('Promo Live!', 'Couples in your city will be notified of your offer.');
+  };
+
   return (
     <View style={styles.container}>
+
+      {/* Add Client Modal */}
+      <Modal visible={showAddClient} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add Client</Text>
+            <Text style={styles.modalSubtitle}>They'll get a WhatsApp invite to join The Dream Wedding</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Couple names (e.g. Priya & Rahul)"
+              placeholderTextColor="#8C7B6E"
+              value={newClientName}
+              onChangeText={setNewClientName}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Phone number"
+              placeholderTextColor="#8C7B6E"
+              value={newClientPhone}
+              onChangeText={setNewClientPhone}
+              keyboardType="phone-pad"
+              maxLength={10}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Wedding date (e.g. March 15, 2026)"
+              placeholderTextColor="#8C7B6E"
+              value={newClientDate}
+              onChangeText={setNewClientDate}
+            />
+            <TouchableOpacity style={styles.modalBtn} onPress={handleAddClient}>
+              <Text style={styles.modalBtnText}>Add & Invite</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAddClient(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Create Promo Modal */}
+      <Modal visible={showPromoForm} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Create Promo</Text>
+            <Text style={styles.modalSubtitle}>Couples in your city will be notified instantly</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Promo title (e.g. 15% Off December Bookings)"
+              placeholderTextColor="#8C7B6E"
+              value={newPromoTitle}
+              onChangeText={setNewPromoTitle}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Expires on (e.g. Dec 31, 2025)"
+              placeholderTextColor="#8C7B6E"
+              value={newPromoExpiry}
+              onChangeText={setNewPromoExpiry}
+            />
+            <TouchableOpacity style={styles.modalBtn} onPress={handleCreatePromo}>
+              <Text style={styles.modalBtnText}>Go Live</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowPromoForm(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Header */}
       <View style={styles.header}>
@@ -186,9 +310,9 @@ export default function VendorDashboardScreen() {
                 <Text style={styles.actionNumber}>★ 4.9</Text>
                 <Text style={styles.actionLabel}>Your Rating</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('Tools')}>
-                <Text style={styles.actionNumber}>5</Text>
-                <Text style={styles.actionLabel}>Tools</Text>
+              <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('Clients')}>
+                <Text style={styles.actionNumber}>{clients.length}</Text>
+                <Text style={styles.actionLabel}>My Clients</Text>
               </TouchableOpacity>
             </View>
 
@@ -284,6 +408,33 @@ export default function VendorDashboardScreen() {
           <View style={styles.tabPane}>
             <Text style={styles.sectionLabel}>Business Tools</Text>
 
+            {/* Promo Engine */}
+            <View style={styles.toolCard}>
+              <View style={styles.toolHeader}>
+                <Text style={styles.toolTitle}>Promo Engine</Text>
+                <TouchableOpacity style={styles.toolAction} onPress={() => setShowPromoForm(true)}>
+                  <Text style={styles.toolActionText}>+ Create Promo</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.toolDesc}>Run time-limited offers. Couples in your city get notified instantly.</Text>
+              {promos.map((promo, index) => (
+                <View key={promo.id}>
+                  {index > 0 && <View style={styles.listDivider} />}
+                  <View style={styles.promoRow}>
+                    <View style={styles.promoInfo}>
+                      <Text style={styles.promoTitle}>{promo.title}</Text>
+                      <Text style={styles.promoMeta}>Expires {promo.expires} · {promo.leads} leads</Text>
+                    </View>
+                    <View style={[styles.promoBadge, { backgroundColor: promo.active ? '#4CAF5020' : '#E8E0D5' }]}>
+                      <Text style={[styles.promoBadgeText, { color: promo.active ? '#4CAF50' : '#8C7B6E' }]}>
+                        {promo.active ? 'Live' : 'Ended'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+
             {/* Portfolio Upload */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
@@ -313,11 +464,17 @@ export default function VendorDashboardScreen() {
                   <Text style={styles.toolActionText}>{showInvoiceForm ? 'Cancel' : 'Create Invoice'}</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.toolDesc}>Create and send professional invoices to clients</Text>
+              <Text style={styles.toolDesc}>Create and send professional invoices with auto GST calculation</Text>
               {showInvoiceForm && (
                 <View style={styles.invoiceForm}>
                   <TextInput style={styles.invoiceInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={invoiceClient} onChangeText={setInvoiceClient} />
                   <TextInput style={styles.invoiceInput} placeholder="Amount (₹)" placeholderTextColor="#8C7B6E" value={invoiceAmount} onChangeText={setInvoiceAmount} keyboardType="number-pad" />
+                  {invoiceAmount ? (
+                    <View style={styles.gstPreview}>
+                      <Text style={styles.gstPreviewText}>GST (18%): ₹{(parseInt(invoiceAmount) * 0.18).toLocaleString('en-IN')}</Text>
+                      <Text style={styles.gstPreviewTotal}>Total: ₹{(parseInt(invoiceAmount) * 1.18).toLocaleString('en-IN')}</Text>
+                    </View>
+                  ) : null}
                   <TouchableOpacity style={styles.generateBtn}>
                     <Text style={styles.generateBtnText}>Generate Invoice</Text>
                   </TouchableOpacity>
@@ -470,19 +627,19 @@ export default function VendorDashboardScreen() {
           </View>
         )}
 
-        } else if (!user && !inAuthGroup) {
-      router.replace('/home');
-    }
+        {/* CLIENTS */}
+        {activeTab === 'Clients' && (
+          <View style={[styles.tabPane, { paddingBottom: 40 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.sectionLabel}>My Clients</Text>
-              <TouchableOpacity style={styles.addClientBtn}>
+              <Text style={styles.sectionLabel}>My Clients ({clients.length})</Text>
+              <TouchableOpacity style={styles.addClientBtn} onPress={() => setShowAddClient(true)}>
                 <Text style={styles.addClientBtnText}>+ Add Client</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.viralCard}>
-              <Text style={styles.viralTitle}>Grow your business</Text>
+              <Text style={styles.viralTitle}>Your network is your growth engine</Text>
               <Text style={styles.viralText}>
-                Add your existing clients to The Dream Wedding. They'll get onboarded, discover vendors for their other functions, and refer their friends. Your network becomes your growth engine.
+                Add your existing clients to The Dream Wedding. They'll get onboarded, discover vendors for their other functions, and refer their friends.
               </Text>
             </View>
             {clients.map(client => (
@@ -607,8 +764,17 @@ const styles = StyleSheet.create({
   toolAction: { borderWidth: 1, borderColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   toolActionText: { fontSize: 12, color: '#C9A84C', fontWeight: '500' },
   toolDesc: { fontSize: 13, color: '#8C7B6E', lineHeight: 20, marginTop: -4 },
+  promoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+  promoInfo: { flex: 1, gap: 3 },
+  promoTitle: { fontSize: 14, color: '#2C2420', fontWeight: '500' },
+  promoMeta: { fontSize: 12, color: '#8C7B6E' },
+  promoBadge: { borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 },
+  promoBadgeText: { fontSize: 11, fontWeight: '500' },
   invoiceForm: { gap: 10, borderTopWidth: 1, borderTopColor: '#E8E0D5', paddingTop: 12 },
   invoiceInput: { backgroundColor: '#F5F0E8', borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D5', paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, color: '#2C2420' },
+  gstPreview: { backgroundColor: '#F5F0E8', borderRadius: 8, padding: 12, gap: 4 },
+  gstPreviewText: { fontSize: 13, color: '#8C7B6E' },
+  gstPreviewTotal: { fontSize: 14, color: '#2C2420', fontWeight: '600' },
   generateBtn: { backgroundColor: '#2C2420', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
   generateBtnText: { fontSize: 14, color: '#F5F0E8', fontWeight: '500' },
   templateList: { borderTopWidth: 1, borderTopColor: '#E8E0D5', overflow: 'hidden' },
@@ -656,6 +822,15 @@ const styles = StyleSheet.create({
   viralCard: { backgroundColor: '#2C2420', borderRadius: 14, padding: 18, gap: 8 },
   viralTitle: { fontSize: 15, color: '#C9A84C', fontWeight: '500' },
   viralText: { fontSize: 13, color: '#B8A99A', lineHeight: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: '#F5F0E8', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, gap: 14 },
+  modalTitle: { fontSize: 22, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
+  modalSubtitle: { fontSize: 13, color: '#8C7B6E', marginTop: -8, lineHeight: 20 },
+  modalInput: { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D5', paddingVertical: 14, paddingHorizontal: 16, fontSize: 14, color: '#2C2420' },
+  modalBtn: { backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
+  modalBtnText: { fontSize: 15, color: '#F5F0E8', fontWeight: '500' },
+  modalCancel: { alignItems: 'center', paddingVertical: 8 },
+  modalCancelText: { fontSize: 14, color: '#8C7B6E' },
   bottomNav: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 20, paddingBottom: 32, borderTopWidth: 1, borderTopColor: '#E8E0D5', backgroundColor: '#F5F0E8' },
   navItem: { alignItems: 'center' },
   navLabel: { fontSize: 14, color: '#8C7B6E', fontWeight: '500' },
