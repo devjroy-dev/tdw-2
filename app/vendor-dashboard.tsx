@@ -1,9 +1,13 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, ScrollView, TextInput
+  Dimensions, ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -49,12 +53,6 @@ const LEAD_PIPELINE = [
   { id: '3', name: 'Ananya & Dev', stage: 'New Inquiry', date: 'Jan 5', value: '₹3,00,000' },
   { id: '4', name: 'Kavya & Rohan', stage: 'Token Received', date: 'Feb 14', value: '₹3,00,000' },
   { id: '5', name: 'Meera & Vikram', stage: 'Completed', date: 'Oct 10', value: '₹3,00,000' },
-];
-
-const MOCK_CLIENTS = [
-  { id: '1', name: 'Rohit & Simran', phone: '9876543210', wedding_date: 'March 15, 2026', status: 'upcoming', invited: false },
-  { id: '2', name: 'Amit & Pooja', phone: '9988776655', wedding_date: 'February 8, 2026', status: 'upcoming', invited: true },
-  { id: '3', name: 'Vikram & Neha', phone: '9123456789', wedding_date: 'October 20, 2025', status: 'completed', invited: false },
 ];
 
 const MOCK_CLIENTS = [
