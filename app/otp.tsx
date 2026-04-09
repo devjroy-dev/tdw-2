@@ -1,21 +1,48 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-
-const { width, height } = Dimensions.get('window');
+import { ApplicationVerifier, PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { auth } from '../services/firebase';
 
 export default function OTPScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [verificationId, setVerificationId] = useState('');
 
-  const handleSendOTP = () => {
-    if (phone.length === 10) setOtpSent(true);
+  const handleSendOTP = async () => {
+    try {
+      setLoading(true);
+      const phoneNumber = `+91${phone}`;
+      const provider = new PhoneAuthProvider(auth);
+      const recaptchaVerifier = {
+        type: 'recaptcha',
+        verify: () => Promise.resolve('token'),
+      } as unknown as ApplicationVerifier;
+      const id = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier);
+      setVerificationId(id);
+      setOtpSent(true);
+    } catch (error: any) {
+      Alert.alert('Error', 'Could not send OTP. Please try again.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVerify = () => {
-    if (otp.length === 6) router.replace('/user-type');
+  const handleVerify = async () => {
+    try {
+      setLoading(true);
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      await signInWithCredential(auth, credential);
+      router.replace('/user-type');
+    } catch (error: any) {
+      Alert.alert('Invalid Code', 'The code you entered is incorrect. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,11 +75,11 @@ export default function OTPScreen() {
               />
             </View>
             <TouchableOpacity
-              style={[styles.button, phone.length !== 10 && styles.buttonDisabled]}
+              style={[styles.button, (phone.length !== 10 || loading) && styles.buttonDisabled]}
               onPress={handleSendOTP}
-              disabled={phone.length !== 10}
+              disabled={phone.length !== 10 || loading}
             >
-              <Text style={styles.buttonText}>Send Code</Text>
+              {loading ? <ActivityIndicator color="#F5F0E8" /> : <Text style={styles.buttonText}>Send Code</Text>}
             </TouchableOpacity>
           </>
         ) : (
@@ -70,11 +97,11 @@ export default function OTPScreen() {
               textAlign="center"
             />
             <TouchableOpacity
-              style={[styles.button, otp.length !== 6 && styles.buttonDisabled]}
+              style={[styles.button, (otp.length !== 6 || loading) && styles.buttonDisabled]}
               onPress={handleVerify}
-              disabled={otp.length !== 6}
+              disabled={otp.length !== 6 || loading}
             >
-              <Text style={styles.buttonText}>Verify</Text>
+              {loading ? <ActivityIndicator color="#F5F0E8" /> : <Text style={styles.buttonText}>Verify</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setOtpSent(false)}>
               <Text style={styles.changeNumber}>Change number</Text>
