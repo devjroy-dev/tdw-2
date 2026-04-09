@@ -28,8 +28,8 @@ const MOCK_GUESTS = [
 ];
 
 const MOCK_PAYMENTS = [
-  { id: '1', vendor: 'Arjun Mehta Photography', amount: 40000, status: 'held', date: 'Dec 15, 2025' },
-  { id: '2', vendor: 'The Grand Celebration', amount: 100000, status: 'pending', date: 'Dec 20, 2025' },
+  { id: '1', vendor: 'Joseph Radhik', amount: 60000, status: 'held', date: 'Dec 15, 2025' },
+  { id: '2', vendor: 'The Leela Palace', amount: 300000, status: 'pending', date: 'Dec 20, 2025' },
 ];
 
 const DEFAULT_TODOS = [
@@ -39,6 +39,16 @@ const DEFAULT_TODOS = [
   { id: '4', text: 'Book MUA for trial', done: false, reminder: 'Dec 8, 2025' },
   { id: '5', text: 'Confirm choreographer', done: false, reminder: '' },
   { id: '6', text: 'Finalise bridal outfit', done: false, reminder: 'Dec 15, 2025' },
+];
+
+const SMART_CHECKLIST = [
+  { id: '1', text: '12 months before: Book venue', done: true },
+  { id: '2', text: '10 months before: Book photographer', done: true },
+  { id: '3', text: '8 months before: Book MUA & designer', done: false },
+  { id: '4', text: '6 months before: Send save the dates', done: false },
+  { id: '5', text: '4 months before: Finalise guest list', done: false },
+  { id: '6', text: '2 months before: Send e-invites', done: false },
+  { id: '7', text: '1 month before: Confirm all vendors', done: false },
 ];
 
 const formatAmount = (amount: number) => {
@@ -54,6 +64,7 @@ export default function BTSPlannerScreen() {
   const [newTodo, setNewTodo] = useState('');
   const [newReminder, setNewReminder] = useState('');
   const [showAddTodo, setShowAddTodo] = useState(false);
+  const [showSmartChecklist, setShowSmartChecklist] = useState(false);
 
   const totalBudgeted = BUDGET_CATEGORIES.reduce((sum, c) => sum + c.budgeted, 0);
   const totalHearted = BUDGET_CATEGORIES.reduce((sum, c) => sum + c.hearted, 0);
@@ -92,15 +103,21 @@ export default function BTSPlannerScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Planner</Text>
-        <TouchableOpacity style={styles.inviteBtn}>
-          <Text style={styles.inviteBtnText}>+ Co-planner</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.messagesBtn}
+            onPress={() => router.push('/messaging')}
+          >
+            <Text style={styles.messagesBtnText}>Messages</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.inviteBtn}>
+            <Text style={styles.inviteBtnText}>+ Co-planner</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -129,7 +146,6 @@ export default function BTSPlannerScreen() {
         {/* BUDGET */}
         {activeTab === 'Budget' && (
           <View style={styles.tabPane}>
-
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>Genie Budget Overview</Text>
               <View style={styles.summaryRow}>
@@ -155,6 +171,13 @@ export default function BTSPlannerScreen() {
               </View>
               <Text style={styles.progressLabel}>
                 {Math.round((totalHearted / totalBudgeted) * 100)}% of budget allocated
+              </Text>
+            </View>
+
+            <View style={styles.intelligenceCard}>
+              <Text style={styles.intelligenceTitle}>Budget Intelligence</Text>
+              <Text style={styles.intelligenceText}>
+                Couples in Delhi NCR with a ₹25L budget typically spend 40% on venue, 15% on photography and 12% on designer wear.
               </Text>
             </View>
 
@@ -187,7 +210,6 @@ export default function BTSPlannerScreen() {
         {/* GUESTS */}
         {activeTab === 'Guests' && (
           <View style={styles.tabPane}>
-
             <View style={styles.summaryCard}>
               <View style={styles.guestSummaryRow}>
                 <View style={styles.summaryItem}>
@@ -211,7 +233,7 @@ export default function BTSPlannerScreen() {
               {['Add Guest', 'E-Invites', 'Seating'].map((action, index, arr) => (
                 <TouchableOpacity key={action} style={[
                   styles.actionBtn,
-                  index < arr.length - 1 && { borderRightWidth: 1, borderRightColor: '#EDE8E3' }
+                  index < arr.length - 1 && { borderRightWidth: 1, borderRightColor: '#E8E0D5' }
                 ]}>
                   <Text style={styles.actionBtnText}>{action}</Text>
                 </TouchableOpacity>
@@ -244,7 +266,6 @@ export default function BTSPlannerScreen() {
         {/* TO DO */}
         {activeTab === 'To Do' && (
           <View style={styles.tabPane}>
-
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>
                 {completedTodos} of {todos.length} tasks completed
@@ -256,31 +277,60 @@ export default function BTSPlannerScreen() {
               </View>
             </View>
 
-            <Text style={styles.sectionLabel}>Pending</Text>
-            <View style={styles.listCard}>
-              {todos.filter(t => !t.done).map((todo, index, arr) => (
-                <View key={todo.id}>
-                  <View style={styles.todoRow}>
-                    <TouchableOpacity
-                      style={styles.todoCheckbox}
-                      onPress={() => toggleTodo(todo.id)}
-                    >
-                      <View style={styles.todoCheckboxInner} />
-                    </TouchableOpacity>
-                    <View style={styles.todoContent}>
-                      <Text style={styles.todoText}>{todo.text}</Text>
-                      {todo.reminder ? (
-                        <Text style={styles.todoReminder}>{todo.reminder}</Text>
-                      ) : null}
+            <TouchableOpacity
+              style={styles.smartChecklistToggle}
+              onPress={() => setShowSmartChecklist(!showSmartChecklist)}
+            >
+              <Text style={styles.smartChecklistToggleText}>
+                Smart Wedding Checklist {showSmartChecklist ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+
+            {showSmartChecklist && (
+              <View style={styles.listCard}>
+                {SMART_CHECKLIST.map((item, index) => (
+                  <View key={item.id}>
+                    <View style={styles.smartChecklistRow}>
+                      <View style={[styles.smartCheckbox, item.done && styles.smartCheckboxDone]}>
+                        {item.done && <Text style={styles.smartCheckboxTick}>✓</Text>}
+                      </View>
+                      <Text style={[styles.smartChecklistText, item.done && styles.smartChecklistTextDone]}>
+                        {item.text}
+                      </Text>
                     </View>
-                    <TouchableOpacity onPress={() => removeTodo(todo.id)}>
-                      <Text style={styles.todoRemoveBtn}>✕</Text>
-                    </TouchableOpacity>
+                    {index < SMART_CHECKLIST.length - 1 && <View style={styles.listDivider} />}
                   </View>
-                  {index < arr.length - 1 && <View style={styles.listDivider} />}
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
+
+            <Text style={styles.sectionLabel}>My Tasks</Text>
+            {todos.filter(t => !t.done).length > 0 && (
+              <View style={styles.listCard}>
+                {todos.filter(t => !t.done).map((todo, index, arr) => (
+                  <View key={todo.id}>
+                    <View style={styles.todoRow}>
+                      <TouchableOpacity
+                        style={styles.todoCheckbox}
+                        onPress={() => toggleTodo(todo.id)}
+                      >
+                        <View style={styles.todoCheckboxInner} />
+                      </TouchableOpacity>
+                      <View style={styles.todoContent}>
+                        <Text style={styles.todoText}>{todo.text}</Text>
+                        {todo.reminder ? (
+                          <Text style={styles.todoReminder}>{todo.reminder}</Text>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity onPress={() => removeTodo(todo.id)}>
+                        <Text style={styles.todoRemoveBtn}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {index < arr.length - 1 && <View style={styles.listDivider} />}
+                  </View>
+                ))}
+              </View>
+            )}
 
             {todos.filter(t => t.done).length > 0 && (
               <>
@@ -366,13 +416,25 @@ export default function BTSPlannerScreen() {
                       <Text style={[styles.paymentStatus, {
                         color: payment.status === 'held' ? '#C9A84C' : '#8C7B6E'
                       }]}>
-                        {payment.status === 'held' ? 'In Escrow' : payment.status}
+                        {payment.status === 'held' ? 'In Escrow' : 'Pending'}
                       </Text>
                     </View>
                   </View>
                   {index < MOCK_PAYMENTS.length - 1 && <View style={styles.listDivider} />}
                 </View>
               ))}
+            </View>
+
+            <View style={styles.paymentSummaryCard}>
+              <View style={styles.paymentSummaryRow}>
+                <Text style={styles.paymentSummaryKey}>Total in Escrow</Text>
+                <Text style={styles.paymentSummaryVal}>{formatAmount(60000)}</Text>
+              </View>
+              <View style={styles.listDivider} />
+              <View style={styles.paymentSummaryRow}>
+                <Text style={styles.paymentSummaryKey}>Remaining to Pay Vendors</Text>
+                <Text style={styles.paymentSummaryVal}>{formatAmount(240000)}</Text>
+              </View>
             </View>
           </View>
         )}
@@ -388,6 +450,12 @@ export default function BTSPlannerScreen() {
               <TouchableOpacity style={styles.uploadBtn}>
                 <Text style={styles.uploadBtnText}>Add Memory</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.websiteBtn}
+                onPress={() => router.push('/wedding-website')}
+              >
+                <Text style={styles.websiteBtnText}>Create Wedding Website →</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -395,7 +463,6 @@ export default function BTSPlannerScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/home')}>
           <Text style={styles.navLabel}>Home</Text>
@@ -404,6 +471,7 @@ export default function BTSPlannerScreen() {
           <Text style={styles.navLabel}>Moodboard</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
+          <View style={styles.navDot} />
           <Text style={[styles.navLabel, styles.navActive]}>Planner</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
@@ -418,7 +486,7 @@ export default function BTSPlannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 60,
   },
   header: {
@@ -430,13 +498,29 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
   },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  messagesBtn: {
+    borderWidth: 1,
+    borderColor: '#2C2420',
+    borderRadius: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  messagesBtnText: {
+    fontSize: 12,
+    color: '#2C2420',
+    fontWeight: '500',
+  },
   inviteBtn: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 50,
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -459,19 +543,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     backgroundColor: '#FFFFFF',
   },
   tabActive: {
-    backgroundColor: '#1C1C1C',
-    borderColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
   },
   tabText: {
     fontSize: 13,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   tabTextActive: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   scroll: {
@@ -489,11 +573,11 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 14,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
   },
   summaryTitle: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   summaryRow: {
@@ -514,11 +598,11 @@ const styles = StyleSheet.create({
   summaryDivider: {
     width: 1,
     height: 36,
-    backgroundColor: '#EDE8E3',
+    backgroundColor: '#E8E0D5',
   },
   summaryAmount: {
     fontSize: 22,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '400',
   },
   summaryLabel: {
@@ -528,7 +612,7 @@ const styles = StyleSheet.create({
   },
   progressBg: {
     height: 3,
-    backgroundColor: '#EDE8E3',
+    backgroundColor: '#E8E0D5',
     borderRadius: 1.5,
   },
   progressFill: {
@@ -541,6 +625,23 @@ const styles = StyleSheet.create({
     color: '#8C7B6E',
     textAlign: 'right',
   },
+  intelligenceCard: {
+    backgroundColor: '#2C2420',
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+  },
+  intelligenceTitle: {
+    fontSize: 13,
+    color: '#C9A84C',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+  },
+  intelligenceText: {
+    fontSize: 13,
+    color: '#B8A99A',
+    lineHeight: 20,
+  },
   sectionLabel: {
     fontSize: 12,
     color: '#8C7B6E',
@@ -552,12 +653,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     overflow: 'hidden',
   },
   listDivider: {
     height: 1,
-    backgroundColor: '#EDE8E3',
+    backgroundColor: '#E8E0D5',
     marginHorizontal: 16,
   },
   budgetRow: {
@@ -569,7 +670,7 @@ const styles = StyleSheet.create({
   },
   budgetCategoryName: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   budgetCategoryDetail: {
@@ -596,7 +697,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     overflow: 'hidden',
   },
   actionBtn: {
@@ -620,13 +721,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     justifyContent: 'center',
     alignItems: 'center',
   },
   guestAvatarText: {
     fontSize: 14,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   guestInfo: {
@@ -635,7 +736,7 @@ const styles = StyleSheet.create({
   },
   guestName: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   guestGroup: {
@@ -645,6 +746,53 @@ const styles = StyleSheet.create({
   rsvpText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  smartChecklistToggle: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+  },
+  smartChecklistToggleText: {
+    fontSize: 14,
+    color: '#2C2420',
+    fontWeight: '500',
+  },
+  smartChecklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  smartCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E8E0D5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smartCheckboxDone: {
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
+  },
+  smartCheckboxTick: {
+    color: '#C9A84C',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  smartChecklistText: {
+    fontSize: 13,
+    color: '#2C2420',
+    flex: 1,
+  },
+  smartChecklistTextDone: {
+    textDecorationLine: 'line-through',
+    color: '#8C7B6E',
   },
   todoRow: {
     flexDirection: 'row',
@@ -663,8 +811,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   todoCheckboxDone: {
-    backgroundColor: '#1C1C1C',
-    borderColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
   },
   todoCheckboxInner: {
     width: 8,
@@ -672,7 +820,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   todoCheckboxTick: {
-    color: '#FAF6F0',
+    color: '#C9A84C',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -682,7 +830,7 @@ const styles = StyleSheet.create({
   },
   todoText: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   todoTextDone: {
     textDecorationLine: 'line-through',
@@ -702,18 +850,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     gap: 10,
   },
   addTodoInput: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: '#1C1C1C',
-    backgroundColor: '#FAF6F0',
+    color: '#2C2420',
+    backgroundColor: '#F5F0E8',
   },
   addTodoActions: {
     flexDirection: 'row',
@@ -722,7 +870,7 @@ const styles = StyleSheet.create({
   addTodoCancelBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
@@ -733,19 +881,19 @@ const styles = StyleSheet.create({
   },
   addTodoSaveBtn: {
     flex: 1,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
   addTodoSaveText: {
     fontSize: 14,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   addTodoBtn: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -769,7 +917,7 @@ const styles = StyleSheet.create({
   },
   paymentVendor: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   paymentDate: {
@@ -782,12 +930,35 @@ const styles = StyleSheet.create({
   },
   paymentAmount: {
     fontSize: 15,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '600',
   },
   paymentStatus: {
     fontSize: 11,
     fontWeight: '500',
+  },
+  paymentSummaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    overflow: 'hidden',
+  },
+  paymentSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  paymentSummaryKey: {
+    fontSize: 14,
+    color: '#8C7B6E',
+  },
+  paymentSummaryVal: {
+    fontSize: 14,
+    color: '#2C2420',
+    fontWeight: '600',
   },
   memoriesEmpty: {
     alignItems: 'center',
@@ -796,7 +967,7 @@ const styles = StyleSheet.create({
   },
   memoriesTitle: {
     fontSize: 24,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
   },
@@ -808,15 +979,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   uploadBtn: {
-    marginTop: 8,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 32,
   },
   uploadBtnText: {
     fontSize: 14,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
+    fontWeight: '500',
+  },
+  websiteBtn: {
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    backgroundColor: '#FFFFFF',
+  },
+  websiteBtnText: {
+    fontSize: 14,
+    color: '#C9A84C',
     fontWeight: '500',
   },
   bottomNav: {
@@ -825,14 +1008,21 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 28,
     borderTopWidth: 1,
-    borderTopColor: '#EDE8E3',
-    backgroundColor: '#FAF6F0',
+    borderTopColor: '#E8E0D5',
+    backgroundColor: '#F5F0E8',
     position: 'absolute',
     bottom: 0,
     width: '100%',
   },
   navItem: {
     alignItems: 'center',
+    gap: 4,
+  },
+  navDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#C9A84C',
   },
   navLabel: {
     fontSize: 12,
@@ -840,7 +1030,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   navActive: {
-    color: '#C9A84C',
+    color: '#2C2420',
     fontWeight: '600',
   },
 });

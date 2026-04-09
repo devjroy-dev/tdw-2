@@ -10,35 +10,38 @@ const { width, height } = Dimensions.get('window');
 const ALL_VENDORS = [
   {
     id: '1',
-    name: 'Arjun Mehta Photography',
+    name: 'Joseph Radhik',
     category: 'photographers',
-    city: 'Delhi NCR',
-    price: '₹80,000 onwards',
-    vibe: ['Candid', 'Cinematic'],
-    rating: 4.9,
-    reviews: 124,
+    city: 'Mumbai',
+    price: '₹3,00,000 onwards',
+    vibe: ['Candid', 'Luxury'],
+    rating: 5.0,
+    reviews: 312,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
   },
   {
     id: '2',
-    name: 'The Grand Celebration',
+    name: 'The Leela Palace',
     category: 'venues',
     city: 'Delhi NCR',
-    price: '₹5,00,000 onwards',
+    price: '₹15,00,000 onwards',
     vibe: ['Luxury', 'Royal'],
-    rating: 4.8,
-    reviews: 89,
+    rating: 4.9,
+    reviews: 189,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
   },
   {
     id: '3',
-    name: 'Priya Bridal Studio',
+    name: 'Namrata Soni',
     category: 'mua',
-    city: 'Delhi NCR',
-    price: '₹25,000 onwards',
-    vibe: ['Traditional', 'Luxury'],
-    rating: 4.7,
-    reviews: 203,
+    city: 'Mumbai',
+    price: '₹1,50,000 onwards',
+    vibe: ['Luxury', 'Cinematic'],
+    rating: 4.9,
+    reviews: 445,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
   },
   {
@@ -50,61 +53,67 @@ const ALL_VENDORS = [
     vibe: ['Candid', 'Cinematic'],
     rating: 4.9,
     reviews: 67,
+    verified: false,
     image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
   },
   {
     id: '5',
-    name: 'House of Threads',
+    name: 'Sabyasachi Mukherjee',
     category: 'designers',
-    city: 'Mumbai',
-    price: '₹1,50,000 onwards',
-    vibe: ['Luxury', 'Minimalist'],
-    rating: 4.8,
-    reviews: 45,
+    city: 'Kolkata',
+    price: '₹5,00,000 onwards',
+    vibe: ['Luxury', 'Traditional'],
+    rating: 5.0,
+    reviews: 892,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800',
   },
   {
     id: '6',
-    name: 'Rhythm & Grace',
+    name: 'Shakti Mohan',
     category: 'choreographers',
     city: 'Mumbai',
-    price: '₹40,000 onwards',
-    vibe: ['Festive', 'Traditional'],
-    rating: 4.6,
-    reviews: 38,
+    price: '₹2,00,000 onwards',
+    vibe: ['Festive', 'Contemporary'],
+    rating: 4.9,
+    reviews: 156,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1545959570-a94084071b5d?w=800',
   },
   {
     id: '7',
-    name: 'Kapoor Wedding Films',
-    category: 'photographers',
-    city: 'Mumbai',
-    price: '₹1,20,000 onwards',
-    vibe: ['Cinematic', 'Luxury'],
-    rating: 4.9,
-    reviews: 91,
+    name: 'Tarun Tahiliani',
+    category: 'designers',
+    city: 'Delhi NCR',
+    price: '₹8,00,000 onwards',
+    vibe: ['Luxury', 'Contemporary'],
+    rating: 5.0,
+    reviews: 634,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
   },
   {
     id: '8',
-    name: 'The Rosewood Manor',
+    name: 'Umaid Bhawan Palace',
     category: 'venues',
     city: 'Jaipur',
-    price: '₹8,00,000 onwards',
-    vibe: ['Royal', 'Luxury'],
-    rating: 4.9,
-    reviews: 112,
+    price: '₹50,00,000 onwards',
+    vibe: ['Royal', 'Luxury', 'Destination'],
+    rating: 5.0,
+    reviews: 278,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
   },
   {
     id: '9',
-    name: 'Naina Beauty Atelier',
+    name: 'Ambika Pillai',
     category: 'mua',
-    city: 'Mumbai',
-    price: '₹35,000 onwards',
-    vibe: ['Luxury', 'Minimalist'],
-    rating: 4.8,
-    reviews: 156,
+    city: 'Delhi NCR',
+    price: '₹2,00,000 onwards',
+    vibe: ['Luxury', 'Traditional'],
+    rating: 4.9,
+    reviews: 567,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
   },
   {
@@ -116,18 +125,44 @@ const ALL_VENDORS = [
     vibe: ['Candid', 'Boho'],
     rating: 4.7,
     reviews: 43,
+    verified: false,
     image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
   },
   {
     id: '11',
-    name: 'Bass & Beats',
+    name: 'DJ Chetas',
     category: 'dj',
-    city: 'Delhi NCR',
-    price: '₹30,000 onwards',
+    city: 'Mumbai',
+    price: '₹5,00,000 onwards',
     vibe: ['Festive', 'Luxury'],
-    rating: 4.7,
-    reviews: 55,
+    rating: 4.9,
+    reviews: 234,
+    verified: true,
     image: 'https://images.unsplash.com/photo-1571266028243-d220c6a5d70b?w=800',
+  },
+  {
+    id: '12',
+    name: 'Wizcraft International',
+    category: 'event-managers',
+    city: 'Mumbai',
+    price: '₹20,00,000 onwards',
+    vibe: ['Luxury', 'Destination', 'Contemporary'],
+    rating: 5.0,
+    reviews: 445,
+    verified: true,
+    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
+  },
+  {
+    id: '13',
+    name: 'Anmol Jewellers',
+    category: 'jewellery',
+    city: 'Delhi NCR',
+    price: '₹2,00,000 onwards',
+    vibe: ['Luxury', 'Traditional', 'Royal'],
+    rating: 4.8,
+    reviews: 189,
+    verified: true,
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800',
   },
 ];
 
@@ -136,6 +171,7 @@ export default function SwipeScreen() {
   const { category } = useLocalSearchParams();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
+  const [showToast, setShowToast] = useState(false);
   const position = useRef(new Animated.ValueXY()).current;
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -158,7 +194,6 @@ export default function SwipeScreen() {
     outputRange: [1, 0],
   });
 
-  // Native mobile swipe
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -173,7 +208,6 @@ export default function SwipeScreen() {
     })
   ).current;
 
-  // Web mouse/touch handlers
   const handleMouseDown = (e: any) => {
     isDragging.current = true;
     startX.current = e.clientX || e.touches?.[0]?.clientX || 0;
@@ -184,9 +218,7 @@ export default function SwipeScreen() {
     if (!isDragging.current) return;
     const clientX = e.clientX || e.touches?.[0]?.clientX || 0;
     const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
-    const dx = clientX - startX.current;
-    const dy = clientY - startY.current;
-    position.setValue({ x: dx, y: dy });
+    position.setValue({ x: clientX - startX.current, y: clientY - startY.current });
   };
 
   const handleMouseUp = (e: any) => {
@@ -199,8 +231,14 @@ export default function SwipeScreen() {
     else resetPosition();
   };
 
+  const showSaveToast = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   const swipeRight = () => {
     setSavedCount(prev => prev + 1);
+    showSaveToast();
     Animated.timing(position, {
       toValue: { x: width + 100, y: 0 },
       duration: 250,
@@ -235,6 +273,16 @@ export default function SwipeScreen() {
     ?.replace('-', ' ')
     .replace(/\b\w/g, l => l.toUpperCase()) || 'Vendors';
 
+  const webHandlers = Platform.OS === 'web' ? {
+    onMouseDown: handleMouseDown,
+    onMouseMove: handleMouseMove,
+    onMouseUp: handleMouseUp,
+    onMouseLeave: handleMouseUp,
+    onTouchStart: handleMouseDown,
+    onTouchMove: handleMouseMove,
+    onTouchEnd: handleMouseUp,
+  } : {};
+
   if (!vendor) {
     return (
       <View style={styles.emptyContainer}>
@@ -247,25 +295,25 @@ export default function SwipeScreen() {
     );
   }
 
-  const webHandlers = Platform.OS === 'web' ? {
-    onMouseDown: handleMouseDown,
-    onMouseMove: handleMouseMove,
-    onMouseUp: handleMouseUp,
-    onMouseLeave: handleMouseUp,
-    onTouchStart: handleMouseDown,
-    onTouchMove: handleMouseMove,
-    onTouchEnd: handleMouseUp,
-  } : {};
-
   return (
     <View style={styles.container}>
+
+      {/* Toast */}
+      {showToast && (
+        <Animated.View style={styles.toast}>
+          <Text style={styles.toastText}>Saved to Moodboard ✓</Text>
+        </Animated.View>
+      )}
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backBtn}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{categoryLabel}</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{categoryLabel}</Text>
+          <Text style={styles.headerCount}>{currentIndex + 1} of {vendors.length}</Text>
+        </View>
         <TouchableOpacity onPress={() => router.push('/moodboard')}>
           <Text style={styles.savedCount}>
             {savedCount > 0 ? `Saved ${savedCount}` : 'Saved'}
@@ -282,7 +330,6 @@ export default function SwipeScreen() {
 
       {/* Card Stack */}
       <View style={styles.cardContainer}>
-
         {nextVendor && (
           <View style={[styles.card, styles.cardBehind]}>
             <Image source={{ uri: nextVendor.image }} style={styles.cardImage} />
@@ -310,6 +357,12 @@ export default function SwipeScreen() {
           >
             <Image source={{ uri: vendor.image }} style={styles.cardImage} />
 
+            {vendor.verified && (
+              <View style={styles.verifiedBadge}>
+                <Text style={styles.verifiedText}>✓ Verified</Text>
+              </View>
+            )}
+
             <Animated.View style={[styles.overlayLabel, styles.saveLabel, { opacity: likeOpacity }]}>
               <Text style={styles.overlayText}>SAVE</Text>
             </Animated.View>
@@ -332,7 +385,7 @@ export default function SwipeScreen() {
               <View style={styles.cardInfoBottom}>
                 <Text style={styles.vendorPrice}>{vendor.price}</Text>
                 <View style={styles.vibeTags}>
-                  {vendor.vibe.map(v => (
+                  {vendor.vibe.slice(0, 2).map(v => (
                     <View key={v} style={styles.vibeTag}>
                       <Text style={styles.vibeTagText}>{v}</Text>
                     </View>
@@ -340,7 +393,10 @@ export default function SwipeScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.lookalikeBtn}>
+              <TouchableOpacity
+                style={styles.lookalikeBtn}
+                onPress={() => router.push(`/lookalike?vendorName=${vendor.name}&category=${vendor.category}`)}
+              >
                 <Text style={styles.lookalikeBtnText}>Find similar style in my budget →</Text>
               </TouchableOpacity>
             </View>
@@ -370,8 +426,24 @@ export default function SwipeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 60,
+  },
+  toast: {
+    position: 'absolute',
+    top: 110,
+    alignSelf: 'center',
+    backgroundColor: '#2C2420',
+    borderRadius: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    zIndex: 100,
+  },
+  toastText: {
+    fontSize: 13,
+    color: '#C9A84C',
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
   header: {
     flexDirection: 'row',
@@ -382,13 +454,22 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     fontSize: 22,
-    color: '#1C1C1C',
+    color: '#2C2420',
+  },
+  headerCenter: {
+    alignItems: 'center',
+    gap: 2,
   },
   headerTitle: {
     fontSize: 17,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
     letterSpacing: 0.3,
+  },
+  headerCount: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    letterSpacing: 0.5,
   },
   savedCount: {
     fontSize: 13,
@@ -426,7 +507,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    cursor: 'grab',
   },
   cardBehind: {
     transform: [{ scale: 0.95 }],
@@ -439,6 +519,21 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: '#C9A84C',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   overlayLabel: {
     position: 'absolute',
@@ -454,20 +549,20 @@ const styles = StyleSheet.create({
   },
   passLabel: {
     left: 20,
-    borderColor: '#FAF6F0',
+    borderColor: '#F5F0E8',
   },
   overlayText: {
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 2,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
   },
   cardInfo: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(10,10,10,0.8)',
+    backgroundColor: 'rgba(20,15,10,0.85)',
     padding: 18,
     gap: 10,
   },
@@ -481,7 +576,7 @@ const styles = StyleSheet.create({
   },
   vendorName: {
     fontSize: 18,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
     letterSpacing: 0.2,
   },
@@ -497,7 +592,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#FAF6F0',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   cardInfoBottom: {
@@ -516,14 +611,14 @@ const styles = StyleSheet.create({
   },
   vibeTag: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 50,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   vibeTagText: {
     fontSize: 10,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     letterSpacing: 0.3,
   },
   lookalikeBtn: {
@@ -549,7 +644,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -561,7 +656,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -581,7 +676,7 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 14,
@@ -589,7 +684,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 26,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
   },
@@ -601,14 +696,14 @@ const styles = StyleSheet.create({
   },
   emptyBtn: {
     marginTop: 16,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 32,
   },
   emptyBtnText: {
     fontSize: 14,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
 });

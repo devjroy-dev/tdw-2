@@ -7,7 +7,7 @@ const USER_TYPES = [
   {
     id: 'couple',
     label: 'We are a Couple',
-    sub: 'Planning our dream wedding',
+    sub: 'Planning our dream wedding together',
     route: '/onboarding',
   },
   {
@@ -29,8 +29,6 @@ export default function UserTypeScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>DreamWedding</Text>
         <View style={styles.logoDivider} />
@@ -58,7 +56,6 @@ export default function UserTypeScreen() {
           ))}
         </View>
       </View>
-
     </View>
   );
 }
@@ -66,7 +63,7 @@ export default function UserTypeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 80,
     paddingHorizontal: 28,
   },
@@ -77,7 +74,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 28,
-    color: '#C9A84C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 8,
   },
@@ -85,15 +82,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 1,
     backgroundColor: '#C9A84C',
-    opacity: 0.5,
+    opacity: 0.6,
   },
   content: {
     flex: 1,
     gap: 24,
   },
   title: {
-    fontSize: 34,
-    color: '#1C1C1C',
+    fontSize: 36,
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
   },
@@ -106,7 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     overflow: 'hidden',
     marginTop: 8,
   },
@@ -114,7 +111,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 20,
+    paddingVertical: 22,
     paddingHorizontal: 20,
   },
   rowText: {
@@ -122,7 +119,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 16,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '400',
     letterSpacing: 0.2,
   },
@@ -136,7 +133,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#E8DDD4',
+    backgroundColor: '#E8E0D5',
     marginHorizontal: 20,
   },
 });

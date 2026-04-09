@@ -22,6 +22,14 @@ export default function RootLayout() {
         <Stack.Screen name="moodboard" />
         <Stack.Screen name="bts-planner" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="inquiry" />
+        <Stack.Screen name="payment" />
+        <Stack.Screen name="messaging" />
+        <Stack.Screen name="compare" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="razorpay-mock" />
+        <Stack.Screen name="lookalike" />
+        <Stack.Screen name="wedding-website" />
       </Stack>
     </>
   );

@@ -13,7 +13,7 @@ const MOCK_SAVED = [
   {
     id: '1',
     vendorId: '1',
-    vendorName: 'Arjun Mehta Photography',
+    vendorName: 'Joseph Radhik',
     category: 'Photographer',
     image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
     function: 'Wedding',
@@ -22,7 +22,7 @@ const MOCK_SAVED = [
   {
     id: '2',
     vendorId: '2',
-    vendorName: 'The Grand Celebration',
+    vendorName: 'The Leela Palace',
     category: 'Venue',
     image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
     function: 'Wedding',
@@ -31,7 +31,7 @@ const MOCK_SAVED = [
   {
     id: '3',
     vendorId: '3',
-    vendorName: 'Priya Bridal Studio',
+    vendorName: 'Namrata Soni',
     category: 'MUA',
     image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
     function: 'Mehendi',
@@ -49,7 +49,7 @@ const MOCK_SAVED = [
   {
     id: '5',
     vendorId: '5',
-    vendorName: 'House of Threads',
+    vendorName: 'Sabyasachi Mukherjee',
     category: 'Designer',
     image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800',
     function: 'Wedding',
@@ -58,11 +58,11 @@ const MOCK_SAVED = [
   {
     id: '6',
     vendorId: '8',
-    vendorName: 'The Rosewood Manor',
+    vendorName: 'Umaid Bhawan Palace',
     category: 'Venue',
     image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
     function: 'Reception',
-    note: 'Beautiful outdoor space',
+    note: 'Destination wedding option',
   },
 ];
 
@@ -84,13 +84,11 @@ export default function MoodboardScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Moodboard</Text>
         <Text style={styles.count}>{saved.length} saved</Text>
       </View>
 
-      {/* Filter Tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -110,7 +108,6 @@ export default function MoodboardScreen() {
         ))}
       </ScrollView>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Nothing saved yet</Text>
@@ -132,24 +129,16 @@ export default function MoodboardScreen() {
               onPress={() => router.push(`/vendor-profile?id=${item.vendorId}`)}
             >
               <Image source={{ uri: item.image }} style={styles.cardImage} />
-
-              <TouchableOpacity
-                style={styles.removeBtn}
-                onPress={() => removeItem(item.id)}
-              >
+              <TouchableOpacity style={styles.removeBtn} onPress={() => removeItem(item.id)}>
                 <Text style={styles.removeBtnText}>✕</Text>
               </TouchableOpacity>
-
               <View style={styles.functionTag}>
                 <Text style={styles.functionTagText}>{item.function}</Text>
               </View>
-
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName} numberOfLines={1}>{item.vendorName}</Text>
                 <Text style={styles.cardCategory}>{item.category}</Text>
-                {item.note ? (
-                  <Text style={styles.cardNote} numberOfLines={1}>{item.note}</Text>
-                ) : null}
+                {item.note ? <Text style={styles.cardNote} numberOfLines={1}>{item.note}</Text> : null}
               </View>
             </TouchableOpacity>
           ))}
@@ -157,21 +146,23 @@ export default function MoodboardScreen() {
         </ScrollView>
       )}
 
-      {/* Share Button */}
       {saved.length > 0 && (
         <View style={styles.shareBar}>
+          <TouchableOpacity style={styles.compareBtn} onPress={() => router.push('/compare')}>
+            <Text style={styles.compareBtnText}>Compare Vendors</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.shareBtn}>
-            <Text style={styles.shareBtnText}>Share Moodboard</Text>
+            <Text style={styles.shareBtnText}>Share</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/home')}>
           <Text style={styles.navLabel}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
+          <View style={styles.navDot} />
           <Text style={[styles.navLabel, styles.navActive]}>Moodboard</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/bts-planner')}>
@@ -189,7 +180,7 @@ export default function MoodboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 60,
   },
   header: {
@@ -201,7 +192,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
   },
@@ -223,19 +214,19 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     backgroundColor: '#FFFFFF',
   },
   filterTabActive: {
-    backgroundColor: '#1C1C1C',
-    borderColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
   },
   filterTabText: {
     fontSize: 13,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   filterTabTextActive: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   scroll: {
@@ -253,7 +244,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
   },
   cardImage: {
     width: IMAGE_SIZE,
@@ -272,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   removeBtnText: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontSize: 9,
     fontWeight: '700',
   },
@@ -280,14 +271,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 50,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   functionTagText: {
     fontSize: 9,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
     letterSpacing: 0.5,
   },
@@ -297,7 +288,7 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontSize: 12,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   cardCategory: {
@@ -318,7 +309,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
   },
@@ -330,34 +321,49 @@ const styles = StyleSheet.create({
   },
   emptyBtn: {
     marginTop: 16,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 32,
   },
   emptyBtnText: {
     fontSize: 14,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   shareBar: {
+    flexDirection: 'row',
+    gap: 12,
     paddingHorizontal: 24,
     paddingBottom: 90,
     paddingTop: 12,
   },
-  shareBtn: {
+  compareBtn: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
-  shareBtnText: {
-    fontSize: 14,
-    color: '#1C1C1C',
+  compareBtnText: {
+    fontSize: 13,
+    color: '#2C2420',
     fontWeight: '500',
-    letterSpacing: 0.3,
+  },
+  shareBtn: {
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  shareBtnText: {
+    fontSize: 13,
+    color: '#8C7B6E',
   },
   bottomNav: {
     flexDirection: 'row',
@@ -365,14 +371,21 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 28,
     borderTopWidth: 1,
-    borderTopColor: '#EDE8E3',
-    backgroundColor: '#FAF6F0',
+    borderTopColor: '#E8E0D5',
+    backgroundColor: '#F5F0E8',
     position: 'absolute',
     bottom: 0,
     width: '100%',
   },
   navItem: {
     alignItems: 'center',
+    gap: 4,
+  },
+  navDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#C9A84C',
   },
   navLabel: {
     fontSize: 12,
@@ -380,7 +393,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   navActive: {
-    color: '#C9A84C',
+    color: '#2C2420',
     fontWeight: '600',
   },
 });

@@ -9,19 +9,19 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Logo */}
+      {/* Logo Section */}
       <View style={styles.logoSection}>
         <Text style={styles.logo}>DreamWedding</Text>
         <View style={styles.logoDivider} />
+        <Text style={styles.logoTagline}>India's Premium Wedding Platform</Text>
       </View>
 
       {/* Buttons */}
       <View style={styles.buttonSection}>
         <Text style={styles.welcomeText}>Welcome</Text>
-        <Text style={styles.subText}>Sign in to continue</Text>
+        <Text style={styles.subText}>Sign in to continue planning your dream wedding</Text>
 
         <View style={styles.buttons}>
-
           <TouchableOpacity style={styles.socialButton}>
             <Text style={styles.socialButtonText}>Continue with Google</Text>
           </TouchableOpacity>
@@ -46,13 +46,11 @@ export default function LoginScreen() {
           <Text style={styles.verifyNote}>
             Phone verification required for all sign ins
           </Text>
-
         </View>
 
         <TouchableOpacity onPress={() => router.push('/vendor-login')}>
           <Text style={styles.vendorLink}>Vendor? Sign in here →</Text>
         </TouchableOpacity>
-
       </View>
 
     </View>
@@ -62,7 +60,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingHorizontal: 28,
     paddingTop: 80,
     paddingBottom: 48,
@@ -70,11 +68,11 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   logo: {
-    fontSize: 32,
-    color: '#C9A84C',
+    fontSize: 34,
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 8,
   },
@@ -82,14 +80,20 @@ const styles = StyleSheet.create({
     width: 36,
     height: 1,
     backgroundColor: '#C9A84C',
-    opacity: 0.5,
+    opacity: 0.7,
+  },
+  logoTagline: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   buttonSection: {
     gap: 24,
   },
   welcomeText: {
-    fontSize: 30,
-    color: '#1C1C1C',
+    fontSize: 32,
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 1,
   },
@@ -97,6 +101,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8C7B6E',
     marginTop: -16,
+    lineHeight: 22,
   },
   buttons: {
     gap: 12,
@@ -104,14 +109,14 @@ const styles = StyleSheet.create({
   socialButton: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 10,
-    paddingVertical: 15,
+    paddingVertical: 16,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
   socialButtonText: {
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontSize: 15,
     letterSpacing: 0.3,
   },
@@ -124,7 +129,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E8DDD4',
+    backgroundColor: '#E8E0D5',
   },
   dividerText: {
     color: '#8C7B6E',
@@ -132,13 +137,13 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: '100%',
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 10,
-    paddingVertical: 15,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontSize: 15,
     letterSpacing: 0.5,
     fontWeight: '500',

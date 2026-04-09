@@ -9,12 +9,12 @@ const { width } = Dimensions.get('window');
 
 const VIBE_TAGS = [
   'Candid', 'Traditional', 'Luxury', 'Cinematic',
-  'Boho', 'Festive', 'Minimalist', 'Royal'
+  'Boho', 'Festive', 'Minimalist', 'Royal', 'Destination', 'Contemporary'
 ];
 
 const CITIES = [
   'Delhi NCR', 'Mumbai', 'Bangalore', 'Chennai',
-  'Hyderabad', 'Kolkata', 'Jaipur', 'Pune',
+  'Hyderabad', 'Kolkata', 'Jaipur', 'Pune', 'Udaipur', 'Goa',
 ];
 
 const BUDGET_RANGES = [
@@ -58,8 +58,6 @@ export default function FilterScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backBtn}>←</Text>
@@ -73,12 +71,10 @@ export default function FilterScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
-
         {/* Date */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Wedding Date</Text>
           <Text style={styles.sectionHint}>Booked vendors will be hidden</Text>
-
           <TouchableOpacity
             style={styles.dateInput}
             onPress={() => setShowDatePicker(!showDatePicker)}
@@ -130,7 +126,6 @@ export default function FilterScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Budget Range</Text>
           <Text style={styles.sectionHint}>Per vendor for this category</Text>
-
           <View style={styles.optionList}>
             {BUDGET_RANGES.map((b, index) => (
               <View key={b.id}>
@@ -138,15 +133,10 @@ export default function FilterScreen() {
                   style={styles.optionRow}
                   onPress={() => setSelectedBudget(b.id)}
                 >
-                  <Text style={[
-                    styles.optionText,
-                    selectedBudget === b.id && styles.optionTextSelected
-                  ]}>
+                  <Text style={[styles.optionText, selectedBudget === b.id && styles.optionTextSelected]}>
                     {b.label}
                   </Text>
-                  {selectedBudget === b.id && (
-                    <Text style={styles.optionCheck}>✓</Text>
-                  )}
+                  {selectedBudget === b.id && <Text style={styles.optionCheck}>✓</Text>}
                 </TouchableOpacity>
                 {index < BUDGET_RANGES.length - 1 && <View style={styles.optionDivider} />}
               </View>
@@ -194,7 +184,6 @@ export default function FilterScreen() {
             ))}
           </View>
         </View>
-
       </ScrollView>
 
       {/* Bottom Bar */}
@@ -218,7 +207,6 @@ export default function FilterScreen() {
           <Text style={styles.startBtnText}>Start Swiping</Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
@@ -226,7 +214,7 @@ export default function FilterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 60,
   },
   header: {
@@ -238,12 +226,12 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     fontSize: 22,
-    color: '#1C1C1C',
+    color: '#2C2420',
     width: 24,
   },
   title: {
     fontSize: 17,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
     letterSpacing: 0.3,
   },
@@ -260,7 +248,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 13,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
     letterSpacing: 0.3,
   },
@@ -271,7 +259,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#EDE8E3',
+    backgroundColor: '#E8E0D5',
     marginHorizontal: 24,
   },
   dateInput: {
@@ -283,7 +271,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
   },
   dateInputPlaceholder: {
     fontSize: 14,
@@ -291,7 +279,7 @@ const styles = StyleSheet.create({
   },
   dateInputSelected: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   dateChevron: {
@@ -302,7 +290,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     padding: 16,
     gap: 12,
   },
@@ -315,20 +303,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
   yearBtnSelected: {
-    backgroundColor: '#1C1C1C',
-    borderColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
   },
   yearBtnText: {
     fontSize: 13,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   yearBtnTextSelected: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   monthGrid: {
@@ -341,27 +329,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
   monthBtnSelected: {
-    backgroundColor: '#1C1C1C',
-    borderColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
   },
   monthBtnText: {
     fontSize: 12,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   monthBtnTextSelected: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
   },
   optionList: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     overflow: 'hidden',
   },
   optionRow: {
@@ -373,7 +361,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 15,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   optionTextSelected: {
     color: '#C9A84C',
@@ -386,7 +374,7 @@ const styles = StyleSheet.create({
   },
   optionDivider: {
     height: 1,
-    backgroundColor: '#E8DDD4',
+    backgroundColor: '#E8E0D5',
     marginHorizontal: 16,
   },
   pillGrid: {
@@ -396,22 +384,22 @@ const styles = StyleSheet.create({
   },
   pill: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 50,
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
   },
   pillSelected: {
-    backgroundColor: '#1C1C1C',
-    borderColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
   },
   pillText: {
     fontSize: 13,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   pillTextSelected: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
   },
   bottomBar: {
     flexDirection: 'row',
@@ -420,15 +408,15 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingBottom: 36,
     borderTopWidth: 1,
-    borderTopColor: '#EDE8E3',
-    backgroundColor: '#FAF6F0',
+    borderTopColor: '#E8E0D5',
+    backgroundColor: '#F5F0E8',
     position: 'absolute',
     bottom: 0,
     width: '100%',
   },
   clearBtn: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 10,
     paddingVertical: 15,
     paddingHorizontal: 24,
@@ -441,14 +429,14 @@ const styles = StyleSheet.create({
   },
   startBtn: {
     flex: 1,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',
   },
   startBtnText: {
     fontSize: 15,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
     letterSpacing: 0.3,
   },

@@ -15,9 +15,14 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
+        <TouchableOpacity
+          style={styles.notificationsBtn}
+          onPress={() => router.push('/notifications')}
+        >
+          <Text style={styles.notificationsBtnText}>Notifications</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -51,6 +56,15 @@ export default function ProfileScreen() {
             <Text style={styles.upgradeBtnText}>Upgrade</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Referral */}
+        <TouchableOpacity style={styles.referralCard}>
+          <View style={styles.referralLeft}>
+            <Text style={styles.referralTitle}>Invite a friend</Text>
+            <Text style={styles.referralSub}>Get 1 month Premium free when they sign up</Text>
+          </View>
+          <Text style={styles.referralArrow}>›</Text>
+        </TouchableOpacity>
 
         {/* Co-planner */}
         <View style={styles.section}>
@@ -147,7 +161,6 @@ export default function ProfileScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/home')}>
           <Text style={styles.navLabel}>Home</Text>
@@ -159,6 +172,7 @@ export default function ProfileScreen() {
           <Text style={styles.navLabel}>Planner</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
+          <View style={styles.navDot} />
           <Text style={[styles.navLabel, styles.navActive]}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -170,18 +184,32 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 60,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 24,
     marginBottom: 20,
   },
   title: {
     fontSize: 28,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
+  },
+  notificationsBtn: {
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    borderRadius: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  notificationsBtnText: {
+    fontSize: 12,
+    color: '#8C7B6E',
   },
   scroll: {
     flex: 1,
@@ -197,20 +225,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     gap: 14,
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 20,
-    color: '#FAF6F0',
+    color: '#C9A84C',
     fontWeight: '400',
   },
   userInfo: {
@@ -219,7 +247,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 17,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   userPhone: {
@@ -232,14 +260,14 @@ const styles = StyleSheet.create({
   },
   editBtn: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
   editBtnText: {
     fontSize: 13,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   subscriptionCard: {
     flexDirection: 'row',
@@ -253,7 +281,7 @@ const styles = StyleSheet.create({
   },
   subscriptionPlan: {
     fontSize: 15,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   subscriptionDetail: {
@@ -262,15 +290,43 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   upgradeBtn: {
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   upgradeBtnText: {
     fontSize: 13,
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontWeight: '500',
+  },
+  referralCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+  },
+  referralLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  referralTitle: {
+    fontSize: 15,
+    color: '#2C2420',
+    fontWeight: '500',
+  },
+  referralSub: {
+    fontSize: 12,
+    color: '#8C7B6E',
+    lineHeight: 18,
+  },
+  referralArrow: {
+    fontSize: 20,
+    color: '#C9A84C',
   },
   section: {
     gap: 10,
@@ -289,7 +345,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     gap: 12,
   },
   cardLeft: {
@@ -298,7 +354,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   cardSub: {
@@ -321,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     overflow: 'hidden',
   },
   listRow: {
@@ -333,7 +389,7 @@ const styles = StyleSheet.create({
   },
   listKey: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   listVal: {
     fontSize: 13,
@@ -348,7 +404,7 @@ const styles = StyleSheet.create({
   },
   listDivider: {
     height: 1,
-    backgroundColor: '#EDE8E3',
+    backgroundColor: '#E8E0D5',
     marginHorizontal: 16,
   },
   toggleRow: {
@@ -360,18 +416,18 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontSize: 14,
-    color: '#1C1C1C',
+    color: '#2C2420',
   },
   toggle: {
     width: 44,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#E8DDD4',
+    backgroundColor: '#E8E0D5',
     justifyContent: 'center',
     paddingHorizontal: 2,
   },
   toggleActive: {
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
   },
   toggleThumb: {
     width: 22,
@@ -384,7 +440,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     borderWidth: 1,
-    borderColor: '#EDE8E3',
+    borderColor: '#E8E0D5',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -407,14 +463,21 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 28,
     borderTopWidth: 1,
-    borderTopColor: '#EDE8E3',
-    backgroundColor: '#FAF6F0',
+    borderTopColor: '#E8E0D5',
+    backgroundColor: '#F5F0E8',
     position: 'absolute',
     bottom: 0,
     width: '100%',
   },
   navItem: {
     alignItems: 'center',
+    gap: 4,
+  },
+  navDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#C9A84C',
   },
   navLabel: {
     fontSize: 12,
@@ -422,7 +485,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   navActive: {
-    color: '#C9A84C',
+    color: '#2C2420',
     fontWeight: '600',
   },
 });

@@ -20,8 +20,6 @@ export default function OTPScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backBtn}>←</Text>
@@ -31,12 +29,10 @@ export default function OTPScreen() {
       </View>
 
       <View style={styles.content}>
-
         {!otpSent ? (
           <>
             <Text style={styles.title}>Your phone{'\n'}number</Text>
             <Text style={styles.subtitle}>We'll send a verification code</Text>
-
             <View style={styles.phoneRow}>
               <View style={styles.countryCode}>
                 <Text style={styles.countryCodeText}>+91</Text>
@@ -51,7 +47,6 @@ export default function OTPScreen() {
                 onChangeText={setPhone}
               />
             </View>
-
             <TouchableOpacity
               style={[styles.button, phone.length !== 10 && styles.buttonDisabled]}
               onPress={handleSendOTP}
@@ -64,7 +59,6 @@ export default function OTPScreen() {
           <>
             <Text style={styles.title}>Enter the{'\n'}code</Text>
             <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
-
             <TextInput
               style={styles.otpInput}
               placeholder="000000"
@@ -75,7 +69,6 @@ export default function OTPScreen() {
               onChangeText={setOtp}
               textAlign="center"
             />
-
             <TouchableOpacity
               style={[styles.button, otp.length !== 6 && styles.buttonDisabled]}
               onPress={handleVerify}
@@ -83,13 +76,11 @@ export default function OTPScreen() {
             >
               <Text style={styles.buttonText}>Verify</Text>
             </TouchableOpacity>
-
             <TouchableOpacity onPress={() => setOtpSent(false)}>
               <Text style={styles.changeNumber}>Change number</Text>
             </TouchableOpacity>
           </>
         )}
-
       </View>
     </View>
   );
@@ -98,7 +89,7 @@ export default function OTPScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: '#F5F0E8',
     paddingTop: 60,
     paddingHorizontal: 28,
   },
@@ -110,7 +101,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     fontSize: 22,
-    color: '#1C1C1C',
+    color: '#2C2420',
     width: 24,
   },
   logo: {
@@ -124,11 +115,11 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   title: {
-    fontSize: 34,
-    color: '#1C1C1C',
+    fontSize: 36,
+    color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 0.5,
-    lineHeight: 44,
+    lineHeight: 46,
   },
   subtitle: {
     fontSize: 14,
@@ -142,42 +133,42 @@ const styles = StyleSheet.create({
   },
   countryCode: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 10,
-    paddingVertical: 15,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
   },
   countryCodeText: {
     fontSize: 15,
-    color: '#1C1C1C',
+    color: '#2C2420',
     fontWeight: '500',
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 10,
-    paddingVertical: 15,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#1C1C1C',
+    color: '#2C2420',
     backgroundColor: '#FFFFFF',
   },
   otpInput: {
     borderWidth: 1,
-    borderColor: '#E8DDD4',
+    borderColor: '#E8E0D5',
     borderRadius: 10,
     paddingVertical: 18,
     fontSize: 28,
-    color: '#1C1C1C',
+    color: '#2C2420',
     backgroundColor: '#FFFFFF',
     letterSpacing: 12,
     marginTop: 8,
   },
   button: {
-    backgroundColor: '#1C1C1C',
+    backgroundColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',
@@ -187,7 +178,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   buttonText: {
-    color: '#FAF6F0',
+    color: '#F5F0E8',
     fontSize: 15,
     letterSpacing: 0.5,
     fontWeight: '500',
