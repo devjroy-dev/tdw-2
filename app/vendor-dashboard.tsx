@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { uploadImage } from '../services/cloudinary';
 import { generateInvoicePDF, generateInvoiceNumber } from '../services/invoice';
+import { getBenchmark } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -73,6 +74,13 @@ export default function VendorDashboardScreen() {
   const [showPromoForm, setShowPromoForm] = useState(false);
   const [newPromoTitle, setNewPromoTitle] = useState('');
   const [newPromoExpiry, setNewPromoExpiry] = useState('');
+  const [benchmark, setBenchmark] = useState<any>(null);
+
+  useEffect(() => {
+    getBenchmark('photographers', 'Delhi NCR')
+      .then(res => { if (res.success) setBenchmark(res.data); })
+      .catch(() => {});
+  }, []);
 
   const handleImageUpload = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -145,6 +153,7 @@ export default function VendorDashboardScreen() {
       Alert.alert('Error', 'Could not generate invoice. Please try again.');
     }
   };
+
   const handleCreatePromo = () => {
     if (!newPromoTitle || !newPromoExpiry) {
       Alert.alert('Missing info', 'Please fill in all fields.');
@@ -173,29 +182,9 @@ export default function VendorDashboardScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Add Client</Text>
             <Text style={styles.modalSubtitle}>They'll get a WhatsApp invite to join The Dream Wedding</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Couple names (e.g. Priya & Rahul)"
-              placeholderTextColor="#8C7B6E"
-              value={newClientName}
-              onChangeText={setNewClientName}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Phone number"
-              placeholderTextColor="#8C7B6E"
-              value={newClientPhone}
-              onChangeText={setNewClientPhone}
-              keyboardType="phone-pad"
-              maxLength={10}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Wedding date (e.g. March 15, 2026)"
-              placeholderTextColor="#8C7B6E"
-              value={newClientDate}
-              onChangeText={setNewClientDate}
-            />
+            <TextInput style={styles.modalInput} placeholder="Couple names (e.g. Priya & Rahul)" placeholderTextColor="#8C7B6E" value={newClientName} onChangeText={setNewClientName} />
+            <TextInput style={styles.modalInput} placeholder="Phone number" placeholderTextColor="#8C7B6E" value={newClientPhone} onChangeText={setNewClientPhone} keyboardType="phone-pad" maxLength={10} />
+            <TextInput style={styles.modalInput} placeholder="Wedding date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={newClientDate} onChangeText={setNewClientDate} />
             <TouchableOpacity style={styles.modalBtn} onPress={handleAddClient}>
               <Text style={styles.modalBtnText}>Add & Invite</Text>
             </TouchableOpacity>
@@ -212,20 +201,8 @@ export default function VendorDashboardScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Create Promo</Text>
             <Text style={styles.modalSubtitle}>Couples in your city will be notified instantly</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Promo title (e.g. 15% Off December Bookings)"
-              placeholderTextColor="#8C7B6E"
-              value={newPromoTitle}
-              onChangeText={setNewPromoTitle}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Expires on (e.g. Dec 31, 2025)"
-              placeholderTextColor="#8C7B6E"
-              value={newPromoExpiry}
-              onChangeText={setNewPromoExpiry}
-            />
+            <TextInput style={styles.modalInput} placeholder="Promo title (e.g. 15% Off December Bookings)" placeholderTextColor="#8C7B6E" value={newPromoTitle} onChangeText={setNewPromoTitle} />
+            <TextInput style={styles.modalInput} placeholder="Expires on (e.g. Dec 31, 2025)" placeholderTextColor="#8C7B6E" value={newPromoExpiry} onChangeText={setNewPromoExpiry} />
             <TouchableOpacity style={styles.modalBtn} onPress={handleCreatePromo}>
               <Text style={styles.modalBtnText}>Go Live</Text>
             </TouchableOpacity>
@@ -242,14 +219,9 @@ export default function VendorDashboardScreen() {
           <Text style={styles.businessName}>Arjun Mehta Photography</Text>
           <Text style={styles.category}>Photographer · Delhi NCR</Text>
         </View>
-        <TouchableOpacity
-          style={[styles.liveToggle, isLive && styles.liveToggleActive]}
-          onPress={() => setIsLive(!isLive)}
-        >
+        <TouchableOpacity style={[styles.liveToggle, isLive && styles.liveToggleActive]} onPress={() => setIsLive(!isLive)}>
           <View style={[styles.liveDot, isLive && styles.liveDotActive]} />
-          <Text style={[styles.liveToggleText, isLive && styles.liveToggleTextActive]}>
-            {isLive ? 'Live' : 'Paused'}
-          </Text>
+          <Text style={[styles.liveToggleText, isLive && styles.liveToggleTextActive]}>{isLive ? 'Live' : 'Paused'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -312,10 +284,19 @@ export default function VendorDashboardScreen() {
             </View>
 
             <View style={styles.benchmarkCard}>
-              <Text style={styles.benchmarkTitle}>Market Benchmark</Text>
-              <Text style={styles.benchmarkText}>
-                Your starting price of ₹80,000 is 15% below the average for candid photographers in Delhi NCR (₹94,000). Consider revising your pricing.
-              </Text>
+              <Text style={styles.benchmarkTitle}>Market Benchmark · Live</Text>
+              {benchmark ? (
+                <>
+                  <Text style={styles.benchmarkText}>
+                    Average starting price for photographers in Delhi NCR is ₹{benchmark.avgStartingPrice.toLocaleString('en-IN')} across {benchmark.vendorCount} vendors. Average rating: {benchmark.avgRating}★
+                  </Text>
+                  <Text style={[styles.benchmarkText, { color: '#C9A84C', marginTop: 4 }]}>
+                    Range: ₹{benchmark.minStartingPrice.toLocaleString('en-IN')} – ₹{benchmark.maxStartingPrice.toLocaleString('en-IN')}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.benchmarkText}>Loading market data...</Text>
+              )}
             </View>
 
             <View style={styles.actionGrid}>
@@ -429,7 +410,6 @@ export default function VendorDashboardScreen() {
           <View style={styles.tabPane}>
             <Text style={styles.sectionLabel}>Business Tools</Text>
 
-            {/* Promo Engine */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Promo Engine</Text>
@@ -456,15 +436,11 @@ export default function VendorDashboardScreen() {
               ))}
             </View>
 
-            {/* Portfolio Upload */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Portfolio Photos</Text>
                 <TouchableOpacity style={styles.toolAction} onPress={handleImageUpload} disabled={uploadingImage}>
-                  {uploadingImage
-                    ? <ActivityIndicator size="small" color="#C9A84C" />
-                    : <Text style={styles.toolActionText}>+ Upload</Text>
-                  }
+                  {uploadingImage ? <ActivityIndicator size="small" color="#C9A84C" /> : <Text style={styles.toolActionText}>+ Upload</Text>}
                 </TouchableOpacity>
               </View>
               <Text style={styles.toolDesc}>Upload photos to your public portfolio</Text>
@@ -477,7 +453,6 @@ export default function VendorDashboardScreen() {
               )}
             </View>
 
-            {/* Invoice Generator */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Invoice Generator</Text>
@@ -503,7 +478,6 @@ export default function VendorDashboardScreen() {
               )}
             </View>
 
-            {/* Contract Templates */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Contract Templates</Text>
@@ -525,7 +499,6 @@ export default function VendorDashboardScreen() {
               </View>
             </View>
 
-            {/* Payment Tracker */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Payment Tracker</Text>
@@ -552,7 +525,6 @@ export default function VendorDashboardScreen() {
               </View>
             </View>
 
-            {/* Portfolio Analytics */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Portfolio Analytics</Text>
@@ -578,7 +550,6 @@ export default function VendorDashboardScreen() {
               </View>
             </View>
 
-            {/* GST Summary */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>GST & Tax Summary</Text>
@@ -603,7 +574,6 @@ export default function VendorDashboardScreen() {
               </View>
             </View>
 
-            {/* Referral */}
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Refer a Vendor</Text>
@@ -687,7 +657,6 @@ export default function VendorDashboardScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem}>
           <Text style={[styles.navLabel, styles.navActive]}>Dashboard</Text>
