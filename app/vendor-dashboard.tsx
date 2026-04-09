@@ -15,6 +15,7 @@ import {
   View
 } from 'react-native';
 import { uploadImage } from '../services/cloudinary';
+import { generateInvoicePDF, generateInvoiceNumber } from '../services/invoice';
 
 const { width } = Dimensions.get('window');
 
@@ -124,6 +125,26 @@ export default function VendorDashboardScreen() {
     Alert.alert('Client Added!', `${newClientName} has been added. Send them an invite to join The Dream Wedding.`);
   };
 
+  const handleGenerateInvoice = async () => {
+    if (!invoiceClient || !invoiceAmount) {
+      Alert.alert('Missing info', 'Please enter client name and amount.');
+      return;
+    }
+    try {
+      await generateInvoicePDF({
+        vendorName: 'Arjun Mehta Photography',
+        vendorPhone: '9999999999',
+        vendorCity: 'Delhi NCR',
+        clientName: invoiceClient,
+        amount: parseInt(invoiceAmount),
+        description: 'Wedding Photography Services',
+        invoiceNumber: generateInvoiceNumber(),
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Could not generate invoice. Please try again.');
+    }
+  };
   const handleCreatePromo = () => {
     if (!newPromoTitle || !newPromoExpiry) {
       Alert.alert('Missing info', 'Please fill in all fields.');
@@ -475,7 +496,7 @@ export default function VendorDashboardScreen() {
                       <Text style={styles.gstPreviewTotal}>Total: ₹{(parseInt(invoiceAmount) * 1.18).toLocaleString('en-IN')}</Text>
                     </View>
                   ) : null}
-                  <TouchableOpacity style={styles.generateBtn}>
+                  <TouchableOpacity style={styles.generateBtn} onPress={handleGenerateInvoice}>
                     <Text style={styles.generateBtnText}>Generate Invoice</Text>
                   </TouchableOpacity>
                 </View>
