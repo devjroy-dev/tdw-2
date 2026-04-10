@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, TextInput } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  Dimensions, ScrollView, TextInput
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+const CARD_SIZE = (width - 60) / 2;
 
 const CATEGORIES = [
   { id: 'venues', label: 'Venues', sub: 'Palaces, farmhouses & luxury hotels' },
@@ -15,6 +19,46 @@ const CATEGORIES = [
   { id: 'dj', label: 'DJ & Music', sub: 'Live music & DJ services' },
   { id: 'event-managers', label: 'Event Managers', sub: 'Luxury & destination weddings' },
   { id: 'jewellery', label: 'Jewellery Designers', sub: 'Bridal & custom jewellery' },
+  { id: 'bridal-wellness', label: 'Bridal Wellness', sub: 'Skin, hair, health & dermatology' },
+];
+
+const QUICK_CARDS = [
+  {
+    id: 'get-inspired',
+    title: 'Get Inspired',
+    sub: 'Décor, candid & more',
+    emoji: '✨',
+    route: '/get-inspired',
+    bg: '#FFF8EC',
+    border: '#E8D9B5',
+  },
+  {
+    id: 'look-book',
+    title: 'Look Book',
+    sub: 'Designers & artists',
+    emoji: '👗',
+    route: '/look-book',
+    bg: '#F5F0E8',
+    border: '#E8E0D5',
+  },
+  {
+    id: 'destination-weddings',
+    title: 'Destination',
+    sub: 'Exotic locations',
+    emoji: '🌏',
+    route: '/destination-weddings',
+    bg: '#F0F5F5',
+    border: '#D5E8E8',
+  },
+  {
+    id: 'special-offers',
+    title: 'Special Offers',
+    sub: 'Deals from vendors',
+    emoji: '🎁',
+    route: '/special-offers',
+    bg: '#FFF0F5',
+    border: '#E8D5DF',
+  },
 ];
 
 export default function HomeScreen() {
@@ -61,7 +105,7 @@ export default function HomeScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
 
-        {/* Search — at the top */}
+        {/* Search — thin and sleek */}
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
@@ -78,27 +122,20 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Genie Budget */}
-        <TouchableOpacity style={styles.genieBar} onPress={() => router.push('/bts-planner')}>
-          <View style={styles.genieLeft}>
-            <Text style={styles.genieTitle}>Genie Budget</Text>
-            <Text style={styles.genieSubtitle}>Heart vendors to track your estimated spend</Text>
-          </View>
-          <Text style={styles.genieArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Get Inspired */}
-        <TouchableOpacity
-          style={styles.inspiredCard}
-          onPress={() => router.push('/get-inspired')}
-        >
-          <View style={styles.inspiredLeft}>
-            <Text style={styles.inspiredLabel}>NEW</Text>
-            <Text style={styles.inspiredTitle}>Get Inspired ✨</Text>
-            <Text style={styles.inspiredSub}>Curated looks from India's finest designers, jewellers & artists</Text>
-          </View>
-          <Text style={styles.inspiredArrow}>›</Text>
-        </TouchableOpacity>
+        {/* 4 Square Cards */}
+        <View style={styles.cardGrid}>
+          {QUICK_CARDS.map(card => (
+            <TouchableOpacity
+              key={card.id}
+              style={[styles.quickCard, { backgroundColor: card.bg, borderColor: card.border }]}
+              onPress={() => router.push(card.route as any)}
+            >
+              <Text style={styles.quickCardEmoji}>{card.emoji}</Text>
+              <Text style={styles.quickCardTitle}>{card.title}</Text>
+              <Text style={styles.quickCardSub}>{card.sub}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Categories */}
         <View style={styles.categoriesSection}>
@@ -119,24 +156,6 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
-
-        {/* Referral Banner */}
-        <TouchableOpacity style={styles.referralBanner}>
-          <View style={styles.referralLeft}>
-            <Text style={styles.referralTitle}>Invite a friend</Text>
-            <Text style={styles.referralSub}>Get 1 month Premium free when they sign up</Text>
-          </View>
-          <Text style={styles.referralArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Post Wedding */}
-        <TouchableOpacity style={styles.postWeddingCard}>
-          <View style={styles.postWeddingLeft}>
-            <Text style={styles.postWeddingTitle}>After the wedding</Text>
-            <Text style={styles.postWeddingSubtitle}>Book your anniversary shoot, honeymoon photographer & more</Text>
-          </View>
-          <Text style={styles.postWeddingArrow}>›</Text>
-        </TouchableOpacity>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -164,48 +183,58 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0E8', paddingTop: 60 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 20 },
-  greeting: { fontSize: 28, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
-  subGreeting: { fontSize: 13, color: '#8C7B6E', marginTop: 4, letterSpacing: 0.3 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
+  greeting: { fontSize: 26, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
+  subGreeting: { fontSize: 12, color: '#8C7B6E', marginTop: 3, letterSpacing: 0.3 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E8E0D5' },
-  notifIcon: { fontSize: 16 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#2C2420', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: '#C9A84C', fontSize: 16, fontWeight: '500' },
+  notifBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E8E0D5' },
+  notifIcon: { fontSize: 15 },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2C2420', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { color: '#C9A84C', fontSize: 15, fontWeight: '500' },
   scroll: { flex: 1 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', marginHorizontal: 24, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D5', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14, gap: 8 },
-  searchIcon: { fontSize: 18, color: '#8C7B6E' },
-  searchInput: { flex: 1, fontSize: 14, color: '#2C2420' },
-  searchClear: { fontSize: 12, color: '#8C7B6E', padding: 4 },
-  genieBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 24, marginBottom: 14, paddingVertical: 14, paddingHorizontal: 18, backgroundColor: '#FFF8EC', borderRadius: 10, borderWidth: 1, borderColor: '#E8D9B5' },
-  genieLeft: { gap: 3 },
-  genieTitle: { fontSize: 14, color: '#2C2420', fontWeight: '500', letterSpacing: 0.3 },
-  genieSubtitle: { fontSize: 12, color: '#8C7B6E' },
-  genieArrow: { fontSize: 20, color: '#C9A84C' },
-  inspiredCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 24, marginBottom: 24, padding: 20, backgroundColor: '#2C2420', borderRadius: 14 },
-  inspiredLeft: { flex: 1, gap: 5 },
-  inspiredLabel: { fontSize: 9, color: '#C9A84C', fontWeight: '700', letterSpacing: 2 },
-  inspiredTitle: { fontSize: 18, color: '#F5F0E8', fontWeight: '400', letterSpacing: 0.5 },
-  inspiredSub: { fontSize: 12, color: '#8C7B6E', lineHeight: 18 },
-  inspiredArrow: { fontSize: 22, color: '#C9A84C', marginLeft: 12 },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 16,
+    gap: 8,
+  },
+  searchIcon: { fontSize: 16, color: '#8C7B6E' },
+  searchInput: { flex: 1, fontSize: 13, color: '#2C2420' },
+  searchClear: { fontSize: 11, color: '#8C7B6E', padding: 4 },
+  cardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 24,
+  },
+  quickCard: {
+    width: CARD_SIZE,
+    height: CARD_SIZE,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    justifyContent: 'flex-end',
+    gap: 4,
+  },
+  quickCardEmoji: { fontSize: 24, marginBottom: 4 },
+  quickCardTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500', letterSpacing: 0.3 },
+  quickCardSub: { fontSize: 11, color: '#8C7B6E', letterSpacing: 0.2 },
   categoriesSection: { paddingHorizontal: 24, marginBottom: 16 },
   sectionTitle: { fontSize: 11, color: '#8C7B6E', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '500', marginBottom: 16 },
-  categoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20 },
-  categoryText: { gap: 5 },
-  categoryLabel: { fontSize: 20, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
-  categorySub: { fontSize: 12, color: '#8C7B6E', letterSpacing: 0.2 },
-  categoryArrow: { fontSize: 22, color: '#C9A84C' },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18 },
+  categoryText: { gap: 4 },
+  categoryLabel: { fontSize: 19, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
+  categorySub: { fontSize: 11, color: '#8C7B6E', letterSpacing: 0.2 },
+  categoryArrow: { fontSize: 20, color: '#C9A84C' },
   rowDivider: { height: 1, backgroundColor: '#E8E0D5' },
-  referralBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 24, padding: 18, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E0D5', marginBottom: 12 },
-  referralLeft: { flex: 1, gap: 4 },
-  referralTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
-  referralSub: { fontSize: 12, color: '#8C7B6E', lineHeight: 18 },
-  referralArrow: { fontSize: 20, color: '#C9A84C' },
-  postWeddingCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 24, padding: 18, backgroundColor: '#FFF8EC', borderRadius: 12, borderWidth: 1, borderColor: '#E8D9B5', marginBottom: 12 },
-  postWeddingLeft: { flex: 1, gap: 4 },
-  postWeddingTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
-  postWeddingSubtitle: { fontSize: 12, color: '#8C7B6E', lineHeight: 18 },
-  postWeddingArrow: { fontSize: 20, color: '#C9A84C' },
   bottomNav: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 16, paddingBottom: 28, borderTopWidth: 1, borderTopColor: '#E8E0D5', backgroundColor: '#F5F0E8', position: 'absolute', bottom: 0, width: '100%' },
   navItem: { alignItems: 'center', gap: 4 },
   navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#C9A84C' },

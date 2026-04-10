@@ -8,16 +8,46 @@ SplashScreen.preventAutoHideAsync();
 
 export default function SplashScreen2() {
   const router = useRouter();
-  const opacity = useRef(new Animated.Value(0)).current;
+  const line1Opacity = useRef(new Animated.Value(0)).current;
+  const line1Translate = useRef(new Animated.Value(8)).current;
+  const line2Opacity = useRef(new Animated.Value(0)).current;
+  const line2Translate = useRef(new Animated.Value(8)).current;
+  const dividerWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     SplashScreen.hideAsync();
 
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 1200,
-      useNativeDriver: true,
-    }).start();
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(line1Opacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(line1Translate, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(dividerWidth, {
+        toValue: 40,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+      Animated.parallel([
+        Animated.timing(line2Opacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(line2Translate, {
+          toValue: 0,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
 
     const timer = setTimeout(async () => {
       try {
@@ -38,15 +68,30 @@ export default function SplashScreen2() {
       } catch (e) {
         router.replace('/login');
       }
-    }, 2500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
-      <Animated.Text style={[styles.tagline, { opacity }]}>
-        Your Dreams Start Here.
+      <View style={styles.content}>
+        <Animated.Text style={[styles.line1, {
+          opacity: line1Opacity,
+          transform: [{ translateY: line1Translate }]
+        }]}>
+          Your Dreams
+        </Animated.Text>
+        <Animated.View style={[styles.divider, { width: dividerWidth }]} />
+        <Animated.Text style={[styles.line2, {
+          opacity: line2Opacity,
+          transform: [{ translateY: line2Translate }]
+        }]}>
+          Start Here.
+        </Animated.Text>
+      </View>
+      <Animated.Text style={[styles.footer, { opacity: line2Opacity }]}>
+        thedreamwedding.in
       </Animated.Text>
     </View>
   );
@@ -59,12 +104,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tagline: {
-    fontSize: 26,
+  content: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  line1: {
+    fontSize: 32,
     color: '#2C2420',
-    fontWeight: '500',
-    letterSpacing: 1.5,
+    fontWeight: '300',
+    letterSpacing: 2,
     textAlign: 'center',
-    paddingHorizontal: 40,
+  },
+  divider: {
+    height: 1.5,
+    backgroundColor: '#C9A84C',
+  },
+  line2: {
+    fontSize: 32,
+    color: '#C9A84C',
+    fontWeight: '300',
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 48,
+    fontSize: 11,
+    color: '#8C7B6E',
+    letterSpacing: 2.5,
+    textTransform: 'lowercase',
   },
 });

@@ -51,29 +51,22 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.removeItem('user_session');
-            await AsyncStorage.removeItem('vendor_session');
-            router.replace('/login');
-          }
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out', style: 'destructive',
+        onPress: async () => {
+          await AsyncStorage.removeItem('user_session');
+          await AsyncStorage.removeItem('vendor_session');
+          router.replace('/login');
         }
-      ]
-    );
+      }
+    ]);
   };
 
   const formatDate = (isoDate: string) => {
     try {
-      return new Date(isoDate).toLocaleDateString('en-IN', {
-        day: 'numeric', month: 'long', year: 'numeric'
-      });
+      return new Date(isoDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch { return isoDate; }
   };
 
@@ -134,10 +127,7 @@ export default function ProfileScreen() {
               onPress={handleSaveEdit}
               disabled={savingEdit}
             >
-              {savingEdit
-                ? <ActivityIndicator color="#F5F0E8" />
-                : <Text style={styles.modalBtnText}>Save Changes</Text>
-              }
+              {savingEdit ? <ActivityIndicator color="#F5F0E8" /> : <Text style={styles.modalBtnText}>Save Changes</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowEditModal(false)}>
               <Text style={styles.modalCancelText}>Cancel</Text>
@@ -149,26 +139,17 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity
-          style={styles.notificationsBtn}
-          onPress={() => router.push('/notifications')}
-        >
+        <TouchableOpacity style={styles.notificationsBtn} onPress={() => router.push('/notifications')}>
           <Text style={styles.notificationsBtnText}>🔔 Notifications</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll} contentContainerStyle={styles.scrollContent}>
 
         {/* User Card */}
         <View style={styles.userCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {userName[0]?.toUpperCase() || 'G'}
-            </Text>
+            <Text style={styles.avatarText}>{userName[0]?.toUpperCase() || 'G'}</Text>
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{userName}</Text>
@@ -193,20 +174,23 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Referral */}
-        <TouchableOpacity
-          style={styles.referralCard}
-          onPress={() => Alert.alert(
-            'Invite a Friend',
-            'Share your referral link:\n\nthedreamwedding.in/invite/your-code\n\nGet 1 month Premium free when they sign up!'
-          )}
-        >
-          <View style={styles.referralLeft}>
-            <Text style={styles.referralTitle}>Invite a friend</Text>
-            <Text style={styles.referralSub}>Get 1 month Premium free when they sign up</Text>
+        {/* Wedding countdown prominent */}
+        {daysUntil !== null && (
+          <View style={styles.countdownCard}>
+            <View style={styles.countdownLeft}>
+              <Text style={styles.countdownNumber}>{daysUntil}</Text>
+              <Text style={styles.countdownLabel}>days to go</Text>
+            </View>
+            <View style={styles.countdownDivider} />
+            <View style={styles.countdownRight}>
+              <Text style={styles.countdownDate}>{weddingDate}</Text>
+              <Text style={styles.countdownSub}>Your wedding day ✨</Text>
+              <TouchableOpacity onPress={() => router.push('/onboarding')}>
+                <Text style={styles.countdownEdit}>Change date →</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.referralArrow}>›</Text>
-        </TouchableOpacity>
+        )}
 
         {/* Co-planner */}
         <View style={styles.section}>
@@ -218,10 +202,7 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity
               style={styles.linkBtn}
-              onPress={() => Alert.alert(
-                'Invite Co-planner',
-                'Share this link with your partner:\n\nthedreamwedding.in/join/your-code\n\nLive sync coming soon!'
-              )}
+              onPress={() => Alert.alert('Invite Co-planner', 'Share this link with your partner:\n\nthedreamwedding.in/join/your-code\n\nLive sync coming soon!')}
             >
               <Text style={styles.linkBtnText}>Invite</Text>
             </TouchableOpacity>
@@ -247,13 +228,31 @@ export default function ProfileScreen() {
               </View>
             ))}
           </View>
-          <TouchableOpacity
-            style={styles.editDetailsBtn}
-            onPress={() => router.push('/onboarding')}
-          >
+          <TouchableOpacity style={styles.editDetailsBtn} onPress={() => router.push('/onboarding')}>
             <Text style={styles.editDetailsBtnText}>Update wedding details →</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Referral Banner */}
+        <TouchableOpacity
+          style={styles.referralCard}
+          onPress={() => Alert.alert('Invite a Friend', 'Share your referral link:\n\nthedreamwedding.in/invite/your-code\n\nGet 1 month Premium free when they sign up!')}
+        >
+          <View style={styles.referralLeft}>
+            <Text style={styles.referralTitle}>Invite a friend</Text>
+            <Text style={styles.referralSub}>Get 1 month Premium free when they sign up</Text>
+          </View>
+          <Text style={styles.referralArrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Post Wedding */}
+        <TouchableOpacity style={styles.postWeddingCard}>
+          <View style={styles.postWeddingLeft}>
+            <Text style={styles.postWeddingTitle}>After the wedding</Text>
+            <Text style={styles.postWeddingSub}>Book your anniversary shoot, honeymoon photographer & more</Text>
+          </View>
+          <Text style={styles.postWeddingArrow}>›</Text>
+        </TouchableOpacity>
 
         {/* Notifications */}
         <View style={styles.section}>
@@ -261,20 +260,14 @@ export default function ProfileScreen() {
           <View style={styles.listCard}>
             <View style={styles.toggleRow}>
               <Text style={styles.toggleLabel}>Push Notifications</Text>
-              <TouchableOpacity
-                style={[styles.toggle, notifications && styles.toggleActive]}
-                onPress={() => setNotifications(!notifications)}
-              >
+              <TouchableOpacity style={[styles.toggle, notifications && styles.toggleActive]} onPress={() => setNotifications(!notifications)}>
                 <View style={[styles.toggleThumb, notifications && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
             <View style={styles.listDivider} />
             <View style={styles.toggleRow}>
               <Text style={styles.toggleLabel}>Payment Reminders</Text>
-              <TouchableOpacity
-                style={[styles.toggle, reminders && styles.toggleActive]}
-                onPress={() => setReminders(!reminders)}
-              >
+              <TouchableOpacity style={[styles.toggle, reminders && styles.toggleActive]} onPress={() => setReminders(!reminders)}>
                 <View style={[styles.toggleThumb, reminders && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
@@ -356,11 +349,25 @@ const styles = StyleSheet.create({
   subscriptionDetail: { fontSize: 12, color: '#8C7B6E', marginTop: 3 },
   subscriptionBadge: { backgroundColor: '#C9A84C', borderRadius: 50, paddingHorizontal: 14, paddingVertical: 6 },
   subscriptionBadgeText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600' },
-  referralCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF8EC', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#E8D9B5' },
+  countdownCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#E8E0D5', gap: 16 },
+  countdownLeft: { alignItems: 'center', minWidth: 64 },
+  countdownNumber: { fontSize: 36, color: '#C9A84C', fontWeight: '300' },
+  countdownLabel: { fontSize: 10, color: '#8C7B6E', letterSpacing: 1, textTransform: 'uppercase' },
+  countdownDivider: { width: 1, height: 50, backgroundColor: '#E8E0D5' },
+  countdownRight: { flex: 1, gap: 4 },
+  countdownDate: { fontSize: 15, color: '#2C2420', fontWeight: '400' },
+  countdownSub: { fontSize: 12, color: '#8C7B6E' },
+  countdownEdit: { fontSize: 12, color: '#C9A84C', marginTop: 4 },
+  referralCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF8EC', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#E8D9B5' },
   referralLeft: { flex: 1, gap: 4 },
   referralTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
   referralSub: { fontSize: 12, color: '#8C7B6E', lineHeight: 18 },
   referralArrow: { fontSize: 20, color: '#C9A84C' },
+  postWeddingCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F5F0E8', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#E8E0D5' },
+  postWeddingLeft: { flex: 1, gap: 4 },
+  postWeddingTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
+  postWeddingSub: { fontSize: 12, color: '#8C7B6E', lineHeight: 18 },
+  postWeddingArrow: { fontSize: 20, color: '#C9A84C' },
   section: { gap: 10 },
   sectionLabel: { fontSize: 12, color: '#8C7B6E', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '500' },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8E0D5', gap: 12 },

@@ -1,86 +1,89 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, Image, ScrollView
+  Dimensions, Image, ScrollView, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
-const PHOTOS = [
+const OFFERS = [
   {
     id: '1',
-    image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
-    caption: 'Floral Mandap Decor',
-    tag: 'Decor',
-    credit: 'Wedding Décor Inspiration',
+    image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
+    title: '20% Off Wedding Photography',
+    vendor: 'Arjun Mehta Photography',
+    category: 'Photographer · Delhi NCR',
+    validTill: 'Valid till April 30, 2026',
+    tag: 'Photography',
+    discount: '20% OFF',
+    vendorId: '',
   },
   {
     id: '2',
-    image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
-    caption: 'Candlelit Reception Setup',
-    tag: 'Decor',
-    credit: 'Luxury Reception Ideas',
+    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
+    title: 'Free Décor with Venue Booking',
+    vendor: 'The Leela Palace',
+    category: 'Venue · Delhi NCR',
+    validTill: 'Valid till May 15, 2026',
+    tag: 'Venue',
+    discount: 'FREE DÉCOR',
+    vendorId: '',
   },
   {
     id: '3',
-    image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
-    caption: 'Candid Wedding Moment',
-    tag: 'Photography',
-    credit: 'Candid Photography',
+    image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
+    title: 'Bridal Package at Special Price',
+    vendor: 'Namrata Soni',
+    category: 'Makeup Artist · Mumbai',
+    validTill: 'Valid till April 25, 2026',
+    tag: 'Makeup',
+    discount: '15% OFF',
+    vendorId: '',
   },
   {
     id: '4',
-    image: 'https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=800',
-    caption: 'Bridal Portrait',
-    tag: 'Photography',
-    credit: 'Bridal Portraits',
+    image: 'https://images.unsplash.com/photo-1571266028243-d220c6a5d70b?w=800',
+    title: 'DJ + Sound System Bundle',
+    vendor: 'DJ Chetas',
+    category: 'DJ · Mumbai',
+    validTill: 'Valid till May 1, 2026',
+    tag: 'DJ',
+    discount: 'BUNDLE DEAL',
+    vendorId: '',
   },
   {
     id: '5',
-    image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-    caption: 'Haldi Ceremony',
-    tag: 'Functions',
-    credit: 'Haldi Celebrations',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800',
+    title: 'Custom Jewellery at Cost Price',
+    vendor: 'Anmol Jewellers',
+    category: 'Jewellery · Delhi NCR',
+    validTill: 'Valid till June 30, 2026',
+    tag: 'Jewellery',
+    discount: 'COST PRICE',
+    vendorId: '',
   },
   {
     id: '6',
-    image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
-    caption: 'Mehendi Night',
-    tag: 'Functions',
-    credit: 'Mehendi Inspiration',
-  },
-  {
-    id: '7',
-    image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800',
-    caption: 'Garden Wedding Setup',
-    tag: 'Venue',
-    credit: 'Outdoor Venues',
-  },
-  {
-    id: '8',
-    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800',
-    caption: 'Royal Ballroom',
-    tag: 'Venue',
-    credit: 'Luxury Venues',
-  },
-  {
-    id: '9',
     image: 'https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800',
-    caption: 'Sangeet Night',
-    tag: 'Functions',
-    credit: 'Sangeet Celebrations',
+    title: 'Sangeet Choreography Package',
+    vendor: 'Shakti Mohan',
+    category: 'Choreographer · Mumbai',
+    validTill: 'Valid till May 20, 2026',
+    tag: 'Choreographer',
+    discount: '10% OFF',
+    vendorId: '',
   },
 ];
 
-const FILTERS = ['All', 'Decor', 'Photography', 'Functions', 'Venue'];
+const FILTERS = ['All', 'Photography', 'Venue', 'Makeup', 'DJ', 'Jewellery', 'Choreographer'];
 
-export default function GetInspiredScreen() {
+export default function SpecialOffersScreen() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All');
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const filtered = activeFilter === 'All' ? PHOTOS : PHOTOS.filter(p => p.tag === activeFilter);
+  const filtered = activeFilter === 'All' ? OFFERS : OFFERS.filter(p => p.tag === activeFilter);
   const current = filtered[currentIndex];
 
   return (
@@ -90,8 +93,8 @@ export default function GetInspiredScreen() {
           <Text style={styles.backBtn}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Get Inspired</Text>
-          <Text style={styles.subtitle}>Wedding moments & ideas</Text>
+          <Text style={styles.title}>Special Offers</Text>
+          <Text style={styles.subtitle}>Exclusive deals from top vendors</Text>
         </View>
         <View style={{ width: 24 }} />
       </View>
@@ -108,13 +111,29 @@ export default function GetInspiredScreen() {
         <View style={styles.photoWrapper}>
           <Image source={{ uri: current.image }} style={styles.photo} resizeMode="cover" />
           <View style={styles.overlay} />
+
+          {/* Discount badge */}
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>{current.discount}</Text>
+          </View>
+
           <View style={styles.counter}>
             <Text style={styles.counterText}>{currentIndex + 1} of {filtered.length}</Text>
           </View>
+
           <View style={styles.photoInfo}>
-            <Text style={styles.photoCaption}>{current.caption}</Text>
-            <Text style={styles.photoCredit}>{current.credit}</Text>
+            <Text style={styles.offerTitle}>{current.title}</Text>
+            <Text style={styles.photoVendor}>{current.vendor}</Text>
+            <Text style={styles.photoCategory}>{current.category}</Text>
+            <Text style={styles.validTill}>{current.validTill}</Text>
+            <TouchableOpacity
+              style={styles.claimBtn}
+              onPress={() => router.push(`/inquiry?id=${current.vendorId}&type=inquiry`)}
+            >
+              <Text style={styles.claimBtnText}>Claim Offer →</Text>
+            </TouchableOpacity>
           </View>
+
           <View style={styles.navRow}>
             <TouchableOpacity style={[styles.navBtn, currentIndex === 0 && styles.navBtnDisabled]} onPress={() => currentIndex > 0 && setCurrentIndex(p => p - 1)}>
               <Text style={styles.navBtnText}>‹</Text>
@@ -133,11 +152,11 @@ export default function GetInspiredScreen() {
 
       <View style={styles.bottomCard}>
         <View style={styles.bottomLeft}>
-          <Text style={styles.premiumTitle}>✦ Unlock All Looks</Text>
-          <Text style={styles.premiumSub}>Upgrade to Premium for unlimited inspiration</Text>
+          <Text style={styles.premiumTitle}>✦ Are you a vendor?</Text>
+          <Text style={styles.premiumSub}>Post your special offer and reach thousands of couples</Text>
         </View>
-        <TouchableOpacity style={styles.upgradeBtn}>
-          <Text style={styles.upgradeBtnText}>Upgrade</Text>
+        <TouchableOpacity style={styles.postBtn} onPress={() => router.push('/vendor-login')}>
+          <Text style={styles.postBtnText}>Post Offer</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -149,7 +168,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 16 },
   backBtn: { fontSize: 22, color: '#2C2420', width: 24 },
   headerCenter: { alignItems: 'center', gap: 3 },
-  title: { fontSize: 18, color: '#2C2420', fontWeight: '400', letterSpacing: 1 },
+  title: { fontSize: 18, color: '#2C2420', fontWeight: '400', letterSpacing: 0.5 },
   subtitle: { fontSize: 11, color: '#8C7B6E', letterSpacing: 0.5 },
   filterScroll: { maxHeight: 44, marginBottom: 16 },
   filterContent: { paddingHorizontal: 24, gap: 8, alignItems: 'center' },
@@ -159,12 +178,18 @@ const styles = StyleSheet.create({
   filterPillTextActive: { color: '#F5F0E8', fontWeight: '500' },
   photoWrapper: { flex: 1, marginHorizontal: 24, borderRadius: 20, overflow: 'hidden', position: 'relative' },
   photo: { width: '100%', height: '100%' },
-  overlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%', backgroundColor: 'rgba(20,12,4,0.75)' },
+  overlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%', backgroundColor: 'rgba(20,12,4,0.82)' },
+  discountBadge: { position: 'absolute', top: 16, left: 16, backgroundColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
+  discountText: { fontSize: 12, color: '#2C2420', fontWeight: '700', letterSpacing: 1 },
   counter: { position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(245,240,232,0.85)', borderRadius: 50, paddingHorizontal: 12, paddingVertical: 5 },
   counterText: { fontSize: 11, color: '#2C2420', fontWeight: '500', letterSpacing: 0.5 },
   photoInfo: { position: 'absolute', bottom: 72, left: 20, right: 20, gap: 5 },
-  photoCaption: { fontSize: 22, color: '#F5F0E8', fontWeight: '300', letterSpacing: 0.5 },
-  photoCredit: { fontSize: 12, color: '#C9A84C' },
+  offerTitle: { fontSize: 20, color: '#F5F0E8', fontWeight: '400', letterSpacing: 0.3, lineHeight: 28 },
+  photoVendor: { fontSize: 14, color: '#C9A84C', fontWeight: '500' },
+  photoCategory: { fontSize: 11, color: '#B8A99A' },
+  validTill: { fontSize: 11, color: '#8C7B6E', fontStyle: 'italic' },
+  claimBtn: { marginTop: 8, backgroundColor: '#C9A84C', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 18, alignSelf: 'flex-start' },
+  claimBtnText: { fontSize: 13, color: '#2C2420', fontWeight: '600' },
   navRow: { position: 'absolute', bottom: 16, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   navBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(245,240,232,0.85)', justifyContent: 'center', alignItems: 'center' },
   navBtnDisabled: { opacity: 0.3 },
@@ -176,6 +201,6 @@ const styles = StyleSheet.create({
   bottomLeft: { flex: 1, gap: 3 },
   premiumTitle: { fontSize: 14, color: '#2C2420', fontWeight: '500' },
   premiumSub: { fontSize: 12, color: '#8C7B6E' },
-  upgradeBtn: { borderWidth: 1, borderColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  upgradeBtnText: { fontSize: 13, color: '#C9A84C', fontWeight: '500' },
+  postBtn: { borderWidth: 1, borderColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  postBtnText: { fontSize: 13, color: '#C9A84C', fontWeight: '500' },
 });

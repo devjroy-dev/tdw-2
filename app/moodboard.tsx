@@ -36,9 +36,7 @@ export default function MoodboardScreen() {
       const uid = parsed.userId || parsed.uid;
       setUserId(uid);
       const result = await getMoodboard(uid);
-      if (result.success) {
-        setSaved(result.data || []);
-      }
+      if (result.success) setSaved(result.data || []);
     } catch (e) {
       setSaved([]);
     } finally {
@@ -47,28 +45,23 @@ export default function MoodboardScreen() {
   };
 
   const handleRemove = async (id: string) => {
-    Alert.alert(
-      'Remove from Moodboard',
-      'Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setRemoving(id);
-              await removeFromMoodboard(id);
-              setSaved(prev => prev.filter(s => s.id !== id));
-            } catch (e) {
-              Alert.alert('Error', 'Could not remove. Please try again.');
-            } finally {
-              setRemoving(null);
-            }
+    Alert.alert('Remove from Moodboard', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: async () => {
+          try {
+            setRemoving(id);
+            await removeFromMoodboard(id);
+            setSaved(prev => prev.filter(s => s.id !== id));
+          } catch (e) {
+            Alert.alert('Error', 'Could not remove. Please try again.');
+          } finally {
+            setRemoving(null);
           }
         }
-      ]
-    );
+      }
+    ]);
   };
 
   const handleShare = async () => {
@@ -80,21 +73,14 @@ export default function MoodboardScreen() {
     } catch (e) {}
   };
 
-  const filtered = activeFilter === 'All'
-    ? saved
-    : saved.filter(s => s.function_tag === activeFilter);
+  const filtered = activeFilter === 'All' ? saved : saved.filter(s => s.function_tag === activeFilter);
 
   const getVendorImage = (item: any) => {
-    return item.vendors?.portfolio_images?.[0]
-      || item.image_url
-      || item.vendors?.image
-      || 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=400';
+    return item.vendors?.portfolio_images?.[0] || item.image_url || item.vendors?.image || 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=400';
   };
 
   const getVendorName = (item: any) => item.vendors?.name || 'Vendor';
-  const getVendorCategory = (item: any) => item.vendors?.category
-    ?.replace(/-/g, ' ')
-    .replace(/\b\w/g, (l: string) => l.toUpperCase()) || '';
+  const getVendorCategory = (item: any) => item.vendors?.category?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '';
 
   if (loading) {
     return (
@@ -112,33 +98,27 @@ export default function MoodboardScreen() {
         <Text style={styles.count}>{saved.length} saved</Text>
       </View>
 
-      {/* Trending This Week */}
+      {/* Trending — warm elegant style */}
       <TouchableOpacity
         style={styles.trendingBtn}
         onPress={() => router.push('/swipe')}
       >
         <View style={styles.trendingLeft}>
-          <Text style={styles.trendingTitle}>✨ Trending This Week</Text>
+          <Text style={styles.trendingLabel}>✦ Trending</Text>
+          <Text style={styles.trendingTitle}>Trending This Week</Text>
           <Text style={styles.trendingSub}>See who couples are saving right now</Text>
         </View>
         <Text style={styles.trendingArrow}>›</Text>
       </TouchableOpacity>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
         {FUNCTIONS.map(fn => (
           <TouchableOpacity
             key={fn}
             style={[styles.filterTab, activeFilter === fn && styles.filterTabActive]}
             onPress={() => setActiveFilter(fn)}
           >
-            <Text style={[styles.filterTabText, activeFilter === fn && styles.filterTabTextActive]}>
-              {fn}
-            </Text>
+            <Text style={[styles.filterTabText, activeFilter === fn && styles.filterTabTextActive]}>{fn}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -149,57 +129,34 @@ export default function MoodboardScreen() {
             {saved.length === 0 ? 'Nothing saved yet' : `No ${activeFilter} vendors saved`}
           </Text>
           <Text style={styles.emptySubtitle}>
-            {saved.length === 0
-              ? 'Heart vendors while swiping to save them here'
-              : 'Switch filter or go discover more vendors'}
+            {saved.length === 0 ? 'Heart vendors while swiping to save them here' : 'Switch filter or go discover more vendors'}
           </Text>
           <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/home')}>
             <Text style={styles.emptyBtnText}>Discover Vendors</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-          contentContainerStyle={styles.grid}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll} contentContainerStyle={styles.grid}>
           {filtered.map(item => (
             <TouchableOpacity
               key={item.id}
               style={styles.card}
               onPress={() => router.push(`/vendor-profile?id=${item.vendor_id}`)}
             >
-              <Image
-                source={{ uri: getVendorImage(item) }}
-                style={styles.cardImage}
-              />
-
+              <Image source={{ uri: getVendorImage(item) }} style={styles.cardImage} />
               {removing === item.id ? (
-                <View style={styles.removeBtn}>
-                  <ActivityIndicator size="small" color="#F5F0E8" />
-                </View>
+                <View style={styles.removeBtn}><ActivityIndicator size="small" color="#F5F0E8" /></View>
               ) : (
-                <TouchableOpacity
-                  style={styles.removeBtn}
-                  onPress={() => handleRemove(item.id)}
-                >
+                <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item.id)}>
                   <Text style={styles.removeBtnText}>✕</Text>
                 </TouchableOpacity>
               )}
-
               <View style={styles.functionTag}>
-                <Text style={styles.functionTagText}>
-                  {item.function_tag || 'Wedding'}
-                </Text>
+                <Text style={styles.functionTagText}>{item.function_tag || 'Wedding'}</Text>
               </View>
-
               <View style={styles.cardInfo}>
-                <Text style={styles.cardName} numberOfLines={1}>
-                  {getVendorName(item)}
-                </Text>
-                <Text style={styles.cardCategory}>
-                  {getVendorCategory(item)}
-                </Text>
+                <Text style={styles.cardName} numberOfLines={1}>{getVendorName(item)}</Text>
+                <Text style={styles.cardCategory}>{getVendorCategory(item)}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -209,16 +166,10 @@ export default function MoodboardScreen() {
 
       {saved.length > 0 && (
         <View style={styles.shareBar}>
-          <TouchableOpacity
-            style={styles.compareBtn}
-            onPress={() => router.push('/compare')}
-          >
+          <TouchableOpacity style={styles.compareBtn} onPress={() => router.push('/compare')}>
             <Text style={styles.compareBtnText}>Compare</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.shareBtn}
-            onPress={handleShare}
-          >
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
             <Text style={styles.shareBtnText}>Share Moodboard</Text>
           </TouchableOpacity>
         </View>
@@ -250,9 +201,21 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 12 },
   title: { fontSize: 28, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
   count: { fontSize: 13, color: '#8C7B6E' },
-  trendingBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 24, marginBottom: 14, padding: 16, backgroundColor: '#2C2420', borderRadius: 14 },
+  trendingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 24,
+    marginBottom: 14,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8D9B5',
+  },
   trendingLeft: { gap: 3 },
-  trendingTitle: { fontSize: 14, color: '#C9A84C', fontWeight: '600' },
+  trendingLabel: { fontSize: 10, color: '#C9A84C', fontWeight: '500', letterSpacing: 1.5 },
+  trendingTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
   trendingSub: { fontSize: 12, color: '#8C7B6E' },
   trendingArrow: { fontSize: 20, color: '#C9A84C' },
   filterScroll: { maxHeight: 44, marginBottom: 16 },

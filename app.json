@@ -37,18 +37,17 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 150,
           "resizeMode": "contain",
           "backgroundColor": "#F5F0E8",
           "dark": {
-            "backgroundColor": "#1A1A1A"
+            "backgroundColor": "#F5F0E8"
           }
         }
       ],
       "@react-native-community/datetimepicker",
       "expo-web-browser",
-      "@react-native-google-signin/google-signin",
-      "expo-font"
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
