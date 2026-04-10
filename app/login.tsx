@@ -1,11 +1,17 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ActivityIndicator, Alert, Animated, Dimensions
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { createOrGetUser } from '../services/api';
+import { useFonts, CormorantGaramond_300Light, CormorantGaramond_400Regular, CormorantGaramond_500Medium, CormorantGaramond_600SemiBold } from '@expo-google-fonts/cormorant-garamond';
+
+const { height } = Dimensions.get('window');
 
 GoogleSignin.configure({
   webClientId: '707007171164-3uphuoa96s37ur6h76dl09854k8tqa16.apps.googleusercontent.com',
@@ -15,6 +21,44 @@ GoogleSignin.configure({
 export default function LoginScreen() {
   const router = useRouter();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [animationDone, setAnimationDone] = useState(false);
+
+  // Animations
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoTranslate = useRef(new Animated.Value(20)).current;
+  const dividerWidth = useRef(new Animated.Value(0)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const buttonsTranslate = useRef(new Animated.Value(60)).current;
+  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_300Light,
+    CormorantGaramond_400Regular,
+    CormorantGaramond_500Medium,
+    CormorantGaramond_600SemiBold,
+  });
+
+  useEffect(() => {
+    if (!fontsLoaded) return;
+
+    Animated.sequence([
+      // Logo fades in
+      Animated.parallel([
+        Animated.timing(logoOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(logoTranslate, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+      // Divider draws
+      Animated.timing(dividerWidth, { toValue: 40, duration: 400, useNativeDriver: false }),
+      // Tagline appears
+      Animated.timing(taglineOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.delay(400),
+      // Buttons slide up
+      Animated.parallel([
+        Animated.timing(buttonsOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(buttonsTranslate, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]),
+    ]).start(() => setAnimationDone(true));
+  }, [fontsLoaded]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -58,17 +102,33 @@ export default function LoginScreen() {
     }
   };
 
+  if (!fontsLoaded) {
+    return <View style={styles.container} />;
+  }
+
   return (
     <View style={styles.container}>
 
+      {/* Logo Section — animated */}
       <View style={styles.logoSection}>
-        <Text style={styles.logoThe}>The</Text>
-        <Text style={styles.logoMain}>Dream Wedding</Text>
-        <View style={styles.logoDivider} />
-        <Text style={styles.logoTagline}>India's Premium Wedding Platform</Text>
+        <Animated.View style={[styles.logoInner, {
+          opacity: logoOpacity,
+          transform: [{ translateY: logoTranslate }]
+        }]}>
+          <Text style={styles.logoThe}>The</Text>
+          <Text style={styles.logoMain}>Dream Wedding</Text>
+          <Animated.View style={[styles.logoDivider, { width: dividerWidth }]} />
+          <Animated.Text style={[styles.logoTagline, { opacity: taglineOpacity }]}>
+            It all starts here.
+          </Animated.Text>
+        </Animated.View>
       </View>
 
-      <View style={styles.bottomSection}>
+      {/* Buttons Section — slides up */}
+      <Animated.View style={[styles.bottomSection, {
+        opacity: buttonsOpacity,
+        transform: [{ translateY: buttonsTranslate }]
+      }]}>
         <View style={styles.welcomeRow}>
           <Text style={styles.welcomeText}>Welcome</Text>
           <Text style={styles.subText}>Sign in to begin your journey</Text>
@@ -107,7 +167,7 @@ export default function LoginScreen() {
         <TouchableOpacity onPress={() => router.push('/vendor-login')}>
           <Text style={styles.vendorLink}>Vendor? Sign in here →</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
     </View>
   );
@@ -125,45 +185,48 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  logoInner: {
+    alignItems: 'center',
     gap: 10,
   },
   logoThe: {
-    fontSize: 13,
+    fontSize: 16,
     color: '#8C7B6E',
-    fontWeight: '300',
+    fontFamily: 'CormorantGaramond_300Light',
     letterSpacing: 10,
     textTransform: 'uppercase',
   },
   logoMain: {
-    fontSize: 42,
+    fontSize: 48,
     color: '#2C2420',
-    fontWeight: '200',
-    letterSpacing: 3,
+    fontFamily: 'CormorantGaramond_300Light',
+    letterSpacing: 2,
     textAlign: 'center',
   },
   logoDivider: {
-    width: 32,
     height: 1,
     backgroundColor: '#C9A84C',
     marginVertical: 8,
   },
   logoTagline: {
-    fontSize: 9,
+    fontSize: 16,
     color: '#8C7B6E',
-    letterSpacing: 3.5,
-    textTransform: 'uppercase',
+    fontFamily: 'CormorantGaramond_400Regular',
+    letterSpacing: 1,
+    fontStyle: 'italic',
   },
   bottomSection: {
-    gap: 22,
+    gap: 20,
   },
   welcomeRow: {
     gap: 5,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 32,
     color: '#2C2420',
-    fontWeight: '300',
-    letterSpacing: 1.5,
+    fontFamily: 'CormorantGaramond_300Light',
+    letterSpacing: 2,
   },
   subText: {
     fontSize: 13,

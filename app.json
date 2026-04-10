@@ -34,6 +34,17 @@
       "expo-router",
       "expo-notifications",
       [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/cormorant-garamond/CormorantGaramond_300Light.ttf",
+            "./node_modules/@expo-google-fonts/cormorant-garamond/CormorantGaramond_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/cormorant-garamond/CormorantGaramond_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/cormorant-garamond/CormorantGaramond_600SemiBold.ttf"
+          ]
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

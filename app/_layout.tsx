@@ -15,7 +15,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const checkSession = async () => {
     try {
       const user = await AsyncStorage.getItem('user_session');
-      const inAuthGroup = ['login', 'otp', 'splash', 'user-type', 'vendor-login', 'vendor-onboarding'].includes(segments[0] as string);
+      const inAuthGroup = ['login', 'otp', 'user-type', 'vendor-login', 'vendor-onboarding'].includes(segments[0] as string);
 
       if (!user && !inAuthGroup) {
         router.replace('/login');
