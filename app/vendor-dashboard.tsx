@@ -1,14 +1,14 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Dimensions, Image, Modal,
+  ActivityIndicator, Alert, Dimensions, Image, Linking, Modal,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getBenchmark, getInvoices, getLeads, getVendorBookings } from '../services/api';
 import { uploadImage } from '../services/cloudinary';
-import { generateInvoicePDF, generateInvoiceNumber } from '../services/invoice';
-import { getBenchmark, getLeads, getInvoices } from '../services/api';
+import { generateInvoiceNumber, generateInvoicePDF } from '../services/invoice';
 
 const { width } = Dimensions.get('window');
 
@@ -28,12 +28,6 @@ const PROMOS = [
   { id: '2', title: 'Free Pre-Wedding Shoot', expires: 'Dec 15, 2025', active: false, leads: 0 },
 ];
 
-const INITIAL_CLIENTS = [
-  { id: '1', name: 'Rohit & Simran', phone: '9876543210', wedding_date: 'March 15, 2026', status: 'upcoming', invited: false },
-  { id: '2', name: 'Amit & Pooja', phone: '9988776655', wedding_date: 'February 8, 2026', status: 'upcoming', invited: true },
-  { id: '3', name: 'Vikram & Neha', phone: '9123456789', wedding_date: 'October 20, 2025', status: 'completed', invited: false },
-];
-
 export default function VendorDashboardScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Overview');
@@ -48,11 +42,12 @@ export default function VendorDashboardScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Clients state
-  const [clients, setClients] = useState(INITIAL_CLIENTS);
+  const [clients, setClients] = useState<any[]>([]);
   const [showAddClient, setShowAddClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientDate, setNewClientDate] = useState('');
+  const [clientsLoading, setClientsLoading] = useState(false);
 
   // Promo state
   const [promos, setPromos] = useState(PROMOS);
@@ -64,6 +59,9 @@ export default function VendorDashboardScreen() {
   const [benchmark, setBenchmark] = useState<any>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [invoices, setInvoices] = useState<any[]>([]);
 
   useEffect(() => {
     loadSession();
@@ -72,7 +70,14 @@ export default function VendorDashboardScreen() {
   useEffect(() => {
     if (vendorSession?.vendorId) {
       loadBenchmark();
-      if (activeTab === 'Inquiries') loadLeads();
+      loadInvoices();
+      if (activeTab === 'Inquiries') {
+        loadLeads();
+        loadBookings();
+      }
+      if (activeTab === 'Clients') {
+        loadClients();
+      }
     }
   }, [vendorSession, activeTab]);
 
@@ -99,6 +104,40 @@ export default function VendorDashboardScreen() {
       if (res.success && res.data?.length > 0) setLeads(res.data);
     } catch (e) {}
     finally { setLeadsLoading(false); }
+  };
+
+  const loadBookings = async () => {
+    try {
+      setBookingsLoading(true);
+      const res = await getVendorBookings(vendorSession.vendorId);
+      if (res.success) setBookings(res.data || []);
+    } catch (e) {}
+    finally { setBookingsLoading(false); }
+  };
+
+  const loadInvoices = async () => {
+    try {
+      const res = await getInvoices(vendorSession.vendorId);
+      if (res.success) setInvoices(res.data || []);
+    } catch (e) {}
+  };
+
+  const loadClients = async () => {
+    try {
+      setClientsLoading(true);
+      const stored = await AsyncStorage.getItem(`vendor_clients_${vendorSession.vendorId}`);
+      if (stored) setClients(JSON.parse(stored));
+    } catch (e) {}
+    finally { setClientsLoading(false); }
+  };
+
+  const saveClients = async (updatedClients: any[]) => {
+    try {
+      await AsyncStorage.setItem(
+        `vendor_clients_${vendorSession.vendorId}`,
+        JSON.stringify(updatedClients)
+      );
+    } catch (e) {}
   };
 
   const handleLogout = () => {
@@ -145,12 +184,24 @@ export default function VendorDashboardScreen() {
     }
   };
 
-  const handleSendInvite = (clientId: string) => {
-    setClients(prev => prev.map(c => c.id === clientId ? { ...c, invited: true } : c));
-    Alert.alert('Invite Sent!', 'Your client will receive a WhatsApp message to join The Dream Wedding.');
+  const handleSendWhatsAppInvite = (client: any) => {
+    const message = `Hi ${client.name.split('&')[0].trim()}! 👋\n\nI've added you to The Dream Wedding — India's premium wedding planning app.\n\nYour booking history with me is already saved. You can also discover other vendors and plan your entire wedding in one place.\n\nDownload here: https://thedreamwedding.in\n\nSee you there! 🎉`;
+    const phone = `91${client.phone}`;
+    const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+        const updated = clients.map(c => c.id === client.id ? { ...c, invited: true } : c);
+        setClients(updated);
+        saveClients(updated);
+      } else {
+        Alert.alert('WhatsApp not found', 'Please make sure WhatsApp is installed on your device.');
+      }
+    });
   };
 
-  const handleAddClient = () => {
+  const handleAddClient = async () => {
     if (!newClientName || !newClientPhone || !newClientDate) {
       Alert.alert('Missing info', 'Please fill in all fields.');
       return;
@@ -163,12 +214,79 @@ export default function VendorDashboardScreen() {
       status: 'upcoming',
       invited: false,
     };
-    setClients(prev => [...prev, newClient]);
+    const updated = [...clients, newClient];
+    setClients(updated);
+    await saveClients(updated);
     setNewClientName('');
     setNewClientPhone('');
     setNewClientDate('');
     setShowAddClient(false);
-    Alert.alert('Client Added!', `${newClientName} has been added. Send them an invite to join The Dream Wedding.`);
+    Alert.alert('Client Added!', `${newClientName} added. Tap "Send Invite" to invite them via WhatsApp.`);
+  };
+
+  const handleConfirmBooking = async (bookingId: string, vendorName: string) => {
+    Alert.alert(
+      'Confirm Booking',
+      `Confirming this booking will lock the date and release the escrow payment to you.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              const res = await fetch(
+                `https://dream-wedding-production-89ae.up.railway.app/api/bookings/${bookingId}/confirm`,
+                { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+              );
+              const data = await res.json();
+              if (data.success) {
+                Alert.alert('Confirmed!', 'Booking confirmed. Payment released from escrow.');
+                loadBookings();
+              } else {
+                Alert.alert('Error', data.error || 'Could not confirm booking.');
+              }
+            } catch (e) {
+              Alert.alert('Error', 'Network error. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeclineBooking = async (bookingId: string) => {
+    Alert.alert(
+      'Decline Booking',
+      'The token will be refunded to the couple. The ₹999 platform fee is retained.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(
+                `https://dream-wedding-production-89ae.up.railway.app/api/bookings/${bookingId}/decline`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ reason: 'Vendor unavailable' }),
+                }
+              );
+              const data = await res.json();
+              if (data.success) {
+                Alert.alert('Declined', 'Booking declined. Token refund initiated for couple.');
+                loadBookings();
+              } else {
+                Alert.alert('Error', data.error || 'Could not decline booking.');
+              }
+            } catch (e) {
+              Alert.alert('Error', 'Network error. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleGenerateInvoice = async () => {
@@ -189,6 +307,85 @@ export default function VendorDashboardScreen() {
       });
     } catch {
       Alert.alert('Error', 'Could not generate invoice. Please try again.');
+    }
+  };
+
+  const handleDownloadGSTReport = async () => {
+    try {
+      if (invoices.length === 0) {
+        Alert.alert('No invoices', 'No invoices found for this financial year.');
+        return;
+      }
+      const totalIncome = invoices.reduce((sum: number, inv: any) => sum + (inv.amount || 0), 0);
+      const totalGST = invoices.reduce((sum: number, inv: any) => sum + (inv.gst_amount || 0), 0);
+      const totalWithGST = invoices.reduce((sum: number, inv: any) => sum + (inv.total_amount || 0), 0);
+
+      const rows = invoices.map((inv: any) => `
+        <tr>
+          <td>${inv.invoice_number || '—'}</td>
+          <td>${inv.client_name || '—'}</td>
+          <td>${new Date(inv.created_at).toLocaleDateString('en-IN')}</td>
+          <td style="text-align:right">₹${(inv.amount || 0).toLocaleString('en-IN')}</td>
+          <td style="text-align:right">₹${(inv.gst_amount || 0).toLocaleString('en-IN')}</td>
+          <td style="text-align:right">₹${(inv.total_amount || 0).toLocaleString('en-IN')}</td>
+        </tr>
+      `).join('');
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Helvetica, sans-serif; padding: 40px; color: #2C2420; }
+            h1 { font-size: 24px; font-weight: 300; letter-spacing: 4px; color: #2C2420; }
+            h2 { font-size: 12px; color: #8C7B6E; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+            th { font-size: 10px; color: #8C7B6E; letter-spacing: 1px; text-transform: uppercase; padding: 10px 8px; border-bottom: 1px solid #E8E0D5; text-align: left; }
+            td { padding: 12px 8px; border-bottom: 1px solid #F5F0E8; font-size: 13px; }
+            .totals { margin-top: 24px; background: #2C2420; padding: 20px; border-radius: 8px; color: #F5F0E8; }
+            .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+            .gold { color: #C9A84C; font-size: 18px; font-weight: 600; }
+            .footer { margin-top: 40px; font-size: 11px; color: #8C7B6E; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <h1>DREAMWEDDING</h1>
+          <h2>GST & Tax Report — ${vendorSession?.vendorName || 'Vendor'} · FY ${new Date().getFullYear()}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th style="text-align:right">Amount</th>
+                <th style="text-align:right">GST (18%)</th>
+                <th style="text-align:right">Total</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="totals">
+            <div class="totals-row"><span>Total Income (excl. GST)</span><span>₹${totalIncome.toLocaleString('en-IN')}</span></div>
+            <div class="totals-row"><span>Total GST Collected (18%)</span><span>₹${totalGST.toLocaleString('en-IN')}</span></div>
+            <div class="totals-row"><span>Total Billed</span><span class="gold">₹${totalWithGST.toLocaleString('en-IN')}</span></div>
+          </div>
+          <div class="footer">Generated by The Dream Wedding · thedreamwedding.in · ${invoices.length} invoices · ${new Date().toLocaleDateString('en-IN')}</div>
+        </body>
+        </html>
+      `;
+
+      const { Print, Sharing } = await import('expo-print').then(p => ({ Print: p, Sharing: null })).catch(() => ({ Print: null, Sharing: null }));
+      const printModule = await import('expo-print');
+      const sharingModule = await import('expo-sharing');
+      const { uri } = await printModule.printToFileAsync({ html });
+      await sharingModule.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'GST Report',
+        UTI: 'com.adobe.pdf',
+      });
+    } catch (e) {
+      Alert.alert('Error', 'Could not generate GST report. Please try again.');
     }
   };
 
@@ -217,6 +414,9 @@ export default function VendorDashboardScreen() {
   const vendorCity = vendorSession?.city || '';
   const vendorPlan = vendorSession?.plan || 'basic';
 
+  const pendingBookings = bookings.filter((b: any) => b.status === 'pending_confirmation');
+  const confirmedBookings = bookings.filter((b: any) => b.status === 'confirmed');
+
   const displayLeads = leads.length > 0 ? leads : [
     { id: '1', name: 'Priya & Rahul', stage: 'New Inquiry', date: 'Dec 15', value: '₹3,00,000' },
     { id: '2', name: 'Sneha & Arjun', stage: 'Quoted', date: 'Nov 20', value: '₹1,50,000' },
@@ -241,10 +441,10 @@ export default function VendorDashboardScreen() {
             <Text style={styles.modalTitle}>Add Client</Text>
             <Text style={styles.modalSubtitle}>They'll get a WhatsApp invite to join The Dream Wedding</Text>
             <TextInput style={styles.modalInput} placeholder="Couple names (e.g. Priya & Rahul)" placeholderTextColor="#8C7B6E" value={newClientName} onChangeText={setNewClientName} />
-            <TextInput style={styles.modalInput} placeholder="Phone number" placeholderTextColor="#8C7B6E" value={newClientPhone} onChangeText={setNewClientPhone} keyboardType="phone-pad" maxLength={10} />
+            <TextInput style={styles.modalInput} placeholder="Phone number (10 digits)" placeholderTextColor="#8C7B6E" value={newClientPhone} onChangeText={setNewClientPhone} keyboardType="phone-pad" maxLength={10} />
             <TextInput style={styles.modalInput} placeholder="Wedding date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={newClientDate} onChangeText={setNewClientDate} />
             <TouchableOpacity style={styles.modalBtn} onPress={handleAddClient}>
-              <Text style={styles.modalBtnText}>Add & Invite</Text>
+              <Text style={styles.modalBtnText}>Add Client</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAddClient(false)}>
               <Text style={styles.modalCancelText}>Cancel</Text>
@@ -330,11 +530,21 @@ export default function VendorDashboardScreen() {
                 </View>
                 <View style={styles.revenueDivider} />
                 <View style={styles.revenueItem}>
-                  <Text style={styles.revenueAmount}>8</Text>
+                  <Text style={styles.revenueAmount}>{confirmedBookings.length || 8}</Text>
                   <Text style={styles.revenueLabel}>Bookings</Text>
                 </View>
               </View>
             </View>
+
+            {pendingBookings.length > 0 && (
+              <View style={styles.alertCard}>
+                <Text style={styles.alertTitle}>⚡ {pendingBookings.length} booking{pendingBookings.length > 1 ? 's' : ''} waiting for your confirmation</Text>
+                <Text style={styles.alertText}>Confirm within 48 hours or the token is auto-refunded</Text>
+                <TouchableOpacity onPress={() => setActiveTab('Inquiries')}>
+                  <Text style={styles.alertLink}>Review now →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.subscriptionCard}>
               <View>
@@ -368,8 +578,8 @@ export default function VendorDashboardScreen() {
 
             <View style={styles.actionGrid}>
               <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('Inquiries')}>
-                <Text style={styles.actionNumber}>3</Text>
-                <Text style={styles.actionLabel}>New Inquiries</Text>
+                <Text style={styles.actionNumber}>{pendingBookings.length || 3}</Text>
+                <Text style={styles.actionLabel}>Pending Bookings</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('Calendar')}>
                 <Text style={styles.actionNumber}>4</Text>
@@ -394,6 +604,46 @@ export default function VendorDashboardScreen() {
         {/* INQUIRIES */}
         {activeTab === 'Inquiries' && (
           <View style={styles.tabPane}>
+
+            {/* Pending Bookings — Confirm/Decline */}
+            {pendingBookings.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>Bookings Awaiting Confirmation</Text>
+                {pendingBookings.map((booking: any) => (
+                  <View key={booking.id} style={styles.bookingCard}>
+                    <View style={styles.bookingTop}>
+                      <View>
+                        <Text style={styles.bookingName}>{booking.users?.name || 'Couple'}</Text>
+                        <Text style={styles.bookingMeta}>
+                          Token: ₹{booking.token_amount?.toLocaleString('en-IN')} · Protection: ₹999
+                        </Text>
+                        <Text style={styles.bookingMeta}>
+                          Booked: {new Date(booking.created_at).toLocaleDateString('en-IN')}
+                        </Text>
+                      </View>
+                      <View style={styles.escrowBadge}>
+                        <Text style={styles.escrowBadgeText}>In Escrow</Text>
+                      </View>
+                    </View>
+                    <View style={styles.bookingActions}>
+                      <TouchableOpacity
+                        style={styles.declineBtn}
+                        onPress={() => handleDeclineBooking(booking.id)}
+                      >
+                        <Text style={styles.declineBtnText}>Decline</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.confirmBookingBtn}
+                        onPress={() => handleConfirmBooking(booking.id, booking.vendor_name)}
+                      >
+                        <Text style={styles.confirmBookingBtnText}>Confirm & Lock Date</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
+
             <Text style={styles.sectionLabel}>Lead Pipeline</Text>
             {leadsLoading ? (
               <ActivityIndicator color="#C9A84C" style={{ paddingVertical: 20 }} />
@@ -440,9 +690,6 @@ export default function VendorDashboardScreen() {
                   <View style={styles.inquiryActions}>
                     <TouchableOpacity style={styles.replyBtn} onPress={() => router.push('/messaging')}>
                       <Text style={styles.replyBtnText}>Reply</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.confirmBtn}>
-                      <Text style={styles.confirmBtnText}>Confirm & Lock Date</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -559,23 +806,31 @@ export default function VendorDashboardScreen() {
 
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
-                <Text style={styles.toolTitle}>GST & Tax Summary</Text>
-                <TouchableOpacity style={styles.toolAction} onPress={() => Alert.alert('Coming Soon', 'Annual GST report PDF download is being built.')}>
-                  <Text style={styles.toolActionText}>Download</Text>
+                <Text style={styles.toolTitle}>GST & Tax Report</Text>
+                <TouchableOpacity style={styles.toolAction} onPress={handleDownloadGSTReport}>
+                  <Text style={styles.toolActionText}>Download PDF</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.toolDesc}>Annual income summary for GST filing</Text>
+              <Text style={styles.toolDesc}>Annual income summary — CA-ready GST report for filing</Text>
               <View style={styles.gstRow}>
                 <View style={styles.gstItem}>
-                  <Text style={styles.gstAmount}>₹84L</Text>
+                  <Text style={styles.gstAmount}>
+                    {invoices.length > 0
+                      ? `₹${invoices.reduce((s: number, i: any) => s + (i.amount || 0), 0).toLocaleString('en-IN')}`
+                      : '₹84L'}
+                  </Text>
                   <Text style={styles.gstLabel}>Total Income</Text>
                 </View>
                 <View style={styles.gstItem}>
-                  <Text style={styles.gstAmount}>₹15.1L</Text>
+                  <Text style={styles.gstAmount}>
+                    {invoices.length > 0
+                      ? `₹${invoices.reduce((s: number, i: any) => s + (i.gst_amount || 0), 0).toLocaleString('en-IN')}`
+                      : '₹15.1L'}
+                  </Text>
                   <Text style={styles.gstLabel}>GST (18%)</Text>
                 </View>
                 <View style={styles.gstItem}>
-                  <Text style={styles.gstAmount}>FY 2025</Text>
+                  <Text style={styles.gstAmount}>FY {new Date().getFullYear()}</Text>
                   <Text style={styles.gstLabel}>Period</Text>
                 </View>
               </View>
@@ -607,8 +862,11 @@ export default function VendorDashboardScreen() {
             <View style={styles.toolCard}>
               <View style={styles.toolHeader}>
                 <Text style={styles.toolTitle}>Refer a Vendor</Text>
-                <TouchableOpacity style={styles.toolAction} onPress={() => Alert.alert('Refer a Vendor', 'Share your referral link:\n\nthedreamwedding.com/vendor-refer/your-code\n\nGet 1 month free when they join!')}>
-                  <Text style={styles.toolActionText}>Share Link</Text>
+                <TouchableOpacity style={styles.toolAction} onPress={() => {
+                  const message = `Hey! I've been using The Dream Wedding to manage my wedding business — leads, invoices, GST reports, everything in one place. You should check it out!\n\nJoin here: https://thedreamwedding.in/vendor`;
+                  Linking.openURL(`whatsapp://send?text=${encodeURIComponent(message)}`);
+                }}>
+                  <Text style={styles.toolActionText}>Share via WhatsApp</Text>
                 </TouchableOpacity>
               </View>
               <Text style={styles.toolDesc}>Refer another vendor and get 1 month subscription free</Text>
@@ -686,24 +944,33 @@ export default function VendorDashboardScreen() {
                 Add your existing clients to The Dream Wedding. They get onboarded, discover vendors for their other functions, and refer their friends. This is how you grow without spending on ads.
               </Text>
             </View>
-            {clients.map(client => (
-              <View key={client.id} style={styles.clientCard}>
-                <View style={styles.clientInfo}>
-                  <Text style={styles.clientName}>{client.name}</Text>
-                  <Text style={styles.clientPhone}>{client.phone}</Text>
-                  <Text style={styles.clientDate}>{client.wedding_date}</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.inviteBtn, client.invited && styles.inviteBtnDone]}
-                  onPress={() => !client.invited && handleSendInvite(client.id)}
-                  disabled={client.invited}
-                >
-                  <Text style={[styles.inviteBtnText, client.invited && styles.inviteBtnTextDone]}>
-                    {client.invited ? 'Invited ✓' : 'Send Invite'}
-                  </Text>
-                </TouchableOpacity>
+            {clientsLoading ? (
+              <ActivityIndicator color="#C9A84C" style={{ paddingVertical: 20 }} />
+            ) : clients.length === 0 ? (
+              <View style={styles.emptyClients}>
+                <Text style={styles.emptyClientsText}>No clients added yet</Text>
+                <Text style={styles.emptyClientsSub}>Add your first client and send them a WhatsApp invite</Text>
               </View>
-            ))}
+            ) : (
+              clients.map(client => (
+                <View key={client.id} style={styles.clientCard}>
+                  <View style={styles.clientInfo}>
+                    <Text style={styles.clientName}>{client.name}</Text>
+                    <Text style={styles.clientPhone}>{client.phone}</Text>
+                    <Text style={styles.clientDate}>{client.wedding_date}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.inviteBtn, client.invited && styles.inviteBtnDone]}
+                    onPress={() => !client.invited && handleSendWhatsAppInvite(client)}
+                    disabled={client.invited}
+                  >
+                    <Text style={[styles.inviteBtnText, client.invited && styles.inviteBtnTextDone]}>
+                      {client.invited ? 'Invited ✓' : '📲 WhatsApp'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
           </View>
         )}
 
@@ -756,6 +1023,10 @@ const styles = StyleSheet.create({
   revenueDivider: { width: 1, height: 36, backgroundColor: '#3C3430' },
   revenueAmount: { fontSize: 22, color: '#C9A84C', fontWeight: '400' },
   revenueLabel: { fontSize: 11, color: '#8C7B6E' },
+  alertCard: { backgroundColor: '#FFF8EC', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#C9A84C', gap: 6 },
+  alertTitle: { fontSize: 14, color: '#2C2420', fontWeight: '600' },
+  alertText: { fontSize: 12, color: '#8C7B6E' },
+  alertLink: { fontSize: 13, color: '#C9A84C', fontWeight: '500', marginTop: 4 },
   subscriptionCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 18, borderWidth: 1, borderColor: '#E8E0D5' },
   subscriptionPlan: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
   subscriptionDetail: { fontSize: 12, color: '#8C7B6E', marginTop: 3 },
@@ -771,6 +1042,17 @@ const styles = StyleSheet.create({
   actionLabel: { fontSize: 12, color: '#8C7B6E' },
   previewBtn: { borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#FFFFFF' },
   previewBtnText: { fontSize: 13, color: '#C9A84C' },
+  bookingCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#C9A84C', gap: 14 },
+  bookingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  bookingName: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
+  bookingMeta: { fontSize: 12, color: '#8C7B6E', marginTop: 3 },
+  escrowBadge: { backgroundColor: '#C9A84C20', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 },
+  escrowBadgeText: { fontSize: 11, color: '#C9A84C', fontWeight: '500' },
+  bookingActions: { flexDirection: 'row', gap: 10 },
+  declineBtn: { flex: 1, borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  declineBtnText: { fontSize: 13, color: '#8C7B6E', fontWeight: '500' },
+  confirmBookingBtn: { flex: 2, backgroundColor: '#2C2420', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  confirmBookingBtnText: { fontSize: 13, color: '#C9A84C', fontWeight: '600' },
   listCard: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E0D5', overflow: 'hidden' },
   listDivider: { height: 1, backgroundColor: '#E8E0D5', marginHorizontal: 16 },
   leadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 },
@@ -791,8 +1073,6 @@ const styles = StyleSheet.create({
   inquiryActions: { flexDirection: 'row', gap: 8 },
   replyBtn: { flex: 1, borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
   replyBtnText: { fontSize: 13, color: '#2C2420' },
-  confirmBtn: { flex: 2, backgroundColor: '#2C2420', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-  confirmBtnText: { fontSize: 13, color: '#F5F0E8', fontWeight: '500' },
   calendarHint: { fontSize: 13, color: '#8C7B6E', lineHeight: 20 },
   blockedHeader: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#E8E0D5' },
   blockedTitle: { fontSize: 13, color: '#8C7B6E', fontWeight: '500' },
@@ -849,14 +1129,17 @@ const styles = StyleSheet.create({
   reviewRating: { fontSize: 13, color: '#C9A84C' },
   videoThumb: { backgroundColor: '#2C2420', borderRadius: 8, paddingVertical: 20, alignItems: 'center' },
   videoThumbText: { fontSize: 14, color: '#F5F0E8', letterSpacing: 0.5 },
+  emptyClients: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#E8E0D5', gap: 8 },
+  emptyClientsText: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
+  emptyClientsSub: { fontSize: 13, color: '#8C7B6E', textAlign: 'center', lineHeight: 20 },
   clientCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#E8E0D5', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   clientInfo: { gap: 3 },
   clientName: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
   clientPhone: { fontSize: 12, color: '#8C7B6E' },
   clientDate: { fontSize: 12, color: '#C9A84C' },
-  inviteBtn: { backgroundColor: '#2C2420', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  inviteBtn: { backgroundColor: '#25D366', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   inviteBtnDone: { backgroundColor: '#E8E0D5' },
-  inviteBtnText: { fontSize: 12, color: '#C9A84C', fontWeight: '500' },
+  inviteBtnText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600' },
   inviteBtnTextDone: { color: '#8C7B6E' },
   addClientBtn: { backgroundColor: '#2C2420', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   addClientBtnText: { fontSize: 12, color: '#C9A84C', fontWeight: '500' },

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "707007171164",
+    "project_id": "the-dream-wedding-aa214",
+    "storage_bucket": "the-dream-wedding-aa214.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:707007171164:android:25de1a2ba00c3c77503499",
+        "android_client_info": {
+          "package_name": "com.devjroy.dreamwedding"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "707007171164-qgvhtejvglksgov3ig31q3ec2r7d08s1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.devjroy.dreamwedding",
+            "certificate_hash": "961141794fdbd47b50560683b4c5a4d1266d01a7"
+          }
+        },
+        {
+          "client_id": "707007171164-3uphuoa96s37ur6h76dl09854k8tqa16.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3QGEASYEjEpb30oxXj7A8bB5U-CraQeM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "707007171164-3uphuoa96s37ur6h76dl09854k8tqa16.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

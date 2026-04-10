@@ -1,19 +1,75 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { createOrGetUser } from '../services/api';
+import { auth } from '../services/firebase';
+
+GoogleSignin.configure({
+  webClientId: '707007171164-3uphuoa96s37ur6h76dl09854k8tqa16.apps.googleusercontent.com',
+  offlineAccess: true,
+});
 
 export default function LoginScreen() {
   const router = useRouter();
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
-    Alert.alert('Coming Soon', 'Google login is being set up. Please use phone login for now.');
+    try {
+      setGoogleLoading(true);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.signIn();
+      const { idToken } = await GoogleSignin.getTokens();
+
+      if (!idToken) throw new Error('No ID token received');
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(auth, credential);
+      const firebaseUID = result.user.uid;
+      const userName = result.user.displayName || '';
+      const userEmail = result.user.email || '';
+      const userPhone = result.user.phoneNumber || '';
+
+      let userData = null;
+      try {
+        const userResult = await createOrGetUser(userEmail || firebaseUID, userName, userEmail);
+        userData = userResult.data;
+      } catch (e) {
+        console.log('Backend user creation failed, continuing with Firebase UID');
+      }
+
+      await AsyncStorage.setItem('user_session', JSON.stringify({
+        uid: firebaseUID,
+        userId: userData?.id || firebaseUID,
+        phone: userPhone,
+        email: userEmail,
+        name: userName,
+        userType: 'couple',
+        avatar: result.user.photoURL || '',
+      }));
+
+      router.replace('/user-type');
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Please wait', 'Sign in already in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services not available on this device');
+      } else {
+        Alert.alert('Sign in failed', 'Could not sign in with Google. Please try again.');
+        console.error('Google Sign-In error:', JSON.stringify(error));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
 
-      {/* Logo Section — centred vertically in top half */}
       <View style={styles.logoSection}>
         <Text style={styles.logoTop}>The</Text>
         <Text style={styles.logoMain}>Dream Wedding</Text>
@@ -21,24 +77,24 @@ export default function LoginScreen() {
         <Text style={styles.logoTagline}>India's Premium Wedding Platform</Text>
       </View>
 
-      {/* Buttons — anchored to bottom */}
       <View style={styles.buttonSection}>
         <Text style={styles.welcomeText}>Welcome</Text>
         <Text style={styles.subText}>Sign in to continue planning your dream wedding</Text>
 
         <View style={styles.buttons}>
-          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-            {googleLoading
-              ? <ActivityIndicator color="#2C2420" />
-              : <Text style={styles.socialButtonText}>Continue with Google</Text>
-            }
-          </TouchableOpacity>
-
           <TouchableOpacity
-            style={styles.socialButton}
-            onPress={() => router.push('/otp?mode=email')}
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={googleLoading}
           >
-            <Text style={styles.socialButtonText}>Continue with Email</Text>
+            {googleLoading ? (
+              <ActivityIndicator color="#2C2420" />
+            ) : (
+              <View style={styles.googleButtonInner}>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <View style={styles.dividerRow}>
@@ -55,7 +111,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <Text style={styles.verifyNote}>
-            Phone verification required for all sign ins
+            We'll verify your identity to keep your bookings secure
           </Text>
         </View>
 
@@ -86,14 +142,14 @@ const styles = StyleSheet.create({
   logoTop: {
     fontSize: 18,
     color: '#8C7B6E',
-    fontWeight: '300',
-    letterSpacing: 6,
+    fontFamily: 'CormorantGaramond_300Light',
+    letterSpacing: 8,
     textTransform: 'uppercase',
   },
   logoMain: {
-    fontSize: 34,
+    fontSize: 42,
     color: '#2C2420',
-    fontWeight: '500',
+    fontFamily: 'CormorantGaramond_500Medium',
     letterSpacing: 3,
     textAlign: 'center',
   },
@@ -113,9 +169,9 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   welcomeText: {
-    fontSize: 30,
+    fontSize: 38,
     color: '#2C2420',
-    fontWeight: '300',
+    fontFamily: 'CormorantGaramond_300Light',
     letterSpacing: 1,
   },
   subText: {
@@ -127,7 +183,7 @@ const styles = StyleSheet.create({
   buttons: {
     gap: 12,
   },
-  socialButton: {
+  googleButton: {
     width: '100%',
     borderWidth: 1,
     borderColor: '#E8E0D5',
@@ -135,11 +191,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  socialButtonText: {
+  googleButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  googleIcon: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4285F4',
+  },
+  googleButtonText: {
     color: '#2C2420',
     fontSize: 15,
     letterSpacing: 0.3,
+    fontWeight: '500',
   },
   dividerRow: {
     flexDirection: 'row',

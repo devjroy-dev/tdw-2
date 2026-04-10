@@ -254,7 +254,7 @@ export default function BTSPlannerScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.inviteBtn}
-            onPress={() => Alert.alert('Co-Planner', 'Share this link with your partner to plan together:\n\nthedreamwedding.com/join/your-code\n\n(Live sync coming soon)')}
+            onPress={() => Alert.alert('Co-Planner', 'Share this link with your partner to plan together:\n\nthedreamwedding.in/join/your-code\n\n(Live sync coming soon)')}
           >
             <Text style={styles.inviteBtnText}>+ Co-planner</Text>
           </TouchableOpacity>

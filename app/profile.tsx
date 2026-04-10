@@ -198,7 +198,7 @@ export default function ProfileScreen() {
           style={styles.referralCard}
           onPress={() => Alert.alert(
             'Invite a Friend',
-            'Share your referral link:\n\nthedreamwedding.com/invite/your-code\n\nGet 1 month Premium free when they sign up!'
+            'Share your referral link:\n\nthedreamwedding.in/invite/your-code\n\nGet 1 month Premium free when they sign up!'
           )}
         >
           <View style={styles.referralLeft}>
@@ -220,7 +220,7 @@ export default function ProfileScreen() {
               style={styles.linkBtn}
               onPress={() => Alert.alert(
                 'Invite Co-planner',
-                'Share this link with your partner:\n\nthedreamwedding.com/join/your-code\n\nLive sync coming soon!'
+                'Share this link with your partner:\n\nthedreamwedding.in/join/your-code\n\nLive sync coming soon!'
               )}
             >
               <Text style={styles.linkBtnText}>Invite</Text>
@@ -286,9 +286,9 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>Account</Text>
           <View style={styles.listCard}>
             {[
-              { label: 'Privacy Policy', onPress: () => Alert.alert('Privacy Policy', 'Available at thedreamwedding.com/privacy') },
-              { label: 'Terms of Service', onPress: () => Alert.alert('Terms of Service', 'Available at thedreamwedding.com/terms') },
-              { label: 'Help & Support', onPress: () => Alert.alert('Support', 'Email us at hello@thedreamwedding.com') },
+              { label: 'Privacy Policy', onPress: () => Alert.alert('Privacy Policy', 'Available at thedreamwedding.in/privacy') },
+              { label: 'Terms of Service', onPress: () => Alert.alert('Terms of Service', 'Available at thedreamwedding.in/terms') },
+              { label: 'Help & Support', onPress: () => Alert.alert('Support', 'Email us at hello@thedreamwedding.in') },
               { label: 'Rate The Dream Wedding', onPress: () => Alert.alert('Thank you!', 'App Store rating coming when we launch on the store.') },
             ].map((item, index, arr) => (
               <View key={item.label}>

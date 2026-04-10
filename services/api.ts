@@ -189,3 +189,22 @@ export const getBenchmark = async (category: string, city: string) => {
   const response = await api.get(`/benchmark/${category}/${city}`);
   return response.data;
 };
+
+// ==================
+// AVAILABILITY / CALENDAR
+// ==================
+
+export const getBlockedDates = async (vendorId: string) => {
+  const response = await api.get(`/availability/${vendorId}`);
+  return response.data;
+};
+
+export const blockDate = async (vendorId: string, date: string) => {
+  const response = await api.post('/availability', { vendor_id: vendorId, blocked_date: date });
+  return response.data;
+};
+
+export const unblockDate = async (id: string) => {
+  const response = await api.delete(`/availability/${id}`);
+  return response.data;
+};

@@ -1,9 +1,17 @@
-import { useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, ScrollView, TextInput
-} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Clipboard,
+  Dimensions, ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -23,10 +31,68 @@ export default function WeddingWebsiteScreen() {
   const [venue, setVenue] = useState('');
   const [story, setStory] = useState('');
   const [generated, setGenerated] = useState(false);
+  const [daysUntil, setDaysUntil] = useState(0);
+  const [websiteSlug, setWebsiteSlug] = useState('');
+
+  useEffect(() => {
+    loadSession();
+  }, []);
+
+  const loadSession = async () => {
+    try {
+      const session = await AsyncStorage.getItem('user_session');
+      if (session) {
+        const parsed = JSON.parse(session);
+        if (parsed.name) setCoupleName1(parsed.name.split(' ')[0]);
+        if (parsed.wedding_date) {
+          const date = new Date(parsed.wedding_date);
+          setWeddingDate(date.toLocaleDateString('en-IN', {
+            day: 'numeric', month: 'long', year: 'numeric'
+          }));
+          const days = Math.max(0, Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+          setDaysUntil(days);
+        }
+        if (parsed.city) setVenue(`Your venue · ${parsed.city}`);
+      }
+    } catch (e) {}
+  };
+
+  const generateSlug = () => {
+    const n1 = coupleName1.toLowerCase().replace(/\s/g, '') || 'name1';
+    const n2 = coupleName2.toLowerCase().replace(/\s/g, '') || 'name2';
+    const year = new Date().getFullYear() + 1;
+    return `thedreamwedding.in/${n1}-${n2}-${year}`;
+  };
 
   const handleGenerate = () => {
+    if (!coupleName1 && !coupleName2) {
+      Alert.alert('Add your names', 'Please enter at least one name to generate your website.');
+      return;
+    }
+    setWebsiteSlug(generateSlug());
     setGenerated(true);
   };
+
+  const handleCopy = async () => {
+    try {
+      await Clipboard.setString(`https://${websiteSlug}`);
+      Alert.alert('Copied!', 'Link copied to clipboard');
+    } catch (e) {
+      Alert.alert('Link', `https://${websiteSlug}`);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `You're invited to our wedding! 💍\n\n${coupleName1} & ${coupleName2}\n${weddingDate}\n\nRSVP and more details at:\nhttps://${websiteSlug}`,
+        title: `${coupleName1} & ${coupleName2}'s Wedding`,
+      });
+    } catch (e) {}
+  };
+
+  const hours = new Date().getHours();
+  const minutes = new Date().getMinutes();
 
   if (generated) {
     return (
@@ -45,35 +111,38 @@ export default function WeddingWebsiteScreen() {
           <View style={styles.websitePreview}>
             <View style={styles.previewHeader}>
               <Text style={styles.previewCouple}>
-                {coupleName1 || 'Dev'} & {coupleName2 || 'Priya'}
+                {coupleName1 || 'Name'} & {coupleName2 || 'Name'}
               </Text>
-              <Text style={styles.previewDate}>{weddingDate || 'December 15, 2025'}</Text>
-              <Text style={styles.previewVenue}>{venue || 'The Leela Palace, Delhi'}</Text>
+              <Text style={styles.previewDate}>{weddingDate || 'Your wedding date'}</Text>
+              <Text style={styles.previewVenue}>{venue || 'Your venue'}</Text>
             </View>
 
             <View style={styles.previewDivider} />
 
             <View style={styles.previewCountdown}>
               <View style={styles.previewCountdownItem}>
-                <Text style={styles.previewCountdownNum}>247</Text>
+                <Text style={styles.previewCountdownNum}>{daysUntil}</Text>
                 <Text style={styles.previewCountdownLabel}>Days</Text>
               </View>
               <View style={styles.previewCountdownItem}>
-                <Text style={styles.previewCountdownNum}>14</Text>
+                <Text style={styles.previewCountdownNum}>{hours}</Text>
                 <Text style={styles.previewCountdownLabel}>Hours</Text>
               </View>
               <View style={styles.previewCountdownItem}>
-                <Text style={styles.previewCountdownNum}>32</Text>
+                <Text style={styles.previewCountdownNum}>{minutes}</Text>
                 <Text style={styles.previewCountdownLabel}>Minutes</Text>
               </View>
             </View>
 
             <View style={styles.previewDivider} />
 
-            <Text style={styles.previewStoryTitle}>Our Story</Text>
-            <Text style={styles.previewStory}>
-              {story || 'We met at a coffee shop and knew from the very first moment that this was something special...'}
-            </Text>
+            {story ? (
+              <>
+                <Text style={styles.previewStoryTitle}>Our Story</Text>
+                <Text style={styles.previewStory}>{story}</Text>
+                <View style={styles.previewDivider} />
+              </>
+            ) : null}
 
             <View style={styles.previewRsvpBtn}>
               <Text style={styles.previewRsvpBtnText}>RSVP Now</Text>
@@ -84,32 +153,45 @@ export default function WeddingWebsiteScreen() {
           <View style={styles.shareSection}>
             <Text style={styles.shareSectionTitle}>Share your website</Text>
             <View style={styles.shareLinkBox}>
-              <Text style={styles.shareLink}>dreamwedding.app/dev-priya-2025</Text>
-              <TouchableOpacity style={styles.copyBtn}>
+              <Text style={styles.shareLink} numberOfLines={1}>{websiteSlug}</Text>
+              <TouchableOpacity style={styles.copyBtn} onPress={handleCopy}>
                 <Text style={styles.copyBtnText}>Copy</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+              <Text style={styles.shareBtnText}>Share with Guests →</Text>
+            </TouchableOpacity>
           </View>
 
           {/* RSVP Stats */}
           <View style={styles.rsvpStats}>
             <Text style={styles.rsvpStatsTitle}>RSVP Tracking</Text>
             <View style={styles.rsvpStatsRow}>
-              <View style={styles.rsvpStatItem}>
-                <Text style={styles.rsvpStatNum}>0</Text>
-                <Text style={styles.rsvpStatLabel}>Confirmed</Text>
-              </View>
-              <View style={styles.rsvpStatItem}>
-                <Text style={styles.rsvpStatNum}>0</Text>
-                <Text style={styles.rsvpStatLabel}>Pending</Text>
-              </View>
-              <View style={styles.rsvpStatItem}>
-                <Text style={styles.rsvpStatNum}>0</Text>
-                <Text style={styles.rsvpStatLabel}>Declined</Text>
-              </View>
+              {[
+                { num: '0', label: 'Confirmed', color: '#4CAF50' },
+                { num: '0', label: 'Pending', color: '#C9A84C' },
+                { num: '0', label: 'Declined', color: '#E57373' },
+              ].map(item => (
+                <View key={item.label} style={styles.rsvpStatItem}>
+                  <Text style={[styles.rsvpStatNum, { color: item.color }]}>{item.num}</Text>
+                  <Text style={styles.rsvpStatLabel}>{item.label}</Text>
+                </View>
+              ))}
             </View>
-            <Text style={styles.rsvpNote}>RSVPs automatically sync to your Guest List in Planner</Text>
+            <View style={styles.rsvpNoteCard}>
+              <Text style={styles.rsvpNote}>
+                RSVPs will automatically sync to your Guest List in the Planner. Coming soon.
+              </Text>
+            </View>
           </View>
+
+          {/* Edit Button */}
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => setGenerated(false)}
+          >
+            <Text style={styles.editBtnText}>Edit Website</Text>
+          </TouchableOpacity>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -185,7 +267,7 @@ export default function WeddingWebsiteScreen() {
           <Text style={styles.sectionLabel}>Wedding Details</Text>
           <TextInput
             style={styles.input}
-            placeholder="Wedding date (e.g. December 15, 2025)"
+            placeholder="Wedding date"
             placeholderTextColor="#8C7B6E"
             value={weddingDate}
             onChangeText={setWeddingDate}
@@ -201,7 +283,7 @@ export default function WeddingWebsiteScreen() {
 
         {/* Love Story */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Your Love Story</Text>
+          <Text style={styles.sectionLabel}>Your Love Story (optional)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Tell your guests how you met..."
@@ -213,12 +295,18 @@ export default function WeddingWebsiteScreen() {
           />
         </View>
 
+        <View style={styles.noteCard}>
+          <Text style={styles.noteText}>
+            Your website will be live at thedreamwedding.in/your-names instantly. Guests can RSVP and their responses sync to your planner.
+          </Text>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate}>
-          <Text style={styles.generateBtnText}>Generate Website</Text>
+          <Text style={styles.generateBtnText}>Generate Website →</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -226,287 +314,62 @@ export default function WeddingWebsiteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F0E8',
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginBottom: 8,
-  },
-  backBtn: {
-    fontSize: 22,
-    color: '#2C2420',
-    width: 24,
-  },
-  title: {
-    fontSize: 17,
-    color: '#2C2420',
-    fontWeight: '500',
-    letterSpacing: 0.3,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    gap: 24,
-    paddingTop: 16,
-  },
-  pageTitle: {
-    fontSize: 34,
-    color: '#2C2420',
-    fontWeight: '300',
-    letterSpacing: 0.5,
-    lineHeight: 44,
-  },
-  pageSubtitle: {
-    fontSize: 14,
-    color: '#8C7B6E',
-    marginTop: -16,
-  },
-  section: {
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    color: '#8C7B6E',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    fontWeight: '500',
-  },
-  themeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  themeCard: {
-    width: (width - 58) / 2,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    gap: 8,
-    position: 'relative',
-  },
-  themeCardSelected: {
-    borderColor: '#2C2420',
-    borderWidth: 2,
-  },
-  themeAccent: {
-    width: 32,
-    height: 4,
-    borderRadius: 2,
-  },
-  themeLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  themeCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#2C2420',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  themeCheckText: {
-    fontSize: 10,
-    color: '#C9A84C',
-    fontWeight: '700',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  andText: {
-    fontSize: 18,
-    color: '#C9A84C',
-    fontWeight: '300',
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: '#2C2420',
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  bottomBar: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    paddingBottom: 36,
-    borderTopWidth: 1,
-    borderTopColor: '#E8E0D5',
-    backgroundColor: '#F5F0E8',
-  },
-  generateBtn: {
-    backgroundColor: '#2C2420',
-    borderRadius: 10,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  generateBtnText: {
-    fontSize: 15,
-    color: '#F5F0E8',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  websitePreview: {
-    backgroundColor: '#2C2420',
-    borderRadius: 16,
-    padding: 24,
-    gap: 16,
-  },
-  previewHeader: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  previewCouple: {
-    fontSize: 26,
-    color: '#F5F0E8',
-    fontWeight: '300',
-    letterSpacing: 2,
-  },
-  previewDate: {
-    fontSize: 14,
-    color: '#C9A84C',
-    letterSpacing: 1,
-  },
-  previewVenue: {
-    fontSize: 12,
-    color: '#8C7B6E',
-    letterSpacing: 0.5,
-  },
-  previewDivider: {
-    height: 1,
-    backgroundColor: '#3C3430',
-  },
-  previewCountdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  previewCountdownItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  previewCountdownNum: {
-    fontSize: 32,
-    color: '#C9A84C',
-    fontWeight: '300',
-  },
-  previewCountdownLabel: {
-    fontSize: 11,
-    color: '#8C7B6E',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  previewStoryTitle: {
-    fontSize: 12,
-    color: '#8C7B6E',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  previewStory: {
-    fontSize: 13,
-    color: '#B8A99A',
-    lineHeight: 20,
-  },
-  previewRsvpBtn: {
-    backgroundColor: '#C9A84C',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  previewRsvpBtnText: {
-    fontSize: 13,
-    color: '#2C2420',
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  shareSection: {
-    gap: 12,
-  },
-  shareSectionTitle: {
-    fontSize: 15,
-    color: '#2C2420',
-    fontWeight: '500',
-  },
-  shareLinkBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  shareLink: {
-    flex: 1,
-    fontSize: 13,
-    color: '#C9A84C',
-  },
-  copyBtn: {
-    backgroundColor: '#2C2420',
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  copyBtnText: {
-    fontSize: 12,
-    color: '#F5F0E8',
-    fontWeight: '500',
-  },
-  rsvpStats: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    gap: 14,
-  },
-  rsvpStatsTitle: {
-    fontSize: 15,
-    color: '#2C2420',
-    fontWeight: '500',
-  },
-  rsvpStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  rsvpStatItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  rsvpStatNum: {
-    fontSize: 28,
-    color: '#2C2420',
-    fontWeight: '300',
-  },
-  rsvpStatLabel: {
-    fontSize: 12,
-    color: '#8C7B6E',
-  },
-  rsvpNote: {
-    fontSize: 12,
-    color: '#8C7B6E',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  container: { flex: 1, backgroundColor: '#F5F0E8', paddingTop: 60 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 8 },
+  backBtn: { fontSize: 22, color: '#2C2420', width: 24 },
+  title: { fontSize: 17, color: '#2C2420', fontWeight: '500', letterSpacing: 0.3 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 24, gap: 24, paddingTop: 16 },
+  pageTitle: { fontSize: 34, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5, lineHeight: 44 },
+  pageSubtitle: { fontSize: 14, color: '#8C7B6E', marginTop: -16 },
+  section: { gap: 12 },
+  sectionLabel: { fontSize: 12, color: '#8C7B6E', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '500' },
+  themeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  themeCard: { width: (width - 58) / 2, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8E0D5', gap: 8, position: 'relative' },
+  themeCardSelected: { borderColor: '#2C2420', borderWidth: 2 },
+  themeAccent: { width: 32, height: 4, borderRadius: 2 },
+  themeLabel: { fontSize: 13, fontWeight: '500' },
+  themeCheck: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: '#2C2420', justifyContent: 'center', alignItems: 'center' },
+  themeCheckText: { fontSize: 10, color: '#C9A84C', fontWeight: '700' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  andText: { fontSize: 18, color: '#C9A84C', fontWeight: '300' },
+  input: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E0D5', paddingVertical: 14, paddingHorizontal: 16, fontSize: 14, color: '#2C2420' },
+  textArea: { height: 120, textAlignVertical: 'top' },
+  noteCard: { backgroundColor: '#FFF8EC', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8D9B5' },
+  noteText: { fontSize: 13, color: '#8C7B6E', lineHeight: 20 },
+  bottomBar: { paddingHorizontal: 24, paddingVertical: 24, paddingBottom: 36, borderTopWidth: 1, borderTopColor: '#E8E0D5', backgroundColor: '#F5F0E8' },
+  generateBtn: { backgroundColor: '#2C2420', borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: '#2C2420', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 4 },
+  generateBtnText: { fontSize: 15, color: '#F5F0E8', fontWeight: '500', letterSpacing: 0.5 },
+  websitePreview: { backgroundColor: '#2C2420', borderRadius: 16, padding: 24, gap: 16 },
+  previewHeader: { alignItems: 'center', gap: 8 },
+  previewCouple: { fontSize: 26, color: '#F5F0E8', fontWeight: '300', letterSpacing: 2 },
+  previewDate: { fontSize: 14, color: '#C9A84C', letterSpacing: 1 },
+  previewVenue: { fontSize: 12, color: '#8C7B6E', letterSpacing: 0.5 },
+  previewDivider: { height: 1, backgroundColor: '#3C3430' },
+  previewCountdown: { flexDirection: 'row', justifyContent: 'space-around' },
+  previewCountdownItem: { alignItems: 'center', gap: 4 },
+  previewCountdownNum: { fontSize: 32, color: '#C9A84C', fontWeight: '300' },
+  previewCountdownLabel: { fontSize: 11, color: '#8C7B6E', letterSpacing: 1, textTransform: 'uppercase' },
+  previewStoryTitle: { fontSize: 12, color: '#8C7B6E', letterSpacing: 1.5, textTransform: 'uppercase' },
+  previewStory: { fontSize: 13, color: '#B8A99A', lineHeight: 20 },
+  previewRsvpBtn: { backgroundColor: '#C9A84C', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  previewRsvpBtnText: { fontSize: 13, color: '#2C2420', fontWeight: '700', letterSpacing: 2 },
+  shareSection: { gap: 12 },
+  shareSectionTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
+  shareLinkBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E0D5', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  shareLink: { flex: 1, fontSize: 12, color: '#C9A84C' },
+  copyBtn: { backgroundColor: '#2C2420', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  copyBtnText: { fontSize: 12, color: '#F5F0E8', fontWeight: '500' },
+  shareBtn: { backgroundColor: '#C9A84C', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  shareBtnText: { fontSize: 14, color: '#2C2420', fontWeight: '600' },
+  rsvpStats: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#E8E0D5', gap: 14 },
+  rsvpStatsTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
+  rsvpStatsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  rsvpStatItem: { alignItems: 'center', gap: 4 },
+  rsvpStatNum: { fontSize: 28, fontWeight: '300' },
+  rsvpStatLabel: { fontSize: 12, color: '#8C7B6E' },
+  rsvpNoteCard: { backgroundColor: '#F5F0E8', borderRadius: 8, padding: 12 },
+  rsvpNote: { fontSize: 12, color: '#8C7B6E', textAlign: 'center', lineHeight: 18 },
+  editBtn: { borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 12, paddingVertical: 14, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  editBtnText: { fontSize: 14, color: '#2C2420', fontWeight: '500' },
 });

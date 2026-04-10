@@ -1,53 +1,71 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function PaymentSuccessScreen() {
   const router = useRouter();
+  const { vendorName, tokenAmount, weddingDate, bookingId } = useLocalSearchParams();
+
+  const displayVendor = vendorName as string || 'Your Vendor';
+  const displayToken = tokenAmount as string || '0';
+  const displayDate = weddingDate as string || 'Your wedding date';
+
+  const formatAmount = (amount: string) => {
+    const num = parseInt(amount);
+    if (isNaN(num)) return '₹0';
+    return `₹${num.toLocaleString('en-IN')}`;
+  };
 
   return (
     <View style={styles.container}>
+
       <View style={styles.successIcon}>
         <Text style={styles.successIconText}>✓</Text>
       </View>
+
       <Text style={styles.successTitle}>Date Locked!</Text>
       <Text style={styles.successSubtitle}>
-        Your token of ₹60,000 is safely held in escrow. Joseph Radhik has 48 hours to confirm your booking.
+        Your token of {formatAmount(displayToken)} is safely held in escrow.{'\n'}
+        {displayVendor} has 48 hours to confirm.
       </Text>
+
       <View style={styles.successCard}>
-        <View style={styles.successCardRow}>
-          <Text style={styles.successCardKey}>Vendor</Text>
-          <Text style={styles.successCardVal}>Joseph Radhik</Text>
-        </View>
-        <View style={styles.successCardDivider} />
-        <View style={styles.successCardRow}>
-          <Text style={styles.successCardKey}>Event Date</Text>
-          <Text style={styles.successCardVal}>December 15, 2025</Text>
-        </View>
-        <View style={styles.successCardDivider} />
-        <View style={styles.successCardRow}>
-          <Text style={styles.successCardKey}>Token Paid</Text>
-          <Text style={styles.successCardVal}>₹60,000</Text>
-        </View>
-        <View style={styles.successCardDivider} />
-        <View style={styles.successCardRow}>
-          <Text style={styles.successCardKey}>Status</Text>
-          <Text style={[styles.successCardVal, { color: '#C9A84C' }]}>In Escrow</Text>
-        </View>
+        {[
+          { key: 'Vendor', val: displayVendor },
+          { key: 'Wedding Date', val: displayDate },
+          { key: 'Token Paid', val: formatAmount(displayToken) },
+          { key: 'Protection Fee', val: '₹999' },
+          { key: 'Status', val: 'In Escrow', gold: true },
+        ].map((row, i, arr) => (
+          <View key={row.key}>
+            <View style={styles.successCardRow}>
+              <Text style={styles.successCardKey}>{row.key}</Text>
+              <Text style={[styles.successCardVal, row.gold && { color: '#C9A84C' }]}>
+                {row.val}
+              </Text>
+            </View>
+            {i < arr.length - 1 && <View style={styles.successCardDivider} />}
+          </View>
+        ))}
       </View>
-      <View style={styles.noteCard}>
-        <Text style={styles.noteText}>
-          If the vendor doesn't confirm within 48 hours, your full token will be automatically refunded. No questions asked.
+
+      <View style={styles.escrowCard}>
+        <Text style={styles.escrowTitle}>Protected by The Dream Wedding</Text>
+        <Text style={styles.escrowText}>
+          If {displayVendor} doesn't confirm within 48 hours, your full token is automatically refunded. Your ₹999 booking protection fee is non-refundable.
         </Text>
       </View>
+
       <TouchableOpacity
         style={styles.plannerBtn}
         onPress={() => router.push('/bts-planner')}
       >
         <Text style={styles.plannerBtnText}>View in Planner</Text>
       </TouchableOpacity>
+
       <TouchableOpacity onPress={() => router.push('/home')}>
         <Text style={styles.homeLink}>Back to Home</Text>
       </TouchableOpacity>
+
     </View>
   );
 }
@@ -70,6 +88,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   successIconText: {
     fontSize: 36,
@@ -90,11 +113,16 @@ const styles = StyleSheet.create({
   },
   successCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E8E0D5',
     width: '100%',
     overflow: 'hidden',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   successCardRow: {
     flexDirection: 'row',
@@ -107,35 +135,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E0D5',
     marginHorizontal: 16,
   },
-  successCardKey: {
-    fontSize: 13,
-    color: '#8C7B6E',
-  },
-  successCardVal: {
-    fontSize: 13,
-    color: '#2C2420',
-    fontWeight: '500',
-  },
-  noteCard: {
-    backgroundColor: '#FFF8EC',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E8D9B5',
+  successCardKey: { fontSize: 13, color: '#8C7B6E' },
+  successCardVal: { fontSize: 13, color: '#2C2420', fontWeight: '500' },
+  escrowCard: {
+    backgroundColor: '#2C2420',
+    borderRadius: 14,
+    padding: 18,
     width: '100%',
+    gap: 8,
   },
-  noteText: {
+  escrowTitle: {
     fontSize: 13,
-    color: '#8C7B6E',
+    color: '#C9A84C',
+    fontWeight: '500',
+    letterSpacing: 0.3,
+  },
+  escrowText: {
+    fontSize: 13,
+    color: '#B8A99A',
     lineHeight: 20,
-    textAlign: 'center',
   },
   plannerBtn: {
     backgroundColor: '#2C2420',
-    borderRadius: 10,
+    borderRadius: 14,
     paddingVertical: 16,
-    paddingHorizontal: 48,
+    width: '100%',
+    alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
   },
   plannerBtnText: {
     fontSize: 15,
