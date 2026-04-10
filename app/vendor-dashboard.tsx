@@ -553,20 +553,31 @@ export default function VendorDashboardScreen() {
             <View style={styles.revenueCard}>
               <View style={styles.revenueRow}>
                 <View style={styles.revenueItem}>
-                  <Text style={styles.revenueAmount}>₹9L</Text>
-                  <Text style={styles.revenueLabel}>This Month</Text>
+                  <Text style={styles.revenueAmount}>
+                    {invoices.length > 0 ? `₹${Math.round(invoices.reduce((s,i) => s + (i.amount||0), 0) / 100000 * 10) / 10}L` : '₹0'}
+                  </Text>
+                  <Text style={styles.revenueLabel}>Earned</Text>
                 </View>
                 <View style={styles.revenueDivider} />
                 <View style={styles.revenueItem}>
-                  <Text style={styles.revenueAmount}>₹84L</Text>
-                  <Text style={styles.revenueLabel}>This Year</Text>
+                  <Text style={styles.revenueAmount}>
+                    {bookings.length > 0 ? `₹${Math.round(bookings.filter(b => b.status === 'pending_confirmation').reduce((s,b) => s + (b.token_amount||0), 0) / 100000 * 10) / 10}L` : '₹0'}
+                  </Text>
+                  <Text style={styles.revenueLabel}>In Escrow</Text>
                 </View>
                 <View style={styles.revenueDivider} />
                 <View style={styles.revenueItem}>
-                  <Text style={styles.revenueAmount}>{confirmedBookings.length || 8}</Text>
-                  <Text style={styles.revenueLabel}>Bookings</Text>
+                  <Text style={styles.revenueAmount}>{confirmedBookings.length || 0}</Text>
+                  <Text style={styles.revenueLabel}>Confirmed</Text>
                 </View>
               </View>
+              {invoices.length > 0 && (
+                <View style={styles.forecastRow}>
+                  <Text style={styles.forecastText}>
+                    📈 Projected this year: ₹{Math.round(invoices.reduce((s,i) => s + (i.amount||0), 0) / new Date().getMonth() * 12 / 100000 * 10) / 10}L based on current pace
+                  </Text>
+                </View>
+              )}
             </View>
 
             {pendingBookings.length > 0 && (
@@ -694,6 +705,11 @@ export default function VendorDashboardScreen() {
                         <View style={[styles.stageBadge, { backgroundColor: (STAGE_COLORS[lead.stage] || '#8C7B6E') + '20' }]}>
                           <Text style={[styles.stageBadgeText, { color: STAGE_COLORS[lead.stage] || '#8C7B6E' }]}>
                             {lead.stage}
+                          </Text>
+                        </View>
+                        <View style={[styles.scoreBadge, { backgroundColor: lead.stage === 'Token Received' ? '#4CAF5020' : lead.stage === 'Quoted' ? '#C9A84C20' : lead.stage === 'Completed' ? '#2C242020' : '#E8E0D5' }]}>
+                          <Text style={[styles.scoreText, { color: lead.stage === 'Token Received' ? '#4CAF50' : lead.stage === 'Quoted' ? '#C9A84C' : lead.stage === 'Completed' ? '#2C2420' : '#8C7B6E' }]}>
+                            {lead.stage === 'Token Received' ? '🔥 Hot' : lead.stage === 'Quoted' ? '⚡ Warm' : lead.stage === 'Completed' ? '✓ Won' : '○ New'}
                           </Text>
                         </View>
                       </View>
@@ -1096,6 +1112,8 @@ const styles = StyleSheet.create({
   revenueDivider: { width: 1, height: 36, backgroundColor: '#3C3430' },
   revenueAmount: { fontSize: 22, color: '#C9A84C', fontWeight: '400' },
   revenueLabel: { fontSize: 11, color: '#8C7B6E' },
+  forecastRow: { borderTopWidth: 1, borderTopColor: '#3C3430', paddingTop: 12, marginTop: 4 },
+  forecastText: { fontSize: 12, color: '#C9A84C', textAlign: 'center', letterSpacing: 0.3 },
   alertCard: { backgroundColor: '#FFF8EC', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#C9A84C', gap: 6 },
   alertTitle: { fontSize: 14, color: '#2C2420', fontWeight: '600' },
   alertText: { fontSize: 12, color: '#8C7B6E' },
@@ -1136,6 +1154,8 @@ const styles = StyleSheet.create({
   leadValue: { fontSize: 13, color: '#2C2420', fontWeight: '500' },
   stageBadge: { borderRadius: 50, paddingHorizontal: 8, paddingVertical: 3 },
   stageBadgeText: { fontSize: 10, fontWeight: '500' },
+  scoreBadge: { borderRadius: 50, paddingHorizontal: 8, paddingVertical: 3, marginTop: 2 },
+  scoreText: { fontSize: 10, fontWeight: '600' },
   inquiryCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8E0D5', gap: 10 },
   inquiryTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   inquiryName: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
