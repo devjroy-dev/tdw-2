@@ -596,13 +596,32 @@ export default function VendorDashboardScreen() {
                   {vendorPlan === 'premium' ? 'Premium Plan' : 'Basic Plan'}
                 </Text>
                 <Text style={styles.subscriptionDetail}>
-                  {vendorPlan === 'premium' ? 'Priority placement active' : 'Upgrade for priority placement'}
+                  {vendorPlan === 'premium' ? 'Priority placement · Verified Elite eligible' : 'Upgrade for priority placement'}
                 </Text>
               </View>
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedBadgeText}>✓ Active</Text>
+              <View style={[styles.verifiedBadge, vendorPlan === 'premium' && styles.eliteBadge]}>
+                <Text style={styles.verifiedBadgeText}>
+                  {vendorPlan === 'premium' ? '★ Elite' : '✓ Active'}
+                </Text>
               </View>
             </View>
+            {vendorPlan === 'premium' && confirmedBookings.length >= 3 && (
+              <View style={styles.eliteCard}>
+                <Text style={styles.eliteCardTitle}>★ Verified Elite Status</Text>
+                <Text style={styles.eliteCardText}>
+                  You qualify for Verified Elite badge — {confirmedBookings.length} confirmed bookings via the platform. Your profile gets priority placement in swipe decks.
+                </Text>
+              </View>
+            )}
+            {vendorPlan !== 'premium' && (
+              <View style={styles.upgradeCard}>
+                <Text style={styles.upgradeCardTitle}>Unlock Verified Elite</Text>
+                <Text style={styles.upgradeCardText}>Upgrade to Premium to get priority placement, Elite badge and competitor benchmarking.</Text>
+                <TouchableOpacity style={styles.upgradeBtn}>
+                  <Text style={styles.upgradeBtnText}>Upgrade to Premium →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.benchmarkCard}>
               <Text style={styles.benchmarkTitle}>Market Benchmark · Live</Text>
@@ -1122,6 +1141,15 @@ const styles = StyleSheet.create({
   subscriptionPlan: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
   subscriptionDetail: { fontSize: 12, color: '#8C7B6E', marginTop: 3 },
   verifiedBadge: { backgroundColor: '#C9A84C', borderRadius: 50, paddingHorizontal: 12, paddingVertical: 6 },
+  eliteBadge: { backgroundColor: '#2C2420', borderWidth: 1, borderColor: '#C9A84C' },
+  eliteCard: { backgroundColor: '#2C2420', borderRadius: 12, padding: 16, gap: 6, borderWidth: 1, borderColor: '#C9A84C' },
+  eliteCardTitle: { fontSize: 14, color: '#C9A84C', fontWeight: '600' },
+  eliteCardText: { fontSize: 13, color: '#B8A99A', lineHeight: 20 },
+  upgradeCard: { backgroundColor: '#FFF8EC', borderRadius: 12, padding: 16, gap: 8, borderWidth: 1, borderColor: '#E8D9B5' },
+  upgradeCardTitle: { fontSize: 14, color: '#2C2420', fontWeight: '600' },
+  upgradeCardText: { fontSize: 13, color: '#8C7B6E', lineHeight: 20 },
+  upgradeBtn: { backgroundColor: '#2C2420', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+  upgradeBtnText: { fontSize: 13, color: '#C9A84C', fontWeight: '500' },
   verifiedBadgeText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600' },
   benchmarkCard: { backgroundColor: '#FFF8EC', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8D9B5', gap: 8 },
   benchmarkTitle: { fontSize: 13, color: '#2C2420', fontWeight: '500' },
