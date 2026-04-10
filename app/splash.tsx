@@ -2,15 +2,20 @@ import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
 
-export default function SplashScreen() {
+SplashScreen.preventAutoHideAsync();
+
+export default function SplashScreen2() {
   const router = useRouter();
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    SplashScreen.hideAsync();
+
     Animated.timing(opacity, {
       toValue: 1,
-      duration: 1000,
+      duration: 1200,
       useNativeDriver: true,
     }).start();
 
@@ -33,7 +38,7 @@ export default function SplashScreen() {
       } catch (e) {
         router.replace('/login');
       }
-    }, 2000);
+    }, 2500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -55,10 +60,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tagline: {
-    fontSize: 28,
+    fontSize: 26,
     color: '#2C2420',
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontWeight: '500',
+    letterSpacing: 1.5,
     textAlign: 'center',
     paddingHorizontal: 40,
   },

@@ -70,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="notifications" />
           <Stack.Screen name="lookalike" />
           <Stack.Screen name="wedding-website" />
+          <Stack.Screen name="get-inspired" />
         </Stack>
       </AuthGate>
     </>

@@ -22,24 +22,18 @@ export default function LoginScreen() {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       await GoogleSignin.signIn();
       const { idToken } = await GoogleSignin.getTokens();
-
       if (!idToken) throw new Error('No ID token received');
-
       const credential = GoogleAuthProvider.credential(idToken);
       const result = await signInWithCredential(auth, credential);
       const firebaseUID = result.user.uid;
       const userName = result.user.displayName || '';
       const userEmail = result.user.email || '';
       const userPhone = result.user.phoneNumber || '';
-
       let userData = null;
       try {
         const userResult = await createOrGetUser(userEmail || firebaseUID, userName, userEmail);
         userData = userResult.data;
-      } catch (e) {
-        console.log('Backend user creation failed, continuing with Firebase UID');
-      }
-
+      } catch (e) {}
       await AsyncStorage.setItem('user_session', JSON.stringify({
         uid: firebaseUID,
         userId: userData?.id || firebaseUID,
@@ -49,18 +43,15 @@ export default function LoginScreen() {
         userType: 'couple',
         avatar: result.user.photoURL || '',
       }));
-
       router.replace('/user-type');
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // User cancelled
       } else if (error.code === statusCodes.IN_PROGRESS) {
         Alert.alert('Please wait', 'Sign in already in progress');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Google Play Services not available on this device');
+        Alert.alert('Error', 'Google Play Services not available');
       } else {
         Alert.alert('Sign in failed', 'Could not sign in with Google. Please try again.');
-        console.error('Google Sign-In error:', JSON.stringify(error));
       }
     } finally {
       setGoogleLoading(false);
@@ -70,54 +61,48 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Top section — logo + welcome centered */}
-      <View style={styles.topSection}>
-        <View style={styles.logoSection}>
-          <Text style={styles.logoTop}>The</Text>
-          <Text style={styles.logoMain}>Dream Wedding</Text>
-          <View style={styles.logoDivider} />
-          <Text style={styles.logoTagline}>India's Premium Wedding Platform</Text>
-        </View>
-
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.subText}>Sign in to begin planning your dream wedding</Text>
-        </View>
+      <View style={styles.logoSection}>
+        <Text style={styles.logoThe}>The</Text>
+        <Text style={styles.logoMain}>Dream Wedding</Text>
+        <View style={styles.logoDivider} />
+        <Text style={styles.logoTagline}>India's Premium Wedding Platform</Text>
       </View>
 
-      {/* Bottom section — buttons */}
-      <View style={styles.buttonSection}>
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleGoogleLogin}
-          disabled={googleLoading}
-        >
-          {googleLoading ? (
-            <ActivityIndicator color="#2C2420" />
-          ) : (
-            <View style={styles.googleButtonInner}>
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
+      <View style={styles.bottomSection}>
+        <View style={styles.welcomeRow}>
+          <Text style={styles.welcomeText}>Welcome</Text>
+          <Text style={styles.subText}>Sign in to begin your journey</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push('/otp')}
-        >
-          <Text style={styles.primaryButtonText}>Continue with Phone</Text>
-        </TouchableOpacity>
+        <View style={styles.buttons}>
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#2C2420" />
+            ) : (
+              <View style={styles.googleButtonInner}>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <Text style={styles.verifyNote}>
-          We'll verify your identity to keep your bookings secure
-        </Text>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push('/otp')}
+          >
+            <Text style={styles.primaryButtonText}>Continue with Phone</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity onPress={() => router.push('/vendor-login')}>
           <Text style={styles.vendorLink}>Vendor? Sign in here →</Text>
@@ -133,78 +118,70 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F0E8',
     paddingHorizontal: 28,
-    paddingBottom: 48,
+    paddingBottom: 52,
     paddingTop: 60,
-    justifyContent: 'space-between',
-  },
-  topSection: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 40,
   },
   logoSection: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  logoTop: {
-    fontSize: 16,
+  logoThe: {
+    fontSize: 14,
     color: '#8C7B6E',
     fontWeight: '300',
-    letterSpacing: 8,
+    letterSpacing: 10,
     textTransform: 'uppercase',
   },
   logoMain: {
-    fontSize: 36,
-    color: '#2C2420',
-    fontWeight: '500',
-    letterSpacing: 3,
-    textAlign: 'center',
-  },
-  logoDivider: {
-    width: 40,
-    height: 1.5,
-    backgroundColor: '#C9A84C',
-    marginVertical: 4,
-  },
-  logoTagline: {
-    fontSize: 10,
-    color: '#8C7B6E',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-  },
-  welcomeSection: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  welcomeText: {
-    fontSize: 42,
+    fontSize: 40,
     color: '#2C2420',
     fontWeight: '300',
     letterSpacing: 2,
     textAlign: 'center',
   },
-  subText: {
-    fontSize: 14,
-    color: '#8C7B6E',
-    lineHeight: 22,
-    textAlign: 'center',
+  logoDivider: {
+    width: 32,
+    height: 1,
+    backgroundColor: '#C9A84C',
+    marginVertical: 6,
   },
-  buttonSection: {
-    gap: 14,
+  logoTagline: {
+    fontSize: 9,
+    color: '#8C7B6E',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  bottomSection: {
+    gap: 24,
+  },
+  welcomeRow: {
+    gap: 6,
+  },
+  welcomeText: {
+    fontSize: 26,
+    color: '#2C2420',
+    fontWeight: '300',
+    letterSpacing: 1,
+  },
+  subText: {
+    fontSize: 13,
+    color: '#8C7B6E',
+    letterSpacing: 0.3,
+  },
+  buttons: {
+    gap: 12,
   },
   googleButton: {
     width: '100%',
     borderWidth: 1,
     borderColor: '#E8E0D5',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 10,
+    paddingVertical: 15,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#2C2420',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    elevation: 1,
   },
   googleButtonInner: {
     flexDirection: 'row',
@@ -212,21 +189,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   googleIcon: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#4285F4',
   },
   googleButtonText: {
     color: '#2C2420',
-    fontSize: 15,
+    fontSize: 14,
     letterSpacing: 0.3,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginVertical: 2,
   },
   dividerLine: {
     flex: 1,
@@ -235,31 +211,20 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: '#8C7B6E',
-    fontSize: 13,
+    fontSize: 12,
   },
   primaryButton: {
     width: '100%',
     backgroundColor: '#2C2420',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 10,
+    paddingVertical: 15,
     alignItems: 'center',
-    shadowColor: '#2C2420',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 3,
   },
   primaryButtonText: {
     color: '#F5F0E8',
-    fontSize: 15,
+    fontSize: 14,
     letterSpacing: 0.5,
-    fontWeight: '500',
-  },
-  verifyNote: {
-    fontSize: 11,
-    color: '#8C7B6E',
-    textAlign: 'center',
-    letterSpacing: 0.3,
+    fontWeight: '400',
   },
   vendorLink: {
     color: '#C9A84C',
