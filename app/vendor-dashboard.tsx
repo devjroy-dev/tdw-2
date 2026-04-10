@@ -6,7 +6,7 @@ import {
   ActivityIndicator, Alert, Dimensions, Image, Linking, Modal,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
-import { getBenchmark, getInvoices, getLeads, getVendorBookings } from '../services/api';
+import { getBenchmark, getInvoices, getLeads, getVendorBookings, getBlockedDates, blockDate, unblockDate } from '../services/api';
 import { uploadImage } from '../services/cloudinary';
 import { generateInvoiceNumber, generateInvoicePDF } from '../services/invoice';
 
@@ -14,7 +14,7 @@ const { width } = Dimensions.get('window');
 
 const TABS = ['Overview', 'Inquiries', 'Calendar', 'Tools', 'Reviews', 'Clients'];
 
-const BLOCKED_DATES = ['Dec 10, 2025', 'Dec 15, 2025', 'Dec 22, 2025', 'Jan 1, 2026'];
+
 
 const STAGE_COLORS: Record<string, string> = {
   'New Inquiry': '#C9A84C',
@@ -62,6 +62,10 @@ export default function VendorDashboardScreen() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [blockedDates, setBlockedDates] = useState<any[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [showDateInput, setShowDateInput] = useState(false);
+  const [newBlockDate, setNewBlockDate] = useState('');
 
   useEffect(() => {
     loadSession();
@@ -75,6 +79,7 @@ export default function VendorDashboardScreen() {
         loadLeads();
         loadBookings();
       }
+      if (activeTab === 'Calendar') { loadBlockedDates(); }
       if (activeTab === 'Clients') {
         loadClients();
       }
@@ -120,6 +125,34 @@ export default function VendorDashboardScreen() {
       const res = await getInvoices(vendorSession.vendorId);
       if (res.success) setInvoices(res.data || []);
     } catch (e) {}
+  };
+
+  const loadBlockedDates = async () => {
+    try {
+      setCalendarLoading(true);
+      const res = await getBlockedDates(vendorSession.vendorId);
+      if (res.success) setBlockedDates(res.data || []);
+    } catch (e) {}
+    finally { setCalendarLoading(false); }
+  };
+
+  const handleBlockDate = async () => {
+    if (!newBlockDate.trim()) return;
+    try {
+      const res = await blockDate(vendorSession.vendorId, newBlockDate.trim());
+      if (res.success) {
+        setBlockedDates(prev => [...prev, res.data]);
+        setNewBlockDate('');
+        setShowDateInput(false);
+      }
+    } catch (e) { Alert.alert('Error', 'Could not block date.'); }
+  };
+
+  const handleUnblockDate = async (id: string) => {
+    try {
+      await unblockDate(id);
+      setBlockedDates(prev => prev.filter(d => d.id !== id));
+    } catch (e) { Alert.alert('Error', 'Could not unblock date.'); }
   };
 
   const loadClients = async () => {
@@ -703,28 +736,68 @@ export default function VendorDashboardScreen() {
           <View style={styles.tabPane}>
             <Text style={styles.sectionLabel}>Availability</Text>
             <Text style={styles.calendarHint}>Block dates you're already booked so couples see accurate availability</Text>
-            <View style={styles.listCard}>
-              <View style={styles.blockedHeader}>
-                <Text style={styles.blockedTitle}>Blocked Dates</Text>
+            {calendarLoading ? (
+              <ActivityIndicator color="#C9A84C" style={{ paddingVertical: 20 }} />
+            ) : (
+              <View style={styles.listCard}>
+                <View style={styles.blockedHeader}>
+                  <Text style={styles.blockedTitle}>Blocked Dates ({blockedDates.length})</Text>
+                </View>
+                {blockedDates.length === 0 && (
+                  <View style={{ padding: 16 }}>
+                    <Text style={{ fontSize: 13, color: '#8C7B6E' }}>No dates blocked yet</Text>
+                  </View>
+                )}
+                {blockedDates.map((item, index) => (
+                  <View key={item.id}>
+                    <View style={styles.blockedRow}>
+                      <Text style={styles.blockedDate}>{item.blocked_date}</Text>
+                      <TouchableOpacity
+                        style={styles.unblockBtn}
+                        onPress={() => handleUnblockDate(item.id)}
+                      >
+                        <Text style={styles.unblockBtnText}>Unblock</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {index < blockedDates.length - 1 && <View style={styles.listDivider} />}
+                  </View>
+                ))}
               </View>
-              {BLOCKED_DATES.map((date, index) => (
-                <View key={date}>
-                  <View style={styles.blockedRow}>
-                    <Text style={styles.blockedDate}>{date}</Text>
-                    <TouchableOpacity style={styles.unblockBtn}>
-                      <Text style={styles.unblockBtnText}>Unblock</Text>
+            )}
+            {showDateInput ? (
+              <View style={styles.listCard}>
+                <View style={{ padding: 16, gap: 10 }}>
+                  <TextInput
+                    style={styles.invoiceInput}
+                    placeholder="Date (e.g. March 15, 2026)"
+                    placeholderTextColor="#8C7B6E"
+                    value={newBlockDate}
+                    onChangeText={setNewBlockDate}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      style={[styles.unblockBtn, { flex: 1, alignItems: 'center' }]}
+                      onPress={() => setShowDateInput(false)}
+                    >
+                      <Text style={styles.unblockBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.blockDateBtn, { flex: 2 }]}
+                      onPress={handleBlockDate}
+                    >
+                      <Text style={styles.blockDateBtnText}>Block Date</Text>
                     </TouchableOpacity>
                   </View>
-                  {index < BLOCKED_DATES.length - 1 && <View style={styles.listDivider} />}
                 </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={styles.blockDateBtn}
-              onPress={() => Alert.alert('Block a Date', 'Full calendar integration coming soon. Your blocked dates are saved.')}
-            >
-              <Text style={styles.blockDateBtnText}>+ Block a Date</Text>
-            </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.blockDateBtn}
+                onPress={() => setShowDateInput(true)}
+              >
+                <Text style={styles.blockDateBtnText}>+ Block a Date</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
