@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Dimensions, ScrollView, TextInput, Modal,
-  ActivityIndicator, Alert
+  ActivityIndicator, Alert, Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  getGuests, addGuest, getUserBookings, getNotifications
+  getGuests, addGuest, getUserBookings
 } from '../services/api';
+import * as Contacts from 'expo-contacts';
 
 const { width } = Dimensions.get('window');
 
-const TABS = ['Budget', 'Guests', 'To Do', 'Payments', 'Memories'];
+const TABS = ['Budget', 'Guests', 'Registry', 'To Do', 'Payments', 'Memories'];
 
 const DEFAULT_BUDGET_CATEGORIES = [
   { id: '1', category: 'Venue', budgeted: 800000, hearted: 0, booked: 0 },
@@ -71,7 +72,7 @@ export default function BTSPlannerScreen() {
   const [newGuestDietary, setNewGuestDietary] = useState('');
   const [savingGuest, setSavingGuest] = useState(false);
 
-  // Bookings/Payments
+  // Bookings
   const [bookings, setBookings] = useState<any[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
@@ -82,6 +83,14 @@ export default function BTSPlannerScreen() {
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [showSmartChecklist, setShowSmartChecklist] = useState(false);
 
+  // Registry
+  const [registry, setRegistry] = useState<any[]>([]);
+  const [showAddGift, setShowAddGift] = useState(false);
+  const [newGiftName, setNewGiftName] = useState('');
+  const [newGiftDesc, setNewGiftDesc] = useState('');
+  const [newGiftPrice, setNewGiftPrice] = useState('');
+  const [newGiftLink, setNewGiftLink] = useState('');
+
   useEffect(() => {
     loadSession();
   }, []);
@@ -90,6 +99,7 @@ export default function BTSPlannerScreen() {
     if (userId) {
       if (activeTab === 'Guests') loadGuests();
       if (activeTab === 'Payments') loadBookings();
+      if (activeTab === 'Registry') loadRegistry();
     }
   }, [activeTab, userId]);
 
@@ -125,6 +135,103 @@ export default function BTSPlannerScreen() {
       setBookings([]);
     } finally {
       setBookingsLoading(false);
+    }
+  };
+
+  const loadRegistry = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(`registry_${userId}`);
+      if (stored) setRegistry(JSON.parse(stored));
+    } catch (e) {}
+  };
+
+  const saveRegistry = async (items: any[]) => {
+    try {
+      await AsyncStorage.setItem(`registry_${userId}`, JSON.stringify(items));
+    } catch (e) {}
+  };
+
+  const handleAddGift = async () => {
+    if (!newGiftName.trim()) {
+      Alert.alert('Missing info', 'Please enter a gift name.');
+      return;
+    }
+    const newGift = {
+      id: Date.now().toString(),
+      name: newGiftName.trim(),
+      description: newGiftDesc.trim(),
+      price: newGiftPrice.trim(),
+      link: newGiftLink.trim(),
+      claimed: false,
+      claimedBy: '',
+    };
+    const updated = [...registry, newGift];
+    setRegistry(updated);
+    await saveRegistry(updated);
+    setNewGiftName('');
+    setNewGiftDesc('');
+    setNewGiftPrice('');
+    setNewGiftLink('');
+    setShowAddGift(false);
+  };
+
+  const handleClaimGift = async (giftId: string) => {
+    const updated = registry.map(g =>
+      g.id === giftId ? { ...g, claimed: true } : g
+    );
+    setRegistry(updated);
+    await saveRegistry(updated);
+  };
+
+  const handleRemoveGift = async (giftId: string) => {
+    Alert.alert('Remove Gift', 'Remove this from your registry?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: async () => {
+          const updated = registry.filter(g => g.id !== giftId);
+          setRegistry(updated);
+          await saveRegistry(updated);
+        }
+      }
+    ]);
+  };
+
+  const handleShareRegistry = () => {
+    const giftList = registry
+      .filter(g => !g.claimed)
+      .map(g => `• ${g.name}${g.price ? ` (₹${g.price})` : ''}${g.link ? `\n  ${g.link}` : ''}`)
+      .join('\n');
+
+    const message = `💍 Our Wedding Gift Registry\n\nHi! We've put together a list of gifts we'd love for our wedding. No pressure at all — your presence is the greatest gift!\n\n${giftList}\n\nWith love ❤️`;
+    Linking.openURL(`whatsapp://send?text=${encodeURIComponent(message)}`);
+  };
+
+  const handleImportContacts = async () => {
+    try {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your contacts.');
+        return;
+      }
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+      });
+      if (data.length === 0) {
+        Alert.alert('No contacts', 'No contacts found on your device.');
+        return;
+      }
+      // Show first contact as example — in future show picker
+      const contact = data[0];
+      const phone = contact.phoneNumbers?.[0]?.number?.replace(/\s/g, '') || '';
+      setNewGuestName(contact.name || '');
+      setShowAddGuest(true);
+      Alert.alert(
+        'Contact Selected',
+        `${contact.name} imported. You can edit details before adding.`
+      );
+    } catch (e) {
+      Alert.alert('Error', 'Could not access contacts.');
     }
   };
 
@@ -182,6 +289,8 @@ export default function BTSPlannerScreen() {
   const pendingGuests = guests.filter(g => g.rsvp === 'pending').length;
   const completedTodos = todos.filter(t => t.done).length;
   const totalInEscrow = bookings.reduce((sum, b) => b.status === 'pending_confirmation' ? sum + (b.token_amount || 0) : sum, 0);
+  const unclaimedGifts = registry.filter(g => !g.claimed).length;
+  const claimedGifts = registry.filter(g => g.claimed).length;
 
   const weddingDate = userSession?.wedding_date
     ? new Date(userSession.wedding_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -199,38 +308,33 @@ export default function BTSPlannerScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Add Guest</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Full name"
-              placeholderTextColor="#8C7B6E"
-              value={newGuestName}
-              onChangeText={setNewGuestName}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Group (e.g. Family, College Friends)"
-              placeholderTextColor="#8C7B6E"
-              value={newGuestGroup}
-              onChangeText={setNewGuestGroup}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Dietary preference (e.g. Veg, Non-Veg, Jain)"
-              placeholderTextColor="#8C7B6E"
-              value={newGuestDietary}
-              onChangeText={setNewGuestDietary}
-            />
-            <TouchableOpacity
-              style={[styles.modalBtn, savingGuest && { opacity: 0.6 }]}
-              onPress={handleAddGuest}
-              disabled={savingGuest}
-            >
-              {savingGuest
-                ? <ActivityIndicator color="#F5F0E8" />
-                : <Text style={styles.modalBtnText}>Add Guest</Text>
-              }
+            <TextInput style={styles.modalInput} placeholder="Full name" placeholderTextColor="#8C7B6E" value={newGuestName} onChangeText={setNewGuestName} />
+            <TextInput style={styles.modalInput} placeholder="Group (e.g. Family, College Friends)" placeholderTextColor="#8C7B6E" value={newGuestGroup} onChangeText={setNewGuestGroup} />
+            <TextInput style={styles.modalInput} placeholder="Dietary preference (e.g. Veg, Non-Veg)" placeholderTextColor="#8C7B6E" value={newGuestDietary} onChangeText={setNewGuestDietary} />
+            <TouchableOpacity style={[styles.modalBtn, savingGuest && { opacity: 0.6 }]} onPress={handleAddGuest} disabled={savingGuest}>
+              {savingGuest ? <ActivityIndicator color="#F5F0E8" /> : <Text style={styles.modalBtnText}>Add Guest</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAddGuest(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Gift Modal */}
+      <Modal visible={showAddGift} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add to Registry</Text>
+            <Text style={styles.modalSubtitle}>Add gifts you'd love to receive</Text>
+            <TextInput style={styles.modalInput} placeholder="Gift name (e.g. KitchenAid Mixer)" placeholderTextColor="#8C7B6E" value={newGiftName} onChangeText={setNewGiftName} />
+            <TextInput style={styles.modalInput} placeholder="Description (optional)" placeholderTextColor="#8C7B6E" value={newGiftDesc} onChangeText={setNewGiftDesc} />
+            <TextInput style={styles.modalInput} placeholder="Price (e.g. 5000)" placeholderTextColor="#8C7B6E" value={newGiftPrice} onChangeText={setNewGiftPrice} keyboardType="number-pad" />
+            <TextInput style={styles.modalInput} placeholder="Link (optional)" placeholderTextColor="#8C7B6E" value={newGiftLink} onChangeText={setNewGiftLink} autoCapitalize="none" />
+            <TouchableOpacity style={styles.modalBtn} onPress={handleAddGift}>
+              <Text style={styles.modalBtnText}>Add Gift</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAddGift(false)}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -246,10 +350,7 @@ export default function BTSPlannerScreen() {
           )}
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.messagesBtn}
-            onPress={() => router.push('/messaging')}
-          >
+          <TouchableOpacity style={styles.messagesBtn} onPress={() => router.push('/messaging')}>
             <Text style={styles.messagesBtnText}>Messages</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -262,30 +363,15 @@ export default function BTSPlannerScreen() {
       </View>
 
       {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabScroll}
-        contentContainerStyle={styles.tabContent}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContent}>
         {TABS.map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-              {tab}
-            </Text>
+          <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.tabActive]} onPress={() => setActiveTab(tab)}>
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll} contentContainerStyle={styles.scrollContent}>
 
         {/* BUDGET */}
         {activeTab === 'Budget' && (
@@ -313,29 +399,22 @@ export default function BTSPlannerScreen() {
               </View>
               <Text style={styles.progressLabel}>Heart vendors to track your spend</Text>
             </View>
-
             <View style={styles.intelligenceCard}>
               <Text style={styles.intelligenceTitle}>Budget Intelligence</Text>
               <Text style={styles.intelligenceText}>
                 Couples in {userSession?.city || 'your city'} typically spend 40% on venue, 15% on photography and 12% on designer wear.
               </Text>
             </View>
-
             <Text style={styles.sectionLabel}>By Category</Text>
             <View style={styles.listCard}>
               {DEFAULT_BUDGET_CATEGORIES.map((cat, index) => (
                 <View key={cat.id}>
-                  <TouchableOpacity
-                    style={styles.budgetRow}
-                    onPress={() => router.push(`/filter?category=${cat.category.toLowerCase().replace(/ /g, '-')}`)}
-                  >
+                  <TouchableOpacity style={styles.budgetRow} onPress={() => router.push(`/filter?category=${cat.category.toLowerCase().replace(/ /g, '-')}`)}>
                     <View>
                       <Text style={styles.budgetCategoryName}>{cat.category}</Text>
                       <Text style={styles.budgetCategoryDetail}>Budget: {formatAmount(cat.budgeted)}</Text>
                     </View>
-                    <View style={styles.budgetRowRight}>
-                      <Text style={styles.emptyText}>Browse →</Text>
-                    </View>
+                    <Text style={styles.emptyText}>Browse →</Text>
                   </TouchableOpacity>
                   {index < DEFAULT_BUDGET_CATEGORIES.length - 1 && <View style={styles.listDivider} />}
                 </View>
@@ -365,34 +444,20 @@ export default function BTSPlannerScreen() {
                 </View>
               </View>
             </View>
-
             <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={[styles.actionBtn, { borderRightWidth: 1, borderRightColor: '#E8E0D5' }]}
-                onPress={() => setShowAddGuest(true)}
-              >
+              <TouchableOpacity style={[styles.actionBtn, { borderRightWidth: 1, borderRightColor: '#E8E0D5' }]} onPress={() => setShowAddGuest(true)}>
                 <Text style={styles.actionBtnText}>Add Guest</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, { borderRightWidth: 1, borderRightColor: '#E8E0D5' }]}
-                onPress={() => Alert.alert('E-Invites', 'Digital invitations are coming soon. Your guest list is being saved so you\'ll be ready to send instantly.')}
-              >
+              <TouchableOpacity style={[styles.actionBtn, { borderRightWidth: 1, borderRightColor: '#E8E0D5' }]} onPress={() => Alert.alert('E-Invites', 'Digital invitations coming soon.')}>
                 <Text style={styles.actionBtnText}>E-Invites</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => Alert.alert('Seating Chart', 'AI-powered seating suggestions are coming soon. Keep adding your guests!')}
-              >
+              <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert('Seating Chart', 'AI-powered seating coming soon.')}>
                 <Text style={styles.actionBtnText}>Seating</Text>
               </TouchableOpacity>
             </View>
-
             <Text style={styles.sectionLabel}>Guest List ({guests.length})</Text>
-
             {guestsLoading ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator color="#C9A84C" />
-              </View>
+              <View style={styles.loadingRow}><ActivityIndicator color="#C9A84C" /></View>
             ) : guests.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateTitle}>No guests yet</Text>
@@ -425,29 +490,95 @@ export default function BTSPlannerScreen() {
           </View>
         )}
 
+        {/* REGISTRY */}
+        {activeTab === 'Registry' && (
+          <View style={styles.tabPane}>
+            <View style={styles.registryHeroCard}>
+              <Text style={styles.registryHeroTitle}>Gift Registry</Text>
+              <Text style={styles.registryHeroText}>
+                Create your wedding wish list and share it with friends & family via WhatsApp. A thoughtful Indian wedding tradition for the modern couple.
+              </Text>
+            </View>
+
+            <View style={styles.summaryCard}>
+              <View style={styles.guestSummaryRow}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryAmount}>{registry.length}</Text>
+                  <Text style={styles.summaryLabel}>Total Gifts</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryAmount, { color: '#C9A84C' }]}>{unclaimedGifts}</Text>
+                  <Text style={styles.summaryLabel}>Available</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryAmount, { color: '#4CAF50' }]}>{claimedGifts}</Text>
+                  <Text style={styles.summaryLabel}>Claimed</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.registryActions}>
+              <TouchableOpacity style={styles.addGiftBtn} onPress={() => setShowAddGift(true)}>
+                <Text style={styles.addGiftBtnText}>+ Add Gift</Text>
+              </TouchableOpacity>
+              {registry.length > 0 && (
+                <TouchableOpacity style={styles.shareRegistryBtn} onPress={handleShareRegistry}>
+                  <Text style={styles.shareRegistryBtnText}>📲 Share via WhatsApp</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {registry.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateTitle}>No gifts yet</Text>
+                <Text style={styles.emptyStateText}>Add gifts you'd love to receive and share with your guests</Text>
+                <TouchableOpacity style={styles.emptyStateBtn} onPress={() => setShowAddGift(true)}>
+                  <Text style={styles.emptyStateBtnText}>+ Add First Gift</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              registry.map(gift => (
+                <View key={gift.id} style={[styles.giftCard, gift.claimed && styles.giftCardClaimed]}>
+                  <View style={styles.giftInfo}>
+                    <Text style={[styles.giftName, gift.claimed && styles.giftNameClaimed]}>{gift.name}</Text>
+                    {gift.description ? <Text style={styles.giftDesc}>{gift.description}</Text> : null}
+                    {gift.price ? <Text style={styles.giftPrice}>₹{parseInt(gift.price).toLocaleString('en-IN')}</Text> : null}
+                    {gift.link ? <Text style={styles.giftLink} numberOfLines={1}>{gift.link}</Text> : null}
+                  </View>
+                  <View style={styles.giftActions}>
+                    {gift.claimed ? (
+                      <View style={styles.claimedBadge}>
+                        <Text style={styles.claimedBadgeText}>✓ Claimed</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={styles.claimBtn} onPress={() => handleClaimGift(gift.id)}>
+                        <Text style={styles.claimBtnText}>Mark Claimed</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity onPress={() => handleRemoveGift(gift.id)}>
+                      <Text style={styles.removeGiftBtn}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
         {/* TO DO */}
         {activeTab === 'To Do' && (
           <View style={styles.tabPane}>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>
-                {completedTodos} of {todos.length} tasks completed
-              </Text>
+              <Text style={styles.summaryTitle}>{completedTodos} of {todos.length} tasks completed</Text>
               <View style={styles.progressBg}>
-                <View style={[styles.progressFill, {
-                  width: todos.length > 0 ? `${(completedTodos / todos.length) * 100}%` : '0%'
-                }]} />
+                <View style={[styles.progressFill, { width: todos.length > 0 ? `${(completedTodos / todos.length) * 100}%` : '0%' }]} />
               </View>
             </View>
-
-            <TouchableOpacity
-              style={styles.smartChecklistToggle}
-              onPress={() => setShowSmartChecklist(!showSmartChecklist)}
-            >
-              <Text style={styles.smartChecklistToggleText}>
-                Smart Wedding Checklist {showSmartChecklist ? '▲' : '▼'}
-              </Text>
+            <TouchableOpacity style={styles.smartChecklistToggle} onPress={() => setShowSmartChecklist(!showSmartChecklist)}>
+              <Text style={styles.smartChecklistToggleText}>Smart Wedding Checklist {showSmartChecklist ? '▲' : '▼'}</Text>
             </TouchableOpacity>
-
             {showSmartChecklist && (
               <View style={styles.listCard}>
                 {SMART_CHECKLIST.map((item, index) => (
@@ -456,16 +587,13 @@ export default function BTSPlannerScreen() {
                       <View style={[styles.smartCheckbox, item.done && styles.smartCheckboxDone]}>
                         {item.done && <Text style={styles.smartCheckboxTick}>✓</Text>}
                       </View>
-                      <Text style={[styles.smartChecklistText, item.done && styles.smartChecklistTextDone]}>
-                        {item.text}
-                      </Text>
+                      <Text style={[styles.smartChecklistText, item.done && styles.smartChecklistTextDone]}>{item.text}</Text>
                     </View>
                     {index < SMART_CHECKLIST.length - 1 && <View style={styles.listDivider} />}
                   </View>
                 ))}
               </View>
             )}
-
             <Text style={styles.sectionLabel}>My Tasks</Text>
             {todos.filter(t => !t.done).length > 0 && (
               <View style={styles.listCard}>
@@ -488,7 +616,6 @@ export default function BTSPlannerScreen() {
                 ))}
               </View>
             )}
-
             {todos.filter(t => t.done).length > 0 && (
               <>
                 <Text style={styles.sectionLabel}>Completed</Text>
@@ -512,24 +639,10 @@ export default function BTSPlannerScreen() {
                 </View>
               </>
             )}
-
             {showAddTodo ? (
               <View style={styles.addTodoCard}>
-                <TextInput
-                  style={styles.addTodoInput}
-                  placeholder="What needs to be done?"
-                  placeholderTextColor="#8C7B6E"
-                  value={newTodo}
-                  onChangeText={setNewTodo}
-                  autoFocus
-                />
-                <TextInput
-                  style={styles.addTodoInput}
-                  placeholder="Reminder date (optional)"
-                  placeholderTextColor="#8C7B6E"
-                  value={newReminder}
-                  onChangeText={setNewReminder}
-                />
+                <TextInput style={styles.addTodoInput} placeholder="What needs to be done?" placeholderTextColor="#8C7B6E" value={newTodo} onChangeText={setNewTodo} autoFocus />
+                <TextInput style={styles.addTodoInput} placeholder="Reminder date (optional)" placeholderTextColor="#8C7B6E" value={newReminder} onChangeText={setNewReminder} />
                 <View style={styles.addTodoActions}>
                   <TouchableOpacity style={styles.addTodoCancelBtn} onPress={() => setShowAddTodo(false)}>
                     <Text style={styles.addTodoCancelText}>Cancel</Text>
@@ -551,9 +664,7 @@ export default function BTSPlannerScreen() {
         {activeTab === 'Payments' && (
           <View style={styles.tabPane}>
             {bookingsLoading ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator color="#C9A84C" />
-              </View>
+              <View style={styles.loadingRow}><ActivityIndicator color="#C9A84C" /></View>
             ) : bookings.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateTitle}>No payments yet</Text>
@@ -575,9 +686,7 @@ export default function BTSPlannerScreen() {
                         </View>
                         <View style={styles.paymentRight}>
                           <Text style={styles.paymentAmount}>{formatAmount(booking.token_amount || 0)}</Text>
-                          <Text style={[styles.paymentStatus, {
-                            color: booking.status === 'pending_confirmation' ? '#C9A84C' : '#4CAF50'
-                          }]}>
+                          <Text style={[styles.paymentStatus, { color: booking.status === 'pending_confirmation' ? '#C9A84C' : '#4CAF50' }]}>
                             {booking.status === 'pending_confirmation' ? 'In Escrow' : 'Confirmed'}
                           </Text>
                         </View>
@@ -585,13 +694,6 @@ export default function BTSPlannerScreen() {
                       {index < bookings.length - 1 && <View style={styles.listDivider} />}
                     </View>
                   ))}
-                </View>
-
-                <View style={styles.paymentSummaryCard}>
-                  <View style={styles.paymentSummaryRow}>
-                    <Text style={styles.paymentSummaryKey}>Total in Escrow</Text>
-                    <Text style={styles.paymentSummaryVal}>{formatAmount(totalInEscrow)}</Text>
-                  </View>
                 </View>
               </>
             )}
@@ -606,16 +708,10 @@ export default function BTSPlannerScreen() {
               <Text style={styles.memoriesSubtitle}>
                 Upload behind-the-scenes moments from your functions. Your co-planner and content creator can add memories too.
               </Text>
-              <TouchableOpacity
-                style={styles.uploadBtn}
-                onPress={() => Alert.alert('Coming Soon', 'Memory uploads are being set up. Your Memory Book will be ready soon!')}
-              >
+              <TouchableOpacity style={styles.uploadBtn} onPress={() => Alert.alert('Coming Soon', 'Memory uploads are being set up.')}>
                 <Text style={styles.uploadBtnText}>Add Memory</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.websiteBtn}
-                onPress={() => router.push('/wedding-website')}
-              >
+              <TouchableOpacity style={styles.websiteBtn} onPress={() => router.push('/wedding-website')}>
                 <Text style={styles.websiteBtnText}>Create Wedding Website →</Text>
               </TouchableOpacity>
             </View>
@@ -641,7 +737,6 @@ export default function BTSPlannerScreen() {
           <Text style={styles.navLabel}>Profile</Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
@@ -683,7 +778,6 @@ const styles = StyleSheet.create({
   listCard: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E0D5', overflow: 'hidden' },
   listDivider: { height: 1, backgroundColor: '#E8E0D5', marginHorizontal: 16 },
   budgetRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 },
-  budgetRowRight: { alignItems: 'flex-end' },
   budgetCategoryName: { fontSize: 14, color: '#2C2420', fontWeight: '500' },
   budgetCategoryDetail: { fontSize: 12, color: '#8C7B6E', marginTop: 2 },
   emptyText: { fontSize: 12, color: '#C9A84C', fontWeight: '500' },
@@ -703,6 +797,28 @@ const styles = StyleSheet.create({
   emptyStateText: { fontSize: 13, color: '#8C7B6E', textAlign: 'center', lineHeight: 20 },
   emptyStateBtn: { backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 24, marginTop: 8 },
   emptyStateBtnText: { fontSize: 13, color: '#F5F0E8', fontWeight: '500' },
+  registryHeroCard: { backgroundColor: '#2C2420', borderRadius: 14, padding: 20, gap: 8 },
+  registryHeroTitle: { fontSize: 20, color: '#C9A84C', fontWeight: '400', letterSpacing: 0.5 },
+  registryHeroText: { fontSize: 13, color: '#B8A99A', lineHeight: 20 },
+  registryActions: { flexDirection: 'row', gap: 10 },
+  addGiftBtn: { flex: 1, backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 13, alignItems: 'center' },
+  addGiftBtnText: { fontSize: 14, color: '#C9A84C', fontWeight: '500' },
+  shareRegistryBtn: { flex: 1, borderWidth: 1, borderColor: '#25D366', borderRadius: 10, paddingVertical: 13, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  shareRegistryBtnText: { fontSize: 13, color: '#25D366', fontWeight: '500' },
+  giftCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8E0D5', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  giftCardClaimed: { opacity: 0.6, backgroundColor: '#F5F0E8' },
+  giftInfo: { flex: 1, gap: 3 },
+  giftName: { fontSize: 15, color: '#2C2420', fontWeight: '500' },
+  giftNameClaimed: { textDecorationLine: 'line-through', color: '#8C7B6E' },
+  giftDesc: { fontSize: 12, color: '#8C7B6E' },
+  giftPrice: { fontSize: 13, color: '#C9A84C', fontWeight: '500' },
+  giftLink: { fontSize: 11, color: '#8C7B6E' },
+  giftActions: { alignItems: 'center', gap: 8 },
+  claimedBadge: { backgroundColor: '#4CAF5020', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 },
+  claimedBadgeText: { fontSize: 11, color: '#4CAF50', fontWeight: '500' },
+  claimBtn: { borderWidth: 1, borderColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  claimBtnText: { fontSize: 11, color: '#C9A84C', fontWeight: '500' },
+  removeGiftBtn: { fontSize: 14, color: '#8C7B6E', padding: 4 },
   smartChecklistToggle: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D5' },
   smartChecklistToggleText: { fontSize: 14, color: '#2C2420', fontWeight: '500' },
   smartChecklistRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
@@ -737,10 +853,6 @@ const styles = StyleSheet.create({
   paymentRight: { alignItems: 'flex-end', gap: 3 },
   paymentAmount: { fontSize: 15, color: '#2C2420', fontWeight: '600' },
   paymentStatus: { fontSize: 11, fontWeight: '500' },
-  paymentSummaryCard: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E8E0D5', overflow: 'hidden' },
-  paymentSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 },
-  paymentSummaryKey: { fontSize: 14, color: '#8C7B6E' },
-  paymentSummaryVal: { fontSize: 14, color: '#2C2420', fontWeight: '600' },
   memoriesEmpty: { alignItems: 'center', gap: 14, paddingVertical: 48 },
   memoriesTitle: { fontSize: 24, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
   memoriesSubtitle: { fontSize: 14, color: '#8C7B6E', textAlign: 'center', lineHeight: 22, paddingHorizontal: 16 },
@@ -756,6 +868,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: '#F5F0E8', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, gap: 14 },
   modalTitle: { fontSize: 22, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
+  modalSubtitle: { fontSize: 13, color: '#8C7B6E', marginTop: -8 },
   modalInput: { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D5', paddingVertical: 14, paddingHorizontal: 16, fontSize: 14, color: '#2C2420' },
   modalBtn: { backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
   modalBtnText: { fontSize: 15, color: '#F5F0E8', fontWeight: '500' },

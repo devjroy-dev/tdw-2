@@ -145,7 +145,6 @@ export default function VendorOnboardingScreen() {
         vibe_tags: selectedVibes,
         about: extraInfo.trim(),
         portfolio_images: portfolioImages,
-        subscription_plan: selectedPlan,
         subscription_active: true,
         is_verified: false,
         rating: 0,

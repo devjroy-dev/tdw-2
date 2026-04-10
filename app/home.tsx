@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, ScrollView, TextInput
+  Dimensions, ScrollView, TextInput, ImageBackground
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,37 +27,29 @@ const QUICK_CARDS = [
     id: 'get-inspired',
     title: 'Get Inspired',
     sub: 'Décor, candid & more',
-    emoji: '✨',
     route: '/get-inspired',
-    bg: '#FFF8EC',
-    border: '#E8D9B5',
+    image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=400',
   },
   {
     id: 'look-book',
     title: 'Look Book',
     sub: 'Designers & artists',
-    emoji: '👗',
     route: '/look-book',
-    bg: '#F5F0E8',
-    border: '#E8E0D5',
+    image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400',
   },
   {
     id: 'destination-weddings',
     title: 'Destination',
     sub: 'Exotic locations',
-    emoji: '🌏',
     route: '/destination-weddings',
-    bg: '#F0F5F5',
-    border: '#D5E8E8',
+    image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=400',
   },
   {
     id: 'special-offers',
     title: 'Special Offers',
     sub: 'Deals from vendors',
-    emoji: '🎁',
     route: '/special-offers',
-    bg: '#FFF0F5',
-    border: '#E8D5DF',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400',
   },
 ];
 
@@ -105,7 +97,7 @@ export default function HomeScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
 
-        {/* Search — thin and sleek */}
+        {/* Search */}
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
@@ -122,17 +114,24 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* 4 Square Cards */}
+        {/* 4 Square Cards with background images */}
         <View style={styles.cardGrid}>
           {QUICK_CARDS.map(card => (
             <TouchableOpacity
               key={card.id}
-              style={[styles.quickCard, { backgroundColor: card.bg, borderColor: card.border }]}
+              style={styles.quickCard}
               onPress={() => router.push(card.route as any)}
             >
-              <Text style={styles.quickCardEmoji}>{card.emoji}</Text>
-              <Text style={styles.quickCardTitle}>{card.title}</Text>
-              <Text style={styles.quickCardSub}>{card.sub}</Text>
+              <ImageBackground
+                source={{ uri: card.image }}
+                style={styles.cardBg}
+                imageStyle={styles.cardBgImage}
+              >
+                <View style={styles.cardOverlay}>
+                  <Text style={styles.quickCardTitle}>{card.title}</Text>
+                  <Text style={styles.quickCardSub}>{card.sub}</Text>
+                </View>
+              </ImageBackground>
             </TouchableOpacity>
           ))}
         </View>
@@ -193,40 +192,41 @@ const styles = StyleSheet.create({
   avatarText: { color: '#C9A84C', fontSize: 15, fontWeight: '500' },
   scroll: { flex: 1 },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    marginBottom: 16,
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFFFFF', marginHorizontal: 24,
+    borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D5',
+    paddingHorizontal: 12, paddingVertical: 9, marginBottom: 16, gap: 8,
   },
   searchIcon: { fontSize: 16, color: '#8C7B6E' },
   searchInput: { flex: 1, fontSize: 13, color: '#2C2420' },
   searchClear: { fontSize: 11, color: '#8C7B6E', padding: 4 },
   cardGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 24,
-    gap: 12,
-    marginBottom: 24,
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 24, gap: 12, marginBottom: 24,
   },
   quickCard: {
     width: CARD_SIZE,
     height: CARD_SIZE,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    justifyContent: 'flex-end',
-    gap: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  quickCardEmoji: { fontSize: 24, marginBottom: 4 },
-  quickCardTitle: { fontSize: 15, color: '#2C2420', fontWeight: '500', letterSpacing: 0.3 },
-  quickCardSub: { fontSize: 11, color: '#8C7B6E', letterSpacing: 0.2 },
+  cardBg: {
+    width: '100%',
+    height: '100%',
+  },
+  cardBgImage: {
+    borderRadius: 16,
+  },
+  cardOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(20,12,4,0.45)',
+    borderRadius: 16,
+    padding: 14,
+    justifyContent: 'flex-end',
+    gap: 3,
+  },
+  quickCardTitle: { fontSize: 15, color: '#F5F0E8', fontWeight: '500', letterSpacing: 0.3 },
+  quickCardSub: { fontSize: 11, color: 'rgba(245,240,232,0.75)', letterSpacing: 0.2 },
   categoriesSection: { paddingHorizontal: 24, marginBottom: 16 },
   sectionTitle: { fontSize: 11, color: '#8C7B6E', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '500', marginBottom: 16 },
   categoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18 },

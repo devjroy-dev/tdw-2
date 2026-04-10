@@ -33,6 +33,7 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "expo-contacts",
       [
         "expo-splash-screen",
         {
@@ -59,6 +60,11 @@
         "projectId": "1f6d681f-42ce-4436-9230-4b126626ef10"
       }
     },
-    "owner": "devjroy"
+    "owner": "devjroy",
+    "splash": {
+      "backgroundColor": "#F5F0E8",
+      "resizeMode": "contain",
+      "image": "./assets/images/splash-icon.png"
+    }
   }
 }
