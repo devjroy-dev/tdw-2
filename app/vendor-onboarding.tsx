@@ -64,6 +64,7 @@ export default function VendorOnboardingScreen() {
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('');
+  const [panNumber, setPanNumber] = useState('');
 
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_300Light,
@@ -161,6 +162,7 @@ export default function VendorOnboardingScreen() {
         equipment: extraInfo.trim(),
         delivery_time: 'As discussed',
         portfolio_images: portfolioImages,
+        pan_number: panNumber.trim(),
         subscription_active: true,
         is_verified: false,
         rating: 0,
@@ -307,6 +309,24 @@ export default function VendorOnboardingScreen() {
                   onChangeText={setStartingPrice}
                   keyboardType="number-pad"
                 />
+              </View>
+
+              <View style={styles.fieldDivider} />
+
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>PAN Number</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="e.g. ABCDE1234F"
+                  placeholderTextColor="#C4B8AC"
+                  value={panNumber}
+                  onChangeText={(text) => setPanNumber(text.toUpperCase())}
+                  autoCapitalize="characters"
+                  maxLength={10}
+                />
+                <Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light', marginTop: 4 }}>
+                  Required for TDS deduction and Form 26AS credit
+                </Text>
               </View>
 
             </View>
