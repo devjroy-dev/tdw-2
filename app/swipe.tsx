@@ -138,7 +138,7 @@ export default function SwipeScreen() {
   // ─── PanResponder — card only, no TouchableOpacity conflict ────────────────
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gesture) => {
         // Only take over if movement is significant — prevents tap/swipe conflict
         return Math.abs(gesture.dx) > Math.abs(gesture.dy) && Math.abs(gesture.dx) > 8;
@@ -221,8 +221,10 @@ export default function SwipeScreen() {
   };
 
   const nextCard = () => {
-    position.setValue({ x: 0, y: 0 });
     setCurrentIndex(prev => prev + 1);
+    setTimeout(() => {
+      position.setValue({ x: 0, y: 0 });
+    }, 50);
   };
 
   const formatPrice = (price: number) => {
