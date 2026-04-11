@@ -1069,7 +1069,7 @@ export default function BTSPlannerScreen() {
               onPress={() => Alert.alert(
                 'Wedding Website Generator — Build 2',
                 'One tap and your couple gets a beautiful wedding page at thedreamwedding.in/your-names with your date, venue, RSVP link and gift registry. Every guest who visits sees The Dream Wedding branding — our best organic acquisition channel. Coming in Build 2.',
-                [{ text: 'Can't wait!' }]
+                [{ text: "Can't wait!" }]
               )}
               activeOpacity={0.85}
             >
@@ -1097,8 +1097,8 @@ export default function BTSPlannerScreen() {
               style={styles.lockedFeatureCard}
               onPress={() => Alert.alert(
                 'Digital Invitations — Build 2',
-                'Beautiful animated digital invitations that match your wedding aesthetic. Send via WhatsApp, email or link. Track who has opened and RSVP'd. Coming in Build 2.',
-                [{ text: 'Exciting!' }]
+                'Beautiful animated digital invitations that match your wedding aesthetic. Send via WhatsApp, email or link. Track who has opened and RSVPd. Coming in Build 2.',
+                [{ text: "Exciting!" }]
               )}
               activeOpacity={0.85}
             >
@@ -1127,7 +1127,7 @@ export default function BTSPlannerScreen() {
               onPress={() => Alert.alert(
                 'Style Match AI — Build 3',
                 'Upload a photo of a look you love — a lehenga, a decor setup, a cake — and our AI finds the vendors on The Dream Wedding who can recreate it. Powered by the data flywheel we are building today. Coming in Build 3.',
-                [{ text: 'This is the future!' }]
+                [{ text: "This is the future!" }]
               )}
               activeOpacity={0.85}
             >
