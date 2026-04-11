@@ -43,6 +43,7 @@ export default function SwipeScreen() {
 
   const [vendors, setVendors] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentIndexRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -73,6 +74,8 @@ export default function SwipeScreen() {
   useEffect(() => {
     loadSession();
   }, []);
+
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   useEffect(() => {
     loadVendors();
@@ -135,6 +138,10 @@ export default function SwipeScreen() {
     extrapolate: 'clamp',
   });
 
+  // ─── Swipe action refs — fixes stale closure in PanResponder ─────────────────
+  const swipeRightRef = useRef<() => void>(() => {});
+  const swipeLeftRef = useRef<() => void>(() => {});
+
   // ─── PanResponder — card only, no TouchableOpacity conflict ────────────────
   const panResponder = useRef(
     PanResponder.create({
@@ -148,9 +155,9 @@ export default function SwipeScreen() {
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx > 120) {
-          handleSwipeRight();
+          swipeRightRef.current();
         } else if (gesture.dx < -120) {
-          handleSwipeLeft();
+          swipeLeftRef.current();
         } else {
           resetPosition();
         }
@@ -222,8 +229,17 @@ export default function SwipeScreen() {
 
   const nextCard = () => {
     position.setValue({ x: 0, y: 0 });
-    setCurrentIndex(prev => prev + 1);
+    setCurrentIndex(prev => {
+      currentIndexRef.current = prev + 1;
+      return prev + 1;
+    });
   };
+
+  // Keep refs pointing to latest handlers — fixes stale closure in PanResponder
+  useEffect(() => {
+    swipeRightRef.current = handleSwipeRight;
+    swipeLeftRef.current = handleSwipeLeft;
+  });
 
   const formatPrice = (price: number) => {
     if (price >= 10000000) return `₹${(price / 10000000).toFixed(1)}Cr`;

@@ -26,12 +26,21 @@ export default function MessagingScreen() {
 
   const initSession = async () => {
     try {
+      // Check user session first, then vendor session
       const session = await AsyncStorage.getItem('user_session');
+      const vendorSession = await AsyncStorage.getItem('vendor_session');
       if (session) {
         const parsed = JSON.parse(session);
         const uid = parsed.userId || parsed.uid;
         setUserId(uid);
         loadConversations(uid);
+      } else if (vendorSession) {
+        const parsed = JSON.parse(vendorSession);
+        const uid = parsed.vendorId;
+        setUserId(uid);
+        loadConversations(uid);
+      } else {
+        setLoading(false);
       }
     } catch (e) {
       setLoading(false);
