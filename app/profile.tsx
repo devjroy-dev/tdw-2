@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateUser } from '../services/api';
+import { Feather } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -307,19 +308,32 @@ export default function ProfileScreen() {
 
       {/* Bottom Nav */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/home')}>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/moodboard')}>
-          <Text style={styles.navLabel}>Moodboard</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/bts-planner')}>
-          <Text style={styles.navLabel}>Planner</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.navDot} />
-          <Text style={[styles.navLabel, styles.navActive]}>Profile</Text>
-        </TouchableOpacity>
+        {[
+          { label: 'Home',      icon: 'home',           route: '/home'        },
+          { label: 'Moodboard', icon: 'heart',          route: '/moodboard'   },
+          { label: 'Messages',  icon: 'message-circle', route: '/messaging'   },
+          { label: 'Planner',   icon: 'calendar',       route: '/bts-planner' },
+          { label: 'Profile',   icon: 'user',           route: null           },
+        ].map((item, index) => {
+          const isActive = index === 4;
+          return (
+            <TouchableOpacity
+              key={item.label}
+              style={styles.navItem}
+              onPress={() => item.route && router.push(item.route as any)}
+            >
+              <Feather
+                name={item.icon as any}
+                size={20}
+                color={isActive ? '#2C2420' : '#8C7B6E'}
+              />
+              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                {item.label}
+              </Text>
+              {isActive && <View style={styles.navDot} />}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
     </View>
@@ -393,11 +407,11 @@ const styles = StyleSheet.create({
   logoutBtn: { borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 12, paddingVertical: 16, alignItems: 'center', backgroundColor: '#FFFFFF' },
   logoutBtnText: { fontSize: 14, color: '#E57373', fontWeight: '500' },
   version: { textAlign: 'center', fontSize: 11, color: '#8C7B6E', letterSpacing: 0.5 },
-  bottomNav: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 16, paddingBottom: 28, borderTopWidth: 1, borderTopColor: '#E8E0D5', backgroundColor: '#F5F0E8', position: 'absolute', bottom: 0, width: '100%' },
+  bottomNav: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 12, paddingBottom: 28, borderTopWidth: 1, borderTopColor: '#E8E0D5', backgroundColor: '#F5F0E8', position: 'absolute', bottom: 0, width: '100%' },
   navItem: { alignItems: 'center', gap: 4 },
   navDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#C9A84C' },
-  navLabel: { fontSize: 12, color: '#8C7B6E', letterSpacing: 0.3 },
-  navActive: { color: '#2C2420', fontWeight: '600' },
+  navLabel: { fontSize: 10, color: '#8C7B6E', letterSpacing: 0.3 },
+  navLabelActive: { color: '#2C2420', fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: '#F5F0E8', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, gap: 16 },
   modalTitle: { fontSize: 22, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },

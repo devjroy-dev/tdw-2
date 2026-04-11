@@ -1,36 +1,51 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, ScrollView, TextInput, Alert, ActivityIndicator, Image
+  Dimensions, ScrollView, TextInput, Alert,
+  ActivityIndicator, Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Feather } from '@expo/vector-icons';
 import { createVendor } from '../services/api';
 import { uploadMultipleImages } from '../services/cloudinary';
+import {
+  useFonts,
+  PlayfairDisplay_300Light,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_400Regular_Italic,
+  PlayfairDisplay_600SemiBold,
+} from '@expo-google-fonts/playfair-display';
+import {
+  DMSans_300Light,
+  DMSans_400Regular,
+  DMSans_500Medium,
+} from '@expo-google-fonts/dm-sans';
 
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
-  { id: 'photographers', label: 'Photographer', desc: 'Candid, traditional & cinematic' },
-  { id: 'venues', label: 'Venue', desc: 'Banquets, farmhouses & hotels' },
-  { id: 'mua', label: 'Makeup Artist', desc: 'Bridal & party makeup' },
-  { id: 'designers', label: 'Designer', desc: 'Bridal & groom wear' },
-  { id: 'choreographers', label: 'Choreographer', desc: 'Sangeet & performance prep' },
-  { id: 'content-creators', label: 'Content Creator', desc: 'BTS Reels & TikTok' },
-  { id: 'dj', label: 'DJ & Music', desc: 'Live music & DJ services' },
-  { id: 'event-managers', label: 'Event Manager', desc: 'Luxury & destination weddings' },
-  { id: 'jewellery', label: 'Jewellery Designer', desc: 'Bridal & custom jewellery' },
+  { id: 'photographers',   label: 'Photographer',       desc: 'Candid, traditional & cinematic',     icon: 'camera'    },
+  { id: 'venues',          label: 'Venue',               desc: 'Banquets, farmhouses & hotels',       icon: 'home'      },
+  { id: 'mua',             label: 'Makeup Artist',       desc: 'Bridal & party makeup',               icon: 'scissors'  },
+  { id: 'designers',       label: 'Designer',            desc: 'Bridal & groom wear',                 icon: 'star'      },
+  { id: 'choreographers',  label: 'Choreographer',       desc: 'Sangeet & performance prep',          icon: 'music'     },
+  { id: 'content-creators',label: 'Content Creator',     desc: 'BTS Reels & short films',             icon: 'video'     },
+  { id: 'dj',              label: 'DJ & Music',          desc: 'Live music & DJ services',            icon: 'headphones'},
+  { id: 'event-managers',  label: 'Event Manager',       desc: 'Luxury & destination weddings',       icon: 'briefcase' },
+  { id: 'jewellery',       label: 'Jewellery Designer',  desc: 'Bridal & custom jewellery',           icon: 'circle'    },
 ];
 
 const VIBE_TAGS = [
   'Candid', 'Traditional', 'Luxury', 'Cinematic',
-  'Boho', 'Festive', 'Minimalist', 'Royal'
+  'Boho', 'Festive', 'Minimalist', 'Royal',
 ];
 
 const CITIES = [
   'Delhi NCR', 'Mumbai', 'Bangalore', 'Chennai',
-  'Hyderabad', 'Kolkata', 'Jaipur', 'Pune', 'Ahmedabad', 'Pan India'
+  'Hyderabad', 'Kolkata', 'Jaipur', 'Pune',
+  'Ahmedabad', 'Pan India',
 ];
 
 export default function VendorOnboardingScreen() {
@@ -39,23 +54,26 @@ export default function VendorOnboardingScreen() {
   const TOTAL_STEPS = 4;
   const [saving, setSaving] = useState(false);
 
-  // Step 1
   const [selectedCategory, setSelectedCategory] = useState('');
-
-  // Step 2
   const [businessName, setBusinessName] = useState('');
   const [instagram, setInstagram] = useState('');
   const [startingPrice, setStartingPrice] = useState('');
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
-
-  // Step 3
   const [extraInfo, setExtraInfo] = useState('');
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
-
-  // Step 4
   const [selectedPlan, setSelectedPlan] = useState('');
+
+  const [fontsLoaded] = useFonts({
+    PlayfairDisplay_300Light,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_400Regular_Italic,
+    PlayfairDisplay_600SemiBold,
+    DMSans_300Light,
+    DMSans_400Regular,
+    DMSans_500Medium,
+  });
 
   const toggleCity = (city: string) => {
     setSelectedCities(prev =>
@@ -105,16 +123,16 @@ export default function VendorOnboardingScreen() {
 
   const getCategorySpecificLabel = () => {
     switch (selectedCategory) {
-      case 'photographers': return 'What styles do you shoot? (e.g. Candid, Traditional, Drone)';
-      case 'venues': return 'Capacity & catering details (e.g. 500 guests, in-house catering)';
-      case 'mua': return 'Kit brands you use (e.g. MAC, Huda Beauty, Charlotte Tilbury)';
-      case 'designers': return 'Lead time & specialisation (e.g. 3 months, bridal lehenga)';
-      case 'choreographers': return 'Group size & lead time (e.g. up to 20 people, 4 weeks)';
+      case 'photographers':    return 'What styles do you shoot? (e.g. Candid, Traditional, Drone)';
+      case 'venues':           return 'Capacity & catering details (e.g. 500 guests, in-house catering)';
+      case 'mua':              return 'Kit brands you use (e.g. MAC, Huda Beauty, Charlotte Tilbury)';
+      case 'designers':        return 'Lead time & specialisation (e.g. 3 months, bridal lehenga)';
+      case 'choreographers':   return 'Group size & lead time (e.g. up to 20 people, 4 weeks)';
       case 'content-creators': return 'Delivery format & turnaround (e.g. Reels, 3 day delivery)';
-      case 'dj': return 'Setup details & genres (e.g. full sound system, Bollywood & EDM)';
-      case 'event-managers': return 'Team size & specialisation (e.g. 50 person team, destination weddings)';
-      case 'jewellery': return 'Materials & specialisation (e.g. gold, kundan, custom bridal sets)';
-      default: return 'Tell us more about your services';
+      case 'dj':               return 'Setup details & genres (e.g. full sound system, Bollywood & EDM)';
+      case 'event-managers':   return 'Team size & specialisation (e.g. 50 person team, destination weddings)';
+      case 'jewellery':        return 'Materials & specialisation (e.g. gold, kundan, custom bridal sets)';
+      default:                 return 'Tell us more about your services';
     }
   };
 
@@ -129,11 +147,8 @@ export default function VendorOnboardingScreen() {
   const handleGoLive = async () => {
     try {
       setSaving(true);
-
-      // Get vendor phone from session
       const session = await AsyncStorage.getItem('vendor_session');
       const parsed = session ? JSON.parse(session) : {};
-      const phone = parsed.phone || '';
 
       const vendorData = {
         name: businessName.trim(),
@@ -149,13 +164,12 @@ export default function VendorOnboardingScreen() {
         is_verified: false,
         rating: 0,
         review_count: 0,
-        phone: phone,
+        phone: parsed.phone || '',
       };
 
       const result = await createVendor(vendorData);
 
       if (result.success) {
-        // Save vendor session
         await AsyncStorage.setItem('vendor_session', JSON.stringify({
           ...parsed,
           vendorId: result.data.id,
@@ -164,9 +178,8 @@ export default function VendorOnboardingScreen() {
           plan: selectedPlan,
           onboarded: true,
         }));
-
         Alert.alert(
-          'You\'re live! 🎉',
+          'You\'re live!',
           'Your profile is now visible to couples on The Dream Wedding.',
           [{ text: 'Go to Dashboard', onPress: () => router.replace('/vendor-dashboard') }]
         );
@@ -180,17 +193,24 @@ export default function VendorOnboardingScreen() {
     }
   };
 
+  if (!fontsLoaded) return <View style={styles.container} />;
+
   return (
     <View style={styles.container}>
 
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
-          <Text style={styles.backBtn}>←</Text>
+        <TouchableOpacity
+          onPress={() => step > 1 ? setStep(step - 1) : router.back()}
+          style={styles.backBtn}
+        >
+          <Feather name="arrow-left" size={20} color="#2C2420" />
         </TouchableOpacity>
         <Text style={styles.stepText}>Step {step} of {TOTAL_STEPS}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 40 }} />
       </View>
 
+      {/* Progress bar */}
       <View style={styles.progressBar}>
         <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%` }]} />
       </View>
@@ -210,16 +230,32 @@ export default function VendorOnboardingScreen() {
               {CATEGORIES.map(cat => (
                 <TouchableOpacity
                   key={cat.id}
-                  style={[styles.categoryCard, selectedCategory === cat.id && styles.categoryCardSelected]}
+                  style={[
+                    styles.categoryCard,
+                    selectedCategory === cat.id && styles.categoryCardSelected,
+                  ]}
                   onPress={() => setSelectedCategory(cat.id)}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.categoryCardLeft}>
-                    <Text style={[styles.categoryCardLabel, selectedCategory === cat.id && styles.categoryCardLabelSelected]}>
+                  <View style={styles.categoryIconBox}>
+                    <Feather
+                      name={cat.icon as any}
+                      size={16}
+                      color={selectedCategory === cat.id ? '#C9A84C' : '#8C7B6E'}
+                    />
+                  </View>
+                  <View style={styles.categoryCardText}>
+                    <Text style={[
+                      styles.categoryCardLabel,
+                      selectedCategory === cat.id && styles.categoryCardLabelSelected,
+                    ]}>
                       {cat.label}
                     </Text>
                     <Text style={styles.categoryCardDesc}>{cat.desc}</Text>
                   </View>
-                  {selectedCategory === cat.id && <Text style={styles.categoryCheck}>✓</Text>}
+                  {selectedCategory === cat.id && (
+                    <Feather name="check" size={16} color="#C9A84C" />
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -230,75 +266,89 @@ export default function VendorOnboardingScreen() {
         {step === 2 && (
           <View style={styles.stepContent}>
             <Text style={styles.title}>Tell us about{'\n'}your business</Text>
+            <Text style={styles.subtitle}>This is what couples will see first</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Business Name *</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. Arjun Mehta Photography"
-                placeholderTextColor="#8C7B6E"
-                value={businessName}
-                onChangeText={setBusinessName}
-              />
-            </View>
+            <View style={styles.formCard}>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Instagram Handle</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="@yourbusiness"
-                placeholderTextColor="#8C7B6E"
-                value={instagram}
-                onChangeText={setInstagram}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Starting Price (₹) *</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. 50000"
-                placeholderTextColor="#8C7B6E"
-                value={startingPrice}
-                onChangeText={setStartingPrice}
-                keyboardType="number-pad"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Cities you serve *</Text>
-              <View style={styles.tagWrap}>
-                {CITIES.map(city => (
-                  <TouchableOpacity
-                    key={city}
-                    style={[styles.tag, selectedCities.includes(city) && styles.tagSelected]}
-                    onPress={() => toggleCity(city)}
-                  >
-                    <Text style={[styles.tagText, selectedCities.includes(city) && styles.tagTextSelected]}>
-                      {city}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Business Name</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="e.g. Arjun Mehta Photography"
+                  placeholderTextColor="#C4B8AC"
+                  value={businessName}
+                  onChangeText={setBusinessName}
+                />
               </View>
+
+              <View style={styles.fieldDivider} />
+
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Instagram Handle</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="@yourbusiness"
+                  placeholderTextColor="#C4B8AC"
+                  value={instagram}
+                  onChangeText={setInstagram}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.fieldDivider} />
+
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>Starting Price (₹)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="e.g. 50000"
+                  placeholderTextColor="#C4B8AC"
+                  value={startingPrice}
+                  onChangeText={setStartingPrice}
+                  keyboardType="number-pad"
+                />
+              </View>
+
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Your Style / Vibe</Text>
-              <View style={styles.tagWrap}>
-                {VIBE_TAGS.map(vibe => (
-                  <TouchableOpacity
-                    key={vibe}
-                    style={[styles.tag, selectedVibes.includes(vibe) && styles.tagSelected]}
-                    onPress={() => toggleVibe(vibe)}
-                  >
-                    <Text style={[styles.tagText, selectedVibes.includes(vibe) && styles.tagTextSelected]}>
-                      {vibe}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            <Text style={styles.sectionLabel}>Cities You Serve</Text>
+            <View style={styles.tagWrap}>
+              {CITIES.map(city => (
+                <TouchableOpacity
+                  key={city}
+                  style={[styles.tag, selectedCities.includes(city) && styles.tagSelected]}
+                  onPress={() => toggleCity(city)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    selectedCities.includes(city) && styles.tagTextSelected,
+                  ]}>
+                    {city}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
+
+            <Text style={styles.sectionLabel}>Your Style & Vibe</Text>
+            <View style={styles.tagWrap}>
+              {VIBE_TAGS.map(vibe => (
+                <TouchableOpacity
+                  key={vibe}
+                  style={[styles.tag, selectedVibes.includes(vibe) && styles.tagSelected]}
+                  onPress={() => toggleVibe(vibe)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    selectedVibes.includes(vibe) && styles.tagTextSelected,
+                  ]}>
+                    {vibe}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
           </View>
         )}
 
@@ -308,118 +358,146 @@ export default function VendorOnboardingScreen() {
             <Text style={styles.title}>A few more{'\n'}details</Text>
             <Text style={styles.subtitle}>This helps couples find the right fit</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{getCategorySpecificLabel()}</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="Tell couples what makes you special..."
-                placeholderTextColor="#8C7B6E"
-                value={extraInfo}
-                onChangeText={setExtraInfo}
-                multiline
-                numberOfLines={4}
-              />
+            <View style={styles.formCard}>
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>{getCategorySpecificLabel()}</Text>
+                <TextInput
+                  style={[styles.fieldInput, styles.textArea]}
+                  placeholder="Tell couples what makes you special..."
+                  placeholderTextColor="#C4B8AC"
+                  value={extraInfo}
+                  onChangeText={setExtraInfo}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Portfolio Photos</Text>
-              <Text style={styles.inputHint}>
-                {portfolioImages.length > 0
-                  ? `${portfolioImages.length} photo${portfolioImages.length > 1 ? 's' : ''} uploaded`
-                  : 'Add at least 5 photos to attract couples'}
-              </Text>
+            <Text style={styles.sectionLabel}>Portfolio Photos</Text>
+            <Text style={styles.sectionHint}>
+              {portfolioImages.length > 0
+                ? `${portfolioImages.length} photo${portfolioImages.length > 1 ? 's' : ''} uploaded`
+                : 'Add at least 5 photos to attract couples'}
+            </Text>
 
-              {portfolioImages.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreviewScroll}>
-                  <View style={styles.imagePreviewRow}>
-                    {portfolioImages.map((uri, index) => (
-                      <View key={index} style={styles.imagePreviewItem}>
-                        <Image source={{ uri }} style={styles.imagePreview} />
-                        <TouchableOpacity
-                          style={styles.imageRemoveBtn}
-                          onPress={() => removeImage(index)}
-                        >
-                          <Text style={styles.imageRemoveBtnText}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              )}
-
-              <TouchableOpacity
-                style={styles.uploadBox}
-                onPress={pickImages}
-                disabled={uploadingImages}
+            {portfolioImages.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.imagePreviewRow}
               >
-                {uploadingImages ? (
-                  <>
-                    <ActivityIndicator color="#C9A84C" />
-                    <Text style={styles.uploadBoxText}>Uploading...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.uploadBoxIcon}>+</Text>
-                    <Text style={styles.uploadBoxText}>
-                      {portfolioImages.length > 0 ? 'Add More Photos' : 'Upload Portfolio Photos'}
-                    </Text>
-                    <Text style={styles.uploadBoxHint}>JPG, PNG up to 10MB each</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+                {portfolioImages.map((uri, index) => (
+                  <View key={index} style={styles.imagePreviewItem}>
+                    <Image source={{ uri }} style={styles.imagePreview} />
+                    <TouchableOpacity
+                      style={styles.imageRemoveBtn}
+                      onPress={() => removeImage(index)}
+                    >
+                      <Feather name="x" size={10} color="#F5F0E8" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={styles.uploadBox}
+              onPress={pickImages}
+              disabled={uploadingImages}
+              activeOpacity={0.8}
+            >
+              {uploadingImages ? (
+                <>
+                  <ActivityIndicator color="#C9A84C" />
+                  <Text style={styles.uploadBoxText}>Uploading...</Text>
+                </>
+              ) : (
+                <>
+                  <Feather name="upload" size={22} color="#C9A84C" />
+                  <Text style={styles.uploadBoxText}>
+                    {portfolioImages.length > 0 ? 'Add More Photos' : 'Upload Portfolio Photos'}
+                  </Text>
+                  <Text style={styles.uploadBoxHint}>JPG, PNG up to 10MB each</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
             <View style={styles.noticeCard}>
+              <Feather name="calendar" size={14} color="#C9A84C" />
               <Text style={styles.noticeCardText}>
-                📅 You'll manage your availability calendar from your vendor dashboard after activation.
+                You'll manage your availability calendar from your dashboard after going live.
               </Text>
             </View>
+
           </View>
         )}
 
-        {/* STEP 4 — Subscription */}
+        {/* STEP 4 — Plan */}
         {step === 4 && (
           <View style={styles.stepContent}>
             <Text style={styles.title}>Choose your{'\n'}listing plan</Text>
             <Text style={styles.subtitle}>Start getting discovered by couples</Text>
 
+            {/* Basic plan */}
             <TouchableOpacity
               style={[styles.planCard, selectedPlan === 'basic' && styles.planCardSelected]}
               onPress={() => setSelectedPlan('basic')}
+              activeOpacity={0.85}
             >
               <View style={styles.planTop}>
-                <Text style={styles.planName}>Basic</Text>
-                <Text style={styles.planPrice}>₹2,999 / month</Text>
+                <View>
+                  <Text style={styles.planName}>Basic</Text>
+                  <Text style={styles.planPrice}>₹2,999 / month</Text>
+                </View>
+                <View style={[
+                  styles.planRadio,
+                  selectedPlan === 'basic' && styles.planRadioSelected,
+                ]}>
+                  {selectedPlan === 'basic' && (
+                    <Feather name="check" size={12} color="#FFFFFF" />
+                  )}
+                </View>
               </View>
               <View style={styles.planFeatures}>
                 {[
                   'Profile listing on The Dream Wedding',
                   'Up to 10 portfolio photos',
-                  'Inquiry messages from couples',
+                  'Enquiry messages from couples',
                   'Basic analytics',
                   'Invoice generator',
                   'GST calculation',
                 ].map(feature => (
-                  <Text key={feature} style={styles.planFeature}>✓ {feature}</Text>
+                  <View key={feature} style={styles.planFeatureRow}>
+                    <Feather name="check" size={12} color="#C9A84C" />
+                    <Text style={styles.planFeatureText}>{feature}</Text>
+                  </View>
                 ))}
               </View>
-              {selectedPlan === 'basic' && (
-                <View style={styles.planSelectedBadge}>
-                  <Text style={styles.planSelectedBadgeText}>Selected</Text>
-                </View>
-              )}
             </TouchableOpacity>
 
+            {/* Premium plan */}
             <TouchableOpacity
-              style={[styles.planCard, styles.planCardPremium, selectedPlan === 'premium' && styles.planCardSelected]}
+              style={[styles.planCard, styles.planCardPremium, selectedPlan === 'premium' && styles.planCardPremiumSelected]}
               onPress={() => setSelectedPlan('premium')}
+              activeOpacity={0.85}
             >
               <View style={styles.popularBadge}>
                 <Text style={styles.popularBadgeText}>Most Popular</Text>
               </View>
               <View style={styles.planTop}>
-                <Text style={[styles.planName, { color: '#FAF6F0' }]}>Premium</Text>
-                <Text style={[styles.planPrice, { color: '#FAF6F0' }]}>₹5,999 / month</Text>
+                <View>
+                  <Text style={[styles.planName, { color: '#F5F0E8' }]}>Premium</Text>
+                  <Text style={[styles.planPrice, { color: '#C9A84C' }]}>₹5,999 / month</Text>
+                </View>
+                <View style={[
+                  styles.planRadio,
+                  styles.planRadioPremium,
+                  selectedPlan === 'premium' && styles.planRadioSelected,
+                ]}>
+                  {selectedPlan === 'premium' && (
+                    <Feather name="check" size={12} color="#2C2420" />
+                  )}
+                </View>
               </View>
               <View style={styles.planFeatures}>
                 {[
@@ -428,38 +506,39 @@ export default function VendorOnboardingScreen() {
                   'Direct messaging with couples',
                   'Advanced analytics & insights',
                   'Verified Elite badge',
-                  'Featured in Trending section',
+                  'Featured in Spotlight section',
                   'Lead quality scoring',
                   'Competitor benchmarking',
                   'Cancellation protection',
                 ].map(feature => (
-                  <Text key={feature} style={[styles.planFeature, { color: '#FAF6F0' }]}>✓ {feature}</Text>
+                  <View key={feature} style={styles.planFeatureRow}>
+                    <Feather name="check" size={12} color="#C9A84C" />
+                    <Text style={[styles.planFeatureText, { color: '#B8A99A' }]}>{feature}</Text>
+                  </View>
                 ))}
               </View>
-              {selectedPlan === 'premium' && (
-                <View style={[styles.planSelectedBadge, { backgroundColor: '#FAF6F0' }]}>
-                  <Text style={[styles.planSelectedBadgeText, { color: '#C9A84C' }]}>Selected</Text>
-                </View>
-              )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.trialNote}
-              onPress={() => setSelectedPlan('basic')}
-            >
+            <View style={styles.trialNote}>
+              <Feather name="gift" size={14} color="#C9A84C" />
               <Text style={styles.trialNoteText}>
-                🎁 First 3 months free — no credit card required. We'll reach out before your trial ends.
+                First 3 months free — no credit card required. We'll reach out before your trial ends.
               </Text>
-            </TouchableOpacity>
+            </View>
+
           </View>
         )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.nextBtn, (!canProceed() || saving) && styles.nextBtnDisabled]}
+          style={[
+            styles.nextBtn,
+            (!canProceed() || saving) && styles.nextBtnDisabled,
+          ]}
           disabled={!canProceed() || saving}
           onPress={() => {
             if (step < TOTAL_STEPS) {
@@ -468,12 +547,13 @@ export default function VendorOnboardingScreen() {
               handleGoLive();
             }
           }}
+          activeOpacity={0.85}
         >
           {saving ? (
-            <ActivityIndicator color="#FAF6F0" />
+            <ActivityIndicator color="#F5F0E8" />
           ) : (
             <Text style={styles.nextBtnText}>
-              {step === TOTAL_STEPS ? 'Go Live →' : 'Continue →'}
+              {step === TOTAL_STEPS ? 'GO LIVE' : 'CONTINUE'}
             </Text>
           )}
         </TouchableOpacity>
@@ -484,63 +564,394 @@ export default function VendorOnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF6F0', paddingTop: 60 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 12 },
-  backBtn: { fontSize: 22, color: '#1C1C1C', width: 24 },
-  stepText: { fontSize: 13, color: '#8C7B6E', letterSpacing: 0.5 },
-  progressBar: { height: 3, backgroundColor: '#E8DDD4', marginHorizontal: 24, borderRadius: 2, marginBottom: 24 },
-  progressFill: { height: 3, backgroundColor: '#C9A84C', borderRadius: 2 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F0E8',
+    paddingTop: 60,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginBottom: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+  },
+  stepText: {
+    fontSize: 12,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+
+  // Progress
+  progressBar: {
+    height: 2,
+    backgroundColor: '#E8E0D5',
+    marginHorizontal: 24,
+    borderRadius: 1,
+    marginBottom: 28,
+  },
+  progressFill: {
+    height: 2,
+    backgroundColor: '#C9A84C',
+    borderRadius: 1,
+  },
+
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 100,
+  },
   stepContent: { gap: 20 },
-  title: { fontSize: 32, color: '#1C1C1C', fontWeight: '300', letterSpacing: 0.5, lineHeight: 42 },
-  subtitle: { fontSize: 13, color: '#8C7B6E', letterSpacing: 0.5, marginTop: -8 },
+
+  // Typography
+  title: {
+    fontSize: 34,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_300Light',
+    letterSpacing: 0.3,
+    lineHeight: 44,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 0.2,
+    marginTop: -8,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: '#C4B8AC',
+    fontFamily: 'DMSans_300Light',
+    marginTop: -10,
+  },
+
+  // Category cards
   categoryList: { gap: 10 },
-  categoryCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E8DDD4' },
-  categoryCardSelected: { borderColor: '#C9A84C', backgroundColor: '#FFF8EC' },
-  categoryCardLeft: { gap: 4 },
-  categoryCardLabel: { fontSize: 15, color: '#1C1C1C', fontWeight: '500' },
-  categoryCardLabelSelected: { color: '#3D2314' },
-  categoryCardDesc: { fontSize: 12, color: '#8C7B6E' },
-  categoryCheck: { color: '#C9A84C', fontSize: 18, fontWeight: '600' },
-  inputGroup: { gap: 8 },
-  inputLabel: { fontSize: 14, color: '#1C1C1C', fontWeight: '500', letterSpacing: 0.3 },
-  inputHint: { fontSize: 12, color: '#8C7B6E', marginTop: -4 },
-  textInput: { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8DDD4', paddingVertical: 14, paddingHorizontal: 16, fontSize: 14, color: '#1C1C1C' },
-  textArea: { height: 120, textAlignVertical: 'top' },
-  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { borderWidth: 1, borderColor: '#E8DDD4', borderRadius: 50, paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFFFFF' },
-  tagSelected: { borderColor: '#C9A84C', backgroundColor: '#C9A84C' },
-  tagText: { fontSize: 13, color: '#1C1C1C' },
-  tagTextSelected: { color: '#FAF6F0' },
-  imagePreviewScroll: { marginBottom: 12 },
-  imagePreviewRow: { flexDirection: 'row', gap: 10 },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  categoryCardSelected: {
+    borderColor: '#C9A84C',
+    backgroundColor: '#FFF8EC',
+  },
+  categoryIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F5F0E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+  },
+  categoryCardText: { flex: 1, gap: 3 },
+  categoryCardLabel: {
+    fontSize: 15,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_400Regular',
+    letterSpacing: 0.2,
+  },
+  categoryCardLabelSelected: {
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_600SemiBold',
+  },
+  categoryCardDesc: {
+    fontSize: 12,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+  },
+
+  // Form card
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    overflow: 'hidden',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  fieldBlock: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  fieldInput: {
+    fontSize: 16,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_400Regular',
+    paddingVertical: 4,
+    letterSpacing: 0.2,
+  },
+  fieldDivider: {
+    height: 1,
+    backgroundColor: '#E8E0D5',
+    marginHorizontal: 20,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    fontSize: 14,
+    fontFamily: 'DMSans_400Regular',
+  },
+
+  // Tags
+  tagWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    borderRadius: 50,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  tagSelected: {
+    borderColor: '#C9A84C',
+    backgroundColor: '#C9A84C',
+  },
+  tagText: {
+    fontSize: 13,
+    color: '#2C2420',
+    fontFamily: 'DMSans_400Regular',
+  },
+  tagTextSelected: {
+    color: '#2C2420',
+    fontFamily: 'DMSans_500Medium',
+  },
+
+  // Portfolio
+  imagePreviewRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 4,
+  },
   imagePreviewItem: { position: 'relative' },
-  imagePreview: { width: 90, height: 90, borderRadius: 8 },
-  imageRemoveBtn: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#1C1C1C', justifyContent: 'center', alignItems: 'center' },
-  imageRemoveBtnText: { fontSize: 9, color: '#FAF6F0', fontWeight: '700' },
-  uploadBox: { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8DDD4', borderStyle: 'dashed', paddingVertical: 32, alignItems: 'center', gap: 8 },
-  uploadBoxIcon: { fontSize: 28, color: '#C9A84C' },
-  uploadBoxText: { fontSize: 14, color: '#1C1C1C', fontWeight: '500' },
-  uploadBoxHint: { fontSize: 11, color: '#8C7B6E' },
-  noticeCard: { backgroundColor: '#FFF8EC', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#C9A84C' },
-  noticeCardText: { fontSize: 13, color: '#3D2314', lineHeight: 20 },
-  trialNote: { backgroundColor: '#FFF8EC', borderRadius: 10, padding: 16, borderWidth: 1, borderColor: '#E8DDD4' },
-  trialNoteText: { fontSize: 13, color: '#3D2314', lineHeight: 20, textAlign: 'center' },
-  planCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E8DDD4', gap: 16 },
-  planCardPremium: { backgroundColor: '#1C1C1C', borderColor: '#1C1C1C' },
-  planCardSelected: { borderColor: '#C9A84C', borderWidth: 2 },
-  popularBadge: { backgroundColor: '#C9A84C', borderRadius: 50, paddingHorizontal: 12, paddingVertical: 4, alignSelf: 'flex-start' },
-  popularBadgeText: { fontSize: 11, color: '#FAF6F0', fontWeight: '600', letterSpacing: 0.5 },
-  planTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  planName: { fontSize: 20, color: '#1C1C1C', fontWeight: '500' },
-  planPrice: { fontSize: 15, color: '#C9A84C', fontWeight: '600' },
-  planFeatures: { gap: 8 },
-  planFeature: { fontSize: 13, color: '#8C7B6E', lineHeight: 20 },
-  planSelectedBadge: { backgroundColor: '#C9A84C', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
-  planSelectedBadgeText: { fontSize: 13, color: '#FAF6F0', fontWeight: '600' },
-  bottomBar: { paddingHorizontal: 24, paddingVertical: 24, borderTopWidth: 1, borderTopColor: '#E8DDD4', backgroundColor: '#FAF6F0' },
-  nextBtn: { backgroundColor: '#C9A84C', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
-  nextBtnDisabled: { opacity: 0.4 },
-  nextBtnText: { fontSize: 15, color: '#FAF6F0', fontWeight: '500', letterSpacing: 0.5 },
+  imagePreview: {
+    width: 90,
+    height: 90,
+    borderRadius: 10,
+  },
+  imageRemoveBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#2C2420',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8D9B5',
+    borderStyle: 'dashed',
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 8,
+  },
+  uploadBoxText: {
+    fontSize: 14,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_400Regular',
+    letterSpacing: 0.2,
+  },
+  uploadBoxHint: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+  },
+  noticeCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFF8EC',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E8D9B5',
+  },
+  noticeCardText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    lineHeight: 20,
+  },
+
+  // Plan cards
+  planCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    gap: 16,
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  planCardSelected: {
+    borderColor: '#C9A84C',
+    borderWidth: 2,
+  },
+  planCardPremium: {
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
+  },
+  planCardPremiumSelected: {
+    borderColor: '#C9A84C',
+    borderWidth: 2,
+  },
+  popularBadge: {
+    backgroundColor: '#C9A84C',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+  },
+  popularBadgeText: {
+    fontSize: 11,
+    color: '#2C2420',
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 0.5,
+  },
+  planTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  planName: {
+    fontSize: 22,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_400Regular',
+    letterSpacing: 0.3,
+  },
+  planPrice: {
+    fontSize: 14,
+    color: '#C9A84C',
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 3,
+  },
+  planRadio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E8E0D5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  planRadioPremium: {
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  planRadioSelected: {
+    backgroundColor: '#C9A84C',
+    borderColor: '#C9A84C',
+  },
+  planFeatures: { gap: 10 },
+  planFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planFeatureText: {
+    fontSize: 13,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    flex: 1,
+    lineHeight: 18,
+  },
+  trialNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFF8EC',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8D9B5',
+  },
+  trialNoteText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    lineHeight: 20,
+  },
+
+  // Bottom bar
+  bottomBar: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    paddingBottom: 36,
+    borderTopWidth: 1,
+    borderTopColor: '#E8E0D5',
+    backgroundColor: '#F5F0E8',
+  },
+  nextBtn: {
+    backgroundColor: '#2C2420',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  nextBtnDisabled: { opacity: 0.3 },
+  nextBtnText: {
+    fontSize: 13,
+    color: '#F5F0E8',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
 });

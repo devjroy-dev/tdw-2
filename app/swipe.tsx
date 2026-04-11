@@ -1,10 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, Animated, PanResponder, Image, ActivityIndicator
+  Dimensions, Animated, PanResponder, Image,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getVendors } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Feather } from '@expo/vector-icons';
+import { getVendors, addToMoodboard } from '../services/api';
+import {
+  useFonts,
+  PlayfairDisplay_300Light,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_600SemiBold,
+} from '@expo-google-fonts/playfair-display';
+import {
+  DMSans_300Light,
+  DMSans_400Regular,
+  DMSans_500Medium,
+} from '@expo-google-fonts/dm-sans';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,15 +43,51 @@ export default function SwipeScreen() {
 
   const [vendors, setVendors] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [savedCount, setSavedCount] = useState(0);
-  const [showToast, setShowToast] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userBudget, setUserBudget] = useState<number | null>(null);
+  const [savedCount, setSavedCount] = useState(0);
+
+  // Toast state
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  // Blind mode
+  const [blindMode, setBlindMode] = useState(false);
+  const [revealName, setRevealName] = useState<string | null>(null);
+
+  // Swipe position — useNativeDriver: false required for x/y interpolation
   const position = useRef(new Animated.ValueXY()).current;
+
+  const [fontsLoaded] = useFonts({
+    PlayfairDisplay_300Light,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_600SemiBold,
+    DMSans_300Light,
+    DMSans_400Regular,
+    DMSans_500Medium,
+  });
+
+  useEffect(() => {
+    loadSession();
+  }, []);
 
   useEffect(() => {
     loadVendors();
   }, [category, city, budget]);
+
+  const loadSession = async () => {
+    try {
+      const session = await AsyncStorage.getItem('user_session');
+      if (session) {
+        const parsed = JSON.parse(session);
+        setUserId(parsed.userId || parsed.uid || null);
+        if (parsed.budget) setUserBudget(parsed.budget);
+      }
+    } catch (e) {}
+  };
 
   const loadVendors = async () => {
     try {
@@ -67,51 +117,94 @@ export default function SwipeScreen() {
     return MOCK_VENDORS.filter(v => v.category === category);
   };
 
+  // ─── Swipe interpolations ───────────────────────────────────────────────────
   const rotation = position.x.interpolate({
     inputRange: [-width / 2, 0, width / 2],
     outputRange: ['-8deg', '0deg', '8deg'],
   });
 
-  const likeOpacity = position.x.interpolate({
+  const saveOverlayOpacity = position.x.interpolate({
     inputRange: [0, width / 4],
     outputRange: [0, 1],
+    extrapolate: 'clamp',
   });
 
-  const passOpacity = position.x.interpolate({
+  const passOverlayOpacity = position.x.interpolate({
     inputRange: [-width / 4, 0],
     outputRange: [1, 0],
+    extrapolate: 'clamp',
   });
 
+  // ─── PanResponder — card only, no TouchableOpacity conflict ────────────────
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gesture) => {
+        // Only take over if movement is significant — prevents tap/swipe conflict
+        return Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5;
+      },
       onPanResponderMove: (_, gesture) => {
         position.setValue({ x: gesture.dx, y: gesture.dy });
       },
       onPanResponderRelease: (_, gesture) => {
-        if (gesture.dx > 120) swipeRight();
-        else if (gesture.dx < -120) swipeLeft();
-        else resetPosition();
+        if (gesture.dx > 120) {
+          handleSwipeRight();
+        } else if (gesture.dx < -120) {
+          handleSwipeLeft();
+        } else {
+          resetPosition();
+        }
       },
     })
   ).current;
 
-  const showSaveToast = () => {
+  // ─── Toast helper ───────────────────────────────────────────────────────────
+  const fireToast = (message: string) => {
+    setToastMessage(message);
     setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
+    toastOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(1800),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setShowToast(false));
   };
 
-  const swipeRight = () => {
-    setSavedCount(prev => prev + 1);
-    showSaveToast();
+  // ─── Actions ────────────────────────────────────────────────────────────────
+  const handleSwipeRight = async () => {
+    const vendor = vendors[currentIndex];
+    if (!vendor) return;
+
+    // Animate card out right
     Animated.timing(position, {
       toValue: { x: width + 100, y: 0 },
       duration: 250,
       useNativeDriver: false,
     }).start(() => nextCard());
+
+    setSavedCount(prev => prev + 1);
+
+    // Save to moodboard
+    if (userId) {
+      try {
+        const imageUrl = vendor.portfolio_images?.[0] || '';
+        await addToMoodboard(userId, vendor.id, imageUrl);
+      } catch (e) {
+        // Fail silently — don't break the swipe experience
+      }
+    }
+
+    // Blind mode reveal
+    if (blindMode) {
+      setRevealName(vendor.name);
+      fireToast(`You loved their work ✦`);
+      setTimeout(() => setRevealName(null), 3000);
+    } else {
+      fireToast('Saved to Moodboard ✦');
+    }
   };
 
-  const swipeLeft = () => {
+  const handleSwipeLeft = () => {
     Animated.timing(position, {
       toValue: { x: -width - 100, y: 0 },
       duration: 250,
@@ -122,6 +215,7 @@ export default function SwipeScreen() {
   const resetPosition = () => {
     Animated.spring(position, {
       toValue: { x: 0, y: 0 },
+      friction: 5,
       useNativeDriver: false,
     }).start();
   };
@@ -131,26 +225,31 @@ export default function SwipeScreen() {
     setCurrentIndex(prev => prev + 1);
   };
 
-  const vendor = vendors[currentIndex];
-  const nextVendor = vendors[currentIndex + 1];
+  const formatPrice = (price: number) => {
+    if (price >= 10000000) return `₹${(price / 10000000).toFixed(1)}Cr`;
+    if (price >= 100000) return `₹${(price / 100000).toFixed(0)}L`;
+    return `₹${(price / 1000).toFixed(0)}K`;
+  };
 
   const categoryLabel = category
     ?.replace(/-/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase()) || 'All Vendors';
 
-  if (loading) {
+  const vendor = vendors[currentIndex];
+  const nextVendor = vendors[currentIndex + 1];
+
+  // ─── Loading state ──────────────────────────────────────────────────────────
+  if (loading || !fontsLoaded) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backBtn}>←</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Feather name="arrow-left" size={20} color="#2C2420" />
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{categoryLabel}</Text>
-          </View>
-          <View style={{ width: 60 }} />
+          <Text style={styles.headerTitle}>{categoryLabel}</Text>
+          <View style={{ width: 40 }} />
         </View>
-        <View style={styles.loadingContainer}>
+        <View style={styles.centered}>
           <ActivityIndicator color="#C9A84C" size="large" />
           <Text style={styles.loadingText}>Finding vendors...</Text>
         </View>
@@ -158,261 +257,696 @@ export default function SwipeScreen() {
     );
   }
 
-  if (error && vendors.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>Something went wrong</Text>
-        <Text style={styles.emptySubtitle}>We couldn't load vendors right now.</Text>
-        <TouchableOpacity style={styles.emptyBtn} onPress={loadVendors}>
-          <Text style={styles.emptyBtnText}>Try Again</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 12 }}>
-          <Text style={{ color: '#8C7B6E', fontSize: 14 }}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
+  // ─── Empty / error states ───────────────────────────────────────────────────
   if (!vendor) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>All caught up</Text>
-        <Text style={styles.emptySubtitle}>No more vendors in this category. Check back soon.</Text>
-        <TouchableOpacity style={styles.emptyBtn} onPress={() => router.back()}>
-          <Text style={styles.emptyBtnText}>Go Back</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Feather name="arrow-left" size={20} color="#2C2420" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{categoryLabel}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centered}>
+          <Text style={styles.emptyTitle}>All caught up</Text>
+          <Text style={styles.emptySubtitle}>
+            You've seen all vendors in this category.
+          </Text>
+          <TouchableOpacity style={styles.emptyBtn} onPress={() => router.back()}>
+            <Text style={styles.emptyBtnText}>GO BACK</Text>
+          </TouchableOpacity>
+          {savedCount > 0 && (
+            <TouchableOpacity
+              style={styles.moodboardBtn}
+              onPress={() => router.push('/moodboard')}
+            >
+              <Text style={styles.moodboardBtnText}>
+                View {savedCount} saved vendor{savedCount > 1 ? 's' : ''} →
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   }
 
+  // ─── Main swipe screen ──────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
 
+      {/* Toast */}
       {showToast && (
-        <Animated.View style={styles.toast}>
-          <Text style={styles.toastText}>Saved to Moodboard ✓</Text>
+        <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>
       )}
 
+      {/* Blind mode reveal */}
+      {revealName && (
+        <Animated.View style={[styles.revealBanner, { opacity: toastOpacity }]}>
+          <Text style={styles.revealLabel}>You just saved</Text>
+          <Text style={styles.revealName}>{revealName}</Text>
+        </Animated.View>
+      )}
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backBtn}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Feather name="arrow-left" size={20} color="#2C2420" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{categoryLabel}</Text>
-          <Text style={styles.headerCount}>{currentIndex + 1} of {vendors.length}</Text>
+          <Text style={styles.headerCount}>
+            {currentIndex + 1} of {vendors.length}
+          </Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/filter?from=swipe')}>
-          <Text style={styles.filterBtn}>Filter</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {/* Blind mode toggle */}
+          <TouchableOpacity
+            style={[styles.blindToggle, blindMode && styles.blindToggleActive]}
+            onPress={() => setBlindMode(prev => !prev)}
+            activeOpacity={0.8}
+          >
+            <Feather
+              name={blindMode ? 'eye-off' : 'eye'}
+              size={12}
+              color={blindMode ? '#F5F0E8' : '#8C7B6E'}
+            />
+            <Text style={[
+              styles.blindToggleText,
+              blindMode && styles.blindToggleTextActive,
+            ]}>
+              Blind
+            </Text>
+          </TouchableOpacity>
+
+          {/* Filter */}
+          <TouchableOpacity
+            onPress={() => router.push('/filter?from=swipe' as any)}
+            style={styles.filterBtn}
+          >
+            <Feather name="sliders" size={16} color="#C9A84C" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <View style={styles.hintRow}>
-        <Text style={styles.hint}>← Pass</Text>
-        <View style={styles.hintDot} />
-        <Text style={styles.hint}>○ Profile</Text>
-        <View style={styles.hintDot} />
-        <Text style={styles.hint}>Save →</Text>
-      </View>
-
+      {/* Card stack */}
       <View style={styles.cardContainer}>
+
+        {/* Card behind — next vendor preview */}
         {nextVendor && (
           <View style={[styles.card, styles.cardBehind]}>
             <Image
-              source={{ uri: nextVendor.portfolio_images?.[0] || nextVendor.image }}
+              source={{ uri: nextVendor.portfolio_images?.[0] || '' }}
               style={styles.cardImage}
+              resizeMode="cover"
             />
+            <View style={styles.cardOverlay} />
           </View>
         )}
 
+        {/* Active card — panResponder ONLY, no TouchableOpacity */}
         <Animated.View
-          style={[
-            styles.card,
-            {
-              transform: [
-                { translateX: position.x },
-                { translateY: position.y },
-                { rotate: rotation },
-              ],
-            },
-          ]}
+          style={[styles.card, {
+            transform: [
+              { translateX: position.x },
+              { translateY: position.y },
+              { rotate: rotation },
+            ],
+          }]}
           {...panResponder.panHandlers}
         >
           <Image
-            source={{ uri: vendor.portfolio_images?.[0] || vendor.image }}
+            source={{ uri: vendor.portfolio_images?.[0] || '' }}
             style={styles.cardImage}
+            resizeMode="cover"
           />
 
-          <View style={styles.gradientBottom} />
+          {/* Bottom gradient */}
+          <View style={styles.cardGradient} />
 
+          {/* Verified badge — top left */}
           {vendor.is_verified && (
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedText}>✓ Verified</Text>
+              <Feather name="check" size={10} color="#2C2420" />
+              <Text style={styles.verifiedText}>Verified</Text>
             </View>
           )}
 
-          <View style={styles.ratingTopRight}>
-            <Text style={styles.ratingTopText}>★ {vendor.rating}</Text>
+          {/* Rating — top right */}
+          <View style={styles.ratingBadge}>
+            <Feather name="star" size={10} color="#C9A84C" />
+            <Text style={styles.ratingText}>{vendor.rating}</Text>
           </View>
 
-          <Animated.View style={[styles.overlayLabel, styles.saveLabel, { opacity: likeOpacity }]}>
-            <Text style={styles.overlayText}>SAVE</Text>
+          {/* SAVE overlay stamp */}
+          <Animated.View style={[
+            styles.overlayStamp,
+            styles.saveStamp,
+            { opacity: saveOverlayOpacity },
+          ]}>
+            <Text style={styles.saveStampText}>SAVE</Text>
           </Animated.View>
 
-          <Animated.View style={[styles.overlayLabel, styles.passLabel, { opacity: passOpacity }]}>
-            <Text style={styles.overlayText}>PASS</Text>
+          {/* PASS overlay stamp */}
+          <Animated.View style={[
+            styles.overlayStamp,
+            styles.passStamp,
+            { opacity: passOverlayOpacity },
+          ]}>
+            <Text style={styles.passStampText}>PASS</Text>
           </Animated.View>
 
+          {/* Card info — bottom */}
           <View style={styles.cardInfo}>
-            <View style={styles.cardInfoTop}>
-              <Text style={styles.vendorName}>{vendor.name}</Text>
-              <Text style={styles.vendorCity}>{vendor.city}</Text>
-            </View>
-            <View style={styles.cardInfoBottom}>
-              <Text style={styles.vendorPrice}>
-                ₹{(vendor.starting_price / 100000).toFixed(0)}L onwards
-              </Text>
-              <View style={styles.vibeTags}>
-                {vendor.vibe_tags?.slice(0, 2).map((v: string) => (
-                  <View key={v} style={styles.vibeTag}>
-                    <Text style={styles.vibeTagText}>{v}</Text>
-                  </View>
-                ))}
+
+            {/* Blind mode — show only vibe tags */}
+            {blindMode ? (
+              <View style={styles.blindModeInfo}>
+                <Text style={styles.blindModeLabel}>Blind Mode — judge the work</Text>
+                <View style={styles.vibeTags}>
+                  {vendor.vibe_tags?.slice(0, 3).map((v: string) => (
+                    <View key={v} style={styles.vibeTag}>
+                      <Text style={styles.vibeTagText}>{v}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={styles.vendorInfo}>
+                <Text style={styles.vendorName}>{vendor.name}</Text>
+                <View style={styles.vendorMeta}>
+                  <Feather name="map-pin" size={11} color="#C9A84C" />
+                  <Text style={styles.vendorCity}>{vendor.city}</Text>
+                </View>
+                <View style={styles.vendorBottom}>
+                  <Text style={styles.vendorPrice}>
+                    {formatPrice(vendor.starting_price)} onwards
+                  </Text>
+                  <View style={styles.vibeTags}>
+                    {vendor.vibe_tags?.slice(0, 2).map((v: string) => (
+                      <View key={v} style={styles.vibeTag}>
+                        <Text style={styles.vibeTagText}>{v}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            )}
+
           </View>
         </Animated.View>
       </View>
 
-      {/* Three action buttons — Pass, Profile, Save */}
+      {/* Three action buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.passBtn} onPress={swipeLeft}>
-          <Text style={styles.passBtnText}>✕</Text>
+
+        {/* Pass — smallest, muted */}
+        <TouchableOpacity
+          style={styles.passBtn}
+          onPress={handleSwipeLeft}
+          activeOpacity={0.8}
+        >
+          <Feather name="x" size={22} color="#8C7B6E" />
         </TouchableOpacity>
 
+        {/* Profile — medium, dark with gold icon */}
         <TouchableOpacity
           style={styles.profileBtn}
-          onPress={() => router.push(`/vendor-profile?id=${vendor.id}`)}
+          onPress={() => router.push(`/vendor-profile?id=${vendor.id}` as any)}
+          activeOpacity={0.8}
         >
-          <Text style={styles.profileBtnText}>○</Text>
+          <Feather name="eye" size={20} color="#C9A84C" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.heartBtn} onPress={swipeRight}>
-          <Text style={styles.heartBtnText}>♥</Text>
+        {/* Save — largest, gold fill */}
+        <TouchableOpacity
+          style={styles.saveBtn}
+          onPress={handleSwipeRight}
+          activeOpacity={0.8}
+        >
+          <Feather name="heart" size={26} color="#2C2420" />
         </TouchableOpacity>
+
       </View>
 
+      {/* Genie budget bar */}
       <View style={styles.genieBar}>
-        <Text style={styles.genieText}>Genie · Estimated spend: ₹0 of ₹25L budget</Text>
+        <Feather name="zap" size={11} color="#C9A84C" />
+        <Text style={styles.genieText}>
+          {userBudget
+            ? `Genie · ${savedCount} saved · Budget ₹${formatPrice(userBudget)}`
+            : `Genie · ${savedCount} vendor${savedCount !== 1 ? 's' : ''} saved`
+          }
+        </Text>
       </View>
 
     </View>
   );
 }
 
+const CARD_HEIGHT = height * 0.56;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0E8', paddingTop: 60 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  loadingText: { fontSize: 16, color: '#8C7B6E', letterSpacing: 0.5 },
-  toast: {
-    position: 'absolute', top: 110, alignSelf: 'center',
-    backgroundColor: '#2C2420', borderRadius: 50,
-    paddingHorizontal: 20, paddingVertical: 10, zIndex: 100,
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F0E8',
+    paddingTop: 60,
   },
-  toastText: { fontSize: 13, color: '#C9A84C', fontWeight: '500', letterSpacing: 0.3 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 8 },
-  backBtn: { fontSize: 22, color: '#2C2420' },
-  headerCenter: { alignItems: 'center', gap: 2 },
-  headerTitle: { fontSize: 17, color: '#2C2420', fontWeight: '500', letterSpacing: 0.3 },
-  headerCount: { fontSize: 11, color: '#8C7B6E', letterSpacing: 0.5 },
-  filterBtn: { fontSize: 13, color: '#C9A84C', fontWeight: '500' },
-  hintRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 12 },
-  hint: { fontSize: 11, color: '#8C7B6E', letterSpacing: 0.5 },
-  hintDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#8C7B6E', opacity: 0.4 },
-  cardContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+  },
+  headerCenter: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  headerTitle: {
+    fontSize: 16,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_400Regular',
+    letterSpacing: 0.3,
+  },
+  headerCount: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 0.5,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  // Blind mode toggle
+  blindToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    backgroundColor: '#FFFFFF',
+  },
+  blindToggleActive: {
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
+  },
+  blindToggleText: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_400Regular',
+    letterSpacing: 0.3,
+  },
+  blindToggleTextActive: {
+    color: '#F5F0E8',
+  },
+  filterBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+  },
+
+  // Card stack
+  cardContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: {
     position: 'absolute',
-    width: width - 40,
-    height: height * 0.54,
-    borderRadius: 20,
+    width: width - 32,
+    height: CARD_HEIGHT,
+    borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#1A1008',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  cardBehind: { transform: [{ scale: 0.95 }], top: 14, opacity: 0.85 },
-  cardImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  gradientBottom: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: '50%', backgroundColor: 'rgba(10,6,3,0.72)',
+  cardBehind: {
+    transform: [{ scale: 0.94 }],
+    top: 16,
+    opacity: 0.8,
   },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(10,6,3,0.15)',
+  },
+  cardGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '52%',
+    backgroundColor: 'rgba(10,6,3,0.74)',
+  },
+
+  // Badges
   verifiedBadge: {
-    position: 'absolute', top: 18, left: 18,
-    backgroundColor: '#C9A84C', borderRadius: 50,
-    paddingHorizontal: 12, paddingVertical: 5,
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#C9A84C',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  verifiedText: { fontSize: 10, color: '#FFFFFF', fontWeight: '600', letterSpacing: 0.8 },
-  ratingTopRight: {
-    position: 'absolute', top: 18, right: 18,
-    backgroundColor: 'rgba(20,12,4,0.75)', borderRadius: 50,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)',
+  verifiedText: {
+    fontSize: 10,
+    color: '#2C2420',
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 0.5,
   },
-  ratingTopText: { fontSize: 12, color: '#C9A84C', fontWeight: '600' },
-  overlayLabel: {
-    position: 'absolute', top: 40,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 6, borderWidth: 2.5,
+  ratingBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(20,12,4,0.75)',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.4)',
   },
-  saveLabel: { right: 22, borderColor: '#C9A84C' },
-  passLabel: { left: 22, borderColor: '#F5F0E8' },
-  overlayText: { fontSize: 16, fontWeight: '700', letterSpacing: 3, color: '#F5F0E8' },
-  cardInfo: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, gap: 8 },
-  cardInfoTop: { gap: 4 },
-  vendorName: { fontSize: 22, color: '#F5F0E8', fontWeight: '400', letterSpacing: 0.3 },
-  vendorCity: { fontSize: 13, color: '#B8A99A', letterSpacing: 0.5 },
-  cardInfoBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  vendorPrice: { fontSize: 14, color: '#C9A84C', fontWeight: '500' },
-  vibeTags: { flexDirection: 'row', gap: 6 },
-  vibeTag: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 3 },
-  vibeTagText: { fontSize: 10, color: '#F5F0E8', letterSpacing: 0.5 },
+  ratingText: {
+    fontSize: 12,
+    color: '#C9A84C',
+    fontFamily: 'DMSans_500Medium',
+  },
+
+  // Overlay stamps
+  overlayStamp: {
+    position: 'absolute',
+    top: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 2.5,
+  },
+  saveStamp: {
+    right: 20,
+    borderColor: '#C9A84C',
+  },
+  saveStampText: {
+    fontSize: 15,
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 3,
+    color: '#C9A84C',
+  },
+  passStamp: {
+    left: 20,
+    borderColor: '#F5F0E8',
+  },
+  passStampText: {
+    fontSize: 15,
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 3,
+    color: '#F5F0E8',
+  },
+
+  // Card info
+  cardInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+  },
+  vendorInfo: {
+    gap: 6,
+  },
+  vendorName: {
+    fontSize: 26,
+    color: '#F5F0E8',
+    fontFamily: 'PlayfairDisplay_300Light',
+    letterSpacing: 0.3,
+  },
+  vendorMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  vendorCity: {
+    fontSize: 13,
+    color: '#C9A84C',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 0.3,
+  },
+  vendorBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  vendorPrice: {
+    fontSize: 14,
+    color: '#C9A84C',
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 0.3,
+  },
+
+  // Blind mode info
+  blindModeInfo: {
+    gap: 10,
+  },
+  blindModeLabel: {
+    fontSize: 12,
+    color: 'rgba(245,240,232,0.5)',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 1,
+    fontStyle: 'italic',
+  },
+
+  // Vibe tags
+  vibeTags: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  vibeTag: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  vibeTagText: {
+    fontSize: 10,
+    color: 'rgba(245,240,232,0.85)',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 0.5,
+  },
+
+  // Action buttons
   actions: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 24,
-    paddingVertical: 18,
+    gap: 20,
+    paddingVertical: 16,
   },
+
+  // Pass — smallest, white, muted
   passBtn: {
-    width: 54, height: 54, borderRadius: 27,
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E8E0D5',
-    justifyContent: 'center', alignItems: 'center',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
-  passBtnText: { fontSize: 18, color: '#8C7B6E' },
+
+  // Profile — medium, dark, gold icon
   profileBtn: {
-    width: 54, height: 54, borderRadius: 27,
-    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#C9A84C',
-    justifyContent: 'center', alignItems: 'center',
-    elevation: 2,
-  },
-  profileBtnText: { fontSize: 22, color: '#C9A84C' },
-  heartBtn: {
-    width: 64, height: 64, borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#2C2420',
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#2C2420', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
+    borderWidth: 1.5,
+    borderColor: '#C9A84C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  heartBtnText: { fontSize: 26, color: '#C9A84C' },
-  genieBar: { paddingHorizontal: 24, paddingBottom: 32, alignItems: 'center' },
-  genieText: { fontSize: 12, color: '#8C7B6E', letterSpacing: 0.3 },
-  emptyContainer: { flex: 1, backgroundColor: '#F5F0E8', justifyContent: 'center', alignItems: 'center', gap: 14, padding: 40 },
-  emptyTitle: { fontSize: 28, color: '#2C2420', fontWeight: '300', letterSpacing: 0.5 },
-  emptySubtitle: { fontSize: 14, color: '#8C7B6E', textAlign: 'center', lineHeight: 22 },
-  emptyBtn: { marginTop: 16, backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 32 },
-  emptyBtnText: { fontSize: 14, color: '#F5F0E8', fontWeight: '500' },
+
+  // Save — largest, gold fill, dark icon
+  saveBtn: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#C9A84C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#C9A84C',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+
+  // Genie bar
+  genieBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+  },
+  genieText: {
+    fontSize: 12,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 0.3,
+  },
+
+  // Toast
+  toast: {
+    position: 'absolute',
+    top: 108,
+    alignSelf: 'center',
+    backgroundColor: '#2C2420',
+    borderRadius: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    zIndex: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  toastText: {
+    fontSize: 13,
+    color: '#C9A84C',
+    fontFamily: 'DMSans_500Medium',
+    letterSpacing: 0.3,
+  },
+
+  // Blind mode reveal banner
+  revealBanner: {
+    position: 'absolute',
+    top: 108,
+    alignSelf: 'center',
+    backgroundColor: '#C9A84C',
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    zIndex: 100,
+    alignItems: 'center',
+    gap: 2,
+  },
+  revealLabel: {
+    fontSize: 10,
+    color: '#2C2420',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  revealName: {
+    fontSize: 16,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_600SemiBold',
+    letterSpacing: 0.3,
+  },
+
+  // Loading / empty states
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 0.5,
+  },
+  emptyTitle: {
+    fontSize: 28,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_300Light',
+    letterSpacing: 0.3,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  emptyBtn: {
+    marginTop: 8,
+    backgroundColor: '#2C2420',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  emptyBtnText: {
+    fontSize: 13,
+    color: '#F5F0E8',
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 2,
+  },
+  moodboardBtn: {
+    marginTop: 8,
+  },
+  moodboardBtnText: {
+    fontSize: 14,
+    color: '#C9A84C',
+    fontFamily: 'DMSans_400Regular',
+    letterSpacing: 0.3,
+  },
 });

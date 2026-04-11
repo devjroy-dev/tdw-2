@@ -9,7 +9,18 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { createOrGetUser } from '../services/api';
-import { useFonts, CormorantGaramond_300Light, CormorantGaramond_400Regular, CormorantGaramond_500Medium, CormorantGaramond_600SemiBold } from '@expo-google-fonts/cormorant-garamond';
+import {
+  useFonts,
+  PlayfairDisplay_300Light,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_400Regular_Italic,
+  PlayfairDisplay_600SemiBold,
+} from '@expo-google-fonts/playfair-display';
+import {
+  DMSans_300Light,
+  DMSans_400Regular,
+  DMSans_500Medium,
+} from '@expo-google-fonts/dm-sans';
 
 const { height } = Dimensions.get('window');
 
@@ -23,7 +34,6 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [animationDone, setAnimationDone] = useState(false);
 
-  // Animations
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoTranslate = useRef(new Animated.Value(20)).current;
   const dividerWidth = useRef(new Animated.Value(0)).current;
@@ -32,27 +42,26 @@ export default function LoginScreen() {
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
 
   const [fontsLoaded] = useFonts({
-    CormorantGaramond_300Light,
-    CormorantGaramond_400Regular,
-    CormorantGaramond_500Medium,
-    CormorantGaramond_600SemiBold,
+    PlayfairDisplay_300Light,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_400Regular_Italic,
+    PlayfairDisplay_600SemiBold,
+    DMSans_300Light,
+    DMSans_400Regular,
+    DMSans_500Medium,
   });
 
   useEffect(() => {
     if (!fontsLoaded) return;
 
     Animated.sequence([
-      // Logo fades in
       Animated.parallel([
         Animated.timing(logoOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
         Animated.timing(logoTranslate, { toValue: 0, duration: 900, useNativeDriver: true }),
       ]),
-      // Divider draws
       Animated.timing(dividerWidth, { toValue: 40, duration: 400, useNativeDriver: false }),
-      // Tagline appears
       Animated.timing(taglineOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.delay(400),
-      // Buttons slide up
+      Animated.delay(300),
       Animated.parallel([
         Animated.timing(buttonsOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
         Animated.timing(buttonsTranslate, { toValue: 0, duration: 600, useNativeDriver: true }),
@@ -109,13 +118,13 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Logo Section — animated */}
+      {/* Logo Section */}
       <View style={styles.logoSection}>
         <Animated.View style={[styles.logoInner, {
           opacity: logoOpacity,
           transform: [{ translateY: logoTranslate }]
         }]}>
-          <Text style={styles.logoThe}>The</Text>
+          <Text style={styles.logoThe}>THE</Text>
           <Text style={styles.logoMain}>Dream Wedding</Text>
           <Animated.View style={[styles.logoDivider, { width: dividerWidth }]} />
           <Animated.Text style={[styles.logoTagline, { opacity: taglineOpacity }]}>
@@ -124,49 +133,71 @@ export default function LoginScreen() {
         </Animated.View>
       </View>
 
-      {/* Buttons Section — slides up */}
+      {/* Buttons Section */}
       <Animated.View style={[styles.bottomSection, {
         opacity: buttonsOpacity,
         transform: [{ translateY: buttonsTranslate }]
       }]}>
-        <View style={styles.welcomeRow}>
-          <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.subText}>Sign in to begin your journey</Text>
-        </View>
 
         <View style={styles.buttons}>
+
+          {/* Google */}
           <TouchableOpacity
-            style={styles.googleButton}
+            style={styles.socialButton}
             onPress={handleGoogleLogin}
             disabled={googleLoading}
           >
             {googleLoading ? (
               <ActivityIndicator color="#2C2420" />
             ) : (
-              <View style={styles.googleButtonInner}>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              <View style={styles.socialButtonInner}>
+                <View style={styles.googleIconBox}>
+                  <Text style={styles.googleIconG}>G</Text>
+                </View>
+                <Text style={styles.socialButtonText}>Continue with Google</Text>
               </View>
             )}
           </TouchableOpacity>
 
+          {/* Apple — mock, Android-safe */}
+          <TouchableOpacity
+            style={[styles.socialButton, styles.appleButton]}
+            onPress={() => {}}
+            activeOpacity={0.8}
+          >
+            <View style={styles.socialButtonInner}>
+              <View style={styles.appleIconBox}>
+                <Text style={styles.appleIconText}>A</Text>
+              </View>
+              <Text style={styles.appleButtonText}>Continue with Apple</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
 
+          {/* Phone */}
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={styles.phoneButton}
             onPress={() => router.push('/otp')}
           >
-            <Text style={styles.primaryButtonText}>Continue with Phone</Text>
+            <Text style={styles.phoneButtonText}>Continue with Phone Number</Text>
           </TouchableOpacity>
+
         </View>
 
-        <TouchableOpacity onPress={() => router.push('/vendor-login')}>
-          <Text style={styles.vendorLink}>Vendor? Sign in here →</Text>
+        {/* Vendor link */}
+        <TouchableOpacity
+          style={styles.vendorRow}
+          onPress={() => router.push('/vendor-login')}
+        >
+          <Text style={styles.vendorLink}>Vendor? Sign in here</Text>
         </TouchableOpacity>
+
       </Animated.View>
 
     </View>
@@ -178,11 +209,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F0E8',
     paddingHorizontal: 28,
-    paddingBottom: 52,
+    paddingBottom: 48,
     paddingTop: 60,
   },
+
+  // Logo
   logoSection: {
-    flex: 1,
+    flex: 0.9,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -191,52 +224,41 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoThe: {
-    fontSize: 16,
+    fontSize: 13,
     color: '#8C7B6E',
-    fontFamily: 'CormorantGaramond_300Light',
-    letterSpacing: 10,
+    fontFamily: 'DMSans_300Light',
+    letterSpacing: 12,
     textTransform: 'uppercase',
   },
   logoMain: {
     fontSize: 48,
     color: '#2C2420',
-    fontFamily: 'CormorantGaramond_300Light',
-    letterSpacing: 2,
+    fontFamily: 'PlayfairDisplay_300Light',
+    letterSpacing: 1,
     textAlign: 'center',
   },
   logoDivider: {
     height: 1,
     backgroundColor: '#C9A84C',
-    marginVertical: 8,
+    marginVertical: 10,
   },
   logoTagline: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#8C7B6E',
-    fontFamily: 'CormorantGaramond_400Regular',
-    letterSpacing: 1,
-    fontStyle: 'italic',
+    fontFamily: 'PlayfairDisplay_400Regular_Italic',
+    letterSpacing: 0.5,
   },
+
+  // Bottom
   bottomSection: {
     gap: 20,
-  },
-  welcomeRow: {
-    gap: 5,
-  },
-  welcomeText: {
-    fontSize: 32,
-    color: '#2C2420',
-    fontFamily: 'CormorantGaramond_300Light',
-    letterSpacing: 2,
-  },
-  subText: {
-    fontSize: 13,
-    color: '#8C7B6E',
-    letterSpacing: 0.3,
   },
   buttons: {
     gap: 12,
   },
-  googleButton: {
+
+  // Social buttons
+  socialButton: {
     width: '100%',
     borderWidth: 1,
     borderColor: '#E8E0D5',
@@ -246,26 +268,62 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     elevation: 1,
   },
-  googleButtonInner: {
+  socialButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  googleIcon: {
+  socialButtonText: {
+    color: '#2C2420',
+    fontSize: 14,
+    letterSpacing: 0.3,
+    fontFamily: 'DMSans_400Regular',
+  },
+
+  // Google
+  googleIconBox: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIconG: {
     fontSize: 16,
     fontWeight: '700',
     color: '#4285F4',
   },
-  googleButtonText: {
-    color: '#2C2420',
+
+  // Apple
+  appleButton: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  appleIconBox: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleIconText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    fontFamily: 'DMSans_500Medium',
+  },
+  appleButtonText: {
+    color: '#FFFFFF',
     fontSize: 14,
     letterSpacing: 0.3,
-    fontWeight: '400',
+    fontFamily: 'DMSans_400Regular',
   },
+
+  // Divider
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginVertical: 2,
   },
   dividerLine: {
     flex: 1,
@@ -275,24 +333,35 @@ const styles = StyleSheet.create({
   dividerText: {
     color: '#8C7B6E',
     fontSize: 12,
+    fontFamily: 'DMSans_300Light',
   },
-  primaryButton: {
+
+  // Phone
+  phoneButton: {
     width: '100%',
     backgroundColor: '#2C2420',
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',
   },
-  primaryButtonText: {
+  phoneButtonText: {
     color: '#F5F0E8',
     fontSize: 14,
-    letterSpacing: 0.5,
-    fontWeight: '300',
+    letterSpacing: 0.8,
+    fontFamily: 'DMSans_300Light',
+  },
+
+  // Vendor link
+  vendorRow: {
+    alignItems: 'center',
+    paddingTop: 4,
   },
   vendorLink: {
-    color: '#C9A84C',
+    color: '#5C4A3A',
     fontSize: 13,
     textAlign: 'center',
     letterSpacing: 0.3,
+    textDecorationLine: 'underline',
+    fontFamily: 'DMSans_300Light',
   },
 });
