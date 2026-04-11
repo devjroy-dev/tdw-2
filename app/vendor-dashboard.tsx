@@ -2573,62 +2573,64 @@ export default function VendorDashboardScreen() {
               </View>
             ) : (
               clients.map(client => (
-                <View key={client.id} style={styles.clientCard}>
-                  <View style={styles.clientInfo}>
-                    <Text style={styles.clientName}>{client.name}</Text>
-                    <Text style={styles.clientPhone}>{client.phone}</Text>
-                    <Text style={styles.clientDate}>{client.wedding_date}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.whatsappBtn, client.invited && styles.whatsappBtnDone]}
-                    onPress={() => !client.invited && handleSendWhatsAppInvite(client)}
-                    disabled={client.invited}
-                  >
-                    <Text style={[styles.whatsappBtnText, client.invited && styles.whatsappBtnTextDone]}>
-                      {client.invited ? 'Invited ✓' : '📲 Invite'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {editingNoteId === client.id ? (
-                  <View style={styles.noteEditRow}>
-                    <TextInput
-                      style={styles.noteInput}
-                      value={noteText}
-                      onChangeText={setNoteText}
-                      placeholder="Add notes — lehenga colour, skin tone, preferences..."
-                      placeholderTextColor="#8C7B6E"
-                      multiline
-                      autoFocus
-                    />
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                      <TouchableOpacity
-                        style={[styles.unblockBtn, { flex: 1, alignItems: 'center' }]}
-                        onPress={() => { setEditingNoteId(null); setNoteText(''); }}
-                      >
-                        <Text style={styles.unblockBtnText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.goldBtn, { flex: 2 }]}
-                        onPress={() => handleSaveClientNote(client.id)}
-                      >
-                        <Text style={styles.goldBtnText}>SAVE NOTE</Text>
-                      </TouchableOpacity>
+                <View key={client.id} style={[styles.clientCard, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={styles.clientInfo}>
+                      <Text style={styles.clientName}>{client.name}</Text>
+                      <Text style={styles.clientPhone}>{client.phone}</Text>
+                      <Text style={styles.clientDate}>{client.wedding_date}</Text>
                     </View>
+                    <TouchableOpacity
+                      style={[styles.whatsappBtn, client.invited && styles.whatsappBtnDone]}
+                      onPress={() => !client.invited && handleSendWhatsAppInvite(client)}
+                      disabled={client.invited}
+                    >
+                      <Text style={[styles.whatsappBtnText, client.invited && styles.whatsappBtnTextDone]}>
+                        {client.invited ? 'Invited ✓' : '📲 Invite'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.noteRow}
-                    onPress={() => {
-                      setEditingNoteId(client.id);
-                      setNoteText(client.notes || '');
-                    }}
-                  >
-                    <Feather name="edit-2" size={11} color="#8C7B6E" />
-                    <Text style={styles.noteText} numberOfLines={2}>
-                      {client.notes ? client.notes : 'Add notes...'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                  {editingNoteId === client.id ? (
+                    <View style={styles.noteEditRow}>
+                      <TextInput
+                        style={styles.noteInput}
+                        value={noteText}
+                        onChangeText={setNoteText}
+                        placeholder="Add notes — lehenga colour, skin tone, preferences..."
+                        placeholderTextColor="#8C7B6E"
+                        multiline
+                        autoFocus
+                      />
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                        <TouchableOpacity
+                          style={[styles.unblockBtn, { flex: 1, alignItems: 'center' }]}
+                          onPress={() => { setEditingNoteId(null); setNoteText(''); }}
+                        >
+                          <Text style={styles.unblockBtnText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.goldBtn, { flex: 2 }]}
+                          onPress={() => handleSaveClientNote(client.id)}
+                        >
+                          <Text style={styles.goldBtnText}>SAVE NOTE</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.noteRow}
+                      onPress={() => {
+                        setEditingNoteId(client.id);
+                        setNoteText(client.notes || '');
+                      }}
+                    >
+                      <Feather name="edit-2" size={11} color="#8C7B6E" />
+                      <Text style={styles.noteText} numberOfLines={2}>
+                        {client.notes ? client.notes : 'Add notes...'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               ))
             )}
 
