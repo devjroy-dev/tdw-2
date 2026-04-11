@@ -78,6 +78,14 @@ app.post('/api/vendors', async (req, res) => {
   }
 });
 
+app.delete('/api/vendors/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('vendors').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.patch('/api/vendors/:id', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vendors').update(req.body).eq('id', req.params.id).select().single();
