@@ -141,7 +141,7 @@ export default function SwipeScreen() {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gesture) => {
         // Only take over if movement is significant — prevents tap/swipe conflict
-        return Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5;
+        return Math.abs(gesture.dx) > Math.abs(gesture.dy) && Math.abs(gesture.dx) > 8;
       },
       onPanResponderMove: (_, gesture) => {
         position.setValue({ x: gesture.dx, y: gesture.dy });
@@ -789,9 +789,9 @@ const styles = StyleSheet.create({
 
   // Pass — smallest, white, muted
   passBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E8E0D5',
@@ -806,9 +806,9 @@ const styles = StyleSheet.create({
 
   // Profile — medium, dark, gold icon
   profileBtn: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#2C2420',
     borderWidth: 1.5,
     borderColor: '#C9A84C',
@@ -823,9 +823,9 @@ const styles = StyleSheet.create({
 
   // Save — largest, gold fill, dark icon
   saveBtn: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#C9A84C',
     justifyContent: 'center',
     alignItems: 'center',

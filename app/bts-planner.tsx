@@ -282,7 +282,7 @@ export default function BTSPlannerScreen() {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow access to your contacts.');
+        Alert.alert('Permission needed', 'Please allow access to contacts in Settings > Apps > The Dream Wedding > Permissions.');
         return;
       }
       const { data } = await Contacts.getContactsAsync({

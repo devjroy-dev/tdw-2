@@ -238,7 +238,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#8C7B6E',
     letterSpacing: 0.5,
-    fontStyle: 'italic',
   },
   bottomSection: {
     gap: 20,

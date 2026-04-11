@@ -190,8 +190,7 @@ export default function HomeScreen() {
               key={card.id}
               style={[
                 styles.quickCard,
-                // First card is full width — editorial anchor
-                index === 0 && styles.quickCardFull,
+index === 0 && styles.quickCardFull,
               ]}
               onPress={() => router.push(card.route as any)}
               activeOpacity={0.9}
@@ -405,10 +404,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 12,
     marginBottom: 28,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   quickCard: {
-    width: CARD_SIZE,
-    height: CARD_SIZE,
+    width: '48.5%',
+    height: 180,
     borderRadius: 16,
     overflow: 'hidden',
   },
