@@ -1,3 +1,16 @@
+import {
+  DMSans_300Light,
+  DMSans_400Regular,
+  DMSans_500Medium,
+} from '@expo-google-fonts/dm-sans';
+import {
+  PlayfairDisplay_300Light,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_400Regular_Italic,
+  PlayfairDisplay_600SemiBold,
+  useFonts,
+} from '@expo-google-fonts/playfair-display';
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -6,22 +19,9 @@ import {
   ActivityIndicator, Alert, Dimensions, Image, Linking, Modal,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { getBenchmark, getInvoices, getLeads, getVendorBookings, getBlockedDates, blockDate, unblockDate } from '../services/api';
+import { blockDate, getBenchmark, getBlockedDates, getInvoices, getLeads, getVendorBookings, unblockDate } from '../services/api';
 import { uploadImage } from '../services/cloudinary';
 import { generateInvoiceNumber, generateInvoicePDF } from '../services/invoice';
-import {
-  useFonts,
-  PlayfairDisplay_300Light,
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_400Regular_Italic,
-  PlayfairDisplay_600SemiBold,
-} from '@expo-google-fonts/playfair-display';
-import {
-  DMSans_300Light,
-  DMSans_400Regular,
-  DMSans_500Medium,
-} from '@expo-google-fonts/dm-sans';
 
 const { width } = Dimensions.get('window');
 
