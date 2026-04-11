@@ -188,10 +188,7 @@ export default function HomeScreen() {
           {QUICK_CARDS.map((card, index) => (
             <TouchableOpacity
               key={card.id}
-              style={[
-                styles.quickCard,
-index === 0 && styles.quickCardFull,
-              ]}
+              style={styles.quickCard}
               onPress={() => router.push(card.route as any)}
               activeOpacity={0.9}
             >
@@ -408,8 +405,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   quickCard: {
-    width: '48.5%',
-    height: 180,
+    width: (width - 60) / 2,
+    height: (width - 60) / 2,
     borderRadius: 16,
     overflow: 'hidden',
   },

@@ -171,7 +171,7 @@ export default function SwipeScreen() {
   };
 
   // ─── Actions ────────────────────────────────────────────────────────────────
-  const handleSwipeRight = async () => {
+  const handleSwipeRight = () => {
     const vendor = vendors[currentIndex];
     if (!vendor) return;
 
@@ -188,7 +188,7 @@ export default function SwipeScreen() {
     if (userId) {
       try {
         const imageUrl = vendor.portfolio_images?.[0] || '';
-        await addToMoodboard(userId, vendor.id, imageUrl);
+        addToMoodboard(userId, vendor.id, imageUrl).catch(() => {});
       } catch (e) {
         // Fail silently — don't break the swipe experience
       }
