@@ -221,10 +221,8 @@ export default function SwipeScreen() {
   };
 
   const nextCard = () => {
+    position.setValue({ x: 0, y: 0 });
     setCurrentIndex(prev => prev + 1);
-    setTimeout(() => {
-      position.setValue({ x: 0, y: 0 });
-    }, 50);
   };
 
   const formatPrice = (price: number) => {
