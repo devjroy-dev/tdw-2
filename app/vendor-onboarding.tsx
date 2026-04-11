@@ -193,7 +193,7 @@ export default function VendorOnboardingScreen() {
     }
   };
 
-  if (!fontsLoaded) return <View style={styles.container} />;
+  // fonts load async — render proceeds
 
   return (
     <View style={styles.container}>

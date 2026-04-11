@@ -152,7 +152,7 @@ export default function SpotlightScreen() {
   const featuredVendor = filteredVendors[0];
   const remainingVendors = filteredVendors.slice(1);
 
-  if (loading || !fontsLoaded) {
+  if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.centered}>

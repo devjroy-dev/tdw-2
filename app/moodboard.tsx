@@ -151,7 +151,7 @@ export default function MoodboardScreen() {
 
   const bookingPromptCategory = getBookingPromptCategory();
 
-  if (loading || !fontsLoaded) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color="#C9A84C" size="large" />

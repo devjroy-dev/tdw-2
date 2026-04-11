@@ -136,7 +136,7 @@ export default function UserTypeScreen() {
   // Minimum 2 characters in Your Name to enable Continue
   const isFormValid = () => yourName.trim().length >= 2;
 
-  if (!fontsLoaded) return <View style={styles.container} />;
+  // fonts load async — render proceeds
 
   return (
     <KeyboardAvoidingView

@@ -122,7 +122,7 @@ export default function HomeScreen() {
     cat.sub.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!fontsLoaded) return <View style={styles.container} />;
+  // fonts load async — render proceeds
 
   return (
     <View style={styles.container}>

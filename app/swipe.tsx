@@ -239,7 +239,7 @@ export default function SwipeScreen() {
   const nextVendor = vendors[currentIndex + 1];
 
   // ─── Loading state ──────────────────────────────────────────────────────────
-  if (loading || !fontsLoaded) {
+  if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
