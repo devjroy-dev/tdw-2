@@ -46,7 +46,10 @@ app.get('/api/vendors', async (req, res) => {
     const { category, city } = req.query;
     let query = supabase.from('vendors').select('*').eq('subscription_active', true);
     if (category) query = query.eq('category', category);
-    if (city) query = query.ilike('city', `%${city}%`);
+    if (city) {
+      // Return vendors in the requested city OR pan-India vendors
+      query = query.or(`city.ilike.%${city}%,city.ilike.%Pan India%`);
+    }
     const { data, error } = await query;
     if (error) throw error;
     res.json({ success: true, data });
