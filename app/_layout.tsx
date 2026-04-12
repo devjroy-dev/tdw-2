@@ -12,7 +12,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    checkSession();
+    const timer = setTimeout(() => checkSession(), 150);
+    return () => clearTimeout(timer);
   }, []);
 
   const checkSession = async () => {
