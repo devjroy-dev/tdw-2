@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin" },
+    { "source": "/vendor/login", "destination": "/vendor/login" },
+    { "source": "/vendor/dashboard", "destination": "/vendor/dashboard" }
+  ]
+}
