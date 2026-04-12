@@ -2110,15 +2110,28 @@ export default function VendorDashboardScreen() {
                             <Text style={styles.tdsLedgerType}>{inst.label}</Text>
                             <Text style={styles.tdsLedgerDate}>{inst.due_date || 'No date set'} · Rs.{parseInt(inst.amount || '0').toLocaleString('en-IN')}</Text>
                           </View>
-                          <TouchableOpacity
-                            style={[styles.invoiceStatusBtn, { backgroundColor: inst.paid ? '#4CAF5020' : '#FFF8EC', borderColor: inst.paid ? '#4CAF50' : '#C9A84C' }]}
-                            onPress={() => !inst.paid && handleMarkInstalmentPaid(schedule.id, idx)}
-                            disabled={inst.paid}
-                          >
-                            <Text style={[styles.invoiceStatusText, { color: inst.paid ? '#4CAF50' : '#C9A84C' }]}>
-                              {inst.paid ? 'Paid' : 'Mark Paid'}
-                            </Text>
-                          </TouchableOpacity>
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            {!inst.paid && schedule.client_phone ? (
+                              <TouchableOpacity
+                                style={[styles.invoiceStatusBtn, { backgroundColor: '#25D36620', borderColor: '#25D366', minWidth: 60 }]}
+                                onPress={() => {
+                                  const message = `Hi ${schedule.client_name}, this is a friendly reminder that your ${inst.label} payment of Rs.${parseInt(inst.amount || '0').toLocaleString('en-IN')} was due on ${inst.due_date}. Request you to please transfer at your earliest convenience. Thank you! — ${vendorSession && vendorSession.vendorName ? vendorSession.vendorName : 'Your Vendor'}, The Dream Wedding`;
+                                  Linking.openURL(`whatsapp://send?phone=91${schedule.client_phone}&text=${encodeURIComponent(message)}`);
+                                }}
+                              >
+                                <Text style={[styles.invoiceStatusText, { color: '#25D366' }]}>Remind</Text>
+                              </TouchableOpacity>
+                            ) : null}
+                            <TouchableOpacity
+                              style={[styles.invoiceStatusBtn, { backgroundColor: inst.paid ? '#4CAF5020' : '#FFF8EC', borderColor: inst.paid ? '#4CAF50' : '#C9A84C' }]}
+                              onPress={() => !inst.paid && handleMarkInstalmentPaid(schedule.id, idx)}
+                              disabled={inst.paid}
+                            >
+                              <Text style={[styles.invoiceStatusText, { color: inst.paid ? '#4CAF50' : '#C9A84C' }]}>
+                                {inst.paid ? 'Paid' : 'Mark Paid'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       ))}
                       <View style={styles.listDivider} />
