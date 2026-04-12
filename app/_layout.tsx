@@ -3,6 +3,9 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
+
+SplashScreen.preventAutoHideAsync();
 
 const AUTH_SCREENS = ["login", "otp", "user-type", "vendor-login", "vendor-onboarding"];
 
@@ -63,6 +66,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace("/access-gate" as any);
     } finally {
       setChecking(false);
+      await SplashScreen.hideAsync().catch(() => {});
     }
   };
 
