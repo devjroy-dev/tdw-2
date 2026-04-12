@@ -2,6 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+
+const AUTH_SCREENS = ['login', 'otp', 'user-type', 'vendor-login', 'vendor-onboarding'];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,27 +17,56 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   const checkSession = async () => {
     try {
-      const user = await AsyncStorage.getItem('user_session');
-      const inAuthGroup = ['login', 'otp', 'user-type', 'vendor-login', 'vendor-onboarding'].includes(segments[0] as string);
+      // Always check BOTH session keys
+      const [userSession, vendorSession] = await Promise.all([
+        AsyncStorage.getItem('user_session'),
+        AsyncStorage.getItem('vendor_session'),
+      ]);
 
-      if (!user && !inAuthGroup) {
-        router.replace('/login');
-      } else if (user && inAuthGroup && segments[0] !== 'splash') {
-        const parsed = JSON.parse(user);
-        if (parsed.userType === 'vendor') {
-          router.replace('/vendor-dashboard');
-        } else {
-          router.replace('/home');
+      const inAuthGroup = AUTH_SCREENS.includes(segments[0] as string);
+      const isIndexScreen = segments[0] === 'index' || segments[0] === undefined;
+
+      if (vendorSession) {
+        // Vendor is logged in
+        const parsed = JSON.parse(vendorSession);
+        if (parsed.vendorId) {
+          if (inAuthGroup || isIndexScreen) {
+            router.replace('/vendor-dashboard');
+          }
+          return;
         }
       }
+
+      if (userSession) {
+        // Couple is logged in
+        const parsed = JSON.parse(userSession);
+        if (parsed.uid) {
+          if (inAuthGroup || isIndexScreen) {
+            router.replace('/home');
+          }
+          return;
+        }
+      }
+
+      // No valid session — send to login
+      if (!inAuthGroup) {
+        router.replace('/login');
+      }
     } catch (e) {
+      // On any error, go to login safely
       router.replace('/login');
     } finally {
       setChecking(false);
     }
   };
 
-  if (checking) return null;
+  if (checking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F5F0E8', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#C9A84C" size="large" />
+      </View>
+    );
+  }
 
   return <>{children}</>;
 }
