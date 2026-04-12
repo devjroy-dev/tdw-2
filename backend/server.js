@@ -46,7 +46,33 @@ app.get('/', (req, res) => res.json({ message: 'The Dream Wedding API is live ðŸ
 
 app.get('/api/vendors', async (req, res) => {
   try {
-    const { category, city } = req.query;
+    const { category, city, email, firebase_uid, phone } = req.query;
+
+    // Vendor lookup by identity (for session rebuild after login)
+    if (email) {
+      const { data, error } = await supabase.from('vendors').select('*').ilike('instagram_url', `%${email}%`);
+      // Try email field first if it exists
+      const { data: emailData } = await supabase.from('vendors').select('*').eq('email', email);
+      if (emailData && emailData.length > 0) return res.json({ success: true, data: emailData });
+      // Fallback: check vendor_logins table
+      const { data: loginData } = await supabase.from('vendor_logins').select('vendor_id').eq('email', email).single();
+      if (loginData) {
+        const { data: vendorData } = await supabase.from('vendors').select('*').eq('id', loginData.vendor_id).single();
+        if (vendorData) return res.json({ success: true, data: [vendorData] });
+      }
+      return res.json({ success: true, data: [] });
+    }
+
+    if (firebase_uid) {
+      const { data: loginData } = await supabase.from('vendor_logins').select('vendor_id').eq('firebase_uid', firebase_uid).single();
+      if (loginData) {
+        const { data: vendorData } = await supabase.from('vendors').select('*').eq('id', loginData.vendor_id).single();
+        if (vendorData) return res.json({ success: true, data: [vendorData] });
+      }
+      return res.json({ success: true, data: [] });
+    }
+
+    // Normal browse query
     let query = supabase.from('vendors').select('*').eq('subscription_active', true);
     if (category) query = query.eq('category', category);
     if (city) {
@@ -1215,6 +1241,40 @@ app.delete('/api/team/:id', async (req, res) => {
       .eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+// ==================
+// VENDOR LOGINS â€” link firebase_uid to vendor_id
+// ==================
+
+app.post('/api/vendor-logins', async (req, res) => {
+  try {
+    const { vendor_id, firebase_uid, email, phone } = req.body;
+    const { data, error } = await supabase
+      .from('vendor_logins')
+      .upsert([{ vendor_id, firebase_uid, email, phone }], { onConflict: 'firebase_uid' })
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/vendor-logins/:firebaseUID', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_logins')
+      .select('*, vendors(*)')
+      .eq('firebase_uid', req.params.firebaseUID)
+      .single();
+    if (error) throw error;
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

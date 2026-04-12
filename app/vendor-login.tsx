@@ -17,20 +17,23 @@ GoogleSignin.configure({
   offlineAccess: true,
 });
 
-async function lookupVendor(email: string, phone?: string) {
+async function lookupVendor(firebaseUID: string) {
   try {
-    if (email) {
-      const res = await fetch(`${API}/api/vendors?email=${encodeURIComponent(email)}`);
-      const data = await res.json();
-      if (data.success && data.data && data.data.length > 0) return data.data[0];
-    }
-    if (phone) {
-      const res = await fetch(`${API}/api/vendors?phone=${encodeURIComponent(phone)}`);
-      const data = await res.json();
-      if (data.success && data.data && data.data.length > 0) return data.data[0];
-    }
+    const res = await fetch(`${API}/api/vendor-logins/${firebaseUID}`);
+    const data = await res.json();
+    if (data.success && data.data && data.data.vendors) return data.data.vendors;
     return null;
   } catch (e) { return null; }
+}
+
+async function saveVendorLogin(firebaseUID: string, vendorId: string, email?: string, phone?: string) {
+  try {
+    await fetch(`${API}/api/vendor-logins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vendor_id: vendorId, firebase_uid: firebaseUID, email, phone }),
+    });
+  } catch (e) {}
 }
 
 export default function VendorLoginScreen() {
@@ -51,6 +54,8 @@ export default function VendorLoginScreen() {
         plan: vendor.plan || 'basic', onboarded: true, ...extra,
       };
       await AsyncStorage.setItem('vendor_session', JSON.stringify(session));
+      // Save the firebase_uid <-> vendor_id link for future logins
+      await saveVendorLogin(firebaseUID, vendor.id, extra.email, extra.phone);
       router.replace('/vendor-dashboard');
     } else {
       await AsyncStorage.setItem('vendor_session', JSON.stringify({
@@ -70,7 +75,7 @@ export default function VendorLoginScreen() {
       if (!idToken) throw new Error('No ID token');
       const credential = GoogleAuthProvider.credential(idToken);
       const result = await signInWithCredential(auth, credential);
-      const vendor = await lookupVendor(result.user.email || '');
+      const vendor = await lookupVendor(result.user.uid);
       await buildAndSaveSession(result.user.uid, {
         email: result.user.email || '',
         name: result.user.displayName || '',
@@ -104,7 +109,7 @@ export default function VendorLoginScreen() {
       setLoading(true);
       const credential = PhoneAuthProvider.credential(verificationId, otp);
       const result = await signInWithCredential(auth, credential);
-      const vendor = await lookupVendor('', result.user.phoneNumber || `+91${phone}`);
+      const vendor = await lookupVendor(result.user.uid);
       await buildAndSaveSession(result.user.uid, {
         phone: result.user.phoneNumber || `+91${phone}`,
       }, vendor);
