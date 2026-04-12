@@ -1,5 +1,10 @@
 {
   "buildCommand": "cd web && npm install && npm run build",
   "outputDirectory": "web/.next",
-  "installCommand": "cd web && npm install"
+  "installCommand": "cd web && npm install",
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin" },
+    { "source": "/vendor/login", "destination": "/vendor/login" },
+    { "source": "/vendor/dashboard", "destination": "/vendor/dashboard" }
+  ]
 }
