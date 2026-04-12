@@ -1,13 +1,10 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
-import * as SplashScreen from "expo-splash-screen";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
-SplashScreen.preventAutoHideAsync();
-
-const AUTH_SCREENS = ["login", "otp", "user-type", "vendor-login", "vendor-onboarding"];
+const AUTH_SCREENS = ['login', 'otp', 'user-type', 'vendor-login', 'vendor-onboarding'];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -15,64 +12,57 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Small delay to ensure navigation is ready
-    const timer = setTimeout(() => {
-      checkSession();
-    }, 100);
-    return () => clearTimeout(timer);
+    checkSession();
   }, []);
 
   const checkSession = async () => {
     try {
-      // Step 1 — Check access grant
-      const accessRaw = await AsyncStorage.getItem("access_grant");
-      if (!accessRaw) { router.replace("/access-gate" as any); return; }
-      const access = JSON.parse(accessRaw);
-      if (!access.granted) { router.replace("/access-gate" as any); return; }
-      if (access.expires_at && new Date(access.expires_at) < new Date()) {
-        await AsyncStorage.removeItem("access_grant");
-        router.replace("/access-gate" as any);
-        return;
-      }
-      // Step 2 — Check session
+      // Always check BOTH session keys
       const [userSession, vendorSession] = await Promise.all([
-        AsyncStorage.getItem("user_session"),
-        AsyncStorage.getItem("vendor_session"),
+        AsyncStorage.getItem('user_session'),
+        AsyncStorage.getItem('vendor_session'),
       ]);
+
       const inAuthGroup = AUTH_SCREENS.includes(segments[0] as string);
-      const isIndexScreen = !segments[0] || segments[0] === undefined;
+      const isIndexScreen = segments[0] === 'index' || segments[0] === undefined;
+
       if (vendorSession) {
+        // Vendor is logged in
         const parsed = JSON.parse(vendorSession);
         if (parsed.vendorId) {
-          if (inAuthGroup || isIndexScreen) router.replace("/vendor-dashboard");
+          if (inAuthGroup || isIndexScreen) {
+            router.replace('/vendor-dashboard');
+          }
           return;
         }
       }
+
       if (userSession) {
+        // Couple is logged in
         const parsed = JSON.parse(userSession);
         if (parsed.uid) {
-          if (inAuthGroup || isIndexScreen) router.replace("/home");
+          if (inAuthGroup || isIndexScreen) {
+            router.replace('/home');
+          }
           return;
         }
       }
+
+      // No valid session — send to login
       if (!inAuthGroup) {
-        if (access.type === "vendor_permanent" || access.type === "vendor_demo") {
-          router.replace("/vendor-login");
-        } else {
-          router.replace("/login");
-        }
+        router.replace('/login');
       }
     } catch (e) {
-      router.replace("/access-gate" as any);
+      // On any error, go to login safely
+      router.replace('/login');
     } finally {
       setChecking(false);
-      await SplashScreen.hideAsync().catch(() => {});
     }
   };
 
   if (checking) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#F5F0E8", justifyContent: "center", alignItems: "center" }}>
+      <View style={{ flex: 1, backgroundColor: '#F5F0E8', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color="#C9A84C" size="large" />
       </View>
     );
@@ -88,7 +78,6 @@ export default function RootLayout() {
       <AuthGate>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="access-gate" />
           <Stack.Screen name="login" />
           <Stack.Screen name="otp" />
           <Stack.Screen name="user-type" />
