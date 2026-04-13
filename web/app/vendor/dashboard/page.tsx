@@ -877,27 +877,17 @@ export default function VendorDashboard() {
           borderBottom: '1px solid var(--sidebar-border)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {!sidebarCollapsed && <div style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '13px',
-            fontWeight: 300,
-            color: 'var(--cream)',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            marginBottom: '4px',
-          }}>
-            THE DREAM WEDDING
-          </div>
-          <div style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '11px',
-            fontWeight: 300,
-            color: 'var(--grey)',
-            letterSpacing: '0.3px',
-          }}>
-            {vendorData?.name || 'Vendor Dashboard'}
-          </div>}
-            <button onClick={() => setSidebarCollapsed(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sidebar-text)', padding: '4px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            {!sidebarCollapsed && (
+              <div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  THE DREAM WEDDING
+                </div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 300, color: 'var(--sidebar-text)', letterSpacing: '0.3px' }}>
+                  {vendorData?.name || 'Vendor Dashboard'}
+                </div>
+              </div>
+            )}
+            <button onClick={() => setSidebarCollapsed((p: boolean) => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sidebar-text)', padding: '4px', display: 'flex', alignItems: 'center', flexShrink: 0, fontSize: '16px' }}>
               {sidebarCollapsed ? '→' : '←'}
             </button>
           </div>
