@@ -54,6 +54,8 @@ export default function SwipeScreen() {
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const shimmerOpacity = useRef(new Animated.Value(0)).current;
 
   // Blind mode
   const [blindMode, setBlindMode] = useState(false);
@@ -187,6 +189,19 @@ export default function SwipeScreen() {
     }).start(() => nextCard());
 
     setSavedCount(prev => prev + 1);
+    // Heart pulse + gold shimmer
+    heartScale.setValue(0);
+    shimmerOpacity.setValue(0);
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(heartScale, { toValue: 1.2, tension: 200, friction: 5, useNativeDriver: true }),
+        Animated.spring(heartScale, { toValue: 0, tension: 100, friction: 8, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(shimmerOpacity, { toValue: 0.25, duration: 150, useNativeDriver: true }),
+        Animated.timing(shimmerOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]),
+    ]).start();
     // Save to moodboard
     if (userId) {
       try {
@@ -303,11 +318,59 @@ export default function SwipeScreen() {
     );
   }
 
+  // ─── End of stack ──────────────────────────────────────────────────────────
+  if (!vendor) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Feather name="arrow-left" size={20} color="#2C2420" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{categoryLabel}</Text>
+          </View>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 }}>
+          <Feather name="check-circle" size={48} color="#C9A84C" />
+          <Text style={{ fontSize: 22, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular', textAlign: 'center', marginTop: 20, letterSpacing: 0.3 }}>
+            You've seen everyone
+          </Text>
+          <Text style={{ fontSize: 14, color: '#8C7B6E', fontFamily: 'DMSans_300Light', textAlign: 'center', marginTop: 10, lineHeight: 22 }}>
+            {savedCount > 0 ? `${savedCount} vendor${savedCount !== 1 ? 's' : ''} saved to your Moodboard` : 'Try adjusting your filters for more options'}
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 32, marginTop: 28 }}
+            onPress={() => savedCount > 0 ? router.push('/moodboard') : router.back()}
+          >
+            <Text style={{ color: '#F5F0E8', fontSize: 13, fontFamily: 'DMSans_300Light', letterSpacing: 2, textTransform: 'uppercase' }}>
+              {savedCount > 0 ? 'VIEW MOODBOARD' : 'GO BACK'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   // ─── Main swipe screen ──────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
 
       {/* Toast */}
+      {/* Gold shimmer overlay on save */}
+      <Animated.View pointerEvents="none" style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: '#C9A84C', opacity: shimmerOpacity,
+      }} />
+
+      {/* Heart pulse on save */}
+      <Animated.View pointerEvents="none" style={{
+        position: 'absolute', top: '40%', alignSelf: 'center',
+        transform: [{ scale: heartScale }], opacity: heartScale,
+      }}>
+        <Feather name="heart" size={64} color="#C9A84C" />
+      </Animated.View>
+
       {showToast && (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
           <Text style={styles.toastText}>{toastMessage}</Text>
