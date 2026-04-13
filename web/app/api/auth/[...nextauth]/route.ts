@@ -18,6 +18,9 @@ const handler = NextAuth({
     async jwt({ token, account }) {
       return token;
     },
+    async redirect({ url, baseUrl }) {
+      return baseUrl + '/vendor/dashboard';
+    },
   },
 });
 
