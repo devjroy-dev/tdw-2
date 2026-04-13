@@ -496,9 +496,8 @@ export default function VendorDashboard() {
         const ls = localStorage.getItem('vendor_session') || sessionStorage.getItem('vendor_session') || '{}';
         session = JSON.parse(ls);
       } catch(e) {}
-      const urlParams = new URLSearchParams(window.location.search);
-      const isDemo = urlParams.get('demo') === '1';
-      if (isDemo && !session.vendorId) {
+      const isDemo = window.location.href.includes('demo=1') || window.location.href.includes('/vendor/demo');
+      if (isDemo || !session.vendorId) {
         session = { vendorId: '20792c76-b265-4063-a356-133ea1c6933b', vendorName: 'Dev Roy Productions', category: 'content-creators', city: 'Delhi NCR', plan: 'premium' };
       }
       const vendorId = session.vendorId || '4f78ee18-5728-4b80-a4db-f362ed117e4f';
