@@ -97,7 +97,10 @@ export default function LoginScreen() { const router = useRouter();
             <Text style={styles.logoThe}>THE</Text>
             <Text style={styles.logoMain}>Dream Wedding</Text>
             <Animated.View style={[styles.logoDivider, { width: dividerWidth }]} />
-            <Animated.Text style={[styles.logoTagline, { opacity: taglineOpacity }]}>It all starts here.</Animated.Text>
+            <Animated.View style={[styles.taglineWrap, { opacity: taglineOpacity }]}>
+              <Animated.Text style={styles.logoTagline}>Not just happily married.</Animated.Text>
+              <Animated.Text style={styles.logoTaglineBold}>Getting married happily.</Animated.Text>
+            </Animated.View>
           </Animated.View>
         </View>
         <Animated.View style={[styles.bottomSection, { opacity: buttonsOpacity, transform: [{ translateY: buttonsTranslate }] }]}>
@@ -141,7 +144,9 @@ const styles = StyleSheet.create({
   logoThe: { fontSize: 13, color: '#8C7B6E', letterSpacing: 12, textTransform: 'uppercase' },
   logoMain: { fontSize: 48, color: '#2C2420', letterSpacing: 1, textAlign: 'center', fontWeight: '300' },
   logoDivider: { height: 1, backgroundColor: '#C9A84C', marginVertical: 10 },
-  logoTagline: { fontSize: 15, color: '#8C7B6E', letterSpacing: 0.5 },
+  taglineWrap: { alignItems: 'center', gap: 4 },
+  logoTagline: { fontSize: 14, color: '#8C7B6E', letterSpacing: 0.3, fontFamily: 'DMSans_300Light' },
+  logoTaglineBold: { fontSize: 16, color: '#2C2420', letterSpacing: 0.3, fontFamily: 'PlayfairDisplay_400Regular' },
   bottomSection: { gap: 20 },
   buttons: { gap: 12 },
   socialButton: { width: '100%', borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 10, paddingVertical: 15, alignItems: 'center', backgroundColor: '#FFFFFF', elevation: 1 },
