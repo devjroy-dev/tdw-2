@@ -46,7 +46,6 @@ export default function LoginScreen() {
   });
 
   useEffect(() => {
-    if (!fontsLoaded) return;
 
     // Cinematic reveal sequence
     Animated.sequence([
@@ -90,7 +89,7 @@ export default function LoginScreen() {
       Animated.delay(200),
       Animated.timing(vendorOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
-  }, [fontsLoaded]);
+  }, []);
 
   const handleGoogleLogin = async () => {
     try {
@@ -133,11 +132,6 @@ export default function LoginScreen() {
       setGoogleLoading(false);
     }
   };
-
-  // Don't render until fonts are ready — prevents system font flash
-  if (!fontsLoaded) {
-    return <View style={s.loadingScreen} />;
-  }
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
