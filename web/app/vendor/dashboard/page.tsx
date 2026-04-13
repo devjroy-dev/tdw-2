@@ -1387,9 +1387,11 @@ export default function VendorDashboard() {
                 </span>
               </div>
               {invoices.length === 0 ? (
-                <div style={{ padding: '48px', textAlign: 'center' }}>
-                  <FileText size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No invoices yet. Create your first invoice above.</p>
+                <div style={{ padding: '64px 48px', textAlign: 'center' }}>
+                  <FileText size={32} color="#E5E7EB" style={{ marginBottom: '16px' }} />
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>No invoices yet</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>Create your first invoice and send it directly to your client.</div>
+                  <button onClick={() => setShowInvoiceForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Create Invoice</button>
                 </div>
               ) : (
                 invoices.map((inv, i) => (
@@ -1491,9 +1493,11 @@ export default function VendorDashboard() {
                 </span>
               </div>
               {contracts.length === 0 ? (
-                <div style={{ padding: '48px', textAlign: 'center' }}>
-                  <FileText size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No contracts yet. Create your first service agreement above.</p>
+                <div style={{ padding: '64px 48px', textAlign: 'center' }}>
+                  <FileText size={32} color="#E5E7EB" style={{ marginBottom: '16px' }} />
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>No contracts yet</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>A signed contract protects you and your client. Create one before every booking.</div>
+                  <button onClick={() => setShowContractForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Create Contract</button>
                 </div>
               ) : (
                 contracts.map((con, i) => (
@@ -1652,9 +1656,11 @@ export default function VendorDashboard() {
             )}
 
             {paymentSchedules.length === 0 ? (
-              <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-                <CreditCard size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No payment schedules yet.</p>
+              <div className="card" style={{ padding: '64px 48px', textAlign: 'center' }}>
+                <CreditCard size={32} color="#E5E7EB" style={{ marginBottom: '16px' }} />
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>No payment schedules yet</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>Break down your booking fee into instalments. Never chase payments manually again.</div>
+                <button onClick={() => setShowPayForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Add Payment Schedule</button>
               </div>
             ) : (
               paymentSchedules.map(schedule => (
@@ -1791,9 +1797,11 @@ export default function VendorDashboard() {
                 <span className="section-label">{expenses.length} expense{expenses.length !== 1 ? 's' : ''}</span>
               </div>
               {expenses.length === 0 ? (
-                <div style={{ padding: '48px', textAlign: 'center' }}>
-                  <MinusCircle size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No expenses recorded yet.</p>
+                <div style={{ padding: '64px 48px', textAlign: 'center' }}>
+                  <MinusCircle size={32} color="#E5E7EB" style={{ marginBottom: '16px' }} />
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>No expenses recorded yet</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>Track every shoot cost, travel expense and equipment purchase. Know your real profit per booking.</div>
+                  <button onClick={() => setShowExpForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Log Expense</button>
                 </div>
               ) : (
                 expenses.map((exp, i) => (
