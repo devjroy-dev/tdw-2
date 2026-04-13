@@ -15,34 +15,48 @@ import {
 const API = 'https://dream-wedding-production-89ae.up.railway.app/api';
 
 // ── Sidebar tabs ────────────────────────────────────────────────
-const ACTIVE_TABS = [
-  { id: 'overview', label: 'Overview', icon: Grid },
-  { id: 'clients', label: 'Clients', icon: Users },
-  { id: 'inquiries', label: 'Inquiries', icon: MessageCircle },
-  { id: 'invoices', label: 'Invoices', icon: FileText },
-  { id: 'payments', label: 'Payment Schedules', icon: CreditCard },
-  { id: 'outstanding', label: 'Outstanding Payments', icon: DollarSign },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
-  { id: 'contracts', label: 'Contracts', icon: FileText },
-  { id: 'expenses', label: 'Expense Tracker', icon: MinusCircle },
-  { id: 'profit', label: 'Profit per Booking', icon: Target },
-  { id: 'packages', label: 'Package Builder', icon: Package },
-  { id: 'timeline', label: 'Client Timeline', icon: Activity },
-  { id: 'delivery', label: 'Delivery Tracker', icon: Truck },
-  { id: 'forecast', label: 'Revenue Forecast', icon: TrendingUp },
-  { id: 'runsheet', label: 'Day-of Runsheet', icon: List },
-  { id: 'checklist', label: 'Pre-Wedding Checklist', icon: CheckSquare },
-  { id: 'equipment', label: 'Equipment Checklist', icon: Tool },
-  { id: 'cash', label: 'Cash Payments', icon: DollarSign },
-  { id: 'tax', label: 'Tax & Finance', icon: Percent },
-  { id: 'advancetax', label: 'Advance Tax', icon: BookOpen },
-  { id: 'referral', label: 'Referral Tracker', icon: Gift },
-  { id: 'availability', label: 'Availability Calendar', icon: Calendar },
-  { id: 'templates', label: 'Message Templates', icon: MessageCircle },
-  { id: 'csvimport', label: 'Import / Export', icon: Upload },
-  { id: 'team', label: 'My Team', icon: Users },
-  { id: 'settings', label: 'Settings', icon: Settings },
+const SIDEBAR_SECTIONS = [
+  { title: 'Overview', tabs: [
+    { id: 'overview', label: 'Overview', icon: Grid },
+  ]},
+  { title: 'Daily Operations', tabs: [
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'inquiries', label: 'Inquiries', icon: MessageCircle },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'availability', label: 'Availability Calendar', icon: Calendar },
+    { id: 'templates', label: 'Message Templates', icon: MessageCircle },
+  ]},
+  { title: 'Finance', tabs: [
+    { id: 'invoices', label: 'Invoices', icon: FileText },
+    { id: 'payments', label: 'Payment Schedules', icon: CreditCard },
+    { id: 'outstanding', label: 'Outstanding Payments', icon: DollarSign },
+    { id: 'expenses', label: 'Expense Tracker', icon: MinusCircle },
+    { id: 'profit', label: 'Profit per Booking', icon: Target },
+    { id: 'cash', label: 'Cash Payments', icon: DollarSign },
+    { id: 'tax', label: 'Tax & Finance', icon: Percent },
+    { id: 'advancetax', label: 'Advance Tax', icon: BookOpen },
+    { id: 'forecast', label: 'Revenue Forecast', icon: TrendingUp },
+  ]},
+  { title: 'Planning', tabs: [
+    { id: 'contracts', label: 'Contracts', icon: FileText },
+    { id: 'packages', label: 'Package Builder', icon: Package },
+    { id: 'timeline', label: 'Client Timeline', icon: Activity },
+    { id: 'delivery', label: 'Delivery Tracker', icon: Truck },
+    { id: 'runsheet', label: 'Day-of Runsheet', icon: List },
+    { id: 'checklist', label: 'Pre-Wedding Checklist', icon: CheckSquare },
+    { id: 'equipment', label: 'Equipment Checklist', icon: Tool },
+  ]},
+  { title: 'Growth', tabs: [
+    { id: 'referral', label: 'Referral Tracker', icon: Gift },
+    { id: 'csvimport', label: 'Import / Export', icon: Upload },
+  ]},
+  { title: 'Account', tabs: [
+    { id: 'team', label: 'My Team', icon: Users },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ]},
 ];
+
+const ACTIVE_TABS = SIDEBAR_SECTIONS.flatMap(s => s.tabs);
 
 const COMING_SOON_TABS = [
   { id: 'analytics', label: 'Analytics', icon: BarChart2, build: 'Build 2', desc: 'Deep performance insights, conversion rates, seasonal demand curves and revenue forecasting.' },
@@ -248,6 +262,7 @@ export default function VendorDashboard() {
   const [loading, setLoading] = useState(true);
   const [isLive, setIsLive] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ 'Overview': true, 'Daily Operations': true, 'Finance': false, 'Planning': false, 'Growth': false, 'Account': false });
 
   // Data states
   const [invoices, setInvoices] = useState<any[]>([]);
