@@ -1363,6 +1363,47 @@ app.post('/api/access-codes/validate', async (req, res) => {
   }
 });
 
+
+// ── Vendor Login Codes ──────────────────────────────────────────────────────
+app.post('/api/vendor-login-codes', async (req, res) => {
+  try {
+    const { vendor_id, code, expires_at } = req.body;
+    // Delete any existing codes for this vendor first
+    await supabase.from('vendor_login_codes').delete().eq('vendor_id', vendor_id);
+    // Insert new code
+    const { data, error } = await supabase
+      .from('vendor_login_codes')
+      .insert([{ vendor_id, code, expires_at }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/vendor-login-codes/verify', async (req, res) => {
+  try {
+    const { code } = req.body;
+    const { data, error } = await supabase
+      .from('vendor_login_codes')
+      .select('*, vendors(*)')
+      .eq('code', code)
+      .single();
+    if (error || !data) return res.json({ success: false, error: 'Invalid code' });
+    // Check expiry
+    if (new Date(data.expires_at) < new Date()) {
+      await supabase.from('vendor_login_codes').delete().eq('code', code);
+      return res.json({ success: false, error: 'Code expired' });
+    }
+    // Delete code after use
+    await supabase.from('vendor_login_codes').delete().eq('code', code);
+    res.json({ success: true, data: data.vendors });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 app.get('/api/access-codes', async (req, res) => {
   try {
     const { data, error } = await supabase.from('access_codes').select('*').order('created_at', { ascending: false });

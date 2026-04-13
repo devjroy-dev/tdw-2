@@ -224,6 +224,8 @@ export default function VendorDashboardScreen() {
   const [teamMemberPhone, setTeamMemberPhone] = useState('');
   const [teamMemberRole, setTeamMemberRole] = useState('');
   const [teamLoading, setTeamLoading] = useState(false);
+  const [loginCode, setLoginCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   // Data state
   const [benchmark, setBenchmark] = useState<any>(null);
@@ -661,6 +663,29 @@ export default function VendorDashboardScreen() {
       await fetch(`${API}/api/team/${id}`, { method: 'DELETE' });
       setTeamMembers(prev => prev.filter(m => m.id !== id));
     } catch (e) {}
+  };
+
+  const handleGenerateCode = async () => {
+    try {
+      setGeneratingCode(true);
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      await fetch(`${API}/api/vendor-login-codes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: vendorSession.vendorId,
+          code,
+          expires_at: expires,
+        }),
+      });
+      setLoginCode(code);
+      setTimeout(() => setLoginCode(null), 5 * 60 * 1000);
+    } catch (e) {
+      Alert.alert('Error', 'Could not generate code. Please try again.');
+    } finally {
+      setGeneratingCode(false);
+    }
   };
 
   const loadSession = async () => {
@@ -1488,6 +1513,40 @@ export default function VendorDashboardScreen() {
             <TouchableOpacity style={styles.previewBtn} onPress={() => router.push('/vendor-preview')}>
               <Feather name="eye" size={13} color="#C9A84C" />
               <Text style={styles.previewBtnText}>Preview your profile as couples see it</Text>
+            </TouchableOpacity>
+
+            {/* ── Web Dashboard Login Code ── */}
+            <TouchableOpacity
+              style={styles.loginCodeBtn}
+              onPress={handleGenerateCode}
+              disabled={generatingCode}
+              activeOpacity={0.85}
+            >
+              {generatingCode ? (
+                <ActivityIndicator color="#C9A84C" size="small" />
+              ) : loginCode ? (
+                <View style={styles.loginCodeInner}>
+                  <View style={styles.loginCodeLeft}>
+                    <Feather name="monitor" size={14} color="#C9A84C" />
+                    <View>
+                      <Text style={styles.loginCodeLabel}>Web Dashboard Code</Text>
+                      <Text style={styles.loginCodeHint}>Expires in 5 min · One-time use</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.loginCodeValue}>{loginCode}</Text>
+                </View>
+              ) : (
+                <View style={styles.loginCodeInner}>
+                  <View style={styles.loginCodeLeft}>
+                    <Feather name="monitor" size={14} color="#C9A84C" />
+                    <View>
+                      <Text style={styles.loginCodeLabel}>Generate Web Login Code</Text>
+                      <Text style={styles.loginCodeHint}>Log in to vendor.thedreamwedding.in</Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={16} color="#C9A84C" />
+                </View>
+              )}
             </TouchableOpacity>
 
             <View style={styles.comingSoonSection}>
@@ -2909,6 +2968,42 @@ const styles = StyleSheet.create({
   noteText: { flex: 1, fontSize: 12, color: '#8C7B6E', fontFamily: 'DMSans_300Light', fontStyle: 'italic', lineHeight: 18 },
   noteEditRow: { paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F0EDE8', marginTop: 4 },
   noteInput: { backgroundColor: '#F5F0E8', borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D5', paddingVertical: 10, paddingHorizontal: 12, fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular', minHeight: 70, textAlignVertical: 'top' },
+  loginCodeBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#C9A84C',
+  },
+  loginCodeInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  loginCodeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  loginCodeLabel: {
+    fontSize: 14,
+    color: '#2C2420',
+    fontFamily: 'PlayfairDisplay_400Regular',
+    letterSpacing: 0.2,
+  },
+  loginCodeHint: {
+    fontSize: 11,
+    color: '#8C7B6E',
+    fontFamily: 'DMSans_300Light',
+    marginTop: 2,
+  },
+  loginCodeValue: {
+    fontSize: 28,
+    color: '#C9A84C',
+    fontFamily: 'PlayfairDisplay_600SemiBold',
+    letterSpacing: 6,
+  },
   noticeCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#FFF8EC', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#E8D9B5' },
   invoiceHistoryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14 },
   invoiceHistoryClient: { fontSize: 14, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular' },
