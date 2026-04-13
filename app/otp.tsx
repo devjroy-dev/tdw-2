@@ -1,5 +1,5 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
+
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, StyleSheet, Text,
@@ -7,7 +7,8 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { auth } from '../services/firebase';
+
+const API = 'https://dream-wedding-production-89ae.up.railway.app';
 import { createOrGetUser } from '../services/api';
 
 export default function OTPScreen() {
@@ -18,33 +19,45 @@ export default function OTPScreen() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationId, setVerificationId] = useState('');
+  const [sessionInfo, setSessionInfo] = useState('');
   const isEmailMode = mode === 'email';
 
   const handleSendOTP = async () => {
     try {
       setLoading(true);
-      const provider = new PhoneAuthProvider(auth);
-      const fakeVerifier = { type: 'recaptcha' as const, verify: () => Promise.resolve('') } as any;
-      const id = await provider.verifyPhoneNumber(`+91${phone}`, fakeVerifier);
-      setVerificationId(id);
+      const res = await fetch(`${API}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        Alert.alert('Error', data.error || 'Could not send OTP.');
+        return;
+      }
+      setSessionInfo(data.sessionInfo);
       setOtpSent(true);
       Alert.alert('Code Sent', `Verification code sent to +91 ${phone}`);
     } catch (error: any) {
-      const msg = error?.code === 'auth/invalid-phone-number' ? 'Please enter a valid 10-digit phone number.'
-        : error?.code === 'auth/too-many-requests' ? 'Too many attempts. Please try again later.'
-        : 'Could not send OTP. Please check your number and try again.';
-      Alert.alert('Error', msg);
+      Alert.alert('Error', 'Could not send OTP. Please check your number and try again.');
     } finally { setLoading(false); }
   };
 
   const handleVerify = async () => {
     try {
       setLoading(true);
-      const credential = PhoneAuthProvider.credential(verificationId, otp);
-      const result = await signInWithCredential(auth, credential);
-      const firebaseUID = result.user.uid;
-      const userPhone = result.user.phoneNumber || `+91${phone}`;
+      const res = await fetch(`${API}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionInfo, code: otp }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        Alert.alert('Error', data.error || 'Verification failed.');
+        return;
+      }
+      const firebaseUID = data.localId;
+      const userPhone = data.phoneNumber || `+91${phone}`;
       let userData = null;
       try {
         const userResult = await createOrGetUser(userPhone);
@@ -61,17 +74,13 @@ export default function OTPScreen() {
         wedding_date: userData?.wedding_date || '',
       };
       await AsyncStorage.setItem('user_session', JSON.stringify(session));
-      // If returning user, go home. If new, go to user-type
       if (userData && userData.name && userData.name.length > 0) {
         router.replace('/home');
       } else {
         router.replace('/user-type');
       }
     } catch (error: any) {
-      const msg = error?.code === 'auth/invalid-verification-code' ? 'The code you entered is incorrect. Please try again.'
-        : error?.code === 'auth/code-expired' ? 'This code has expired. Please request a new one.'
-        : 'Verification failed. Please try again.';
-      Alert.alert('Error', msg);
+      Alert.alert('Error', 'Verification failed. Please try again.');
     } finally { setLoading(false); }
   };
 

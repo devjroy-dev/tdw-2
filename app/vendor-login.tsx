@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PhoneAuthProvider, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../services/firebase';
@@ -91,27 +91,40 @@ export default function VendorLoginScreen() {
   const handleSendOTP = async () => {
     try {
       setLoading(true);
-      const provider = new PhoneAuthProvider(auth);
-      const vid = await provider.verifyPhoneNumber(`+91${phone}`, { type: 'recaptcha', verify: () => Promise.resolve('') } as any);
-      setVerificationId(vid);
+      const res = await fetch(`${API}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        Alert.alert('Error', data.error || 'Could not send OTP.');
+        return;
+      }
+      setVerificationId(data.sessionInfo);
       setOtpSent(true);
       Alert.alert('Code Sent', `Verification code sent to +91 ${phone}`);
     } catch (error: any) {
-      const msg = error?.code === 'auth/invalid-phone-number' ? 'Please enter a valid 10-digit number.'
-        : error?.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.'
-        : 'Could not send OTP. Please try again.';
-      Alert.alert('Error', msg);
+      Alert.alert('Error', 'Could not send OTP. Please try again.');
     } finally { setLoading(false); }
   };
 
   const handleVerify = async () => {
     try {
       setLoading(true);
-      const credential = PhoneAuthProvider.credential(verificationId, otp);
-      const result = await signInWithCredential(auth, credential);
-      const vendor = await lookupVendor(result.user.uid);
-      await buildAndSaveSession(result.user.uid, {
-        phone: result.user.phoneNumber || `+91${phone}`,
+      const res = await fetch(`${API}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionInfo: verificationId, code: otp }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        Alert.alert('Error', data.error || 'Verification failed.');
+        return;
+      }
+      const vendor = await lookupVendor(data.localId);
+      await buildAndSaveSession(data.localId, {
+        phone: data.phoneNumber || `+91${phone}`,
       }, vendor);
     } catch (error: any) {
       Alert.alert('Error', 'Incorrect OTP. Please check and try again.');
