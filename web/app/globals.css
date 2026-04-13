@@ -7,37 +7,37 @@
 :root {
   /* Brand colors — mobile app */
   --gold: #C9A84C;
-  --dark: #111827;
+  --dark: #2C2420;
   --cream: #F5F0E8;
   --cream-dark: #EDE8DF;
   --light-gold: #FFF8EC;
-  --border: #E5E7EB;
+  --border: #E8E0D5;
   --gold-border: #E8D9B5;
-  --grey: #6B7280;
-  --grey-light: #9CA3AF;
+  --grey: #8C7B6E;
+  --grey-light: #C4B8AC;
   --white: #FFFFFF;
-  --green: #16A34A;
-  --red: #DC2626;
+  --green: #4CAF50;
+  --red: #E57373;
   --whatsapp: #25D366;
 
   /* Corporate Web Portal — monochrome + gold accent */
   --sidebar-bg: #0F1117;
   --sidebar-border: #1F2937;
-  --sidebar-text: #6B7280;
+  --sidebar-text: #8C7B6E;
   --sidebar-active: #C9A84C;
   --sidebar-hover: #1F2937;
   --content-bg: #FFFFFF;
   --header-bg: #FFFFFF;
-  --header-border: #E5E7EB;
+  --header-border: #E8E0D5;
   --table-header: #F9FAFB;
-  --table-border: #E5E7EB;
+  --table-border: #E8E0D5;
   --card-bg: #FFFFFF;
-  --card-border: #E5E7EB;
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-muted: #6B7280;
-  --btn-primary: #111827;
-  --btn-primary-text: #FFFFFF;
+  --card-border: #E8E0D5;
+  --text-primary: #2C2420;
+  --text-secondary: #5C4A3A;
+  --text-muted: #8C7B6E;
+  --btn-primary: #2C2420;
+  --btn-primary-text: #F5F0E8;
 }
 
 * {
