@@ -492,7 +492,10 @@ export default function VendorDashboard() {
     try {
       setLoading(true);
       let session: any = {};
-      try { session = JSON.parse(localStorage.getItem('vendor_session') || '{}'); } catch(e) {}
+      try {
+        const ls = localStorage.getItem('vendor_session') || sessionStorage.getItem('vendor_session') || '{}';
+        session = JSON.parse(ls);
+      } catch(e) {}
       const urlParams = new URLSearchParams(window.location.search);
       const isDemo = urlParams.get('demo') === '1';
       if (isDemo && !session.vendorId) {

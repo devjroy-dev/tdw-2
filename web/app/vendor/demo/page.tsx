@@ -1,18 +1,24 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function DemoPage() {
+  const [status, setStatus] = useState('Preparing demo...');
+
   useEffect(() => {
-    localStorage.setItem('vendor_session', JSON.stringify({
+    const session = JSON.stringify({
       vendorId: '20792c76-b265-4063-a356-133ea1c6933b',
       vendorName: 'Dev Roy Productions',
       category: 'content-creators',
       city: 'Delhi NCR',
       plan: 'premium',
-    }));
-    setTimeout(() => {
-      window.location.href = '/vendor/dashboard';
-    }, 500);
+    });
+    try {
+      localStorage.setItem('vendor_session', session);
+      sessionStorage.setItem('vendor_session', session);
+    } catch(e) {}
+    setStatus('Redirecting...');
+    // Use window.location.replace — works better on Safari than router.push
+    window.location.replace('/vendor/dashboard?demo=1');
   }, []);
 
   return (
@@ -21,7 +27,7 @@ export default function DemoPage() {
         THE DREAM WEDDING
       </div>
       <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
-        Loading demo...
+        {status}
       </div>
     </div>
   );
