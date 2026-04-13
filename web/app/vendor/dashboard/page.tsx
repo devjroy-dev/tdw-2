@@ -491,7 +491,7 @@ export default function VendorDashboard() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      let session = {};
+      let session: any = {};
       try { session = JSON.parse(localStorage.getItem('vendor_session') || '{}'); } catch(e) {}
       const urlParams = new URLSearchParams(window.location.search);
       const isDemo = urlParams.get('demo') === '1';
