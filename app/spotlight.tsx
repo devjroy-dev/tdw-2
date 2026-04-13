@@ -18,6 +18,7 @@ import {
   DMSans_500Medium,
 } from '@expo-google-fonts/dm-sans';
 import BottomNav from '../components/BottomNav';
+import { ListSkeleton } from '../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 
@@ -150,9 +151,9 @@ export default function SpotlightScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.centered}>
-          <ActivityIndicator color="#C9A84C" size="large" />
-          <Text style={styles.loadingText}>Curating this month's spotlight...</Text>
+        <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
+          <View style={{ width: 200, height: 24, borderRadius: 8, backgroundColor: '#E8E0D5', opacity: 0.5, marginBottom: 16 }} />
+          <ListSkeleton rows={6} />
         </View>
       </View>
     );

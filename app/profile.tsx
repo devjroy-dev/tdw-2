@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateUser } from '../services/api';
 import { Feather } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import { ProfileSkeleton, ListSkeleton } from '../components/SkeletonLoader';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -41,48 +42,7 @@ export default function ProfileScreen() {
       const updated = { ...session, name: editName.trim() };
       await AsyncStorage.setItem('user_session', JSON.stringify(updated));
       if (session?.userId) {
-        try { await updateUser(session.userId, { name: editName.trim()   betaTitle: {
-    fontSize: 14,
-    color: '#2C2420',
-    fontFamily: 'PlayfairDisplay_400Regular',
-    letterSpacing: 0.2,
-  },
-  betaDesc: {
-    fontSize: 11,
-    color: '#8C7B6E',
-    fontFamily: 'DMSans_300Light',
-    lineHeight: 16,
-    letterSpacing: 0.2,
-  },
-  betaBadgeLive: {
-    backgroundColor: '#4CAF5015',
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-    borderRadius: 50,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  betaBadgeLiveText: {
-    fontSize: 10,
-    color: '#4CAF50',
-    fontFamily: 'DMSans_500Medium',
-    letterSpacing: 0.5,
-  },
-  betaBadgeSoon: {
-    backgroundColor: 'rgba(201,168,76,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.3)',
-    borderRadius: 50,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  betaBadgeSoonText: {
-    fontSize: 10,
-    color: '#C9A84C',
-    fontFamily: 'DMSans_500Medium',
-    letterSpacing: 0.5,
-  },
-}); } catch (e) {}
+        try { await updateUser(session.userId, { name: editName.trim() }); } catch (e) {}
       }
       setSession(updated);
       setShowEditModal(false);
@@ -485,4 +445,10 @@ const styles = StyleSheet.create({
   modalBtnText: { fontSize: 15, color: '#F5F0E8', fontWeight: '500' },
   modalCancel: { alignItems: 'center', paddingVertical: 8 },
   modalCancelText: { fontSize: 14, color: '#8C7B6E' },
+  betaTitle: { fontSize: 14, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular', letterSpacing: 0.2 },
+  betaDesc: { fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light', lineHeight: 16, letterSpacing: 0.2 },
+  betaBadgeLive: { backgroundColor: '#4CAF5015', borderWidth: 1, borderColor: '#4CAF50', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 3 },
+  betaBadgeLiveText: { fontSize: 10, color: '#4CAF50', fontFamily: 'DMSans_500Medium', letterSpacing: 0.5 },
+  betaBadgeSoon: { backgroundColor: 'rgba(201,168,76,0.1)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 3 },
+  betaBadgeSoonText: { fontSize: 10, color: '#C9A84C', fontFamily: 'DMSans_500Medium', letterSpacing: 0.5 },
 });

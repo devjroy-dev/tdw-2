@@ -25,7 +25,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       ]);
 
       const inAuthGroup = AUTH_SCREENS.includes(segments[0] as string);
-      const isIndexScreen = segments[0] === 'index' || segments[0] === undefined;
+      const isIndexScreen = segments[0] === 'index' as any || segments[0] === undefined;
 
       if (vendorSession) {
         // Vendor is logged in

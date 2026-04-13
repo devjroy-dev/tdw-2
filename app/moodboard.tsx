@@ -19,6 +19,7 @@ import {
   DMSans_500Medium,
 } from '@expo-google-fonts/dm-sans';
 import BottomNav from '../components/BottomNav';
+import { ListSkeleton } from '../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 60) / 2;
@@ -173,8 +174,15 @@ export default function MoodboardScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color="#C9A84C" size="large" />
+      <View style={[styles.container, { paddingTop: 60 }]}>
+        <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+          <View style={{ width: 180, height: 28, borderRadius: 8, backgroundColor: '#E8E0D5', opacity: 0.5, marginBottom: 8 }} />
+          <View style={{ width: 120, height: 13, borderRadius: 6, backgroundColor: '#E8E0D5', opacity: 0.4 }} />
+        </View>
+        <View style={{ paddingHorizontal: 24 }}>
+          <ListSkeleton rows={5} />
+        </View>
+        <BottomNav />
       </View>
     );
   }

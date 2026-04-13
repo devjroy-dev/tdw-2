@@ -618,6 +618,12 @@ export default function VendorDashboardScreen() {
     }
   };
 
+  const handleShareContract = (contract: any) => {
+    const vendorName = vendorSession?.vendorName || 'Your Vendor';
+    const message = 'Hi ' + contract.client_name + '! Here are your contract details for ' + (contract.event_type || 'your event') + ' on ' + (contract.event_date || 'TBD') + '.\n\nTotal: Rs.' + (contract.total_amount || 0).toLocaleString('en-IN') + '\nAdvance: Rs.' + (contract.advance_amount || 0).toLocaleString('en-IN') + '\nVenue: ' + (contract.venue || 'TBD') + '\n\n— ' + vendorName + ', The Dream Wedding';
+    Linking.openURL('whatsapp://send?phone=91' + (contract.client_phone || '') + '&text=' + encodeURIComponent(message));
+  };
+
   const handleMarkInstalmentPaid = async (scheduleId: string, instalmentIndex: number) => {
     try {
       const schedule = paymentSchedules.find(s => s.id === scheduleId);
@@ -1929,7 +1935,7 @@ export default function VendorDashboardScreen() {
                   <TextInput style={styles.modalInput} placeholder="Phone (10 digits)" placeholderTextColor="#8C7B6E" value={invoicePhone} onChangeText={setInvoicePhone} keyboardType="phone-pad" maxLength={10} />
                   <TextInput style={styles.modalInput} placeholder="Amount (excl. GST)" placeholderTextColor="#8C7B6E" value={invoiceAmount} onChangeText={setInvoiceAmount} keyboardType="numeric" />
                   <TextInput style={styles.modalInput} placeholder="Description" placeholderTextColor="#8C7B6E" value={invoiceDesc} onChangeText={setInvoiceDesc} />
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleCreateInvoice}>
+                  <TouchableOpacity style={styles.goldBtn} onPress={handleGenerateInvoice}>
                     <Text style={styles.goldBtnText}>GENERATE INVOICE</Text>
                   </TouchableOpacity>
                 </View>
@@ -2022,7 +2028,7 @@ export default function VendorDashboardScreen() {
                       <TextInput style={styles.modalInput} placeholder="Due date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={inst.due_date} onChangeText={(v) => { const u = [...paymentInstalments]; u[idx].due_date = v; setPaymentInstalments(u); }} />
                     </View>
                   ))}
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleCreatePaymentSchedule}>
+                  <TouchableOpacity style={styles.goldBtn} onPress={handleSavePaymentSchedule}>
                     <Text style={styles.goldBtnText}>CREATE SCHEDULE</Text>
                   </TouchableOpacity>
                 </View>
@@ -2106,7 +2112,7 @@ export default function VendorDashboardScreen() {
                   <TextInput style={styles.modalInput} placeholder="Services included" placeholderTextColor="#8C7B6E" value={contractServices} onChangeText={setContractServices} multiline />
                   <TextInput style={styles.modalInput} placeholder="Total amount" placeholderTextColor="#8C7B6E" value={contractTotal} onChangeText={setContractTotal} keyboardType="numeric" />
                   <TextInput style={styles.modalInput} placeholder="Advance / token amount" placeholderTextColor="#8C7B6E" value={contractAdvance} onChangeText={setContractAdvance} keyboardType="numeric" />
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleCreateContract}>
+                  <TouchableOpacity style={styles.goldBtn} onPress={handleGenerateContract}>
                     <Text style={styles.goldBtnText}>GENERATE CONTRACT</Text>
                   </TouchableOpacity>
                 </View>
