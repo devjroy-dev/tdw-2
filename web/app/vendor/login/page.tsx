@@ -9,13 +9,9 @@ export default function VendorLoginPage() {
   const [error, setError] = useState('');
 
   const handleCodeLogin = async () => {
-    if (code.length !== 6) {
-      setError('Please enter a 6-digit code');
-      return;
-    }
+    if (code.length !== 6) { setError('Please enter a 6-digit code'); return; }
     try {
-      setLoading(true);
-      setError('');
+      setLoading(true); setError('');
       const res = await fetch(`${API}/api/vendor-login-codes/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -23,7 +19,6 @@ export default function VendorLoginPage() {
       });
       const data = await res.json();
       if (data.success && data.data) {
-        // Store vendor session in localStorage
         localStorage.setItem('vendor_session', JSON.stringify({
           vendorId: data.data.id,
           vendorName: data.data.name,
@@ -37,89 +32,119 @@ export default function VendorLoginPage() {
       }
     } catch (e) {
       setError('Could not verify code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
+  const features = [
+    { label: 'Invoice & contract management' },
+    { label: 'Payment schedules with WhatsApp reminders' },
+    { label: 'P&L per booking — real margin, not just revenue' },
+    { label: 'Day-of runsheet, delivery tracker, client timeline' },
+    { label: 'TDS reconciliation & advance tax calculator' },
+  ];
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#F5F0E8',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-    }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <span style={{
-            fontFamily: 'Playfair Display, serif',
-            fontSize: '22px', fontWeight: 300, color: '#2C2420',
-            letterSpacing: '2px', textTransform: 'uppercase',
-            display: 'block', marginBottom: '8px',
-          }}>The Dream Wedding</span>
-          <span style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '12px', color: '#8C7B6E',
-            letterSpacing: '0.5px', fontStyle: 'italic',
-          }}>Vendor Partner Portal</span>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
+
+      {/* Left panel */}
+      <div style={{
+        width: '55%', background: '#0F1117',
+        display: 'flex', flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '48px 56px',
+      }}>
+        {/* Logo */}
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2.5px', color: '#C9A84C', textTransform: 'uppercase' }}>
+            THE DREAM WEDDING
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.5px', marginTop: '4px' }}>
+            Vendor Business Portal
+          </div>
         </div>
 
-        <div style={{
-          background: '#FFFFFF', border: '1px solid #E8E0D5',
-          borderRadius: '20px', padding: '48px 40px', textAlign: 'center',
-        }}>
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '14px',
-            backgroundColor: '#FFF8EC', border: '1px solid #E8D9B5',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px', fontSize: '24px',
-          }}>✦</div>
+        {/* Hero */}
+        <div>
+          <div style={{ fontSize: '36px', fontWeight: 300, color: '#fff', lineHeight: 1.25, letterSpacing: '-0.5px', marginBottom: '16px' }}>
+            Your wedding business,<br />
+            <span style={{ color: '#C9A84C' }}>fully organised.</span>
+          </div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '40px', lineHeight: 1.7 }}>
+            The only platform in India that combines couple discovery<br />with a complete vendor operating system.
+          </div>
 
-          <h1 style={{
-            fontFamily: 'Playfair Display, serif',
-            fontSize: '28px', fontWeight: 300, color: '#2C2420',
-            marginBottom: '10px', letterSpacing: '0.3px',
-          }}>Welcome back</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {features.map((f, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A84C', flexShrink: 0 }} />
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', fontWeight: 400 }}>{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <p style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '14px', color: '#8C7B6E',
-            marginBottom: '36px', lineHeight: 1.6,
-          }}>Open The Dream Wedding app → Overview → Generate Web Login Code. Enter it below.</p>
+        {/* Footer stat */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px' }}>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.3px' }}>
+            Built for Indian wedding professionals earning Rs.10L–1Cr/year
+          </div>
+        </div>
+      </div>
 
-          <div style={{ marginBottom: '16px' }}>
+      {/* Right panel */}
+      <div style={{
+        width: '45%', background: '#fff',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '56px 64px',
+      }}>
+        <div style={{ width: '100%', maxWidth: '360px' }}>
+
+          <div style={{ marginBottom: '36px' }}>
+            <div style={{ fontSize: '22px', fontWeight: 600, color: '#0F1117', marginBottom: '8px', letterSpacing: '-0.3px' }}>
+              Sign in to your portal
+            </div>
+            <div style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6 }}>
+              Open the app → Overview → Generate Web Login Code, then enter it below.
+            </div>
+          </div>
+
+          {/* Code input */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', fontWeight: 500, color: '#6B7280', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+              6-Digit Login Code
+            </label>
             <input
               type="text"
               maxLength={6}
-              placeholder="000000"
+              placeholder="— — — — — —"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
+              onChange={(e) => { setCode(e.target.value.replace(/[^0-9]/g, '')); setError(''); }}
               onKeyDown={(e) => e.key === 'Enter' && handleCodeLogin()}
               style={{
                 width: '100%',
-                padding: '14px 20px',
-                fontSize: '22px',
-                fontFamily: 'Playfair Display, serif',
-                letterSpacing: '8px',
+                padding: '14px 18px',
+                fontSize: '24px',
+                fontFamily: 'Inter, sans-serif',
+                letterSpacing: '12px',
                 textAlign: 'center',
-                border: '1px solid #C9A84C',
-                borderRadius: '10px',
-                backgroundColor: '#FFF8EC',
-                color: '#2C2420',
+                border: error ? '1.5px solid #DC2626' : '1.5px solid #E5E7EB',
+                borderRadius: '8px',
+                backgroundColor: '#FAFAFA',
+                color: '#0F1117',
                 outline: 'none',
                 boxSizing: 'border-box',
+                transition: 'border 0.15s',
               }}
+              onFocus={(e) => { if (!error) e.target.style.border = '1.5px solid #C9A84C'; }}
+              onBlur={(e) => { if (!error) e.target.style.border = '1.5px solid #E5E7EB'; }}
             />
           </div>
 
           {error && (
-            <p style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '13px', color: '#B5303A',
-              marginBottom: '16px', lineHeight: 1.5,
-            }}>{error}</p>
+            <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '12px', lineHeight: 1.5 }}>
+              {error}
+            </div>
           )}
 
           <button
@@ -127,38 +152,31 @@ export default function VendorLoginPage() {
             disabled={loading || code.length !== 6}
             style={{
               width: '100%',
-              background: loading || code.length !== 6 ? '#8C7B6E' : '#2C2420',
-              color: '#F5F0E8',
-              fontFamily: 'DM Sans, sans-serif', fontSize: '13px',
-              fontWeight: 500, letterSpacing: '1px',
-              padding: '16px 24px', borderRadius: '10px',
-              border: 'none', cursor: loading || code.length !== 6 ? 'not-allowed' : 'pointer',
-              textTransform: 'uppercase', transition: 'background 0.2s',
+              background: loading || code.length !== 6 ? '#E5E7EB' : '#0F1117',
+              color: loading || code.length !== 6 ? '#9CA3AF' : '#fff',
+              fontSize: '13px', fontWeight: 600,
+              letterSpacing: '0.5px',
+              padding: '14px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: loading || code.length !== 6 ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '24px',
             }}
           >
             {loading ? 'Verifying...' : 'Enter Dashboard →'}
           </button>
 
-          <div style={{
-            marginTop: '32px', paddingTop: '24px',
-            borderTop: '1px solid #E8E0D5',
-          }}>
-            <p style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '13px', color: '#8C7B6E', marginBottom: '4px',
-            }}>Don't have the app yet?</p>
-            <a href="/#download" style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '13px', color: '#C9A84C', textDecoration: 'none',
-            }}>Download The Dream Wedding app →</a>
+          <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '6px' }}>Don't have the app yet?</div>
+            <a href="/#download" style={{ fontSize: '12px', color: '#C9A84C', textDecoration: 'none', fontWeight: 500 }}>
+              Download The Dream Wedding app →
+            </a>
           </div>
-        </div>
 
-        <p style={{
-          textAlign: 'center', fontFamily: 'DM Sans, sans-serif',
-          fontSize: '12px', color: '#8C7B6E', marginTop: '32px', fontStyle: 'italic',
-        }}>The Dream Wedding · vendor.thedreamwedding.in</p>
+        </div>
       </div>
+
     </div>
   );
 }
