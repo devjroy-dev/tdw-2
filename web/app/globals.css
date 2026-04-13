@@ -18,6 +18,23 @@
   --green: #4CAF50;
   --red: #B5303A;
   --whatsapp: #25D366;
+
+  /* Corporate Web Portal Theme */
+  --sidebar-bg: #0F1117;
+  --sidebar-border: #1E2028;
+  --sidebar-text: #9CA3AF;
+  --sidebar-active: #C9A84C;
+  --sidebar-hover: #1E2028;
+  --content-bg: #F9FAFB;
+  --header-bg: #FFFFFF;
+  --header-border: #E5E7EB;
+  --table-header: #F3F4F6;
+  --table-border: #E5E7EB;
+  --card-bg: #FFFFFF;
+  --card-border: #E5E7EB;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
 }
 
 * {
@@ -27,8 +44,8 @@
 }
 
 body {
-  background-color: var(--cream);
-  color: var(--dark);
+  background-color: var(--content-bg);
+  color: var(--text-primary);
   font-family: 'DM Sans', sans-serif;
   font-weight: 300;
 }
@@ -41,10 +58,11 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
 
 .card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
   padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .card-gold {

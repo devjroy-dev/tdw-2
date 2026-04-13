@@ -239,6 +239,7 @@ export default function VendorDashboard() {
   ]);
   const [loading, setLoading] = useState(true);
   const [isLive, setIsLive] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Data states
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -853,13 +854,14 @@ export default function VendorDashboard() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--cream)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--content-bg)' }}>
 
       {/* ── Sidebar ── */}
       <aside style={{
-        width: '260px',
+        width: sidebarCollapsed ? '64px' : '260px',
         minHeight: '100vh',
-        backgroundColor: 'var(--dark)',
+        backgroundColor: 'var(--sidebar-bg)',
+        transition: 'width 0.2s ease',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
@@ -872,18 +874,19 @@ export default function VendorDashboard() {
         {/* Logo */}
         <div style={{
           padding: '28px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--sidebar-border)',
         }}>
-          <div style={{
-            fontFamily: 'Playfair Display, serif',
-            fontSize: '15px',
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {!sidebarCollapsed && <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '13px',
             fontWeight: 300,
             color: 'var(--cream)',
-            letterSpacing: '1.5px',
+            letterSpacing: '2px',
             textTransform: 'uppercase',
             marginBottom: '4px',
           }}>
-            The Dream Wedding
+            THE DREAM WEDDING
           </div>
           <div style={{
             fontFamily: 'DM Sans, sans-serif',
@@ -893,6 +896,10 @@ export default function VendorDashboard() {
             letterSpacing: '0.3px',
           }}>
             {vendorData?.name || 'Vendor Dashboard'}
+          </div>}
+            <button onClick={() => setSidebarCollapsed(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sidebar-text)', padding: '4px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              {sidebarCollapsed ? '→' : '←'}
+            </button>
           </div>
         </div>
 
@@ -970,7 +977,7 @@ export default function VendorDashboard() {
                   color: isActive ? 'var(--gold)' : 'var(--grey)',
                   letterSpacing: '0.2px',
                 }}>
-                  {tab.label}
+                  {!sidebarCollapsed && tab.label}
                 </span>
               </button>
             );
@@ -1018,7 +1025,7 @@ export default function VendorDashboard() {
                   color: 'var(--grey)',
                   flex: 1,
                 }}>
-                  {tab.label}
+                  {!sidebarCollapsed && tab.label}
                 </span>
                 <span style={{
                   fontFamily: 'DM Sans, sans-serif',
@@ -1061,11 +1068,13 @@ export default function VendorDashboard() {
 
       {/* ── Main Content ── */}
       <main style={{
-        marginLeft: '260px',
+        marginLeft: sidebarCollapsed ? '64px' : '260px',
         flex: 1,
+        transition: 'margin-left 0.2s ease',
         minHeight: '100vh',
-        padding: '40px',
-        maxWidth: 'calc(100vw - 260px)',
+        padding: '32px 40px',
+        maxWidth: sidebarCollapsed ? 'calc(100vw - 64px)' : 'calc(100vw - 260px)',
+        backgroundColor: 'var(--content-bg)',
       }}>
 
         {/* Header */}
@@ -1075,7 +1084,7 @@ export default function VendorDashboard() {
           alignItems: 'flex-start',
           marginBottom: '36px',
           paddingBottom: '24px',
-          borderBottom: '1px solid var(--border)',
+          borderBottom: '1px solid var(--header-border)',
         }}>
           <div>
             <h1 style={{
@@ -1198,7 +1207,7 @@ export default function VendorDashboard() {
         {activeTab === 'invoices' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Invoices</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Invoices</h2>
               <button style={goldBtn} onClick={() => setShowInvoiceForm(!showInvoiceForm)}>
                 <Plus size={14} />
                 {showInvoiceForm ? 'Cancel' : 'New Invoice'}
@@ -1367,7 +1376,7 @@ export default function VendorDashboard() {
         {activeTab === 'contracts' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Contracts</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Contracts</h2>
               <button style={goldBtn} onClick={() => setShowContractForm(!showContractForm)}>
                 <Plus size={14} />
                 {showContractForm ? 'Cancel' : 'New Contract'}
@@ -1449,7 +1458,7 @@ export default function VendorDashboard() {
         {activeTab === 'calendar' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Calendar</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Calendar</h2>
               <button style={goldBtn} onClick={() => setShowDateInput(!showDateInput)}>
                 <Plus size={14} />
                 Block a Date
@@ -1535,7 +1544,7 @@ export default function VendorDashboard() {
         {activeTab === 'payments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Payment Schedules</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Payment Schedules</h2>
               <button style={goldBtn} onClick={() => setShowPaymentForm(!showPaymentForm)}>
                 <Plus size={14} />
                 {showPaymentForm ? 'Cancel' : 'New Schedule'}
@@ -1654,7 +1663,7 @@ export default function VendorDashboard() {
         {activeTab === 'expenses' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Expense Tracker</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Expense Tracker</h2>
               <button style={goldBtn} onClick={() => setShowExpenseForm(!showExpenseForm)}>
                 <Plus size={14} />
                 {showExpenseForm ? 'Cancel' : 'Add Expense'}
@@ -1751,7 +1760,7 @@ export default function VendorDashboard() {
         {activeTab === 'tax' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Tax & Finance</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Tax & Finance</h2>
               <button style={goldBtn} onClick={() => setShowTDSForm(!showTDSForm)}>
                 <Plus size={14} />
                 Add TDS Entry
@@ -1888,7 +1897,7 @@ export default function VendorDashboard() {
         {activeTab === 'clients' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Clients ({clients.length})</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Clients ({clients.length})</h2>
               <button style={goldBtn} onClick={() => setShowClientForm(!showClientForm)}>
                 <Plus size={14} />
                 {showClientForm ? 'Cancel' : 'Add Client'}
@@ -1994,7 +2003,7 @@ export default function VendorDashboard() {
         {activeTab === 'team' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>My Team ({teamMembers.length})</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>My Team ({teamMembers.length})</h2>
               <button style={goldBtn} onClick={() => setShowTeamForm(!showTeamForm)}>
                 <Plus size={14} />
                 {showTeamForm ? 'Cancel' : 'Add Member'}
@@ -2067,7 +2076,7 @@ export default function VendorDashboard() {
         {/* ════ INQUIRIES ════ */}
         {activeTab === 'inquiries' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Inquiries</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Inquiries</h2>
 
             {pendingBookings.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2136,7 +2145,7 @@ export default function VendorDashboard() {
         {activeTab === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Profile Settings</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Profile Settings</h2>
               <button style={goldBtn} onClick={handleSaveProfile} disabled={savingProfile}>
                 <Check size={14} />
                 {savingProfile ? 'Saving...' : 'Save Changes'}
@@ -2224,7 +2233,7 @@ export default function VendorDashboard() {
         {/* ════ OUTSTANDING PAYMENTS ════ */}
         {activeTab === 'outstanding' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Outstanding Payments</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Outstanding Payments</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>All unpaid amounts across every client, sorted by due date.</p>
             {paymentSchedules.flatMap((s: any) =>
               (s.instalments || []).filter((i: any) => !i.paid).map((inst: any, idx: number) => {
@@ -2263,7 +2272,7 @@ export default function VendorDashboard() {
         {/* ════ PROFIT PER BOOKING ════ */}
         {activeTab === 'profit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Profit per Booking</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Profit per Booking</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Invoice total minus all expenses logged against that client. Your actual margin, finally visible.</p>
             {clients.map((client: any) => {
               const clientInvoices = invoices.filter((i: any) => i.client_name === client.name);
@@ -2281,7 +2290,7 @@ export default function VendorDashboard() {
                       <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{client.wedding_date}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', color: profit >= 0 ? '#4CAF50' : '#B5303A' }}>Rs.{profit.toLocaleString('en-IN')}</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: profit >= 0 ? '#4CAF50' : '#B5303A' }}>Rs.{profit.toLocaleString('en-IN')}</div>
                       <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{margin}% margin</div>
                     </div>
                   </div>
@@ -2309,7 +2318,7 @@ export default function VendorDashboard() {
         {/* ════ CLIENT TIMELINE ════ */}
         {activeTab === 'timeline' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Client Timeline</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Client Timeline</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Every interaction with every client, in one scroll.</p>
             {clients.map((client: any) => {
               const clientInvoices = invoices.filter((i: any) => i.client_name === client.name);
@@ -2345,7 +2354,7 @@ export default function VendorDashboard() {
         {/* ════ DELIVERY TRACKER ════ */}
         {activeTab === 'delivery' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Delivery Tracker</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Delivery Tracker</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Track every booking from shoot to final delivery. Clients stop chasing when they see the status.</p>
             {deliveryItems.map((item: any) => {
               const stageLabels: any = { shoot_done: 'Shoot Done', editing: 'Editing', first_cut: 'First Cut Sent', feedback: 'Feedback Received', final_edit: 'Final Edits', delivered: 'Delivered' };
@@ -2380,7 +2389,7 @@ export default function VendorDashboard() {
         {/* ════ REVENUE FORECAST ════ */}
         {activeTab === 'forecast' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Revenue Forecast</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Revenue Forecast</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Money coming in over the next 3 months, based on confirmed payment schedules.</p>
             {(() => {
               const months: any = {};
@@ -2402,7 +2411,7 @@ export default function VendorDashboard() {
                     {sorted.map(([key, data]: any) => (
                       <div key={key} className="card" style={{ padding: '24px', textAlign: 'center' }}>
                         <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{data.label}</div>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', color: 'var(--gold)', marginBottom: '4px' }}>Rs.{data.amount.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '24px', fontWeight: 500, color: 'var(--gold)', marginBottom: '4px' }}>Rs.{data.amount.toLocaleString('en-IN')}</div>
                         <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{data.items.length} payment{data.items.length !== 1 ? 's' : ''}</div>
                         <div style={{ marginTop: '12px', background: 'var(--border)', borderRadius: '4px', height: '4px' }}>
                           <div style={{ width: `${(data.amount / maxAmount) * 100}%`, height: '100%', background: 'var(--gold)', borderRadius: '4px' }} />
@@ -2436,13 +2445,13 @@ export default function VendorDashboard() {
         {/* ════ PACKAGE BUILDER ════ */}
         {activeTab === 'packages' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Package Builder</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Package Builder</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Define your packages once. Share a professional comparison card with every enquiry.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
               {packages.map((pkg: any) => (
                 <div key={pkg.id} className="card" style={{ padding: '24px', position: 'relative' }}>
                   <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '8px' }}>{pkg.name}</div>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', color: 'var(--dark)', marginBottom: '16px' }}>Rs.{parseInt(pkg.price).toLocaleString('en-IN')}</div>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '24px', fontWeight: 500, color: 'var(--dark)', marginBottom: '16px' }}>Rs.{parseInt(pkg.price).toLocaleString('en-IN')}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {pkg.inclusions.map((inc: string, idx: number) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2478,7 +2487,7 @@ export default function VendorDashboard() {
         {/* ════ ADVANCE TAX ════ */}
         {activeTab === 'advancetax' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Advance Tax Calculator</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Advance Tax Calculator</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Based on your invoiced income this year. Never miss a due date again.</p>
             {(() => {
               const totalIncome = invoices.reduce((s: number, i: any) => s + (i.amount || 0), 0);
@@ -2532,7 +2541,7 @@ export default function VendorDashboard() {
         {/* ════ CASH PAYMENTS ════ */}
         {activeTab === 'cash' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Cash Payment Log</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Cash Payment Log</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Record offline cash payments for your own records. Not processed by the platform.</p>
             <div className="card" style={{ padding: '24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -2576,7 +2585,7 @@ export default function VendorDashboard() {
         {/* ════ PRE-WEDDING CHECKLIST ════ */}
         {activeTab === 'checklist' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Pre-Wedding Checklist</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Pre-Wedding Checklist</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Per-client checklist to complete before every wedding. Never forget a critical step again.</p>
             {checklists.map((cl: any) => {
               const done = cl.items.filter((i: any) => i.done).length;
@@ -2608,7 +2617,7 @@ export default function VendorDashboard() {
         {/* ════ AVAILABILITY CALENDAR ════ */}
         {activeTab === 'availability' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Availability Calendar</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Availability Calendar</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Your month at a glance. Screenshot and share with enquiring couples.</p>
             {(() => {
               const now = new Date();
@@ -2663,7 +2672,7 @@ export default function VendorDashboard() {
         {activeTab === 'runsheet' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Day-of Runsheet</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Day-of Runsheet</h2>
               <a href={'https://wa.me/?text=' + encodeURIComponent('*Wedding Day Runsheet*\n\n' + runsheet.map(r => r.time + ' — ' + r.task + '\nAssigned: ' + r.assignee).join('\n\n'))} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px 16px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
                 Share with Team
               </a>
@@ -2705,7 +2714,7 @@ export default function VendorDashboard() {
         {activeTab === 'equipment' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Equipment Checklist</h2>
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Equipment Checklist</h2>
               <button style={goldBtn} onClick={() => setEquipment(prev => prev.map(e => ({ ...e, checked: false })))}>
                 Reset All
               </button>
@@ -2741,7 +2750,7 @@ export default function VendorDashboard() {
         {/* ════ CSV IMPORT / EXPORT ════ */}
         {activeTab === 'csvimport' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Import / Export</h2>
+            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, fontWeight: 300, color: 'var(--dark)' }}>Import / Export</h2>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Bring your existing client data in. Take your data out anytime. Your data is always yours.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div className="card" style={{ padding: '32px' }}>
