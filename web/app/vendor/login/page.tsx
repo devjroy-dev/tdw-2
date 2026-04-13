@@ -35,14 +35,6 @@ export default function VendorLoginPage() {
     } finally { setLoading(false); }
   };
 
-  const features = [
-    { label: 'Invoice & contract management' },
-    { label: 'Payment schedules with WhatsApp reminders' },
-    { label: 'P&L per booking — real margin, not just revenue' },
-    { label: 'Day-of runsheet, delivery tracker, client timeline' },
-    { label: 'TDS reconciliation & advance tax calculator' },
-  ];
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
 
@@ -65,28 +57,18 @@ export default function VendorLoginPage() {
 
         {/* Hero */}
         <div>
-          <div style={{ fontSize: '36px', fontWeight: 300, color: '#fff', lineHeight: 1.25, letterSpacing: '-0.5px', marginBottom: '16px' }}>
-            Your wedding business,<br />
-            <span style={{ color: '#C9A84C' }}>fully organised.</span>
+          <div style={{ fontSize: '38px', fontWeight: 300, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.8px', marginBottom: '20px' }}>
+            The business<br />behind the magic.
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '40px', lineHeight: 1.7 }}>
-            The only platform in India that combines couple discovery<br />with a complete vendor operating system.
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {features.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A84C', flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', fontWeight: 400 }}>{f.label}</span>
-              </div>
-            ))}
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.8, maxWidth: '340px' }}>
+            India's wedding professionals<br />run their business here.
           </div>
         </div>
 
         {/* Footer stat */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px' }}>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.3px' }}>
-            Built for Indian wedding professionals earning Rs.10L–1Cr/year
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.3px' }}>
+            vendor.thedreamwedding.in
           </div>
         </div>
       </div>
