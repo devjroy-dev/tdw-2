@@ -299,6 +299,10 @@ export default function VendorDashboard() {
   const [clientNotes, setClientNotes] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [editingContractId, setEditingContractId] = useState<string | null>(null);
+  const [editContractData, setEditContractData] = useState<any>({});
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editExpenseData, setEditExpenseData] = useState<any>({});
   const [editClientData, setEditClientData] = useState<any>({});
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [editInvoiceData, setEditInvoiceData] = useState<any>({});
@@ -378,6 +382,32 @@ export default function VendorDashboard() {
         loadClients();
       } else { toast.error('Could not update client'); }
     } catch (e) { toast.error('Could not update client'); }
+  };
+
+  const handleSaveContractEdit = async (id: string) => {
+    try {
+      const res = await fetch(`${API}/contracts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editContractData),
+      });
+      const data = await res.json();
+      if (data.success) { toast.success('Contract updated'); setEditingContractId(null); loadContracts(); }
+      else { toast.error('Could not update contract'); }
+    } catch (e) { toast.error('Could not update contract'); }
+  };
+
+  const handleSaveExpenseEdit = async (id: string) => {
+    try {
+      const res = await fetch(`${API}/expenses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editExpenseData),
+      });
+      const data = await res.json();
+      if (data.success) { toast.success('Expense updated'); setEditingExpenseId(null); loadExpenses(); }
+      else { toast.error('Could not update expense'); }
+    } catch (e) { toast.error('Could not update expense'); }
   };
 
   const handleSaveInvoiceEdit = async (id: string) => {
@@ -1594,11 +1624,28 @@ export default function VendorDashboard() {
                         Rs.{(con.total_amount || 0).toLocaleString('en-IN')}
                       </div>
                       <span className="badge-gold">Issued</span>
+                      <button onClick={() => { setEditingContractId(con.id); setEditContractData({ client_name: con.client_name, event_type: con.event_type, event_date: con.event_date, venue: con.venue, total_amount: con.total_amount }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '4px' }} title="Edit">
+                        <Edit2 size={14} />
+                      </button>
                       <button onClick={() => setConfirmDelete({ type: 'contract', id: con.id, name: `Contract — ${con.client_name}` })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '4px' }} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
+                  {editingContractId === con.id && (
+                    <div style={{ margin: '0 24px 16px', padding: '16px', background: '#F9FAFB', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Client Name</label><input style={inp} value={editContractData.client_name || ''} onChange={e => setEditContractData((p:any) => ({ ...p, client_name: e.target.value }))} /></div>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Event Type</label><input style={inp} value={editContractData.event_type || ''} onChange={e => setEditContractData((p:any) => ({ ...p, event_type: e.target.value }))} /></div>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Event Date</label><input style={inp} value={editContractData.event_date || ''} onChange={e => setEditContractData((p:any) => ({ ...p, event_date: e.target.value }))} /></div>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Total Amount</label><input style={inp} type="number" value={editContractData.total_amount || ''} onChange={e => setEditContractData((p:any) => ({ ...p, total_amount: parseInt(e.target.value) }))} /></div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => setEditingContractId(null)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--dark)', background: '#E5E7EB', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={() => handleSaveContractEdit(con.id)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer' }}>Save Changes</button>
+                      </div>
+                    </div>
+                  )}
                 ))
               )}
             </div>
@@ -1900,11 +1947,27 @@ export default function VendorDashboard() {
                       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--red)' }}>
                         −Rs.{(exp.amount || 0).toLocaleString('en-IN')}
                       </span>
+                      <button onClick={() => { setEditingExpenseId(exp.id); setEditExpenseData({ description: exp.description, amount: exp.amount, category: exp.category }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '4px' }} title="Edit">
+                        <Edit2 size={14} />
+                      </button>
                       <button onClick={() => setConfirmDelete({ type: 'expense', id: exp.id, name: exp.description })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                         <Trash2 size={14} color="var(--grey)" />
                       </button>
                     </div>
                   </div>
+                  {editingExpenseId === exp.id && (
+                    <div style={{ marginTop: '10px', padding: '14px', background: '#F9FAFB', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Description</label><input style={inp} value={editExpenseData.description || ''} onChange={e => setEditExpenseData((p:any) => ({ ...p, description: e.target.value }))} /></div>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Amount</label><input style={inp} type="number" value={editExpenseData.amount || ''} onChange={e => setEditExpenseData((p:any) => ({ ...p, amount: parseInt(e.target.value) }))} /></div>
+                        <div><label style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Category</label><input style={inp} value={editExpenseData.category || ''} onChange={e => setEditExpenseData((p:any) => ({ ...p, category: e.target.value }))} /></div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => setEditingExpenseId(null)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--dark)', background: '#E5E7EB', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={() => handleSaveExpenseEdit(exp.id)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer' }}>Save</button>
+                      </div>
+                    </div>
+                  )}
                 ))
               )}
             </div>
