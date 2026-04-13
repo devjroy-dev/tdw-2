@@ -2601,12 +2601,7 @@ export default function VendorDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Day-of Runsheet</h2>
-              <a href={`https://wa.me/?text=${encodeURIComponent('*Wedding Day Runsheet*
-
-' + runsheet.map(r => `${r.time} — ${r.task}
-Assigned: ${r.assignee}`).join('
-
-'))}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px 16px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
+              <a href={'https://wa.me/?text=' + encodeURIComponent('*Wedding Day Runsheet*\n\n' + runsheet.map(r => r.time + ' — ' + r.task + '\nAssigned: ' + r.assignee).join('\n\n'))} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px 16px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
                 Share with Team
               </a>
             </div>
