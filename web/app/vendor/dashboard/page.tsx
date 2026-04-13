@@ -38,6 +38,7 @@ const ACTIVE_TABS = [
   { id: 'advancetax', label: 'Advance Tax', icon: BookOpen },
   { id: 'referral', label: 'Referral Tracker', icon: Gift },
   { id: 'availability', label: 'Availability Calendar', icon: Calendar },
+  { id: 'templates', label: 'Message Templates', icon: MessageCircle },
   { id: 'csvimport', label: 'Import / Export', icon: Upload },
   { id: 'team', label: 'My Team', icon: Users },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -3109,6 +3110,65 @@ export default function VendorDashboard() {
         )}
 
         {/* ════ CSV IMPORT / EXPORT ════ */}
+        {activeTab === 'templates' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>Message Templates</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>One-tap copy. Paste directly into WhatsApp. Personalise before sending.</p>
+            </div>
+            {[
+              {
+                category: 'Payments',
+                templates: [
+                  { title: 'Payment Reminder', msg: `Hi [Client Name]! Hope you're doing well. This is a friendly reminder that your [Instalment Name] payment of Rs.[Amount] was due on [Date]. Request you to please transfer at your earliest convenience. Thank you! — ${vendorData?.name || 'Your Name'}, The Dream Wedding` },
+                  { title: 'Payment Received', msg: `Hi [Client Name]! We've received your payment of Rs.[Amount]. Thank you! Your booking is confirmed. Looking forward to being part of your special day. — ${vendorData?.name || 'Your Name'}, The Dream Wedding` },
+                  { title: 'Final Payment Due', msg: `Hi [Client Name]! Your final payment of Rs.[Amount] is due on [Date] — just [X] days before your wedding. Please transfer at your earliest so we can focus entirely on making your day perfect. — ${vendorData?.name || 'Your Name'}` },
+                ]
+              },
+              {
+                category: 'Bookings',
+                templates: [
+                  { title: 'Booking Confirmed', msg: `Hi [Client Name]! Your booking with ${vendorData?.name || 'us'} is now confirmed for [Wedding Date] at [Venue]. We're so excited to be part of your wedding! We'll be in touch soon to start planning. — The Dream Wedding` },
+                  { title: 'Date Blocked', msg: `Hi [Client Name]! Great news — [Wedding Date] is now exclusively blocked for you in our calendar. No other bookings will be accepted for this date. Let's make it unforgettable! — ${vendorData?.name || 'Your Name'}` },
+                  { title: 'Contract Sent', msg: `Hi [Client Name]! I've sent across our service contract for your review. Please go through it carefully and let me know if you have any questions. Once signed, we're officially set! — ${vendorData?.name || 'Your Name'}` },
+                ]
+              },
+              {
+                category: 'Delivery',
+                templates: [
+                  { title: 'Photos Ready', msg: `Hi [Client Name]! Your photos are ready! 🎉 I've shared the link to your gallery — please check your email/WhatsApp. Let me know your thoughts. It was a pleasure capturing your special day! — ${vendorData?.name || 'Your Name'}` },
+                  { title: 'Delivery Delayed', msg: `Hi [Client Name]! I wanted to update you that your [Photos/Film] will be delivered by [New Date] instead of the original timeline. I'm giving it extra attention to make sure everything is perfect. Thank you for your patience! — ${vendorData?.name || 'Your Name'}` },
+                  { title: 'Final Album Ready', msg: `Hi [Client Name]! Your final wedding album is ready for review! Please check and let me know if you'd like any changes before we go to print. This has been such a beautiful project — thank you for trusting us! — ${vendorData?.name || 'Your Name'}` },
+                ]
+              },
+              {
+                category: 'Follow Up',
+                templates: [
+                  { title: 'Post Wedding Feedback', msg: `Hi [Client Name]! It was such an honour to be part of your wedding day. We hope everything was perfect! If you have a moment, we'd really appreciate a review on The Dream Wedding app — it means the world to us. Thank you! — ${vendorData?.name || 'Your Name'}` },
+                  { title: 'Referral Request', msg: `Hi [Client Name]! Hope married life is treating you wonderfully! If you know any couples planning their wedding, we'd love to work with them too. Feel free to share our details — it would mean a lot. Thank you! — ${vendorData?.name || 'Your Name'}` },
+                ]
+              },
+            ].map(section => (
+              <div key={section.category}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '12px' }}>{section.category}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {section.templates.map(t => (
+                    <div key={t.title} className="card" style={{ padding: '20px 24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>{t.title}</div>
+                        <button onClick={() => { navigator.clipboard.writeText(t.msg); toast.success(`"${t.title}" copied to clipboard`); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--dark)', background: '#F3F4F6', border: 'none', borderRadius: '5px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                          Copy
+                        </button>
+                      </div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.7 }}>{t.msg}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'csvimport' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Import / Export</h2>
