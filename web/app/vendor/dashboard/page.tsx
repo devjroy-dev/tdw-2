@@ -91,7 +91,7 @@ function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
           marginBottom: '16px',
         }}>
           <span style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontSize: '10px',
             fontWeight: 500,
             color: tab.build === 'Build 2' ? 'var(--gold)' : 'var(--grey)',
@@ -102,7 +102,7 @@ function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
           </span>
         </div>
         <h3 style={{
-          fontFamily: 'Playfair Display, serif',
+          fontFamily: 'Inter, sans-serif',
           fontSize: '24px',
           fontWeight: 300,
           color: 'var(--dark)',
@@ -111,7 +111,7 @@ function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
           {tab.label}
         </h3>
         <p style={{
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontSize: '14px',
           fontWeight: 300,
           color: 'var(--grey)',
@@ -123,7 +123,7 @@ function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
         <button onClick={onClose} style={{
           background: 'var(--dark)',
           color: 'var(--cream)',
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontSize: '12px',
           fontWeight: 500,
           letterSpacing: '1px',
@@ -145,7 +145,7 @@ function StatCard({ num, label }: { num: string; label: string }) {
   return (
     <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
       <div style={{
-        fontFamily: 'Playfair Display, serif',
+        fontFamily: 'Inter, sans-serif',
         fontSize: '32px',
         fontWeight: 300,
         color: 'var(--dark)',
@@ -739,14 +739,14 @@ export default function VendorDashboard() {
     return (
       <div style={{
         minHeight: '100vh',
-        backgroundColor: 'var(--cream)',
+        backgroundColor: 'var(--content-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            fontFamily: 'Playfair Display, serif',
+            fontFamily: 'Inter, sans-serif',
             fontSize: '20px',
             fontWeight: 300,
             color: 'var(--dark)',
@@ -755,7 +755,7 @@ export default function VendorDashboard() {
           }}>
             THE DREAM WEDDING
           </div>
-          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
             Loading your dashboard...
           </div>
         </div>
@@ -765,11 +765,11 @@ export default function VendorDashboard() {
 
   // ── Input style helper
   const inp: React.CSSProperties = {
-    background: 'var(--cream)',
+    background: '#F9FAFB',
     border: '1px solid var(--border)',
     borderRadius: '8px',
     padding: '11px 14px',
-    fontFamily: 'DM Sans, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     fontSize: '14px',
     color: 'var(--dark)',
     width: '100%',
@@ -778,7 +778,7 @@ export default function VendorDashboard() {
 
   const label: React.CSSProperties = {
     display: 'block',
-    fontFamily: 'DM Sans, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     fontSize: '10px',
     fontWeight: 500,
     color: 'var(--grey)',
@@ -790,9 +790,9 @@ export default function VendorDashboard() {
   const formRow: React.CSSProperties = { marginBottom: '14px' };
 
   const goldBtn: React.CSSProperties = {
-    background: 'var(--gold)',
-    color: 'var(--dark)',
-    fontFamily: 'DM Sans, sans-serif',
+    background: 'var(--btn-primary)',
+    color: 'var(--btn-primary-text)',
+    fontFamily: 'Inter, sans-serif',
     fontSize: '11px',
     fontWeight: 500,
     letterSpacing: '1px',
@@ -809,7 +809,7 @@ export default function VendorDashboard() {
   const darkBtn: React.CSSProperties = {
     background: 'var(--dark)',
     color: 'var(--cream)',
-    fontFamily: 'DM Sans, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     fontSize: '11px',
     fontWeight: 500,
     letterSpacing: '1px',
@@ -826,7 +826,7 @@ export default function VendorDashboard() {
   const outlineBtn: React.CSSProperties = {
     background: 'transparent',
     color: 'var(--gold)',
-    fontFamily: 'DM Sans, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     fontSize: '11px',
     fontWeight: 400,
     padding: '10px 16px',
@@ -841,7 +841,7 @@ export default function VendorDashboard() {
   const greyBtn: React.CSSProperties = {
     background: 'transparent',
     color: 'var(--grey)',
-    fontFamily: 'DM Sans, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     fontSize: '11px',
     fontWeight: 300,
     padding: '10px 16px',
@@ -879,10 +879,10 @@ export default function VendorDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {!sidebarCollapsed && (
               <div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>
                   THE DREAM WEDDING
                 </div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 300, color: 'var(--sidebar-text)', letterSpacing: '0.3px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 300, color: 'var(--sidebar-text)', letterSpacing: '0.3px' }}>
                   {vendorData?.name || 'Vendor Dashboard'}
                 </div>
               </div>
@@ -894,7 +894,7 @@ export default function VendorDashboard() {
         </div>
 
         {/* Live toggle */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--sidebar-border)' }}>
           <button
             onClick={() => setIsLive(!isLive)}
             style={{
@@ -915,7 +915,7 @@ export default function VendorDashboard() {
               backgroundColor: isLive ? '#4CAF50' : 'var(--grey)',
             }} />
             <span style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'Inter, sans-serif',
               fontSize: '12px',
               fontWeight: 500,
               color: isLive ? '#4CAF50' : 'var(--grey)',
@@ -929,7 +929,7 @@ export default function VendorDashboard() {
         <nav style={{ flex: 1, padding: '12px 0' }}>
           <div style={{
             padding: '8px 24px 6px',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontSize: '9px',
             fontWeight: 500,
             color: 'rgba(140,123,110,0.6)',
@@ -961,7 +961,7 @@ export default function VendorDashboard() {
               >
                 <Icon size={14} color={isActive ? 'var(--gold)' : 'var(--grey)'} />
                 <span style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'Inter, sans-serif',
                   fontSize: '13px',
                   fontWeight: isActive ? 500 : 300,
                   color: isActive ? 'var(--gold)' : 'var(--grey)',
@@ -976,7 +976,7 @@ export default function VendorDashboard() {
           {/* Coming soon tabs */}
           <div style={{
             padding: '16px 24px 6px',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontSize: '9px',
             fontWeight: 500,
             color: 'rgba(140,123,110,0.4)',
@@ -1009,7 +1009,7 @@ export default function VendorDashboard() {
               >
                 <Icon size={13} color="var(--grey)" />
                 <span style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'Inter, sans-serif',
                   fontSize: '12px',
                   fontWeight: 300,
                   color: 'var(--grey)',
@@ -1018,7 +1018,7 @@ export default function VendorDashboard() {
                   {!sidebarCollapsed && tab.label}
                 </span>
                 <span style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'Inter, sans-serif',
                   fontSize: '9px',
                   color: tab.build === 'Build 2' ? 'var(--gold)' : 'var(--grey)',
                   border: `1px solid ${tab.build === 'Build 2' ? 'rgba(201,168,76,0.4)' : 'rgba(140,123,110,0.3)'}`,
@@ -1045,7 +1045,7 @@ export default function VendorDashboard() {
           }}>
             <LogOut size={14} color="var(--grey)" />
             <span style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'Inter, sans-serif',
               fontSize: '13px',
               fontWeight: 300,
               color: 'var(--grey)',
@@ -1078,7 +1078,7 @@ export default function VendorDashboard() {
         }}>
           <div>
             <h1 style={{
-              fontFamily: 'Playfair Display, serif',
+              fontFamily: 'Inter, sans-serif',
               fontSize: '28px',
               fontWeight: 300,
               color: 'var(--dark)',
@@ -1088,7 +1088,7 @@ export default function VendorDashboard() {
               {vendorData?.name || 'Your Business'}
             </h1>
             <p style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'Inter, sans-serif',
               fontSize: '13px',
               fontWeight: 300,
               color: 'var(--grey)',
@@ -1110,7 +1110,7 @@ export default function VendorDashboard() {
             }} onClick={() => setActiveTab('inquiries')}>
               <AlertCircle size={14} color="var(--gold)" />
               <span style={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontSize: '13px',
                 fontWeight: 500,
                 color: 'var(--dark)',
@@ -1138,13 +1138,13 @@ export default function VendorDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Star size={14} color="var(--gold)" />
-                  <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)' }}>
                     Spotlight Score
                   </span>
                 </div>
                 <span className="badge-gold">#3 This Month</span>
               </div>
-              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '56px', fontWeight: 300, color: 'var(--gold)', marginBottom: '20px', lineHeight: 1 }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '56px', fontWeight: 300, color: 'var(--gold)', marginBottom: '20px', lineHeight: 1 }}>
                 2,847
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', overflow: 'hidden' }}>
@@ -1154,12 +1154,12 @@ export default function VendorDashboard() {
                   { num: '12', label: 'Bookings × 10' },
                 ].map(s => (
                   <div key={s.label} style={{ padding: '16px', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
-                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: 300, color: 'var(--cream)', marginBottom: '4px' }}>{s.num}</div>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '0.5px' }}>{s.label}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', fontWeight: 300, color: 'var(--cream)', marginBottom: '4px' }}>{s.num}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '0.5px' }}>{s.label}</div>
                   </div>
                 ))}
               </div>
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 300, color: 'rgba(140,123,110,0.5)', marginTop: '14px', fontStyle: 'italic' }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 300, color: 'rgba(140,123,110,0.5)', marginTop: '14px', fontStyle: 'italic' }}>
                 Refreshes 1st of every month. Earned, not bought.
               </p>
             </div>
@@ -1184,7 +1184,7 @@ export default function VendorDashboard() {
                     borderRadius: '10px',
                   }}>
                     <Icon size={14} />
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px' }}>{a.label}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>{a.label}</span>
                   </button>
                 );
               })}
@@ -1197,7 +1197,7 @@ export default function VendorDashboard() {
         {activeTab === 'invoices' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Invoices</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Invoices</h2>
               <button style={goldBtn} onClick={() => setShowInvoiceForm(!showInvoiceForm)}>
                 <Plus size={14} />
                 {showInvoiceForm ? 'Cancel' : 'New Invoice'}
@@ -1206,7 +1206,7 @@ export default function VendorDashboard() {
 
             {showInvoiceForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Invoice</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Invoice</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div style={formRow}>
                     <label style={label}>Client Name</label>
@@ -1227,18 +1227,18 @@ export default function VendorDashboard() {
                 </div>
                 {invAmount && (
                   <div style={{ background: 'var(--cream)', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px', display: 'flex', gap: '24px' }}>
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
                       GST (18%): <strong style={{ color: 'var(--dark)' }}>Rs.{(parseInt(invAmount) * 0.18).toLocaleString('en-IN')}</strong>
                     </span>
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
                       Total: <strong style={{ color: 'var(--dark)' }}>Rs.{(parseInt(invAmount) * 1.18).toLocaleString('en-IN')}</strong>
                     </span>
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid var(--border)', borderBottom: invTDS ? '1px solid var(--border)' : 'none', marginBottom: '16px' }}>
                   <div>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>TDS Applicable (10%)</div>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>Is TDS deductible on this invoice?</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>TDS Applicable (10%)</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>Is TDS deductible on this invoice?</div>
                   </div>
                   <button onClick={() => setInvTDS(!invTDS)} style={{
                     width: '44px', height: '24px',
@@ -1264,8 +1264,8 @@ export default function VendorDashboard() {
                 {invTDS && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', marginBottom: '16px' }}>
                     <div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>Client deducted TDS</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>Did the client already deduct TDS?</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>Client deducted TDS</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>Did the client already deduct TDS?</div>
                     </div>
                     <button onClick={() => setInvTDSByClient(!invTDSByClient)} style={{
                       width: '44px', height: '24px',
@@ -1299,17 +1299,17 @@ export default function VendorDashboard() {
             {/* Invoice list */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>
                   {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
                 </span>
-                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--gold)' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--gold)' }}>
                   Total: Rs.{invoices.reduce((s, i) => s + (i.total_amount || i.amount || 0), 0).toLocaleString('en-IN')}
                 </span>
               </div>
               {invoices.length === 0 ? (
                 <div style={{ padding: '48px', textAlign: 'center' }}>
                   <FileText size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No invoices yet. Create your first invoice above.</p>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No invoices yet. Create your first invoice above.</p>
                 </div>
               ) : (
                 invoices.map((inv, i) => (
@@ -1321,18 +1321,18 @@ export default function VendorDashboard() {
                     borderBottom: i < invoices.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{inv.client_name}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{inv.client_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                         {inv.invoice_number} · {inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN') : ''}
                         {inv.description ? ` · ${inv.description}` : ''}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--dark)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--dark)' }}>
                           Rs.{(inv.total_amount || inv.amount || 0).toLocaleString('en-IN')}
                         </div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 300, color: 'var(--grey)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 300, color: 'var(--grey)' }}>
                           + GST included
                         </div>
                       </div>
@@ -1345,7 +1345,7 @@ export default function VendorDashboard() {
                           borderRadius: '8px',
                           padding: '8px 14px',
                           cursor: inv.status === 'paid' ? 'default' : 'pointer',
-                          fontFamily: 'DM Sans, sans-serif',
+                          fontFamily: 'Inter, sans-serif',
                           fontSize: '11px',
                           fontWeight: 500,
                           color: inv.status === 'paid' ? 'var(--green)' : 'var(--gold)',
@@ -1366,7 +1366,7 @@ export default function VendorDashboard() {
         {activeTab === 'contracts' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Contracts</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Contracts</h2>
               <button style={goldBtn} onClick={() => setShowContractForm(!showContractForm)}>
                 <Plus size={14} />
                 {showContractForm ? 'Cancel' : 'New Contract'}
@@ -1375,7 +1375,7 @@ export default function VendorDashboard() {
 
             {showContractForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Service Agreement</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Service Agreement</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div style={formRow}><label style={label}>Client Name</label><input style={inp} placeholder="e.g. Priya & Rahul" value={conClient} onChange={e => setConClient(e.target.value)} /></div>
                   <div style={formRow}><label style={label}>Client Phone</label><input style={inp} placeholder="10-digit number" value={conPhone} onChange={e => setConPhone(e.target.value)} /></div>
@@ -1387,7 +1387,7 @@ export default function VendorDashboard() {
                   {conTotal && conAdvance && (
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <div style={{ background: 'var(--cream)', borderRadius: '8px', padding: '14px 16px', width: '100%' }}>
-                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
                           Balance: <strong style={{ color: 'var(--dark)' }}>Rs.{(parseInt(conTotal) - parseInt(conAdvance)).toLocaleString('en-IN')}</strong>
                         </span>
                       </div>
@@ -1406,14 +1406,14 @@ export default function VendorDashboard() {
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>
                   {contracts.length} contract{contracts.length !== 1 ? 's' : ''}
                 </span>
               </div>
               {contracts.length === 0 ? (
                 <div style={{ padding: '48px', textAlign: 'center' }}>
                   <FileText size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No contracts yet. Create your first service agreement above.</p>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No contracts yet. Create your first service agreement above.</p>
                 </div>
               ) : (
                 contracts.map((con, i) => (
@@ -1425,14 +1425,14 @@ export default function VendorDashboard() {
                     borderBottom: i < contracts.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{con.client_name}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{con.client_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                         {con.event_type} · {con.event_date}
                         {con.venue ? ` · ${con.venue}` : ''}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--dark)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--dark)' }}>
                         Rs.{(con.total_amount || 0).toLocaleString('en-IN')}
                       </div>
                       <span className="badge-gold">Issued</span>
@@ -1448,7 +1448,7 @@ export default function VendorDashboard() {
         {activeTab === 'calendar' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Calendar</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Calendar</h2>
               <button style={goldBtn} onClick={() => setShowDateInput(!showDateInput)}>
                 <Plus size={14} />
                 Block a Date
@@ -1482,10 +1482,10 @@ export default function VendorDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <CheckSquare size={14} color="var(--gold)" />
                       <div>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '14px', fontWeight: 400, color: 'var(--dark)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 400, color: 'var(--dark)' }}>
                           {b.users?.name || 'Couple'}
                         </div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                           Token: Rs.{(b.token_amount || 10000).toLocaleString('en-IN')}
                         </div>
                       </div>
@@ -1503,7 +1503,7 @@ export default function VendorDashboard() {
               {blockedDates.length === 0 ? (
                 <div style={{ padding: '48px', textAlign: 'center' }}>
                   <Calendar size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No dates blocked yet.</p>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No dates blocked yet.</p>
                 </div>
               ) : (
                 blockedDates.map((d, i) => (
@@ -1516,7 +1516,7 @@ export default function VendorDashboard() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <Calendar size={14} color="var(--grey)" />
-                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--dark)' }}>{d.blocked_date}</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--dark)' }}>{d.blocked_date}</span>
                     </div>
                     <button onClick={() => handleUnblockDate(d.id)} style={{
                       ...greyBtn, padding: '6px 14px', fontSize: '12px',
@@ -1534,7 +1534,7 @@ export default function VendorDashboard() {
         {activeTab === 'payments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Payment Schedules</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Payment Schedules</h2>
               <button style={goldBtn} onClick={() => setShowPaymentForm(!showPaymentForm)}>
                 <Plus size={14} />
                 {showPaymentForm ? 'Cancel' : 'New Schedule'}
@@ -1543,7 +1543,7 @@ export default function VendorDashboard() {
 
             {showPaymentForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Payment Schedule</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Payment Schedule</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div style={formRow}><label style={label}>Client Name</label><input style={inp} placeholder="e.g. Priya & Rahul" value={payClient} onChange={e => setPayClient(e.target.value)} /></div>
                   <div style={formRow}><label style={label}>Client Phone</label><input style={inp} placeholder="10-digit number" value={payPhone} onChange={e => setPayPhone(e.target.value)} /></div>
@@ -1574,15 +1574,15 @@ export default function VendorDashboard() {
             {paymentSchedules.length === 0 ? (
               <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
                 <CreditCard size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No payment schedules yet.</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No payment schedules yet.</p>
               </div>
             ) : (
               paymentSchedules.map(schedule => (
                 <div key={schedule.id} className="card" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '17px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{schedule.client_name}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '17px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{schedule.client_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                         Total: Rs.{(schedule.total_amount || 0).toLocaleString('en-IN')}
                       </div>
                     </div>
@@ -1599,8 +1599,8 @@ export default function VendorDashboard() {
                         border: '1px solid var(--border)',
                       }}>
                         <div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>{inst.label}</div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>{inst.label}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                             Rs.{parseInt(inst.amount || '0').toLocaleString('en-IN')} · Due {inst.due_date || 'Not set'}
                           </div>
                         </div>
@@ -1614,7 +1614,7 @@ export default function VendorDashboard() {
                                 borderRadius: '8px',
                                 padding: '7px 14px',
                                 textDecoration: 'none',
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'Inter, sans-serif',
                                 fontSize: '11px',
                                 fontWeight: 500,
                                 color: '#25D366',
@@ -1631,7 +1631,7 @@ export default function VendorDashboard() {
                               borderRadius: '8px',
                               padding: '7px 14px',
                               cursor: inst.paid ? 'default' : 'pointer',
-                              fontFamily: 'DM Sans, sans-serif',
+                              fontFamily: 'Inter, sans-serif',
                               fontSize: '11px',
                               fontWeight: 500,
                               color: inst.paid ? 'var(--green)' : 'var(--gold)',
@@ -1653,7 +1653,7 @@ export default function VendorDashboard() {
         {activeTab === 'expenses' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Expense Tracker</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Expense Tracker</h2>
               <button style={goldBtn} onClick={() => setShowExpenseForm(!showExpenseForm)}>
                 <Plus size={14} />
                 {showExpenseForm ? 'Cancel' : 'Add Expense'}
@@ -1663,14 +1663,14 @@ export default function VendorDashboard() {
             {expenses.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div className="card-dark" style={{ padding: '20px' }}>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px' }}>Total Expenses</div>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: 300, color: 'var(--gold)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px' }}>Total Expenses</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '32px', fontWeight: 300, color: 'var(--gold)' }}>
                     Rs.{totalExpenses.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div className="card-dark" style={{ padding: '20px' }}>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px' }}>Net Profit</div>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: 300, color: totalRevenue - totalExpenses > 0 ? 'var(--green)' : 'var(--red)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px' }}>Net Profit</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '32px', fontWeight: 300, color: totalRevenue - totalExpenses > 0 ? 'var(--green)' : 'var(--red)' }}>
                     Rs.{(totalRevenue - totalExpenses).toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -1679,7 +1679,7 @@ export default function VendorDashboard() {
 
             {showExpenseForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Expense</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>New Expense</h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                   {EXPENSE_CATS.map(cat => (
                     <button key={cat} onClick={() => setExpCategory(cat)} style={{
@@ -1688,7 +1688,7 @@ export default function VendorDashboard() {
                       borderRadius: '8px',
                       padding: '8px 16px',
                       cursor: 'pointer',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'Inter, sans-serif',
                       fontSize: '12px',
                       fontWeight: expCategory === cat ? 500 : 300,
                       color: expCategory === cat ? 'var(--cream)' : 'var(--dark)',
@@ -1713,7 +1713,7 @@ export default function VendorDashboard() {
               {expenses.length === 0 ? (
                 <div style={{ padding: '48px', textAlign: 'center' }}>
                   <MinusCircle size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No expenses recorded yet.</p>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No expenses recorded yet.</p>
                 </div>
               ) : (
                 expenses.map((exp, i) => (
@@ -1725,14 +1725,14 @@ export default function VendorDashboard() {
                     borderBottom: i < expenses.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)', marginBottom: '3px' }}>{exp.description}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)', marginBottom: '3px' }}>{exp.description}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                         {exp.category} · {exp.expense_date}
                         {exp.client_name ? ` · ${exp.client_name}` : ''}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--red)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--red)' }}>
                         −Rs.{(exp.amount || 0).toLocaleString('en-IN')}
                       </span>
                       <button onClick={() => handleDeleteExpense(exp.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
@@ -1750,7 +1750,7 @@ export default function VendorDashboard() {
         {activeTab === 'tax' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Tax & Finance</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Tax & Finance</h2>
               <button style={goldBtn} onClick={() => setShowTDSForm(!showTDSForm)}>
                 <Plus size={14} />
                 Add TDS Entry
@@ -1759,7 +1759,7 @@ export default function VendorDashboard() {
 
             {tdsSummary && (
               <div className="card-dark" style={{ padding: '28px' }}>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '20px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '20px' }}>
                   TDS Reconciliation · {tdsSummary.financial_year}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', overflow: 'hidden', marginBottom: '20px' }}>
@@ -1769,8 +1769,8 @@ export default function VendorDashboard() {
                     { label: 'Net Received', val: `Rs.${(tdsSummary.total_net_received || 0).toLocaleString('en-IN')}` },
                   ].map(s => (
                     <div key={s.label} style={{ padding: '20px', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: 300, color: 'var(--gold)', marginBottom: '6px' }}>{s.val}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '0.5px' }}>{s.label}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', fontWeight: 300, color: 'var(--gold)', marginBottom: '6px' }}>{s.val}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)', letterSpacing: '0.5px' }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -1783,8 +1783,8 @@ export default function VendorDashboard() {
                     <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: s.color, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)' }}>Rs.{s.val.toLocaleString('en-IN')}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)' }}>{s.label}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--cream)' }}>Rs.{s.val.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 300, color: 'var(--grey)' }}>{s.label}</div>
                       </div>
                     </div>
                   ))}
@@ -1794,14 +1794,14 @@ export default function VendorDashboard() {
 
             {showTDSForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>Add TDS Entry</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>Add TDS Entry</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div style={formRow}><label style={label}>Client Name</label><input style={inp} placeholder="e.g. Priya & Rahul" value={tdsClient} onChange={e => setTdsClient(e.target.value)} /></div>
                   <div style={formRow}><label style={label}>Gross Amount (Rs.)</label><input style={inp} type="number" placeholder="e.g. 150000" value={tdsAmount} onChange={e => setTdsAmount(e.target.value)} /></div>
                 </div>
                 {tdsAmount && (
                   <div style={{ background: 'var(--cream)', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px' }}>
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 300 }}>
                       TDS (10%): <strong style={{ color: 'var(--dark)' }}>Rs.{(parseInt(tdsAmount) * 0.10).toLocaleString('en-IN')}</strong>
                     </span>
                   </div>
@@ -1816,7 +1816,7 @@ export default function VendorDashboard() {
                         borderRadius: '8px',
                         padding: '10px 20px',
                         cursor: 'pointer',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'Inter, sans-serif',
                         fontSize: '13px',
                         fontWeight: tdsBy === opt ? 500 : 300,
                         color: tdsBy === opt ? 'var(--cream)' : 'var(--dark)',
@@ -1839,7 +1839,7 @@ export default function VendorDashboard() {
               {tdsLedger.length === 0 ? (
                 <div style={{ padding: '48px', textAlign: 'center' }}>
                   <Percent size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>
                     No TDS entries yet. Entries are created automatically when bookings are confirmed.
                   </p>
                 </div>
@@ -1853,19 +1853,19 @@ export default function VendorDashboard() {
                     borderBottom: i < tdsLedger.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)', marginBottom: '3px' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)', marginBottom: '3px' }}>
                         {entry.transaction_type === 'platform_booking' ? 'Platform Booking' : 'Client Invoice'}
                       </div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                         {new Date(entry.created_at).toLocaleDateString('en-IN')}
                         {entry.notes ? ` · ${entry.notes}` : ''}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>
                         Rs.{(entry.gross_amount || 0).toLocaleString('en-IN')}
                       </div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--gold)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--gold)' }}>
                         TDS: Rs.{(entry.tds_amount || 0).toLocaleString('en-IN')}
                       </div>
                     </div>
@@ -1876,7 +1876,7 @@ export default function VendorDashboard() {
 
             <div style={{ background: 'var(--light-gold)', border: '1px solid var(--gold-border)', borderRadius: '10px', padding: '16px 20px', display: 'flex', gap: '10px' }}>
               <AlertCircle size={16} color="var(--gold)" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--grey)', lineHeight: 1.7 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--grey)', lineHeight: 1.7 }}>
                 Platform TDS appears in your Form 26AS under The Dream Wedding's TAN. Share this ledger with your CA before quarterly advance tax payment and annual ITR filing.
               </p>
             </div>
@@ -1887,7 +1887,7 @@ export default function VendorDashboard() {
         {activeTab === 'clients' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Clients ({clients.length})</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Clients ({clients.length})</h2>
               <button style={goldBtn} onClick={() => setShowClientForm(!showClientForm)}>
                 <Plus size={14} />
                 {showClientForm ? 'Cancel' : 'Add Client'}
@@ -1896,14 +1896,14 @@ export default function VendorDashboard() {
 
             <div className="card-dark" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Zap size={16} color="var(--gold)" style={{ flexShrink: 0 }} />
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--grey-light)', lineHeight: 1.6 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--grey-light)', lineHeight: 1.6 }}>
                 Every client you add is a potential platform user. For every 10 past clients who join and send an enquiry — you earn 10% off your subscription. Up to 50% off.
               </p>
             </div>
 
             {showClientForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>Add Client</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>Add Client</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div style={formRow}><label style={label}>Client Names</label><input style={inp} placeholder="e.g. Priya & Rahul" value={clientName} onChange={e => setClientName(e.target.value)} /></div>
                   <div style={formRow}><label style={label}>Phone Number</label><input style={inp} placeholder="10-digit number" value={clientPhone} onChange={e => setClientPhone(e.target.value)} /></div>
@@ -1917,7 +1917,7 @@ export default function VendorDashboard() {
             {clients.length === 0 ? (
               <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
                 <Users size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No clients yet. Add your first client above.</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No clients yet. Add your first client above.</p>
               </div>
             ) : (
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -1928,8 +1928,8 @@ export default function VendorDashboard() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                       <div>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '16px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{client.name}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '16px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{client.name}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                           {client.phone}
                           {client.wedding_date ? ` · ${client.wedding_date}` : ''}
                         </div>
@@ -1943,7 +1943,7 @@ export default function VendorDashboard() {
                             borderRadius: '8px',
                             padding: '8px 14px',
                             textDecoration: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'Inter, sans-serif',
                             fontSize: '11px',
                             fontWeight: 500,
                             color: '#25D366',
@@ -1977,7 +1977,7 @@ export default function VendorDashboard() {
                         padding: '4px 0',
                       }}>
                         <Edit2 size={11} color="var(--grey)" />
-                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: client.notes ? 'var(--dark)' : 'var(--grey-light)', fontStyle: client.notes ? 'normal' : 'italic' }}>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: client.notes ? 'var(--dark)' : 'var(--grey-light)', fontStyle: client.notes ? 'normal' : 'italic' }}>
                           {client.notes || 'Add notes — lehenga colour, skin tone, preferences...'}
                         </span>
                       </button>
@@ -1993,7 +1993,7 @@ export default function VendorDashboard() {
         {activeTab === 'team' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>My Team ({teamMembers.length})</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>My Team ({teamMembers.length})</h2>
               <button style={goldBtn} onClick={() => setShowTeamForm(!showTeamForm)}>
                 <Plus size={14} />
                 {showTeamForm ? 'Cancel' : 'Add Member'}
@@ -2002,7 +2002,7 @@ export default function VendorDashboard() {
 
             {showTeamForm && (
               <div className="card" style={{ padding: '28px' }}>
-                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>Add Team Member</h3>
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 300, color: 'var(--dark)', marginBottom: '20px' }}>Add Team Member</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
                   <div style={formRow}><label style={label}>Name</label><input style={inp} placeholder="e.g. Ankit Sharma" value={memberName} onChange={e => setMemberName(e.target.value)} /></div>
                   <div style={formRow}><label style={label}>Phone</label><input style={inp} placeholder="10-digit number" value={memberPhone} onChange={e => setMemberPhone(e.target.value)} /></div>
@@ -2015,7 +2015,7 @@ export default function VendorDashboard() {
             {teamMembers.length === 0 ? (
               <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
                 <Users size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No team members yet.</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No team members yet.</p>
               </div>
             ) : (
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -2028,8 +2028,8 @@ export default function VendorDashboard() {
                     borderBottom: i < teamMembers.length - 1 ? '1px solid var(--border)' : 'none',
                   }}>
                     <div>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{member.name}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{member.name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                         {member.role}{member.phone ? ` · ${member.phone}` : ''}
                       </div>
                     </div>
@@ -2041,7 +2041,7 @@ export default function VendorDashboard() {
                           borderRadius: '8px',
                           padding: '8px 14px',
                           textDecoration: 'none',
-                          fontFamily: 'DM Sans, sans-serif',
+                          fontFamily: 'Inter, sans-serif',
                           fontSize: '11px',
                           fontWeight: 500,
                           color: '#25D366',
@@ -2066,7 +2066,7 @@ export default function VendorDashboard() {
         {/* ════ INQUIRIES ════ */}
         {activeTab === 'inquiries' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Inquiries</h2>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Inquiries</h2>
 
             {pendingBookings.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2075,13 +2075,13 @@ export default function VendorDashboard() {
                   <div key={booking.id} className="card" style={{ border: '1px solid var(--gold)', padding: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                       <div>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '17px', fontWeight: 400, color: 'var(--dark)', marginBottom: '6px' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '17px', fontWeight: 400, color: 'var(--dark)', marginBottom: '6px' }}>
                           {booking.users?.name || 'Couple'}
                         </div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                           Token: Rs.{(booking.token_amount || 10000).toLocaleString('en-IN')} · Protection: Rs.999
                         </div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                           Booked: {new Date(booking.created_at).toLocaleDateString('en-IN')}
                         </div>
                       </div>
@@ -2108,10 +2108,10 @@ export default function VendorDashboard() {
                   <div key={booking.id} className="card" style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>
                           {booking.users?.name || 'Couple'}
                         </div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 300, color: 'var(--grey)' }}>
                           Confirmed · Token received
                         </div>
                       </div>
@@ -2125,7 +2125,7 @@ export default function VendorDashboard() {
             {bookings.length === 0 && (
               <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
                 <MessageCircle size={28} color="var(--grey-light)" style={{ marginBottom: '12px' }} />
-                <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No bookings yet. Enquiries from couples will appear here.</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 300, color: 'var(--grey)' }}>No bookings yet. Enquiries from couples will appear here.</p>
               </div>
             )}
           </div>
@@ -2135,7 +2135,7 @@ export default function VendorDashboard() {
         {activeTab === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Profile Settings</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Profile Settings</h2>
               <button style={goldBtn} onClick={handleSaveProfile} disabled={savingProfile}>
                 <Check size={14} />
                 {savingProfile ? 'Saving...' : 'Save Changes'}
@@ -2174,7 +2174,7 @@ export default function VendorDashboard() {
                         borderRadius: '50px',
                         padding: '8px 18px',
                         cursor: 'pointer',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'Inter, sans-serif',
                         fontSize: '13px',
                         fontWeight: editVibes.includes(vibe) ? 500 : 300,
                         color: editVibes.includes(vibe) ? 'var(--dark)' : 'var(--dark)',
@@ -2190,8 +2190,8 @@ export default function VendorDashboard() {
 
             <div className="card" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '16px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>Founding Partner Plan</div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--grey)' }}>Rs.2,999/month · Locked forever · Full platform access</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '16px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>Founding Partner Plan</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 300, color: 'var(--grey)' }}>Rs.2,999/month · Locked forever · Full platform access</div>
               </div>
               <span className="badge-gold">Active</span>
             </div>
@@ -2207,7 +2207,7 @@ export default function VendorDashboard() {
                 padding: '12px 20px',
                 cursor: 'pointer',
                 color: 'var(--red)',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontSize: '13px',
                 fontWeight: 300,
               }}>
@@ -2223,8 +2223,8 @@ export default function VendorDashboard() {
         {/* ════ OUTSTANDING PAYMENTS ════ */}
         {activeTab === 'outstanding' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Outstanding Payments</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>All unpaid amounts across every client, sorted by due date.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Outstanding Payments</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>All unpaid amounts across every client, sorted by due date.</p>
             {paymentSchedules.flatMap((s: any) =>
               (s.instalments || []).filter((i: any) => !i.paid).map((inst: any, idx: number) => {
                 const isOverdue = inst.due_date && new Date(inst.due_date) < new Date();
@@ -2234,14 +2234,14 @@ export default function VendorDashboard() {
                 return (
                   <div key={`${s.id}-${idx}`} className="card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: `4px solid ${color}` }}>
                     <div>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '16px', color: 'var(--dark)', marginBottom: '4px' }}>{s.client_name}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{inst.label} · Due {inst.due_date || 'No date set'}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '16px', color: 'var(--dark)', marginBottom: '4px' }}>{s.client_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{inst.label} · Due {inst.due_date || 'No date set'}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)' }}>Rs.{parseInt(inst.amount || 0).toLocaleString('en-IN')}</span>
-                      <span style={{ background: `${color}20`, color, fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '1px', padding: '4px 10px', borderRadius: '50px', border: `1px solid ${color}40` }}>{status}</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: 'var(--dark)' }}>Rs.{parseInt(inst.amount || 0).toLocaleString('en-IN')}</span>
+                      <span style={{ background: `${color}20`, color, fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '1px', padding: '4px 10px', borderRadius: '50px', border: `1px solid ${color}40` }}>{status}</span>
                       {s.client_phone && (
-                        <a href={`https://wa.me/91${s.client_phone}?text=${encodeURIComponent(`Hi ${s.client_name.split('&')[0].trim()}! This is a friendly reminder that your ${inst.label} payment of Rs.${parseInt(inst.amount || 0).toLocaleString('en-IN')} is due on ${inst.due_date}. Request you to please transfer at your earliest convenience. Thank you! — ${vendorData?.name || 'Your Vendor'}, The Dream Wedding`)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '8px 14px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}>
+                        <a href={`https://wa.me/91${s.client_phone}?text=${encodeURIComponent(`Hi ${s.client_name.split('&')[0].trim()}! This is a friendly reminder that your ${inst.label} payment of Rs.${parseInt(inst.amount || 0).toLocaleString('en-IN')} is due on ${inst.due_date}. Request you to please transfer at your earliest convenience. Thank you! — ${vendorData?.name || 'Your Vendor'}, The Dream Wedding`)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '8px 14px', color: '#25D366', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}>
                           Remind
                         </a>
                       )}
@@ -2252,8 +2252,8 @@ export default function VendorDashboard() {
             )}
             {paymentSchedules.every((s: any) => (s.instalments || []).every((i: any) => i.paid)) && (
               <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>All caught up</div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>No outstanding payments. Every instalment is paid.</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>All caught up</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>No outstanding payments. Every instalment is paid.</div>
               </div>
             )}
           </div>
@@ -2262,8 +2262,8 @@ export default function VendorDashboard() {
         {/* ════ PROFIT PER BOOKING ════ */}
         {activeTab === 'profit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Profit per Booking</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Invoice total minus all expenses logged against that client. Your actual margin, finally visible.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Profit per Booking</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Invoice total minus all expenses logged against that client. Your actual margin, finally visible.</p>
             {clients.map((client: any) => {
               const clientInvoices = invoices.filter((i: any) => i.client_name === client.name);
               const clientExpenses = expenses.filter((e: any) => e.client_name === client.name);
@@ -2276,12 +2276,12 @@ export default function VendorDashboard() {
                 <div key={client.id} className="card" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                     <div>
-                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)', marginBottom: '4px' }}>{client.name}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{client.wedding_date}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: 'var(--dark)', marginBottom: '4px' }}>{client.name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{client.wedding_date}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: profit >= 0 ? '#4CAF50' : '#B5303A' }}>Rs.{profit.toLocaleString('en-IN')}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{margin}% margin</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: profit >= 0 ? '#4CAF50' : '#B5303A' }}>Rs.{profit.toLocaleString('en-IN')}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{margin}% margin</div>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -2291,8 +2291,8 @@ export default function VendorDashboard() {
                       { label: 'Profit', value: profit, color: '#4CAF50' },
                     ].map(item => (
                       <div key={item.label} style={{ background: 'var(--cream)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: item.color }}>Rs.{item.value.toLocaleString('en-IN')}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px' }}>{item.label}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: item.color }}>Rs.{item.value.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px' }}>{item.label}</div>
                       </div>
                     ))}
                   </div>
@@ -2308,8 +2308,8 @@ export default function VendorDashboard() {
         {/* ════ CLIENT TIMELINE ════ */}
         {activeTab === 'timeline' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Client Timeline</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Every interaction with every client, in one scroll.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Client Timeline</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Every interaction with every client, in one scroll.</p>
             {clients.map((client: any) => {
               const clientInvoices = invoices.filter((i: any) => i.client_name === client.name);
               const clientSchedules = paymentSchedules.filter((s: any) => s.client_name === client.name);
@@ -2322,15 +2322,15 @@ export default function VendorDashboard() {
               const typeColor: any = { start: 'var(--gold)', invoice: 'var(--dark)', payment: '#4CAF50', wedding: '#C9A84C' };
               return (
                 <div key={client.id} className="card" style={{ padding: '24px' }}>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)', marginBottom: '20px' }}>{client.name}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: 'var(--dark)', marginBottom: '20px' }}>{client.name}</div>
                   <div style={{ position: 'relative', paddingLeft: '24px' }}>
                     <div style={{ position: 'absolute', left: '8px', top: 0, bottom: 0, width: '1px', background: 'var(--border)' }} />
                     {events.map((event, idx) => (
                       <div key={idx} style={{ position: 'relative', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                         <div style={{ position: 'absolute', left: '-20px', width: '8px', height: '8px', borderRadius: '50%', background: typeColor[event.type] || 'var(--grey)', marginTop: '4px' }} />
                         <div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--dark)', fontWeight: 400 }}>{event.label}</div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '2px' }}>{event.date ? new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBD'}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--dark)', fontWeight: 400 }}>{event.label}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '2px' }}>{event.date ? new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBD'}</div>
                         </div>
                       </div>
                     ))}
@@ -2344,22 +2344,22 @@ export default function VendorDashboard() {
         {/* ════ DELIVERY TRACKER ════ */}
         {activeTab === 'delivery' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Delivery Tracker</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Track every booking from shoot to final delivery. Clients stop chasing when they see the status.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Delivery Tracker</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Track every booking from shoot to final delivery. Clients stop chasing when they see the status.</p>
             {deliveryItems.map((item: any) => {
               const stageLabels: any = { shoot_done: 'Shoot Done', editing: 'Editing', first_cut: 'First Cut Sent', feedback: 'Feedback Received', final_edit: 'Final Edits', delivered: 'Delivered' };
               const currentIdx = item.stages.indexOf(item.stage);
               return (
                 <div key={item.id} className="card" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>{item.client}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: 'var(--dark)' }}>{item.client}</div>
                     <span className="badge-gold">{stageLabels[item.stage]}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                     {item.stages.map((stage: string, idx: number) => (
                       <div key={stage} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                         <button onClick={() => setDeliveryItems(prev => prev.map(d => d.id === item.id ? { ...d, stage } : d))} style={{
-                          width: '100%', padding: '8px 4px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '0.3px', textAlign: 'center',
+                          width: '100%', padding: '8px 4px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '0.3px', textAlign: 'center',
                           background: idx <= currentIdx ? 'var(--dark)' : 'var(--cream)',
                           color: idx <= currentIdx ? 'var(--gold)' : 'var(--grey)',
                           transition: 'all 0.2s',
@@ -2379,8 +2379,8 @@ export default function VendorDashboard() {
         {/* ════ REVENUE FORECAST ════ */}
         {activeTab === 'forecast' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Revenue Forecast</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Money coming in over the next 3 months, based on confirmed payment schedules.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Revenue Forecast</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Money coming in over the next 3 months, based on confirmed payment schedules.</p>
             {(() => {
               const months: any = {};
               paymentSchedules.forEach((s: any) => {
@@ -2400,9 +2400,9 @@ export default function VendorDashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                     {sorted.map(([key, data]: any) => (
                       <div key={key} className="card" style={{ padding: '24px', textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{data.label}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '24px', fontWeight: 500, color: 'var(--gold)', marginBottom: '4px' }}>Rs.{data.amount.toLocaleString('en-IN')}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{data.items.length} payment{data.items.length !== 1 ? 's' : ''}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{data.label}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '24px', fontWeight: 500, color: 'var(--gold)', marginBottom: '4px' }}>Rs.{data.amount.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{data.items.length} payment{data.items.length !== 1 ? 's' : ''}</div>
                         <div style={{ marginTop: '12px', background: 'var(--border)', borderRadius: '4px', height: '4px' }}>
                           <div style={{ width: `${(data.amount / maxAmount) * 100}%`, height: '100%', background: 'var(--gold)', borderRadius: '4px' }} />
                         </div>
@@ -2410,22 +2410,22 @@ export default function VendorDashboard() {
                     ))}
                   </div>
                   <div className="card" style={{ padding: '24px' }}>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Breakdown</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Breakdown</div>
                     {sorted.flatMap(([, data]: any) => data.items.map((item: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
                         <div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--dark)' }}>{item.client}</div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{item.label}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--dark)' }}>{item.client}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{item.label}</div>
                         </div>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '16px', color: 'var(--dark)' }}>Rs.{item.amount.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '16px', color: 'var(--dark)' }}>Rs.{item.amount.toLocaleString('en-IN')}</div>
                       </div>
                     )))}
                   </div>
                 </>
               ) : (
                 <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>No upcoming payments</div>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Add payment schedules to see your revenue forecast.</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>No upcoming payments</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Add payment schedules to see your revenue forecast.</div>
                 </div>
               );
             })()}
@@ -2435,29 +2435,29 @@ export default function VendorDashboard() {
         {/* ════ PACKAGE BUILDER ════ */}
         {activeTab === 'packages' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Package Builder</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Define your packages once. Share a professional comparison card with every enquiry.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Package Builder</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Define your packages once. Share a professional comparison card with every enquiry.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
               {packages.map((pkg: any) => (
                 <div key={pkg.id} className="card" style={{ padding: '24px', position: 'relative' }}>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '8px' }}>{pkg.name}</div>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '24px', fontWeight: 500, color: 'var(--dark)', marginBottom: '16px' }}>Rs.{parseInt(pkg.price).toLocaleString('en-IN')}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '8px' }}>{pkg.name}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '24px', fontWeight: 500, color: 'var(--dark)', marginBottom: '16px' }}>Rs.{parseInt(pkg.price).toLocaleString('en-IN')}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {pkg.inclusions.map((inc: string, idx: number) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Check size={12} color="var(--gold)" />
-                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>{inc}</span>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>{inc}</span>
                       </div>
                     ))}
                   </div>
-                  <a href={'https://wa.me/?text=' + encodeURIComponent('*' + pkg.name + ' Package — Rs.' + parseInt(pkg.price).toLocaleString('en-IN') + '*\n\n' + pkg.inclusions.map((i: string) => String.fromCharCode(10003) + ' ' + i).join('\n') + '\n\n\u2014 ' + (vendorData?.name || 'The Dream Wedding'))} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '16px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}>
+                  <a href={'https://wa.me/?text=' + encodeURIComponent('*' + pkg.name + ' Package — Rs.' + parseInt(pkg.price).toLocaleString('en-IN') + '*\n\n' + pkg.inclusions.map((i: string) => String.fromCharCode(10003) + ' ' + i).join('\n') + '\n\n\u2014 ' + (vendorData?.name || 'The Dream Wedding'))} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '16px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px', color: '#25D366', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}>
                     Share via WhatsApp
                   </a>
                 </div>
               ))}
             </div>
             <div className="card" style={{ padding: '24px' }}>
-              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Add New Package</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Add New Package</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <input style={inp} placeholder="Package name (e.g. Diamond)" value={newPkgName} onChange={e => setNewPkgName(e.target.value)} />
                 <input style={inp} placeholder="Price (Rs.)" type="number" value={newPkgPrice} onChange={e => setNewPkgPrice(e.target.value)} />
@@ -2477,8 +2477,8 @@ export default function VendorDashboard() {
         {/* ════ ADVANCE TAX ════ */}
         {activeTab === 'advancetax' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Advance Tax Calculator</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Based on your invoiced income this year. Never miss a due date again.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Advance Tax Calculator</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Based on your invoiced income this year. Never miss a due date again.</p>
             {(() => {
               const totalIncome = invoices.reduce((s: number, i: any) => s + (i.amount || 0), 0);
               const taxableIncome = totalIncome * 0.9;
@@ -2498,29 +2498,29 @@ export default function VendorDashboard() {
                       { label: 'Estimated Annual Tax', value: `Rs.${Math.round(estimatedTax).toLocaleString('en-IN')}` },
                     ].map(item => (
                       <div key={item.label} className="card" style={{ padding: '20px', textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '6px' }}>{item.value}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{item.label}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '6px' }}>{item.value}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{item.label}</div>
                       </div>
                     ))}
                   </div>
                   <div className="card" style={{ padding: '24px' }}>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Quarterly Due Dates</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Quarterly Due Dates</div>
                     {quarters.map((q, idx) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: idx < quarters.length - 1 ? '1px solid var(--border)' : 'none' }}>
                         <div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--dark)', fontWeight: 500 }}>{q.label} — Due {q.due}</div>
-                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)', marginTop: '2px' }}>Pay {q.percent}% of annual tax by this date</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--dark)', fontWeight: 500 }}>{q.label} — Due {q.due}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)', marginTop: '2px' }}>Pay {q.percent}% of annual tax by this date</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>Rs.{Math.round(estimatedTax * q.percent / 100).toLocaleString('en-IN')}</div>
-                          <span style={{ background: '#C9A84C20', color: 'var(--gold)', fontFamily: 'DM Sans, sans-serif', fontSize: '10px', padding: '3px 8px', borderRadius: '50px', border: '1px solid var(--gold-border)' }}>UPCOMING</span>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: 'var(--dark)' }}>Rs.{Math.round(estimatedTax * q.percent / 100).toLocaleString('en-IN')}</div>
+                          <span style={{ background: '#C9A84C20', color: 'var(--gold)', fontFamily: 'Inter, sans-serif', fontSize: '10px', padding: '3px 8px', borderRadius: '50px', border: '1px solid var(--gold-border)' }}>UPCOMING</span>
                         </div>
                       </div>
                     ))}
                   </div>
                   <div className="card" style={{ padding: '20px', background: 'var(--cream)', border: '1px solid var(--gold-border)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                     <AlertCircle size={16} color="var(--gold)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', margin: 0 }}>This is an estimate based on your invoiced income. Platform TDS will appear in Form 26AS under The Dream Wedding's TAN. Share these figures with your CA before filing. Missing advance tax deadlines attracts 1% interest per month under Section 234B/234C.</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', margin: 0 }}>This is an estimate based on your invoiced income. Platform TDS will appear in Form 26AS under The Dream Wedding's TAN. Share these figures with your CA before filing. Missing advance tax deadlines attracts 1% interest per month under Section 234B/234C.</p>
                   </div>
                 </>
               );
@@ -2531,8 +2531,8 @@ export default function VendorDashboard() {
         {/* ════ CASH PAYMENTS ════ */}
         {activeTab === 'cash' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Cash Payment Log</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Record offline cash payments for your own records. Not processed by the platform.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Cash Payment Log</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Record offline cash payments for your own records. Not processed by the platform.</p>
             <div className="card" style={{ padding: '24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <input style={inp} placeholder="Client name" value={cashClient} onChange={e => setCashClient(e.target.value)} />
@@ -2552,11 +2552,11 @@ export default function VendorDashboard() {
                 {cashEntries.map((entry: any, idx: number) => (
                   <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: idx < cashEntries.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--dark)', fontWeight: 400 }}>{entry.client}</div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{entry.note} · {entry.date}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--dark)', fontWeight: 400 }}>{entry.client}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{entry.note} · {entry.date}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: '#4CAF50' }}>Rs.{entry.amount.toLocaleString('en-IN')}</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: '#4CAF50' }}>Rs.{entry.amount.toLocaleString('en-IN')}</span>
                       <button onClick={() => setCashEntries(prev => prev.filter(e => e.id !== entry.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey)', padding: '4px' }}>
                         <Trash2 size={14} />
                       </button>
@@ -2564,8 +2564,8 @@ export default function VendorDashboard() {
                   </div>
                 ))}
                 <div style={{ padding: '16px 24px', background: 'var(--cream)', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 500 }}>Total Cash Logged</span>
-                  <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>Rs.{cashEntries.reduce((s: number, e: any) => s + e.amount, 0).toLocaleString('en-IN')}</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 500 }}>Total Cash Logged</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: 'var(--dark)' }}>Rs.{cashEntries.reduce((s: number, e: any) => s + e.amount, 0).toLocaleString('en-IN')}</span>
                 </div>
               </div>
             )}
@@ -2575,16 +2575,16 @@ export default function VendorDashboard() {
         {/* ════ PRE-WEDDING CHECKLIST ════ */}
         {activeTab === 'checklist' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Pre-Wedding Checklist</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Per-client checklist to complete before every wedding. Never forget a critical step again.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Pre-Wedding Checklist</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Per-client checklist to complete before every wedding. Never forget a critical step again.</p>
             {checklists.map((cl: any) => {
               const done = cl.items.filter((i: any) => i.done).length;
               const total = cl.items.length;
               return (
                 <div key={cl.id} className="card" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>{cl.client}</div>
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: done === total ? '#4CAF50' : 'var(--gold)', fontWeight: 500 }}>{done}/{total} complete</span>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', color: 'var(--dark)' }}>{cl.client}</div>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: done === total ? '#4CAF50' : 'var(--gold)', fontWeight: 500 }}>{done}/{total} complete</span>
                   </div>
                   <div style={{ background: 'var(--border)', borderRadius: '4px', height: '4px', marginBottom: '16px' }}>
                     <div style={{ width: `${(done / total) * 100}%`, height: '100%', background: done === total ? '#4CAF50' : 'var(--gold)', borderRadius: '4px', transition: 'width 0.3s' }} />
@@ -2595,7 +2595,7 @@ export default function VendorDashboard() {
                       <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `1.5px solid ${item.done ? 'var(--dark)' : 'var(--border)'}`, background: item.done ? 'var(--dark)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {item.done && <Check size={10} color="var(--gold)" />}
                       </div>
-                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: item.done ? 'var(--grey)' : 'var(--dark)', textDecoration: item.done ? 'line-through' : 'none' }}>{item.text}</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: item.done ? 'var(--grey)' : 'var(--dark)', textDecoration: item.done ? 'line-through' : 'none' }}>{item.text}</span>
                     </div>
                   ))}
                 </div>
@@ -2607,8 +2607,8 @@ export default function VendorDashboard() {
         {/* ════ AVAILABILITY CALENDAR ════ */}
         {activeTab === 'availability' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Availability Calendar</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Your month at a glance. Screenshot and share with enquiring couples.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Availability Calendar</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Your month at a glance. Screenshot and share with enquiring couples.</p>
             {(() => {
               const now = new Date();
               const year = now.getFullYear();
@@ -2627,15 +2627,15 @@ export default function VendorDashboard() {
               const isToday = (d: number) => d === now.getDate();
               return (
                 <div className="card" style={{ padding: '32px' }}>
-                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--dark)', textAlign: 'center', marginBottom: '24px' }}>{monthName}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', color: 'var(--dark)', textAlign: 'center', marginBottom: '24px' }}>{monthName}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '16px' }}>
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                      <div key={d} style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', textAlign: 'center', fontWeight: 500, letterSpacing: '0.5px' }}>{d}</div>
+                      <div key={d} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', textAlign: 'center', fontWeight: 500, letterSpacing: '0.5px' }}>{d}</div>
                     ))}
                     {cells.map((d, idx) => (
                       <div key={idx} style={{
                         height: '48px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: d && isToday(d) ? 600 : 300,
+                        fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: d && isToday(d) ? 600 : 300,
                         background: !d ? 'transparent' : isBlocked(d) ? 'var(--dark)' : '#4CAF5015',
                         color: !d ? 'transparent' : isBlocked(d) ? 'var(--gold)' : isToday(d) ? 'var(--dark)' : '#4CAF50',
                         border: d && isToday(d) ? '2px solid var(--gold)' : '1px solid transparent',
@@ -2648,7 +2648,7 @@ export default function VendorDashboard() {
                     {[{ color: '#4CAF5015', textColor: '#4CAF50', label: 'Available' }, { color: 'var(--dark)', textColor: 'var(--gold)', label: 'Blocked/Booked' }, { color: 'transparent', textColor: 'var(--dark)', label: 'Today', border: '2px solid var(--gold)' }].map(item => (
                       <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: item.color, border: item.border || '1px solid transparent' }} />
-                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{item.label}</span>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{item.label}</span>
                       </div>
                     ))}
                   </div>
@@ -2662,19 +2662,19 @@ export default function VendorDashboard() {
         {activeTab === 'runsheet' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Day-of Runsheet</h2>
-              <a href={'https://wa.me/?text=' + encodeURIComponent('*Wedding Day Runsheet*\n\n' + runsheet.map(r => r.time + ' — ' + r.task + '\nAssigned: ' + r.assignee).join('\n\n'))} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px 16px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Day-of Runsheet</h2>
+              <a href={'https://wa.me/?text=' + encodeURIComponent('*Wedding Day Runsheet*\n\n' + runsheet.map(r => r.time + ' — ' + r.task + '\nAssigned: ' + r.assignee).join('\n\n'))} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px 16px', color: '#25D366', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
                 Share with Team
               </a>
             </div>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Minute-by-minute timeline. Share with your full team via WhatsApp.</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Minute-by-minute timeline. Share with your full team via WhatsApp.</p>
             <div className="card" style={{ overflow: 'hidden' }}>
               {runsheet.map((item: any, idx: number) => (
                 <div key={item.id} style={{ display: 'flex', gap: '16px', padding: '16px 24px', borderBottom: idx < runsheet.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'flex-start' }}>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, minWidth: '80px', flexShrink: 0 }}>{item.time}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, minWidth: '80px', flexShrink: 0 }}>{item.time}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--dark)' }}>{item.task}</div>
-                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '3px' }}>Assigned: {item.assignee}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--dark)' }}>{item.task}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '3px' }}>Assigned: {item.assignee}</div>
                   </div>
                   <button onClick={() => setRunsheet(prev => prev.filter(r => r.id !== item.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey)', padding: '4px', flexShrink: 0 }}>
                     <Trash2 size={13} />
@@ -2683,7 +2683,7 @@ export default function VendorDashboard() {
               ))}
             </div>
             <div className="card" style={{ padding: '24px' }}>
-              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '14px' }}>Add Entry</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '14px' }}>Add Entry</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <input style={inp} placeholder="Time (e.g. 09:00 AM)" value={newRunItem.time} onChange={e => setNewRunItem(p => ({ ...p, time: e.target.value }))} />
                 <input style={inp} placeholder="Task description" value={newRunItem.task} onChange={e => setNewRunItem(p => ({ ...p, task: e.target.value }))} />
@@ -2704,20 +2704,20 @@ export default function VendorDashboard() {
         {activeTab === 'equipment' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Equipment Checklist</h2>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Equipment Checklist</h2>
               <button style={goldBtn} onClick={() => setEquipment(prev => prev.map(e => ({ ...e, checked: false })))}>
                 Reset All
               </button>
             </div>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Run through this before every shoot. Never forget critical equipment again.</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Run through this before every shoot. Never forget critical equipment again.</p>
             {(() => {
               const checked = equipment.filter(e => e.checked).length;
               const total = equipment.length;
               return (
                 <div className="card" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>{checked}/{total} items checked</span>
-                    {checked === total && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: '#4CAF50', fontWeight: 500 }}>Ready to shoot!</span>}
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>{checked}/{total} items checked</span>
+                    {checked === total && <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: '#4CAF50', fontWeight: 500 }}>Ready to shoot!</span>}
                   </div>
                   <div style={{ background: 'var(--border)', borderRadius: '4px', height: '4px', marginBottom: '20px' }}>
                     <div style={{ width: `${(checked / total) * 100}%`, height: '100%', background: checked === total ? '#4CAF50' : 'var(--gold)', borderRadius: '4px', transition: 'width 0.3s' }} />
@@ -2728,7 +2728,7 @@ export default function VendorDashboard() {
                       <div style={{ width: '20px', height: '20px', borderRadius: '4px', border: `1.5px solid ${item.checked ? '#4CAF50' : 'var(--border)'}`, background: item.checked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}>
                         {item.checked && <Check size={11} color="white" />}
                       </div>
-                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: item.checked ? 'var(--grey)' : 'var(--dark)', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.item}</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: item.checked ? 'var(--grey)' : 'var(--dark)', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.item}</span>
                     </div>
                   ))}
                 </div>
@@ -2740,15 +2740,15 @@ export default function VendorDashboard() {
         {/* ════ CSV IMPORT / EXPORT ════ */}
         {activeTab === 'csvimport' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Import / Export</h2>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Bring your existing client data in. Take your data out anytime. Your data is always yours.</p>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Import / Export</h2>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Bring your existing client data in. Take your data out anytime. Your data is always yours.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div className="card" style={{ padding: '32px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--light-gold)', border: '1px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
                   <Upload size={20} color="var(--gold)" />
                 </div>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>Import Clients</div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', marginBottom: '20px' }}>Upload a CSV or Excel file from any CRM, spreadsheet or WedMeGood export. We auto-map the columns.</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>Import Clients</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', marginBottom: '20px' }}>Upload a CSV or Excel file from any CRM, spreadsheet or WedMeGood export. We auto-map the columns.</div>
                 <div style={{ border: '2px dashed var(--border)', borderRadius: '10px', padding: '32px', textAlign: 'center', marginBottom: '16px', cursor: 'pointer', background: 'var(--cream)' }}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => {
@@ -2756,24 +2756,24 @@ export default function VendorDashboard() {
                     const file = e.dataTransfer.files[0];
                     if (file) alert(`File "${file.name}" received. CSV import will process ${file.name} and add clients to your database. (Full processing coming in next update)`);
                   }}>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Drag and drop CSV here</div>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px', opacity: 0.6 }}>or</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Drag and drop CSV here</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px', opacity: 0.6 }}>or</div>
                   <label style={{ display: 'inline-block', marginTop: '8px', cursor: 'pointer' }}>
                     <input type="file" accept=".csv,.xlsx" style={{ display: 'none' }} onChange={e => {
                       const file = e.target.files?.[0];
                       if (file) alert(`File "${file.name}" received. Import will process and add your clients to the database.`);
                     }} />
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, textDecoration: 'underline' }}>Browse files</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, textDecoration: 'underline' }}>Browse files</span>
                   </label>
                 </div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', lineHeight: '1.6' }}>Expected columns: Name, Phone, Wedding Date, Notes (optional). Any extra columns are ignored.</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', lineHeight: '1.6' }}>Expected columns: Name, Phone, Wedding Date, Notes (optional). Any extra columns are ignored.</div>
               </div>
               <div className="card" style={{ padding: '32px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--light-gold)', border: '1px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
                   <ArrowDownCircle size={20} color="var(--gold)" />
                 </div>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>Export Your Data</div>
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', marginBottom: '24px' }}>Download everything — clients, invoices, expenses, TDS records. Your data is always yours. No lock-in.</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>Export Your Data</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', marginBottom: '24px' }}>Download everything — clients, invoices, expenses, TDS records. Your data is always yours. No lock-in.</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {[
                     { label: 'Client Database', data: clients, fields: ['name', 'phone', 'wedding_date'] },
@@ -2796,7 +2796,7 @@ export default function VendorDashboard() {
                     </button>
                   ))}
                 </div>
-                <div style={{ marginTop: '16px', fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', lineHeight: '1.6' }}>Exports are instant CSV downloads. Open in Excel, Google Sheets or any spreadsheet tool.</div>
+                <div style={{ marginTop: '16px', fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', lineHeight: '1.6' }}>Exports are instant CSV downloads. Open in Excel, Google Sheets or any spreadsheet tool.</div>
               </div>
             </div>
           </div>
