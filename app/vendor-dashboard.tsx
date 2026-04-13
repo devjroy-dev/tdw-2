@@ -720,31 +720,55 @@ export default function VendorDashboardScreen() {
   const loadLeads = async () => {
     try {
       setLeadsLoading(true);
+      const cacheKey = `cache_leads_${vendorSession.vendorId}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) setLeads(JSON.parse(cached));
       const res = await getLeads(vendorSession.vendorId);
-      if (res.success && res.data?.length > 0) setLeads(res.data);
+      if (res.success && res.data?.length > 0) {
+        setLeads(res.data);
+        AsyncStorage.setItem(cacheKey, JSON.stringify(res.data));
+      }
     } catch (e) {} finally { setLeadsLoading(false); }
   };
 
   const loadBookings = async () => {
     try {
       setBookingsLoading(true);
+      const cacheKey = `cache_bookings_${vendorSession.vendorId}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) setBookings(JSON.parse(cached));
       const res = await getVendorBookings(vendorSession.vendorId);
-      if (res.success) setBookings(res.data || []);
+      if (res.success) {
+        setBookings(res.data || []);
+        AsyncStorage.setItem(cacheKey, JSON.stringify(res.data || []));
+      }
     } catch (e) {} finally { setBookingsLoading(false); }
   };
 
   const loadInvoices = async () => {
     try {
+      const cacheKey = `cache_invoices_${vendorSession.vendorId}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) setInvoices(JSON.parse(cached));
       const res = await getInvoices(vendorSession.vendorId);
-      if (res.success) setInvoices(res.data || []);
+      if (res.success) {
+        setInvoices(res.data || []);
+        AsyncStorage.setItem(cacheKey, JSON.stringify(res.data || []));
+      }
     } catch (e) {}
   };
 
   const loadBlockedDates = async () => {
     try {
       setCalendarLoading(true);
+      const cacheKey = `cache_calendar_${vendorSession.vendorId}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) setBlockedDates(JSON.parse(cached));
       const res = await getBlockedDates(vendorSession.vendorId);
-      if (res.success) setBlockedDates(res.data || []);
+      if (res.success) {
+        setBlockedDates(res.data || []);
+        AsyncStorage.setItem(cacheKey, JSON.stringify(res.data || []));
+      }
     } catch (e) {} finally { setCalendarLoading(false); }
   };
 
@@ -924,6 +948,7 @@ export default function VendorDashboardScreen() {
       const data = await res.json();
       if (data.success && data.data?.length > 0) {
         setClients(data.data);
+        AsyncStorage.setItem(`vendor_clients_${vendorSession.vendorId}`, JSON.stringify(data.data));
       } else {
         // Fallback to AsyncStorage for existing clients
         const stored = await AsyncStorage.getItem(`vendor_clients_${vendorSession.vendorId}`);
