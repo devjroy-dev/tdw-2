@@ -17,6 +17,7 @@ import {
   DMSans_400Regular,
   DMSans_500Medium,
 } from '@expo-google-fonts/dm-sans';
+import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 
@@ -344,37 +345,7 @@ export default function SpotlightScreen() {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <View style={styles.bottomNav}>
-        {[
-          { label: 'Home',      icon: 'home',           route: '/home'        },
-          { label: 'Moodboard', icon: 'heart',          route: '/moodboard'   },
-          { label: 'Messages',  icon: 'message-circle', route: '/messaging'   },
-          { label: 'Planner',   icon: 'calendar',       route: '/bts-planner' },
-          { label: 'Profile',   icon: 'user',           route: '/profile'     },
-        ].map((item, index) => {
-          const isActive = index === 4;
-          return (
-            <TouchableOpacity
-              key={item.label}
-              style={styles.navItem}
-              onPress={() => item.route && router.push(item.route as any)}
-            >
-              <Feather
-                name={item.icon as any}
-                size={20}
-                color={isActive ? '#2C2420' : '#8C7B6E'}
-              />
-              <Text style={[
-                styles.navLabel,
-                isActive && styles.navLabelActive,
-              ]}>
-                {item.label}
-              </Text>
-              {isActive && <View style={styles.navDot} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <BottomNav />
 
     </View>
   );

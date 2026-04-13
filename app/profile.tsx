@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateUser } from '../services/api';
 import { Feather } from '@expo/vector-icons';
+import BottomNav from '../components/BottomNav';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -307,34 +308,7 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <View style={styles.bottomNav}>
-        {[
-          { label: 'Home',      icon: 'home',           route: '/home'        },
-          { label: 'Moodboard', icon: 'heart',          route: '/moodboard'   },
-          { label: 'Messages',  icon: 'message-circle', route: '/messaging'   },
-          { label: 'Planner',   icon: 'calendar',       route: '/bts-planner' },
-          { label: 'Profile',   icon: 'user',           route: null           },
-        ].map((item, index) => {
-          const isActive = index === 4;
-          return (
-            <TouchableOpacity
-              key={item.label}
-              style={styles.navItem}
-              onPress={() => item.route && router.push(item.route as any)}
-            >
-              <Feather
-                name={item.icon as any}
-                size={20}
-                color={isActive ? '#2C2420' : '#8C7B6E'}
-              />
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                {item.label}
-              </Text>
-              {isActive && <View style={styles.navDot} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <BottomNav />
 
     </View>
   );
