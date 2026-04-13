@@ -24,7 +24,7 @@ import { generateInvoiceNumber, generateInvoicePDF } from '../services/invoice';
 const { width } = Dimensions.get('window');
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
-const TABS = ['Overview', 'Inquiries', 'Calendar', 'Tools', 'Tax & Finance', 'Reviews', 'Clients'];
+const TABS = ['Overview', 'Inquiries', 'Calendar', 'Clients', 'Invoices', 'Payments', 'Contracts'];
 
 const STAGE_COLORS: Record<string, string> = {
   'New Inquiry': '#C9A84C',
@@ -258,8 +258,9 @@ export default function VendorDashboardScreen() {
       if (activeTab === 'Inquiries') { loadLeads(); loadBookings(); }
       if (activeTab === 'Calendar') { loadBlockedDates(); }
       if (activeTab === 'Clients') { loadClients(); }
-      if (activeTab === 'Tax & Finance') { loadTDS(); }
-      if (activeTab === 'Tools') { loadContracts(); loadExpenses(); loadPaymentSchedules(); loadTeamMembers(); }
+      if (activeTab === 'Invoices') { /* invoices already loaded in overview */ }
+      if (activeTab === 'Payments') { loadPaymentSchedules(); }
+      if (activeTab === 'Contracts') { loadContracts(); }
     }
   }, [vendorSession, activeTab]);
 
@@ -1025,7 +1026,6 @@ export default function VendorDashboardScreen() {
             if (data.success) {
               Alert.alert('Confirmed!', 'Payment released from escrow. TDS entry recorded automatically.');
               loadBookings();
-              if (activeTab === 'Tax & Finance') loadTDS();
             } else Alert.alert('Error', data.error || 'Could not confirm.');
           } catch (e) { Alert.alert('Error', 'Network error.'); }
         }
@@ -1500,7 +1500,7 @@ export default function VendorDashboardScreen() {
               {[
                 { num: String(pendingBookings.length || 3), lbl: 'Pending\nBookings', tab: 'Inquiries' },
                 { num: String(blockedDates.length || 4), lbl: 'Blocked\nDates', tab: 'Calendar' },
-                { num: '★ 4.9', lbl: 'Your\nRating', tab: 'Reviews' },
+                { num: '★ 4.9', lbl: 'Your\nRating', tab: 'Overview' },
                 { num: String(clients.length), lbl: 'My\nClients', tab: 'Clients' },
               ].map(a => (
                 <TouchableOpacity key={a.lbl} style={styles.actionCard} onPress={() => setActiveTab(a.tab)}>
@@ -1780,831 +1780,6 @@ export default function VendorDashboardScreen() {
         {/* ════════════════════════════════
             TOOLS TAB
         ════════════════════════════════ */}
-        {activeTab === 'Tools' && (
-          <View style={styles.tabPane}>
-            <Text style={styles.sectionLabel}>Live Tools</Text>
-
-            {/* Promo Engine */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="zap" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Promo Engine</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowPromoForm(true)}>
-                  <Text style={styles.toolActionText}>+ Create</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Run time-limited offers. Couples in your city get notified instantly.</Text>
-              {promos.map((promo, index) => (
-                <View key={promo.id}>
-                  {index > 0 && <View style={styles.listDivider} />}
-                  <View style={styles.promoRow}>
-                    <View style={styles.promoInfo}>
-                      <Text style={styles.promoTitle}>{promo.title}</Text>
-                      <Text style={styles.promoMeta}>Expires {promo.expires} · {promo.leads} leads</Text>
-                    </View>
-                    <View style={[styles.promoBadge, { backgroundColor: promo.active ? '#4CAF5020' : '#E8E0D5' }]}>
-                      <Text style={[styles.promoBadgeText, { color: promo.active ? '#4CAF50' : '#8C7B6E' }]}>
-                        {promo.active ? 'Live' : 'Ended'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Portfolio */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="image" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Portfolio Photos</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={handleImageUpload} disabled={uploadingImage}>
-                  {uploadingImage
-                    ? <ActivityIndicator size="small" color="#C9A84C" />
-                    : <Text style={styles.toolActionText}>+ Upload</Text>
-                  }
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Upload photos to your public portfolio. Basic: 10 photos · Premium: 30 · Elite: Unlimited.</Text>
-              {portfolioImages.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-                  {portfolioImages.map((uri, index) => (
-                    <Image key={index} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8 }} />
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-
-            {/* Invoice Generator — upgraded */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="file-text" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Invoice Generator</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowInvoiceForm(!showInvoiceForm)}>
-                  <Text style={styles.toolActionText}>{showInvoiceForm ? 'Cancel' : 'Create'}</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Professional invoices with auto GST calculation. Saved to your account and linked to TDS records.</Text>
-              {showInvoiceForm && (
-                <View style={styles.invoiceForm}>
-                  <TextInput style={styles.fieldInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={invoiceClient} onChangeText={setInvoiceClient} />
-                  <TextInput style={styles.fieldInput} placeholder="Client phone (optional)" placeholderTextColor="#8C7B6E" value={invoicePhone} onChangeText={setInvoicePhone} keyboardType="phone-pad" />
-                  <TextInput style={styles.fieldInput} placeholder="Description (e.g. Wedding Photography)" placeholderTextColor="#8C7B6E" value={invoiceDesc} onChangeText={setInvoiceDesc} />
-                  <TextInput style={styles.fieldInput} placeholder="Amount (₹)" placeholderTextColor="#8C7B6E" value={invoiceAmount} onChangeText={setInvoiceAmount} keyboardType="number-pad" />
-
-                  {invoiceAmount ? (
-                    <View style={styles.gstPreview}>
-                      <Text style={styles.gstPreviewText}>GST (18%): ₹{(parseInt(invoiceAmount) * 0.18).toLocaleString('en-IN')}</Text>
-                      <Text style={styles.gstPreviewTotal}>Total: ₹{(parseInt(invoiceAmount) * 1.18).toLocaleString('en-IN')}</Text>
-                    </View>
-                  ) : null}
-
-                  {/* TDS Toggle */}
-                  <View style={styles.tdsToggleRow}>
-                    <View style={styles.tdsToggleInfo}>
-                      <Text style={styles.tdsToggleLabel}>TDS Applicable (10%)</Text>
-                      <Text style={styles.tdsToggleHint}>Is TDS deductible on this invoice?</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.toggle, invoiceTDSApplicable && styles.toggleActive]}
-                      onPress={() => setInvoiceTDSApplicable(!invoiceTDSApplicable)}
-                    >
-                      <View style={[styles.toggleKnob, invoiceTDSApplicable && styles.toggleKnobActive]} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {invoiceTDSApplicable && (
-                    <>
-                      {invoiceAmount ? (
-                        <View style={[styles.gstPreview, { backgroundColor: '#F0F7F0' }]}>
-                          <Text style={[styles.gstPreviewText, { color: '#2D6A4F' }]}>TDS (10%): ₹{(parseInt(invoiceAmount) * 0.10).toLocaleString('en-IN')}</Text>
-                          <Text style={[styles.gstPreviewTotal, { color: '#2D6A4F' }]}>You receive: ₹{(parseInt(invoiceAmount) * 0.90).toLocaleString('en-IN')}</Text>
-                        </View>
-                      ) : null}
-                      <View style={styles.tdsToggleRow}>
-                        <View style={styles.tdsToggleInfo}>
-                          <Text style={styles.tdsToggleLabel}>Client deducted TDS</Text>
-                          <Text style={styles.tdsToggleHint}>Did the client already deduct TDS?</Text>
-                        </View>
-                        <TouchableOpacity
-                          style={[styles.toggle, invoiceTDSDeductedByClient && styles.toggleActive]}
-                          onPress={() => setInvoiceTDSDeductedByClient(!invoiceTDSDeductedByClient)}
-                        >
-                          <View style={[styles.toggleKnob, invoiceTDSDeductedByClient && styles.toggleKnobActive]} />
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  )}
-
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleGenerateInvoice}>
-                    <Text style={styles.goldBtnText}>GENERATE & SAVE INVOICE</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {/* Invoice History */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="list" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Invoice History</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowInvoiceHistory(!showInvoiceHistory)}>
-                  <Text style={styles.toolActionText}>{showInvoiceHistory ? 'Hide' : 'Show All'}</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>All invoices — app bookings and independent clients. Tap to mark as paid.</Text>
-              {showInvoiceHistory && (
-                <View style={{ gap: 0 }}>
-                  {invoices.length === 0 ? (
-                    <Text style={styles.emptyText}>No invoices yet. Create your first invoice above.</Text>
-                  ) : (
-                    invoices.map((inv: any, index: number) => (
-                      <View key={inv.id}>
-                        <View style={styles.invoiceHistoryRow}>
-                          <View style={{ flex: 1, gap: 3 }}>
-                            <Text style={styles.invoiceHistoryClient}>{inv.client_name || 'Client'}</Text>
-                            <Text style={styles.invoiceHistoryMeta}>
-                              {inv.invoice_number || 'INV'} · {inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN') : ''}
-                            </Text>
-                            {inv.description ? <Text style={styles.invoiceHistoryDesc} numberOfLines={1}>{inv.description}</Text> : null}
-                          </View>
-                          <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                            <Text style={styles.invoiceHistoryAmount}>Rs.{(inv.total_amount || inv.amount || 0).toLocaleString('en-IN')}</Text>
-                            <TouchableOpacity
-                              style={[styles.invoiceStatusBtn, { backgroundColor: inv.status === 'paid' ? '#4CAF5020' : '#FFF8EC', borderColor: inv.status === 'paid' ? '#4CAF50' : '#C9A84C' }]}
-                              onPress={() => inv.status !== 'paid' && handleMarkInvoicePaid(inv.id)}
-                              disabled={inv.status === 'paid' || updatingInvoiceId === inv.id}
-                            >
-                              {updatingInvoiceId === inv.id ? (
-                                <ActivityIndicator size="small" color="#C9A84C" />
-                              ) : (
-                                <Text style={[styles.invoiceStatusText, { color: inv.status === 'paid' ? '#4CAF50' : '#C9A84C' }]}>
-                                  {inv.status === 'paid' ? 'Paid' : 'Mark Paid'}
-                                </Text>
-                              )}
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                        {index < invoices.length - 1 && <View style={styles.listDivider} />}
-                      </View>
-                    ))
-                  )}
-                </View>
-              )}
-            </View>
-
-            {/* GST Report */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="percent" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>GST Autopilot</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={handleDownloadGSTReport}>
-                  <Text style={styles.toolActionText}>Download PDF</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>CA-ready annual GST summary. One tap to generate and share.</Text>
-              <View style={styles.gstRow}>
-                {[
-                  { amt: invoices.length > 0 ? `₹${invoices.reduce((s: number, i: any) => s + (i.amount || 0), 0).toLocaleString('en-IN')}` : '₹0', lbl: 'Total Income' },
-                  { amt: invoices.length > 0 ? `₹${invoices.reduce((s: number, i: any) => s + (i.gst_amount || 0), 0).toLocaleString('en-IN')}` : '₹0', lbl: 'GST (18%)' },
-                  { amt: `FY ${new Date().getFullYear()}`, lbl: 'Period' },
-                ].map((g) => (
-                  <View key={g.lbl} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                    <Text style={styles.gstAmount}>{g.amt}</Text>
-                    <Text style={styles.gstLabel}>{g.lbl}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Payment Tracker */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="credit-card" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Payment Tracker</Text>
-                </View>
-              </View>
-              <Text style={styles.toolDesc}>Track all incoming payments and pending amounts.</Text>
-              <View style={styles.gstRow}>
-                {[
-                  {
-                    amt: invoices.length > 0
-                      ? `₹${invoices.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + (i.amount || 0), 0).toLocaleString('en-IN')}`
-                      : '₹0',
-                    lbl: 'Received',
-                    color: '#2C2420',
-                  },
-                  {
-                    amt: pendingBookings.length > 0
-                      ? `₹${pendingBookings.reduce((s: any, b: any) => s + (b.token_amount || 0), 0).toLocaleString('en-IN')}`
-                      : '₹0',
-                    lbl: 'In Escrow',
-                    color: '#C9A84C',
-                  },
-                  {
-                    amt: String(confirmedBookings.length),
-                    lbl: 'Confirmed',
-                    color: '#4CAF50',
-                  },
-                ].map((p) => (
-                  <View key={p.lbl} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                    <Text style={[styles.gstAmount, { color: p.color }]}>{p.amt}</Text>
-                    <Text style={styles.gstLabel}>{p.lbl}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Contract Generator */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="file-text" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Contract Generator</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowContractForm(!showContractForm)}>
-                  <Text style={styles.toolActionText}>{showContractForm ? 'Cancel' : 'Create'}</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Professional service agreements for any client. Generated as PDF — share via WhatsApp instantly.</Text>
-              {showContractForm && (
-                <View style={styles.invoiceForm}>
-                  <TextInput style={styles.fieldInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={contractClient} onChangeText={setContractClient} />
-                  <TextInput style={styles.fieldInput} placeholder="Client phone (optional)" placeholderTextColor="#8C7B6E" value={contractPhone} onChangeText={setContractPhone} keyboardType="phone-pad" />
-                  <TextInput style={styles.fieldInput} placeholder="Event type (e.g. Wedding, Sangeet)" placeholderTextColor="#8C7B6E" value={contractEventType} onChangeText={setContractEventType} />
-                  <TextInput style={styles.fieldInput} placeholder="Event date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={contractEventDate} onChangeText={setContractEventDate} />
-                  <TextInput style={styles.fieldInput} placeholder="Venue (optional)" placeholderTextColor="#8C7B6E" value={contractVenue} onChangeText={setContractVenue} />
-                  <TextInput style={[styles.fieldInput, { height: 80, textAlignVertical: 'top' }]} placeholder="Services description" placeholderTextColor="#8C7B6E" value={contractServices} onChangeText={setContractServices} multiline />
-                  <TextInput style={[styles.fieldInput, { height: 80, textAlignVertical: 'top' }]} placeholder="Deliverables (e.g. 500 edited photos, 2 highlight reels)" placeholderTextColor="#8C7B6E" value={contractDeliverables} onChangeText={setContractDeliverables} multiline />
-                  <TextInput style={styles.fieldInput} placeholder="Total amount (Rs.)" placeholderTextColor="#8C7B6E" value={contractTotal} onChangeText={setContractTotal} keyboardType="number-pad" />
-                  <TextInput style={styles.fieldInput} placeholder="Advance / token amount (Rs.)" placeholderTextColor="#8C7B6E" value={contractAdvance} onChangeText={setContractAdvance} keyboardType="number-pad" />
-                  {contractTotal && contractAdvance ? (
-                    <View style={styles.gstPreview}>
-                      <Text style={styles.gstPreviewText}>Balance due: Rs.{(parseInt(contractTotal) - parseInt(contractAdvance)).toLocaleString('en-IN')}</Text>
-                    </View>
-                  ) : null}
-                  <TextInput style={[styles.fieldInput, { height: 80, textAlignVertical: 'top' }]} placeholder="Cancellation policy" placeholderTextColor="#8C7B6E" value={contractCancellation} onChangeText={setContractCancellation} multiline />
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleGenerateContract}>
-                    <Feather name="file-text" size={14} color="#2C2420" />
-                    <Text style={styles.goldBtnText}>GENERATE CONTRACT PDF</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {contracts.length > 0 && (
-                <View style={{ gap: 0, borderTopWidth: 1, borderTopColor: '#E8E0D5', marginTop: 4 }}>
-                  {contracts.slice(0, 3).map((contract: any, index: number) => (
-                    <View key={contract.id}>
-                      <View style={styles.invoiceHistoryRow}>
-                        <View style={{ flex: 1, gap: 3 }}>
-                          <Text style={styles.invoiceHistoryClient}>{contract.client_name}</Text>
-                          <Text style={styles.invoiceHistoryMeta}>{contract.event_type} · {contract.event_date}</Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                          <Text style={styles.invoiceHistoryAmount}>Rs.{(contract.total_amount || 0).toLocaleString('en-IN')}</Text>
-                          <View style={[styles.invoiceStatusBtn, { backgroundColor: '#C9A84C20', borderColor: '#C9A84C' }]}>
-                            <Text style={[styles.invoiceStatusText, { color: '#C9A84C' }]}>Issued</Text>
-                          </View>
-                        </View>
-                      </View>
-                      {index < contracts.slice(0, 3).length - 1 && <View style={styles.listDivider} />}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Payment Schedule Tracker */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="calendar" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Payment Schedule</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowPaymentForm(!showPaymentForm)}>
-                  <Text style={styles.toolActionText}>{showPaymentForm ? 'Cancel' : 'Create'}</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Track token, advance and final payments per client. Mark instalments paid with one tap.</Text>
-              {showPaymentForm && (
-                <View style={styles.invoiceForm}>
-                  <TextInput style={styles.fieldInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={paymentClient} onChangeText={setPaymentClient} />
-                  <TextInput style={styles.fieldInput} placeholder="Client phone (optional)" placeholderTextColor="#8C7B6E" value={paymentPhone} onChangeText={setPaymentPhone} keyboardType="phone-pad" />
-                  <TextInput style={styles.fieldInput} placeholder="Total booking amount (Rs.)" placeholderTextColor="#8C7B6E" value={paymentTotal} onChangeText={setPaymentTotal} keyboardType="number-pad" />
-                  <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Payment Instalments</Text>
-                  {paymentInstalments.map((inst, index) => (
-                    <View key={index} style={{ flexDirection: 'row', gap: 8 }}>
-                      <TextInput
-                        style={[styles.fieldInput, { flex: 1 }]}
-                        placeholder={`${inst.label} amount`}
-                        placeholderTextColor="#8C7B6E"
-                        value={inst.amount}
-                        onChangeText={(text) => {
-                          const updated = [...paymentInstalments];
-                          updated[index] = { ...updated[index], amount: text };
-                          setPaymentInstalments(updated);
-                        }}
-                        keyboardType="number-pad"
-                      />
-                      <TextInput
-                        style={[styles.fieldInput, { flex: 1 }]}
-                        placeholder="Due date"
-                        placeholderTextColor="#8C7B6E"
-                        value={inst.due_date}
-                        onChangeText={(text) => {
-                          const updated = [...paymentInstalments];
-                          updated[index] = { ...updated[index], due_date: text };
-                          setPaymentInstalments(updated);
-                        }}
-                      />
-                    </View>
-                  ))}
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleSavePaymentSchedule}>
-                    <Text style={styles.goldBtnText}>SAVE SCHEDULE</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {paymentSchedules.length > 0 && (
-                <View style={{ gap: 12, borderTopWidth: 1, borderTopColor: '#E8E0D5', paddingTop: 12, marginTop: 4 }}>
-                  {paymentSchedules.map((schedule: any) => (
-                    <View key={schedule.id} style={{ gap: 8 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={styles.invoiceHistoryClient}>{schedule.client_name}</Text>
-                        <Text style={styles.invoiceHistoryAmount}>Rs.{(schedule.total_amount || 0).toLocaleString('en-IN')}</Text>
-                      </View>
-                      {(schedule.instalments || []).map((inst: any, idx: number) => (
-                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 8 }}>
-                          <View style={{ gap: 2 }}>
-                            <Text style={styles.tdsLedgerType}>{inst.label}</Text>
-                            <Text style={styles.tdsLedgerDate}>{inst.due_date || 'No date set'} · Rs.{parseInt(inst.amount || '0').toLocaleString('en-IN')}</Text>
-                          </View>
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
-                            {!inst.paid && schedule.client_phone ? (
-                              <TouchableOpacity
-                                style={[styles.invoiceStatusBtn, { backgroundColor: '#25D36620', borderColor: '#25D366', minWidth: 60 }]}
-                                onPress={() => {
-                                  const vendorName = vendorSession?.vendorName || 'Your Vendor';
-                                  const amount = parseInt(inst.amount || '0').toLocaleString('en-IN');
-                                  const message = `Hi ${schedule.client_name}! 👋\n\nThis is a friendly reminder that your *${inst.label}* payment of *Rs.${amount}* was due on *${inst.due_date}*.\n\nRequest you to please transfer at your earliest convenience.\n\nThank you!\n— ${vendorName}\n📱 The Dream Wedding`;
-                                  Linking.openURL(`whatsapp://send?phone=91${schedule.client_phone}&text=${encodeURIComponent(message)}`);
-                                }}
-                              >
-                                <Text style={[styles.invoiceStatusText, { color: '#25D366' }]}>Remind</Text>
-                              </TouchableOpacity>
-                            ) : null}
-                            <TouchableOpacity
-                              style={[styles.invoiceStatusBtn, { backgroundColor: inst.paid ? '#4CAF5020' : '#FFF8EC', borderColor: inst.paid ? '#4CAF50' : '#C9A84C' }]}
-                              onPress={() => !inst.paid && handleMarkInstalmentPaid(schedule.id, idx)}
-                              disabled={inst.paid}
-                            >
-                              <Text style={[styles.invoiceStatusText, { color: inst.paid ? '#4CAF50' : '#C9A84C' }]}>
-                                {inst.paid ? 'Paid' : 'Mark Paid'}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ))}
-                      <View style={styles.listDivider} />
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Expense Tracker */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="minus-circle" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Expense Tracker</Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity style={styles.toolActionBtn} onPress={handleExportExpenses}>
-                    <Text style={styles.toolActionText}>Export</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowExpenseForm(!showExpenseForm)}>
-                    <Text style={styles.toolActionText}>{showExpenseForm ? 'Cancel' : '+ Add'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <Text style={styles.toolDesc}>Track travel, equipment, editing and other costs per booking. Know your actual profit margin.</Text>
-              {showExpenseForm && (
-                <View style={styles.invoiceForm}>
-                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                    {['Travel', 'Equipment', 'Editing', 'Assistant', 'Food', 'Other'].map(cat => (
-                      <TouchableOpacity
-                        key={cat}
-                        style={[styles.segmentBtn, expenseCategory === cat && styles.segmentBtnActive]}
-                        onPress={() => setExpenseCategory(cat)}
-                      >
-                        <Text style={[styles.segmentBtnText, expenseCategory === cat && styles.segmentBtnTextActive]}>{cat}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <TextInput style={styles.fieldInput} placeholder="Description" placeholderTextColor="#8C7B6E" value={expenseDesc} onChangeText={setExpenseDesc} />
-                  <TextInput style={styles.fieldInput} placeholder="Amount (Rs.)" placeholderTextColor="#8C7B6E" value={expenseAmount} onChangeText={setExpenseAmount} keyboardType="number-pad" />
-                  <TextInput style={styles.fieldInput} placeholder="Client name (optional)" placeholderTextColor="#8C7B6E" value={expenseClient} onChangeText={setExpenseClient} />
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleAddExpense}>
-                    <Text style={styles.goldBtnText}>SAVE EXPENSE</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {expensesLoading ? (
-                <ActivityIndicator color="#C9A84C" />
-              ) : expenses.length > 0 ? (
-                <View style={{ borderTopWidth: 1, borderTopColor: '#E8E0D5', marginTop: 4 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12, backgroundColor: '#F5F0E8', borderRadius: 8, marginTop: 8 }}>
-                    <Text style={styles.tdsBreakdownLabel}>Total Expenses</Text>
-                    <Text style={[styles.invoiceHistoryAmount, { color: '#C9A84C' }]}>
-                      Rs.{expenses.reduce((s, e) => s + (e.amount || 0), 0).toLocaleString('en-IN')}
-                    </Text>
-                  </View>
-                  {expenses.slice(0, 5).map((exp: any, index: number) => (
-                    <View key={exp.id}>
-                      <View style={styles.invoiceHistoryRow}>
-                        <View style={{ flex: 1, gap: 3 }}>
-                          <Text style={styles.invoiceHistoryClient}>{exp.description}</Text>
-                          <Text style={styles.invoiceHistoryMeta}>{exp.category} · {exp.expense_date}</Text>
-                          {exp.client_name ? <Text style={styles.invoiceHistoryDesc}>{exp.client_name}</Text> : null}
-                        </View>
-                        <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                          <Text style={[styles.invoiceHistoryAmount, { color: '#B5303A' }]}>
-                            -Rs.{(exp.amount || 0).toLocaleString('en-IN')}
-                          </Text>
-                          <TouchableOpacity onPress={() => handleDeleteExpense(exp.id)}>
-                            <Feather name="trash-2" size={13} color="#8C7B6E" />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                      {index < expenses.slice(0, 5).length - 1 && <View style={styles.listDivider} />}
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-            </View>
-
-            {/* Team Management */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="users" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>My Team</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowTeamForm(!showTeamForm)}>
-                  <Text style={styles.toolActionText}>{showTeamForm ? 'Cancel' : '+ Add'}</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Add your assistants, editors and coordinators. Assign them to bookings in Build 2.</Text>
-              {showTeamForm && (
-                <View style={styles.invoiceForm}>
-                  <TextInput style={styles.fieldInput} placeholder="Name" placeholderTextColor="#8C7B6E" value={teamMemberName} onChangeText={setTeamMemberName} />
-                  <TextInput style={styles.fieldInput} placeholder="Phone (optional)" placeholderTextColor="#8C7B6E" value={teamMemberPhone} onChangeText={setTeamMemberPhone} keyboardType="phone-pad" />
-                  <TextInput style={styles.fieldInput} placeholder="Role (e.g. Second Shooter, Editor)" placeholderTextColor="#8C7B6E" value={teamMemberRole} onChangeText={setTeamMemberRole} />
-                  <TouchableOpacity style={styles.goldBtn} onPress={handleAddTeamMember}>
-                    <Text style={styles.goldBtnText}>ADD TEAM MEMBER</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {teamLoading ? (
-                <ActivityIndicator color="#C9A84C" />
-              ) : teamMembers.length === 0 ? (
-                <Text style={styles.emptyText}>No team members yet.</Text>
-              ) : (
-                <View style={{ borderTopWidth: 1, borderTopColor: '#E8E0D5', marginTop: 4 }}>
-                  {teamMembers.map((member: any, index: number) => (
-                    <View key={member.id}>
-                      <View style={styles.invoiceHistoryRow}>
-                        <View style={{ flex: 1, gap: 3 }}>
-                          <Text style={styles.invoiceHistoryClient}>{member.name}</Text>
-                          <Text style={styles.invoiceHistoryMeta}>{member.role}{member.phone ? ` · ${member.phone}` : ''}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                          {member.phone ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(`whatsapp://send?phone=91${member.phone}`)}>
-                              <Feather name="message-circle" size={16} color="#25D366" />
-                            </TouchableOpacity>
-                          ) : null}
-                          <TouchableOpacity onPress={() => handleRemoveTeamMember(member.id)}>
-                            <Feather name="trash-2" size={14} color="#8C7B6E" />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                      {index < teamMembers.length - 1 && <View style={styles.listDivider} />}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Refer a Vendor */}
-            <View style={styles.toolCard}>
-              <View style={styles.toolHeader}>
-                <View style={styles.toolTitleRow}>
-                  <View style={styles.toolIconBox}>
-                    <Feather name="share-2" size={14} color="#C9A84C" />
-                  </View>
-                  <Text style={styles.toolTitle}>Refer a Vendor</Text>
-                </View>
-                <TouchableOpacity style={styles.toolActionBtn} onPress={() => {
-                  const msg = `Hey! I've been using The Dream Wedding to manage my wedding business — leads, invoices, GST reports. You should check it out!\n\nJoin here: https://thedreamwedding.in/vendor`;
-                  Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
-                }}>
-                  <Text style={styles.toolActionText}>Share</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.toolDesc}>Refer another vendor and get 1 month subscription free.</Text>
-            </View>
-
-            {/* Locked tools */}
-            <TouchableOpacity style={styles.toolCard} onPress={() => Alert.alert('WhatsApp Broadcast — Build 2', 'One tap sends a promotional message to all your past clients on WhatsApp simultaneously. Coming in Build 2.')} activeOpacity={0.85}>
-              <View style={[styles.toolHeader, { opacity: 0.6 }]}>
-                <View style={styles.toolTitleRow}>
-                  <View style={[styles.toolIconBox, { borderStyle: 'dashed' }]}>
-                    <Feather name="send" size={14} color="#8C7B6E" />
-                  </View>
-                  <Text style={[styles.toolTitle, { color: '#8C7B6E' }]}>WhatsApp Broadcast</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Feather name="lock" size={10} color="#C9A84C" />
-                  <Text style={{ fontSize: 10, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>Build 2</Text>
-                </View>
-              </View>
-              <Text style={[styles.toolDesc, { opacity: 0.7 }]}>One tap sends a promo to all past clients on WhatsApp.</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolCard} onPress={() => Alert.alert('Spotlight Auction — Build 2', 'Bid for Spotlight positions 4-10 at ₹999/month. Top 3 are always earned by algorithm — never sold. Coming in Build 2.')} activeOpacity={0.85}>
-              <View style={[styles.toolHeader, { opacity: 0.6 }]}>
-                <View style={styles.toolTitleRow}>
-                  <View style={[styles.toolIconBox, { borderStyle: 'dashed' }]}>
-                    <Feather name="trending-up" size={14} color="#8C7B6E" />
-                  </View>
-                  <Text style={[styles.toolTitle, { color: '#8C7B6E' }]}>Spotlight Auction</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#C9A84C', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Feather name="lock" size={10} color="#C9A84C" />
-                  <Text style={{ fontSize: 10, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>Build 2</Text>
-                </View>
-              </View>
-              <Text style={[styles.toolDesc, { opacity: 0.7 }]}>Bid for Spotlight positions 4-10 at ₹999/month.</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionLabel}>Coming in Build 2</Text>
-            <LockedFeature icon="check-square" title="Team Task Board" desc="Assign tasks to team members per event. Set deadlines, track completion." build="Build 2" />
-            <LockedFeature icon="thumbs-up" title="Client Approval Workflows" desc="Send mood boards for couple approval. Full audit trail." build="Build 2" />
-            <Text style={styles.sectionLabel}>Coming in Build 3</Text>
-            <LockedFeature icon="cpu" title="AI Brief Generation" desc="Auto-generates a structured brief from couple's onboarding data at booking moment." build="Build 3" />
-            <LockedFeature icon="bar-chart" title="Full Performance Analytics" desc="Conversion rates, seasonal demand curves, revenue forecasting." build="Build 3" />
-          </View>
-        )}
-
-        {/* ════════════════════════════════
-            TAX & FINANCE TAB
-        ════════════════════════════════ */}
-        {activeTab === 'Tax & Finance' && (
-          <View style={styles.tabPane}>
-
-            {tdsLoading ? (
-              <ActivityIndicator color="#C9A84C" style={{ paddingVertical: 40 }} />
-            ) : (
-              <>
-                {/* TDS Summary Card */}
-                <View style={styles.revenueCard}>
-                  <Text style={styles.revenueEyebrow}>TDS RECONCILIATION · {tdsSummary?.financial_year || `FY ${new Date().getFullYear()}`}</Text>
-                  <View style={styles.revenueRow}>
-                    <View style={styles.revenueItem}>
-                      <Text style={styles.revenueAmount}>
-                        ₹{(tdsSummary?.total_gross_income || 0).toLocaleString('en-IN')}
-                      </Text>
-                      <Text style={styles.revenueLabel}>Gross Income</Text>
-                    </View>
-                    <View style={styles.revenueDivider} />
-                    <View style={styles.revenueItem}>
-                      <Text style={styles.revenueAmount}>
-                        ₹{(tdsSummary?.total_tds_deducted || 0).toLocaleString('en-IN')}
-                      </Text>
-                      <Text style={styles.revenueLabel}>TDS Deducted</Text>
-                    </View>
-                    <View style={styles.revenueDivider} />
-                    <View style={styles.revenueItem}>
-                      <Text style={styles.revenueAmount}>
-                        ₹{(tdsSummary?.total_net_received || 0).toLocaleString('en-IN')}
-                      </Text>
-                      <Text style={styles.revenueLabel}>Net Received</Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* TDS Breakdown */}
-                <View style={styles.listCard}>
-                  <View style={{ padding: 16, gap: 12 }}>
-                    <Text style={styles.sectionLabel}>TDS Breakdown</Text>
-                    {[
-                      { label: 'Platform TDS (auto)', amount: tdsSummary?.platform_tds || 0, color: '#C9A84C', note: 'Deducted at source by The Dream Wedding' },
-                      { label: 'Client TDS (declared)', amount: tdsSummary?.client_tds || 0, color: '#4CAF50', note: 'Declared by you as deducted by client' },
-                      { label: 'Self-declared TDS', amount: tdsSummary?.self_declared_tds || 0, color: '#8C7B6E', note: 'Manually added entries' },
-                    ].map((item, index, arr) => (
-                      <View key={item.label}>
-                        <View style={styles.tdsBreakdownRow}>
-                          <View style={[styles.tdsBreakdownDot, { backgroundColor: item.color }]} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.tdsBreakdownLabel}>{item.label}</Text>
-                            <Text style={styles.tdsBreakdownNote}>{item.note}</Text>
-                          </View>
-                          <Text style={[styles.tdsBreakdownAmount, { color: item.color }]}>
-                            ₹{item.amount.toLocaleString('en-IN')}
-                          </Text>
-                        </View>
-                        {index < arr.length - 1 && <View style={[styles.listDivider, { marginTop: 8 }]} />}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                {/* CA Export button */}
-                <TouchableOpacity style={styles.goldBtn} onPress={handleExportTDSReport}>
-                  <Feather name="download" size={14} color="#2C2420" />
-                  <Text style={styles.goldBtnText}>EXPORT FOR CA — PDF</Text>
-                </TouchableOpacity>
-
-                {/* Add manual TDS entry */}
-                <View style={styles.toolCard}>
-                  <View style={styles.toolHeader}>
-                    <View style={styles.toolTitleRow}>
-                      <View style={styles.toolIconBox}>
-                        <Feather name="plus-circle" size={14} color="#C9A84C" />
-                      </View>
-                      <Text style={styles.toolTitle}>Add TDS Entry</Text>
-                    </View>
-                    <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowTDSEntryForm(!showTDSEntryForm)}>
-                      <Text style={styles.toolActionText}>{showTDSEntryForm ? 'Cancel' : 'Add'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.toolDesc}>Add client payments where TDS was deducted but not through the platform.</Text>
-
-                  {showTDSEntryForm && (
-                    <View style={styles.invoiceForm}>
-                      <TextInput style={styles.fieldInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={tdsEntryClient} onChangeText={setTdsEntryClient} />
-                      <TextInput style={styles.fieldInput} placeholder="Gross amount received (₹)" placeholderTextColor="#8C7B6E" value={tdsEntryAmount} onChangeText={setTdsEntryAmount} keyboardType="number-pad" />
-
-                      {tdsEntryAmount ? (
-                        <View style={styles.gstPreview}>
-                          <Text style={styles.gstPreviewText}>TDS (10%): ₹{(parseInt(tdsEntryAmount) * 0.10).toLocaleString('en-IN')}</Text>
-                          <Text style={styles.gstPreviewTotal}>Net after TDS: ₹{(parseInt(tdsEntryAmount) * 0.90).toLocaleString('en-IN')}</Text>
-                        </View>
-                      ) : null}
-
-                      <View style={styles.tdsToggleRow}>
-                        <Text style={styles.tdsToggleLabel}>Deducted by:</Text>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                          {(['client', 'self'] as const).map(opt => (
-                            <TouchableOpacity
-                              key={opt}
-                              style={[styles.segmentBtn, tdsEntryDeductedBy === opt && styles.segmentBtnActive]}
-                              onPress={() => setTdsEntryDeductedBy(opt)}
-                            >
-                              <Text style={[styles.segmentBtnText, tdsEntryDeductedBy === opt && styles.segmentBtnTextActive]}>
-                                {opt === 'client' ? 'Client' : 'Self'}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-
-                      <TextInput style={styles.fieldInput} placeholder="Challan number (optional)" placeholderTextColor="#8C7B6E" value={tdsEntryChallan} onChangeText={setTdsEntryChallan} />
-
-                      <TouchableOpacity style={styles.goldBtn} onPress={handleAddTDSEntry}>
-                        <Text style={styles.goldBtnText}>SAVE TDS ENTRY</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-
-                {/* TDS Ledger */}
-                <Text style={styles.sectionLabel}>TDS Ledger ({tdsLedger.length} entries)</Text>
-                {tdsLedger.length === 0 ? (
-                  <View style={styles.emptyCard}>
-                    <Feather name="file-text" size={28} color="#C4B8AC" />
-                    <Text style={styles.emptyTitle}>No entries yet</Text>
-                    <Text style={styles.emptySub}>TDS entries are created automatically when bookings are confirmed. Add manual entries above for offline transactions.</Text>
-                  </View>
-                ) : (
-                  <View style={styles.listCard}>
-                    {tdsLedger.map((entry: any, index: number) => (
-                      <View key={entry.id}>
-                        <View style={styles.tdsLedgerRow}>
-                          <View style={{ flex: 1, gap: 3 }}>
-                            <Text style={styles.tdsLedgerType}>
-                              {entry.transaction_type === 'platform_booking' ? '🔒 Platform Booking' : '📄 Client Invoice'}
-                            </Text>
-                            <Text style={styles.tdsLedgerDate}>{new Date(entry.created_at).toLocaleDateString('en-IN')}</Text>
-                            {entry.notes ? <Text style={styles.tdsLedgerNote} numberOfLines={1}>{entry.notes}</Text> : null}
-                          </View>
-                          <View style={{ alignItems: 'flex-end', gap: 3 }}>
-                            <Text style={styles.tdsLedgerGross}>₹{(entry.gross_amount || 0).toLocaleString('en-IN')}</Text>
-                            <Text style={styles.tdsLedgerTDS}>TDS: ₹{(entry.tds_amount || 0).toLocaleString('en-IN')}</Text>
-                            <View style={[styles.tdsSourceBadge, {
-                              backgroundColor: entry.tds_deducted_by === 'platform' ? '#C9A84C20' : entry.tds_deducted_by === 'client' ? '#4CAF5020' : '#E8E0D5'
-                            }]}>
-                              <Text style={[styles.tdsSourceText, {
-                                color: entry.tds_deducted_by === 'platform' ? '#C9A84C' : entry.tds_deducted_by === 'client' ? '#4CAF50' : '#8C7B6E'
-                              }]}>
-                                {entry.tds_deducted_by === 'platform' ? 'Platform' : entry.tds_deducted_by === 'client' ? 'Client' : 'Self'}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                        {index < tdsLedger.length - 1 && <View style={styles.listDivider} />}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* 26AS notice */}
-                <View style={styles.noticeBox}>
-                  <Feather name="info" size={14} color="#C9A84C" />
-                  <Text style={styles.noticeBoxText}>
-                    Platform TDS will appear in your Form 26AS under The Dream Wedding's TAN. Share this report with your CA before quarterly advance tax payment and annual ITR filing.
-                  </Text>
-                </View>
-
-                <Text style={styles.sectionLabel}>Coming in Build 2</Text>
-                <LockedFeature icon="refresh-cw" title="26AS Auto-Sync" desc="Connect your TRACES account and reconcile automatically. No manual input needed." build="Build 2" />
-                <LockedFeature icon="calculator" title="Advance Tax Calculator" desc="Based on your income pattern, calculates exact advance tax instalments due in June, September, December and March." build="Build 2" />
-              </>
-            )}
-          </View>
-        )}
-
-        {/* ════════════════════════════════
-            REVIEWS TAB
-        ════════════════════════════════ */}
-        {activeTab === 'Reviews' && (
-          <View style={styles.tabPane}>
-            <View style={styles.ratingOverview}>
-              <Text style={styles.ratingBig}>4.9</Text>
-              <Text style={styles.ratingStars}>★★★★★</Text>
-              <Text style={styles.ratingCount}>124 reviews</Text>
-              <Text style={styles.ratingNote}>Only app-booked couples can leave verified reviews</Text>
-            </View>
-
-            <Text style={styles.sectionLabel}>Video Reviews</Text>
-            {[
-              { id: '1', client: 'Priya & Rahul', function: 'Wedding · Dec 2024', rating: 5 },
-              { id: '2', client: 'Sneha & Arjun', function: 'Sangeet · Nov 2024', rating: 5 },
-            ].map(review => (
-              <View key={review.id} style={styles.reviewCard}>
-                <View style={styles.reviewTop}>
-                  <View style={styles.reviewAvatar}>
-                    <Text style={styles.reviewAvatarText}>{review.client[0]}</Text>
-                  </View>
-                  <View style={styles.reviewInfo}>
-                    <Text style={styles.reviewName}>{review.client}</Text>
-                    <Text style={styles.reviewFunction}>{review.function}</Text>
-                  </View>
-                  <Text style={styles.reviewRating}>{'★'.repeat(review.rating)}</Text>
-                </View>
-                <View style={styles.videoThumb}>
-                  <Feather name="play-circle" size={20} color="#C9A84C" />
-                  <Text style={styles.videoThumbText}>Play Video Review</Text>
-                </View>
-              </View>
-            ))}
-
-            <Text style={styles.sectionLabel}>Coming in Build 2</Text>
-            <LockedFeature icon="star" title="Review Response System" desc="Respond publicly to couple reviews." build="Build 2" />
-            <LockedFeature icon="award" title="Verified Elite Badge" desc="Earn the badge after 5 confirmed app bookings with 4.8+ average rating." build="Build 2" />
-          </View>
-        )}
-
         {/* ════════════════════════════════
             CLIENTS TAB
         ════════════════════════════════ */}
@@ -2706,6 +1881,244 @@ export default function VendorDashboardScreen() {
             <LockedFeature icon="database" title="Bulk Client Import" desc="Import your entire client database via CSV upload." build="Build 2" />
             <LockedFeature icon="gift" title="Client Anniversary Reminders" desc="Get reminded on each couple's wedding anniversary. One tap to send a personalised message." build="Build 2" />
             <LockedFeature icon="repeat" title="Repeat Booking Tracker" desc="Track which clients have hired you more than once." build="Build 3" />
+          </View>
+        )}
+
+        {/* ── Invoices Tab ── */}
+        {activeTab === 'Invoices' && (
+          <View style={styles.tabPane}>
+            <Text style={styles.sectionLabel}>Invoice Generator</Text>
+
+            <View style={styles.toolCard}>
+              <View style={styles.toolHeader}>
+                <View style={styles.toolTitleRow}>
+                  <View style={styles.toolIconBox}>
+                    <Feather name="file-text" size={14} color="#C9A84C" />
+                  </View>
+                  <Text style={styles.toolTitle}>Create Invoice</Text>
+                </View>
+                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowInvoiceForm(!showInvoiceForm)}>
+                  <Text style={styles.toolActionText}>{showInvoiceForm ? 'Cancel' : '+ New'}</Text>
+                </TouchableOpacity>
+              </View>
+              {showInvoiceForm && (
+                <View style={{ gap: 10, paddingTop: 8 }}>
+                  <TextInput style={styles.modalInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={invoiceClient} onChangeText={setInvoiceClient} />
+                  <TextInput style={styles.modalInput} placeholder="Phone (10 digits)" placeholderTextColor="#8C7B6E" value={invoicePhone} onChangeText={setInvoicePhone} keyboardType="phone-pad" maxLength={10} />
+                  <TextInput style={styles.modalInput} placeholder="Amount (excl. GST)" placeholderTextColor="#8C7B6E" value={invoiceAmount} onChangeText={setInvoiceAmount} keyboardType="numeric" />
+                  <TextInput style={styles.modalInput} placeholder="Description" placeholderTextColor="#8C7B6E" value={invoiceDesc} onChangeText={setInvoiceDesc} />
+                  <TouchableOpacity style={styles.goldBtn} onPress={handleCreateInvoice}>
+                    <Text style={styles.goldBtnText}>GENERATE INVOICE</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.sectionLabel}>Invoice History ({invoices.length})</Text>
+
+            {invoices.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Feather name="file-text" size={28} color="#C4B8AC" />
+                <Text style={styles.emptyTitle}>No invoices yet</Text>
+                <Text style={styles.emptySub}>Create your first invoice above</Text>
+              </View>
+            ) : (
+              invoices.map((inv: any, index: number) => (
+                <View key={inv.id} style={styles.toolCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <Text style={styles.invoiceHistoryClient}>{inv.client_name || 'Client'}</Text>
+                      <Text style={styles.invoiceHistoryMeta}>
+                        {inv.invoice_number || 'INV'} · {inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN') : ''}
+                      </Text>
+                      {inv.description ? <Text style={styles.invoiceHistoryDesc} numberOfLines={1}>{inv.description}</Text> : null}
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <Text style={styles.invoiceHistoryAmount}>Rs.{(inv.total_amount || inv.amount || 0).toLocaleString('en-IN')}</Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {inv.status !== 'paid' && inv.client_phone ? (
+                          <TouchableOpacity
+                            style={[styles.invoiceStatusBtn, { backgroundColor: '#25D36620', borderColor: '#25D366', minWidth: 60 }]}
+                            onPress={() => {
+                              const vendorName = vendorSession?.vendorName || 'Your Vendor';
+                              const amount = (inv.total_amount || inv.amount || 0).toLocaleString('en-IN');
+                              const message = 'Hi ' + (inv.client_name || 'there') + '!' + ' This is a friendly reminder about your pending invoice of *Rs.' + amount + '*' + (inv.description ? ' for ' + inv.description : '') + '. Request you to please transfer at your earliest convenience. Thank you! — ' + vendorName + ', The Dream Wedding';
+                              Linking.openURL('whatsapp://send?phone=91' + inv.client_phone + '&text=' + encodeURIComponent(message));
+                            }}
+                          >
+                            <Text style={[styles.invoiceStatusText, { color: '#25D366' }]}>Remind</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        <TouchableOpacity
+                          style={[styles.invoiceStatusBtn, { backgroundColor: inv.status === 'paid' ? '#4CAF5020' : '#FFF8EC', borderColor: inv.status === 'paid' ? '#4CAF50' : '#C9A84C' }]}
+                          onPress={() => inv.status !== 'paid' && handleMarkInvoicePaid(inv.id)}
+                          disabled={inv.status === 'paid' || updatingInvoiceId === inv.id}
+                        >
+                          {updatingInvoiceId === inv.id ? (
+                            <ActivityIndicator size="small" color="#C9A84C" />
+                          ) : (
+                            <Text style={[styles.invoiceStatusText, { color: inv.status === 'paid' ? '#4CAF50' : '#C9A84C' }]}>
+                              {inv.status === 'paid' ? 'Paid' : 'Mark Paid'}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* ── Payments Tab ── */}
+        {activeTab === 'Payments' && (
+          <View style={styles.tabPane}>
+            <Text style={styles.sectionLabel}>Payment Schedules</Text>
+
+            <View style={styles.toolCard}>
+              <View style={styles.toolHeader}>
+                <View style={styles.toolTitleRow}>
+                  <View style={styles.toolIconBox}>
+                    <Feather name="credit-card" size={14} color="#C9A84C" />
+                  </View>
+                  <Text style={styles.toolTitle}>Create Schedule</Text>
+                </View>
+                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowPaymentForm(!showPaymentForm)}>
+                  <Text style={styles.toolActionText}>{showPaymentForm ? 'Cancel' : '+ New'}</Text>
+                </TouchableOpacity>
+              </View>
+              {showPaymentForm && (
+                <View style={{ gap: 10, paddingTop: 8 }}>
+                  <TextInput style={styles.modalInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={paymentClient} onChangeText={setPaymentClient} />
+                  <TextInput style={styles.modalInput} placeholder="Phone (10 digits)" placeholderTextColor="#8C7B6E" value={paymentPhone} onChangeText={setPaymentPhone} keyboardType="phone-pad" maxLength={10} />
+                  <TextInput style={styles.modalInput} placeholder="Total amount" placeholderTextColor="#8C7B6E" value={paymentTotal} onChangeText={setPaymentTotal} keyboardType="numeric" />
+                  {paymentInstalments.map((inst, idx) => (
+                    <View key={idx} style={{ gap: 6, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#E8D9B5' }}>
+                      <Text style={styles.tdsLedgerType}>{inst.label}</Text>
+                      <TextInput style={styles.modalInput} placeholder="Amount" placeholderTextColor="#8C7B6E" value={inst.amount} onChangeText={(v) => { const u = [...paymentInstalments]; u[idx].amount = v; setPaymentInstalments(u); }} keyboardType="numeric" />
+                      <TextInput style={styles.modalInput} placeholder="Due date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={inst.due_date} onChangeText={(v) => { const u = [...paymentInstalments]; u[idx].due_date = v; setPaymentInstalments(u); }} />
+                    </View>
+                  ))}
+                  <TouchableOpacity style={styles.goldBtn} onPress={handleCreatePaymentSchedule}>
+                    <Text style={styles.goldBtnText}>CREATE SCHEDULE</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {paymentSchedules.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Feather name="credit-card" size={28} color="#C4B8AC" />
+                <Text style={styles.emptyTitle}>No payment schedules yet</Text>
+                <Text style={styles.emptySub}>Create a schedule to track Token, Advance, and Final payments</Text>
+              </View>
+            ) : (
+              paymentSchedules.map((schedule: any) => (
+                <View key={schedule.id} style={styles.toolCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={styles.invoiceHistoryClient}>{schedule.client_name}</Text>
+                    <Text style={styles.invoiceHistoryAmount}>Rs.{(schedule.total_amount || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  {(schedule.instalments || []).map((inst: any, idx: number) => (
+                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: '#E8E0D5' }}>
+                      <View style={{ gap: 2 }}>
+                        <Text style={styles.tdsLedgerType}>{inst.label}</Text>
+                        <Text style={styles.tdsLedgerDate}>{inst.due_date || 'No date set'} · Rs.{parseInt(inst.amount || '0').toLocaleString('en-IN')}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {!inst.paid && schedule.client_phone ? (
+                          <TouchableOpacity
+                            style={[styles.invoiceStatusBtn, { backgroundColor: '#25D36620', borderColor: '#25D366', minWidth: 60 }]}
+                            onPress={() => {
+                              const vendorName = vendorSession?.vendorName || 'Your Vendor';
+                              const amount = parseInt(inst.amount || '0').toLocaleString('en-IN');
+                              const message = 'Hi ' + schedule.client_name + '! This is a friendly reminder that your *' + inst.label + '* payment of *Rs.' + amount + '* was due on *' + inst.due_date + '*. Request you to please transfer at your earliest convenience. Thank you! — ' + vendorName + ', The Dream Wedding';
+                              Linking.openURL('whatsapp://send?phone=91' + schedule.client_phone + '&text=' + encodeURIComponent(message));
+                            }}
+                          >
+                            <Text style={[styles.invoiceStatusText, { color: '#25D366' }]}>Remind</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        <TouchableOpacity
+                          style={[styles.invoiceStatusBtn, { backgroundColor: inst.paid ? '#4CAF5020' : '#FFF8EC', borderColor: inst.paid ? '#4CAF50' : '#C9A84C' }]}
+                          onPress={() => !inst.paid && handleMarkInstalmentPaid(schedule.id, idx)}
+                          disabled={inst.paid}
+                        >
+                          <Text style={[styles.invoiceStatusText, { color: inst.paid ? '#4CAF50' : '#C9A84C' }]}>
+                            {inst.paid ? 'Paid' : 'Mark Paid'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* ── Contracts Tab ── */}
+        {activeTab === 'Contracts' && (
+          <View style={styles.tabPane}>
+            <Text style={styles.sectionLabel}>Contract Generator</Text>
+
+            <View style={styles.toolCard}>
+              <View style={styles.toolHeader}>
+                <View style={styles.toolTitleRow}>
+                  <View style={styles.toolIconBox}>
+                    <Feather name="file" size={14} color="#C9A84C" />
+                  </View>
+                  <Text style={styles.toolTitle}>Create Contract</Text>
+                </View>
+                <TouchableOpacity style={styles.toolActionBtn} onPress={() => setShowContractForm(!showContractForm)}>
+                  <Text style={styles.toolActionText}>{showContractForm ? 'Cancel' : '+ New'}</Text>
+                </TouchableOpacity>
+              </View>
+              {showContractForm && (
+                <View style={{ gap: 10, paddingTop: 8 }}>
+                  <TextInput style={styles.modalInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={contractClient} onChangeText={setContractClient} />
+                  <TextInput style={styles.modalInput} placeholder="Phone (10 digits)" placeholderTextColor="#8C7B6E" value={contractPhone} onChangeText={setContractPhone} keyboardType="phone-pad" maxLength={10} />
+                  <TextInput style={styles.modalInput} placeholder="Event date" placeholderTextColor="#8C7B6E" value={contractEventDate} onChangeText={setContractEventDate} />
+                  <TextInput style={styles.modalInput} placeholder="Venue" placeholderTextColor="#8C7B6E" value={contractVenue} onChangeText={setContractVenue} />
+                  <TextInput style={styles.modalInput} placeholder="Services included" placeholderTextColor="#8C7B6E" value={contractServices} onChangeText={setContractServices} multiline />
+                  <TextInput style={styles.modalInput} placeholder="Total amount" placeholderTextColor="#8C7B6E" value={contractTotal} onChangeText={setContractTotal} keyboardType="numeric" />
+                  <TextInput style={styles.modalInput} placeholder="Advance / token amount" placeholderTextColor="#8C7B6E" value={contractAdvance} onChangeText={setContractAdvance} keyboardType="numeric" />
+                  <TouchableOpacity style={styles.goldBtn} onPress={handleCreateContract}>
+                    <Text style={styles.goldBtnText}>GENERATE CONTRACT</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {contracts.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Feather name="file" size={28} color="#C4B8AC" />
+                <Text style={styles.emptyTitle}>No contracts yet</Text>
+                <Text style={styles.emptySub}>Create a contract and share via WhatsApp</Text>
+              </View>
+            ) : (
+              contracts.map((contract: any) => (
+                <View key={contract.id} style={styles.toolCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <Text style={styles.invoiceHistoryClient}>{contract.client_name}</Text>
+                      <Text style={styles.invoiceHistoryMeta}>{contract.event_type} · {contract.event_date}</Text>
+                      {contract.venue ? <Text style={styles.invoiceHistoryDesc}>{contract.venue}</Text> : null}
+                    </View>
+                    <Text style={styles.invoiceHistoryAmount}>Rs.{(contract.total_amount || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  {contract.client_phone ? (
+                    <TouchableOpacity
+                      style={[styles.goldBtn, { marginTop: 10 }]}
+                      onPress={() => handleShareContract(contract)}
+                    >
+                      <Text style={styles.goldBtnText}>SHARE VIA WHATSAPP</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ))
+            )}
           </View>
         )}
 
