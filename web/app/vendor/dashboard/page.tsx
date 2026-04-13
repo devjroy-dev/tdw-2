@@ -173,6 +173,12 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
 export default function VendorDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
+  const [toasts, setToasts] = useState<{id:number, msg:string, type:'success'|'error'|'info'}[]>([]);
+  const toast = {
+    success: (msg:string) => { const id = Date.now(); setToasts(p => [...p, {id, msg, type:'success'}]); setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500); },
+    error: (msg:string) => { const id = Date.now(); setToasts(p => [...p, {id, msg, type:'error'}]); setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500); },
+    info: (msg:string) => { const id = Date.now(); setToasts(p => [...p, {id, msg, type:'info'}]); setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500); },
+  };
   const [comingSoonTab, setComingSoonTab] = useState<any>(null);
   const [vendorData, setVendorData] = useState<any>(null);
   const [packages, setPackages] = useState<any[]>([
@@ -464,7 +470,7 @@ export default function VendorDashboard() {
   };
 
   const handleSaveInvoice = async () => {
-    if (!invClient || !invAmount) return alert('Please fill client name and amount');
+    if (!invClient || !invAmount) { toast.error('Please fill client name and amount'); return; };
     try {
       await fetch(`${API}/invoices/save`, {
         method: 'POST',
@@ -484,8 +490,8 @@ export default function VendorDashboard() {
       setInvTDS(false); setInvTDSByClient(false);
       setShowInvoiceForm(false);
       loadInvoices();
-      alert('Invoice saved successfully');
-    } catch (e) { alert('Could not save invoice'); }
+      toast.success('Invoice saved');
+    } catch (e) { toast.error('Could not save invoice'); }
   };
 
   const handleMarkInvoicePaid = async (id: string) => {
@@ -500,7 +506,7 @@ export default function VendorDashboard() {
   };
 
   const handleSaveContract = async () => {
-    if (!conClient || !conTotal || !conDate) return alert('Please fill client name, event date and total amount');
+    if (!conClient || !conTotal || !conDate) { toast.error('Please fill client name, event date and total amount'); return; };
     try {
       const balance = parseInt(conTotal) - parseInt(conAdvance || '0');
       await fetch(`${API}/contracts`, {
@@ -525,8 +531,8 @@ export default function VendorDashboard() {
       setConClient(''); setConDate(''); setConTotal(''); setConAdvance('');
       setShowContractForm(false);
       loadContracts();
-      alert('Contract saved. Download PDF from the app for sharing via WhatsApp.');
-    } catch (e) { alert('Could not save contract'); }
+      toast.success('Contract saved successfully');
+    } catch (e) { toast.error('Could not save contract'); }
   };
 
   const handleBlockDate = async () => {
@@ -554,7 +560,7 @@ export default function VendorDashboard() {
   };
 
   const handleAddClient = async () => {
-    if (!clientName || !clientPhone) return alert('Please fill name and phone');
+    if (!clientName || !clientPhone) { toast.error('Please fill name and phone'); return; };
     try {
       const res = await fetch(`${API}/vendor-clients`, {
         method: 'POST',
@@ -574,7 +580,7 @@ export default function VendorDashboard() {
         setClientName(''); setClientPhone(''); setClientDate(''); setClientNotes('');
         setShowClientForm(false);
       }
-    } catch (e) { alert('Could not add client'); }
+    } catch (e) { toast.error('Could not add client'); }
   };
 
   const handleSaveNote = async (clientId: string) => {
@@ -591,7 +597,7 @@ export default function VendorDashboard() {
   };
 
   const handleAddTeamMember = async () => {
-    if (!memberName || !memberRole) return alert('Please fill name and role');
+    if (!memberName || !memberRole) { toast.error('Please fill name and role'); return; };
     try {
       const res = await fetch(`${API}/team`, {
         method: 'POST',
@@ -604,7 +610,7 @@ export default function VendorDashboard() {
         setMemberName(''); setMemberPhone(''); setMemberRole('');
         setShowTeamForm(false);
       }
-    } catch (e) { alert('Could not add team member'); }
+    } catch (e) { toast.error('Could not add team member'); }
   };
 
   const handleRemoveTeamMember = async (id: string) => {
@@ -615,7 +621,7 @@ export default function VendorDashboard() {
   };
 
   const handleAddExpense = async () => {
-    if (!expDesc || !expAmount) return alert('Please fill description and amount');
+    if (!expDesc || !expAmount) { toast.error('Please fill description and amount'); return; };
     try {
       const res = await fetch(`${API}/expenses`, {
         method: 'POST',
@@ -635,7 +641,7 @@ export default function VendorDashboard() {
         setExpDesc(''); setExpAmount(''); setExpClient('');
         setShowExpenseForm(false);
       }
-    } catch (e) { alert('Could not save expense'); }
+    } catch (e) { toast.error('Could not save expense'); }
   };
 
   const handleDeleteExpense = async (id: string) => {
@@ -646,7 +652,7 @@ export default function VendorDashboard() {
   };
 
   const handleSavePaymentSchedule = async () => {
-    if (!payClient || !payTotal) return alert('Please fill client name and total amount');
+    if (!payClient || !payTotal) { toast.error('Please fill client name and total amount'); return; };
     try {
       const res = await fetch(`${API}/payment-schedules`, {
         method: 'POST',
@@ -670,7 +676,7 @@ export default function VendorDashboard() {
         ]);
         setShowPaymentForm(false);
       }
-    } catch (e) { alert('Could not save schedule'); }
+    } catch (e) { toast.error('Could not save payment schedule'); }
   };
 
   const handleMarkInstalmentPaid = async (scheduleId: string, idx: number) => {
@@ -689,7 +695,7 @@ export default function VendorDashboard() {
   };
 
   const handleAddTDS = async () => {
-    if (!tdsAmount || !tdsClient) return alert('Please fill client and amount');
+    if (!tdsAmount || !tdsClient) { toast.error('Please fill client and amount'); return; };
     try {
       await fetch(`${API}/tds`, {
         method: 'POST',
@@ -706,8 +712,8 @@ export default function VendorDashboard() {
       setTdsAmount(''); setTdsClient(''); setTdsChallan('');
       setShowTDSForm(false);
       loadTDS();
-      alert('TDS entry added');
-    } catch (e) { alert('Could not save TDS entry'); }
+      toast.success('TDS entry added');
+    } catch (e) { toast.error('Could not save TDS entry'); }
   };
 
   const handleSaveProfile = async () => {
@@ -727,8 +733,8 @@ export default function VendorDashboard() {
       });
       setVendorData((prev: any) => ({ ...prev, name: editName, city: editCity }));
       setShowEditProfile(false);
-      alert('Profile updated successfully');
-    } catch (e) { alert('Could not save profile'); }
+      toast.success('Profile updated successfully');
+    } catch (e) { toast.error('Could not save profile'); }
     finally { setSavingProfile(false); }
   };
 
@@ -2828,14 +2834,14 @@ export default function VendorDashboard() {
                   onDrop={e => {
                     e.preventDefault();
                     const file = e.dataTransfer.files[0];
-                    if (file) alert(`File "${file.name}" received. CSV import will process ${file.name} and add clients to your database. (Full processing coming in next update)`);
+                    if (file) toast.info(`${file.name} received — import coming in next update`);
                   }}>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Drag and drop CSV here</div>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px', opacity: 0.6 }}>or</div>
                   <label style={{ display: 'inline-block', marginTop: '8px', cursor: 'pointer' }}>
                     <input type="file" accept=".csv,.xlsx" style={{ display: 'none' }} onChange={e => {
                       const file = e.target.files?.[0];
-                      if (file) alert(`File "${file.name}" received. Import will process and add your clients to the database.`);
+                      if (file) toast.info(`${file.name} received — import coming in next update`);
                     }} />
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, textDecoration: 'underline' }}>Browse files</span>
                   </label>
@@ -2960,13 +2966,30 @@ export default function VendorDashboard() {
               <button onClick={() => {
                 const link = `https://thedreamwedding.in/join?ref=${vendorData?.id || ''}`;
                 navigator.clipboard.writeText(link);
-                alert('Invite link copied! Share it on WhatsApp with your past clients.');
+                toast.success('Invite link copied to clipboard');
               }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#0F1117', background: 'var(--gold)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: '24px' }}>
                 Copy Invite Link
               </button>
             </div>
           </div>
         )}
+      {/* Toast notifications */}
+      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            background: t.type === 'success' ? '#0F1117' : t.type === 'error' ? '#DC2626' : '#1D4ED8',
+            color: '#fff', padding: '12px 18px', borderRadius: '8px',
+            fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+            minWidth: '280px', maxWidth: '380px',
+            animation: 'slideIn 0.2s ease',
+          }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.type === 'success' ? '#C9A84C' : '#fff', flexShrink: 0 }} />
+            {t.msg}
+          </div>
+        ))}
+      </div>
       {/* Coming Soon Modal */}
       <ComingSoonModal tab={comingSoonTab} onClose={() => setComingSoonTab(null)} />
 
