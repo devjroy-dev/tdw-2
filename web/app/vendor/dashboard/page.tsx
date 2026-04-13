@@ -262,6 +262,12 @@ export default function VendorDashboard() {
 
   // Form states
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [gstNumber, setGstNumber] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [bankIfsc, setBankIfsc] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
+  const [savingBusiness, setSavingBusiness] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{type:string, id:string, name:string} | null>(null);
   const [showContractForm, setShowContractForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
@@ -384,6 +390,27 @@ export default function VendorDashboard() {
     } catch (e) { toast.error('Could not update client'); }
   };
 
+  const handleSaveBusinessDetails = async () => {
+    try {
+      setSavingBusiness(true);
+      const res = await fetch(`${API}/vendors/${vendorData.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gst_number: gstNumber,
+          bank_name: bankName,
+          bank_account: bankAccount,
+          bank_ifsc: bankIfsc,
+          bank_holder: bankHolder,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) toast.success('Business details saved');
+      else toast.error('Could not save business details');
+    } catch (e) { toast.error('Could not save business details'); }
+    finally { setSavingBusiness(false); }
+  };
+
   const handleSaveContractEdit = async (id: string) => {
     try {
       const res = await fetch(`${API}/contracts/${id}`, {
@@ -473,6 +500,11 @@ export default function VendorDashboard() {
         setEditInstagram(vendor.instagram_url || '');
         setEditCity(vendor.city || '');
         setEditVibes(vendor.vibe_tags || []);
+        setGstNumber(vendor.gst_number || '');
+        setBankName(vendor.bank_name || '');
+        setBankAccount(vendor.bank_account || '');
+        setBankIfsc(vendor.bank_ifsc || '');
+        setBankHolder(vendor.bank_holder || '');
         loadBookings(vendor.id);
         loadInvoices(vendor.id);
         loadClients(vendor.id);
@@ -1605,12 +1637,13 @@ export default function VendorDashboard() {
                 </div>
               ) : (
                 contracts.map((con, i) => (
-                  <div key={con.id} style={{
+                  <div key={con.id}>
+                  <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '18px 24px',
-                    borderBottom: i < contracts.length - 1 ? '1px solid var(--border)' : 'none',
+                    borderBottom: editingContractId === con.id ? 'none' : (i < contracts.length - 1 ? '1px solid var(--border)' : 'none'),
                   }}>
                     <div>
                       <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 400, color: 'var(--dark)', marginBottom: '4px' }}>{con.client_name}</div>
@@ -2448,6 +2481,40 @@ export default function VendorDashboard() {
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 600, color: 'var(--dark)', marginBottom: '4px' }}>Business & Tax Details</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)' }}>Appears on invoices and contracts sent to clients</div>
+                </div>
+                <button onClick={handleSaveBusinessDetails} disabled={savingBusiness} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '9px 18px', cursor: 'pointer' }}>
+                  {savingBusiness ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={formRow}>
+                  <label style={label}>GST Number</label>
+                  <input style={inp} value={gstNumber} onChange={e => setGstNumber(e.target.value.toUpperCase())} placeholder="e.g. 07AABCU9603R1ZX" maxLength={15} />
+                </div>
+                <div style={formRow}>
+                  <label style={label}>Account Holder Name</label>
+                  <input style={inp} value={bankHolder} onChange={e => setBankHolder(e.target.value)} placeholder="As per bank records" />
+                </div>
+                <div style={formRow}>
+                  <label style={label}>Bank Name</label>
+                  <input style={inp} value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. HDFC Bank" />
+                </div>
+                <div style={formRow}>
+                  <label style={label}>Account Number</label>
+                  <input style={inp} value={bankAccount} onChange={e => setBankAccount(e.target.value)} placeholder="Your account number" />
+                </div>
+                <div style={formRow}>
+                  <label style={label}>IFSC Code</label>
+                  <input style={inp} value={bankIfsc} onChange={e => setBankIfsc(e.target.value.toUpperCase())} placeholder="e.g. HDFC0001234" maxLength={11} />
                 </div>
               </div>
             </div>
