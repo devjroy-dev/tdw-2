@@ -7,7 +7,9 @@ import {
   Clock, CheckSquare, Cpu, Map, LogOut, Plus, Trash2,
   ChevronDown, ChevronUp, X, Check, AlertCircle, Download,
   Edit2, Phone, Lock, Activity, Zap, Image, Percent,
-  MinusCircle, Share2, List
+  MinusCircle, Share2, List, Package, Target,
+  DollarSign, BookOpen, Tool, Truck, Coffee,
+  Navigation, Upload, ArrowDownCircle
 } from 'react-feather';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app/api';
@@ -25,6 +27,19 @@ const ACTIVE_TABS = [
   { id: 'clients', label: 'Clients', icon: Users },
   { id: 'team', label: 'My Team', icon: Users },
   { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'outstanding', label: 'Outstanding Payments', icon: DollarSign },
+  { id: 'profit', label: 'Profit per Booking', icon: Target },
+  { id: 'timeline', label: 'Client Timeline', icon: Activity },
+  { id: 'delivery', label: 'Delivery Tracker', icon: Truck },
+  { id: 'forecast', label: 'Revenue Forecast', icon: TrendingUp },
+  { id: 'packages', label: 'Package Builder', icon: Package },
+  { id: 'advancetax', label: 'Advance Tax', icon: BookOpen },
+  { id: 'cash', label: 'Cash Payments', icon: DollarSign },
+  { id: 'checklist', label: 'Pre-Wedding Checklist', icon: CheckSquare },
+  { id: 'availability', label: 'Availability Calendar', icon: Calendar },
+  { id: 'runsheet', label: 'Day-of Runsheet', icon: List },
+  { id: 'equipment', label: 'Equipment Checklist', icon: Tool },
+  { id: 'csvimport', label: 'Import / Export', icon: Upload },
 ];
 
 const COMING_SOON_TABS = [
@@ -2142,6 +2157,600 @@ export default function VendorDashboard() {
         )}
 
       </main>
+
+        {/* ════ OUTSTANDING PAYMENTS ════ */}
+        {activeTab === 'outstanding' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Outstanding Payments</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>All unpaid amounts across every client, sorted by due date.</p>
+            {paymentSchedules.flatMap((s: any) =>
+              (s.instalments || []).filter((i: any) => !i.paid).map((inst: any, idx: number) => {
+                const isOverdue = inst.due_date && new Date(inst.due_date) < new Date();
+                const isDueSoon = inst.due_date && !isOverdue && (new Date(inst.due_date).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000;
+                const color = isOverdue ? '#B5303A' : isDueSoon ? '#C9A84C' : '#4CAF50';
+                const status = isOverdue ? 'OVERDUE' : isDueSoon ? 'DUE SOON' : 'UPCOMING';
+                return (
+                  <div key={`${s.id}-${idx}`} className="card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: `4px solid ${color}` }}>
+                    <div>
+                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '16px', color: 'var(--dark)', marginBottom: '4px' }}>{s.client_name}</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{inst.label} · Due {inst.due_date || 'No date set'}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)' }}>Rs.{parseInt(inst.amount || 0).toLocaleString('en-IN')}</span>
+                      <span style={{ background: `${color}20`, color, fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '1px', padding: '4px 10px', borderRadius: '50px', border: `1px solid ${color}40` }}>{status}</span>
+                      {s.client_phone && (
+                        <a href={`https://wa.me/91${s.client_phone}?text=${encodeURIComponent(`Hi ${s.client_name.split('&')[0].trim()}! This is a friendly reminder that your ${inst.label} payment of Rs.${parseInt(inst.amount || 0).toLocaleString('en-IN')} is due on ${inst.due_date}. Request you to please transfer at your earliest convenience. Thank you! — ${vendor?.name || 'Your Vendor'}, The Dream Wedding`)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '8px 14px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}>
+                          Remind
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            {paymentSchedules.every((s: any) => (s.instalments || []).every((i: any) => i.paid)) && (
+              <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>All caught up</div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>No outstanding payments. Every instalment is paid.</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════ PROFIT PER BOOKING ════ */}
+        {activeTab === 'profit' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Profit per Booking</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Invoice total minus all expenses logged against that client. Your actual margin, finally visible.</p>
+            {clients.map((client: any) => {
+              const clientInvoices = invoices.filter((i: any) => i.client_name === client.name);
+              const clientExpenses = expenses.filter((e: any) => e.client_name === client.name);
+              const revenue = clientInvoices.reduce((s: number, i: any) => s + (i.amount || 0), 0);
+              const costs = clientExpenses.reduce((s: number, e: any) => s + (e.amount || 0), 0);
+              const profit = revenue - costs;
+              const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+              if (revenue === 0) return null;
+              return (
+                <div key={client.id} className="card" style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)', marginBottom: '4px' }}>{client.name}</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{client.wedding_date}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', color: profit >= 0 ? '#4CAF50' : '#B5303A' }}>Rs.{profit.toLocaleString('en-IN')}</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{margin}% margin</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    {[
+                      { label: 'Revenue', value: revenue, color: 'var(--dark)' },
+                      { label: 'Expenses', value: costs, color: '#B5303A' },
+                      { label: 'Profit', value: profit, color: '#4CAF50' },
+                    ].map(item => (
+                      <div key={item.label} style={{ background: 'var(--cream)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: item.color }}>Rs.{item.value.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px' }}>{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '12px', background: 'var(--border)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(margin, 100)}%`, height: '100%', background: margin > 50 ? '#4CAF50' : margin > 25 ? 'var(--gold)' : '#B5303A', borderRadius: '4px', transition: 'width 0.5s' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ════ CLIENT TIMELINE ════ */}
+        {activeTab === 'timeline' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Client Timeline</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Every interaction with every client, in one scroll.</p>
+            {clients.map((client: any) => {
+              const clientInvoices = invoices.filter((i: any) => i.client_name === client.name);
+              const clientSchedules = paymentSchedules.filter((s: any) => s.client_name === client.name);
+              const events = [
+                { date: client.created_at, label: 'Client added to database', type: 'start' },
+                ...clientInvoices.map((i: any) => ({ date: i.created_at, label: `Invoice generated — Rs.${(i.amount || 0).toLocaleString('en-IN')}`, type: 'invoice' })),
+                ...clientSchedules.flatMap((s: any) => (s.instalments || []).filter((i: any) => i.paid).map((i: any) => ({ date: new Date().toISOString(), label: `${i.label} payment received — Rs.${parseInt(i.amount || 0).toLocaleString('en-IN')}`, type: 'payment' }))),
+                { date: client.wedding_date, label: 'Wedding day', type: 'wedding' },
+              ].sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+              const typeColor: any = { start: 'var(--gold)', invoice: 'var(--dark)', payment: '#4CAF50', wedding: '#C9A84C' };
+              return (
+                <div key={client.id} className="card" style={{ padding: '24px' }}>
+                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)', marginBottom: '20px' }}>{client.name}</div>
+                  <div style={{ position: 'relative', paddingLeft: '24px' }}>
+                    <div style={{ position: 'absolute', left: '8px', top: 0, bottom: 0, width: '1px', background: 'var(--border)' }} />
+                    {events.map((event, idx) => (
+                      <div key={idx} style={{ position: 'relative', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <div style={{ position: 'absolute', left: '-20px', width: '8px', height: '8px', borderRadius: '50%', background: typeColor[event.type] || 'var(--grey)', marginTop: '4px' }} />
+                        <div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--dark)', fontWeight: 400 }}>{event.label}</div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '2px' }}>{event.date ? new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBD'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ════ DELIVERY TRACKER ════ */}
+        {activeTab === 'delivery' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Delivery Tracker</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Track every booking from shoot to final delivery. Clients stop chasing when they see the status.</p>
+            {deliveryItems.map((item: any) => {
+              const stageLabels: any = { shoot_done: 'Shoot Done', editing: 'Editing', first_cut: 'First Cut Sent', feedback: 'Feedback Received', final_edit: 'Final Edits', delivered: 'Delivered' };
+              const currentIdx = item.stages.indexOf(item.stage);
+              return (
+                <div key={item.id} className="card" style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>{item.client}</div>
+                    <span className="badge-gold">{stageLabels[item.stage]}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    {item.stages.map((stage: string, idx: number) => (
+                      <div key={stage} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                        <button onClick={() => setDeliveryItems(prev => prev.map(d => d.id === item.id ? { ...d, stage } : d))} style={{
+                          width: '100%', padding: '8px 4px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '0.3px', textAlign: 'center',
+                          background: idx <= currentIdx ? 'var(--dark)' : 'var(--cream)',
+                          color: idx <= currentIdx ? 'var(--gold)' : 'var(--grey)',
+                          transition: 'all 0.2s',
+                        }}>
+                          {stageLabels[stage]}
+                        </button>
+                        {idx < item.stages.length - 1 && <div style={{ width: '4px', height: '2px', background: idx < currentIdx ? 'var(--dark)' : 'var(--border)', flexShrink: 0 }} />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ════ REVENUE FORECAST ════ */}
+        {activeTab === 'forecast' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Revenue Forecast</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Money coming in over the next 3 months, based on confirmed payment schedules.</p>
+            {(() => {
+              const months: any = {};
+              paymentSchedules.forEach((s: any) => {
+                (s.instalments || []).filter((i: any) => !i.paid && i.due_date).forEach((inst: any) => {
+                  const d = new Date(inst.due_date);
+                  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                  const label = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                  if (!months[key]) months[key] = { label, amount: 0, items: [] };
+                  months[key].amount += parseInt(inst.amount || 0);
+                  months[key].items.push({ client: s.client_name, label: inst.label, amount: parseInt(inst.amount || 0) });
+                });
+              });
+              const sorted = Object.entries(months).sort(([a], [b]) => a.localeCompare(b)).slice(0, 3);
+              const maxAmount = Math.max(...sorted.map(([, v]: any) => v.amount), 1);
+              return sorted.length > 0 ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    {sorted.map(([key, data]: any) => (
+                      <div key={key} className="card" style={{ padding: '24px', textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{data.label}</div>
+                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', color: 'var(--gold)', marginBottom: '4px' }}>Rs.{data.amount.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{data.items.length} payment{data.items.length !== 1 ? 's' : ''}</div>
+                        <div style={{ marginTop: '12px', background: 'var(--border)', borderRadius: '4px', height: '4px' }}>
+                          <div style={{ width: `${(data.amount / maxAmount) * 100}%`, height: '100%', background: 'var(--gold)', borderRadius: '4px' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="card" style={{ padding: '24px' }}>
+                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Breakdown</div>
+                    {sorted.flatMap(([, data]: any) => data.items.map((item: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                        <div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--dark)' }}>{item.client}</div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{item.label}</div>
+                        </div>
+                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '16px', color: 'var(--dark)' }}>Rs.{item.amount.toLocaleString('en-IN')}</div>
+                      </div>
+                    )))}
+                  </div>
+                </>
+              ) : (
+                <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>No upcoming payments</div>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Add payment schedules to see your revenue forecast.</div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ════ PACKAGE BUILDER ════ */}
+        {activeTab === 'packages' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Package Builder</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Define your packages once. Share a professional comparison card with every enquiry.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              {packages.map((pkg: any) => (
+                <div key={pkg.id} className="card" style={{ padding: '24px', position: 'relative' }}>
+                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '8px' }}>{pkg.name}</div>
+                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', color: 'var(--dark)', marginBottom: '16px' }}>Rs.{parseInt(pkg.price).toLocaleString('en-IN')}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {pkg.inclusions.map((inc: string, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Check size={12} color="var(--gold)" />
+                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>{inc}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <a href={`https://wa.me/?text=${encodeURIComponent(`*${pkg.name} Package — Rs.${parseInt(pkg.price).toLocaleString('en-IN')}*
+
+${pkg.inclusions.map((i: string) => `✓ ${i}`).join('
+')}
+
+— ${vendor?.name || 'The Dream Wedding'}`)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '16px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}>
+                    Share via WhatsApp
+                  </a>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Add New Package</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <input style={inp} placeholder="Package name (e.g. Diamond)" value={newPkgName} onChange={e => setNewPkgName(e.target.value)} />
+                <input style={inp} placeholder="Price (Rs.)" type="number" value={newPkgPrice} onChange={e => setNewPkgPrice(e.target.value)} />
+              </div>
+              <textarea style={{ ...inp, width: '100%', height: '80px', resize: 'vertical', boxSizing: 'border-box' }} placeholder="Inclusions (one per line)" value={newPkgInclusions} onChange={e => setNewPkgInclusions(e.target.value)} />
+              <button style={{ ...goldBtn, marginTop: '12px' }} onClick={() => {
+                if (!newPkgName || !newPkgPrice) return;
+                setPackages(prev => [...prev, { id: Date.now().toString(), name: newPkgName, price: newPkgPrice, inclusions: newPkgInclusions.split('
+').filter(Boolean) }]);
+                setNewPkgName(''); setNewPkgPrice(''); setNewPkgInclusions('');
+              }}>
+                <Plus size={14} /> Add Package
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ════ ADVANCE TAX ════ */}
+        {activeTab === 'advancetax' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Advance Tax Calculator</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Based on your invoiced income this year. Never miss a due date again.</p>
+            {(() => {
+              const totalIncome = invoices.reduce((s: number, i: any) => s + (i.amount || 0), 0);
+              const taxableIncome = totalIncome * 0.9;
+              const estimatedTax = taxableIncome > 500000 ? (taxableIncome - 500000) * 0.2 + 12500 : taxableIncome > 250000 ? (taxableIncome - 250000) * 0.05 : 0;
+              const quarters = [
+                { label: 'Q1', due: 'June 15, 2026', percent: 15, status: 'upcoming' },
+                { label: 'Q2', due: 'September 15, 2026', percent: 45, status: 'upcoming' },
+                { label: 'Q3', due: 'December 15, 2026', percent: 75, status: 'upcoming' },
+                { label: 'Q4', due: 'March 15, 2027', percent: 100, status: 'upcoming' },
+              ];
+              return (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    {[
+                      { label: 'Total Invoiced Income', value: `Rs.${totalIncome.toLocaleString('en-IN')}` },
+                      { label: 'Estimated Taxable (after TDS)', value: `Rs.${Math.round(taxableIncome).toLocaleString('en-IN')}` },
+                      { label: 'Estimated Annual Tax', value: `Rs.${Math.round(estimatedTax).toLocaleString('en-IN')}` },
+                    ].map(item => (
+                      <div key={item.label} className="card" style={{ padding: '20px', textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--gold)', marginBottom: '6px' }}>{item.value}</div>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)' }}>{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="card" style={{ padding: '24px' }}>
+                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>Quarterly Due Dates</div>
+                    {quarters.map((q, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: idx < quarters.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--dark)', fontWeight: 500 }}>{q.label} — Due {q.due}</div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)', marginTop: '2px' }}>Pay {q.percent}% of annual tax by this date</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>Rs.{Math.round(estimatedTax * q.percent / 100).toLocaleString('en-IN')}</div>
+                          <span style={{ background: '#C9A84C20', color: 'var(--gold)', fontFamily: 'DM Sans, sans-serif', fontSize: '10px', padding: '3px 8px', borderRadius: '50px', border: '1px solid var(--gold-border)' }}>UPCOMING</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="card" style={{ padding: '20px', background: 'var(--cream)', border: '1px solid var(--gold-border)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <AlertCircle size={16} color="var(--gold)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', margin: 0 }}>This is an estimate based on your invoiced income. Platform TDS will appear in Form 26AS under The Dream Wedding's TAN. Share these figures with your CA before filing. Missing advance tax deadlines attracts 1% interest per month under Section 234B/234C.</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ════ CASH PAYMENTS ════ */}
+        {activeTab === 'cash' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Cash Payment Log</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Record offline cash payments for your own records. Not processed by the platform.</p>
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <input style={inp} placeholder="Client name" value={cashClient} onChange={e => setCashClient(e.target.value)} />
+                <input style={inp} placeholder="Amount received (Rs.)" type="number" value={cashAmount} onChange={e => setCashAmount(e.target.value)} />
+              </div>
+              <input style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: '12px' }} placeholder="Note (e.g. Token payment, advance etc.)" value={cashNote} onChange={e => setCashNote(e.target.value)} />
+              <button style={goldBtn} onClick={() => {
+                if (!cashClient || !cashAmount) return;
+                setCashEntries(prev => [{ id: Date.now().toString(), client: cashClient, amount: parseInt(cashAmount), note: cashNote, date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) }, ...prev]);
+                setCashAmount(''); setCashNote('Token payment received');
+              }}>
+                <Plus size={14} /> Log Cash Payment
+              </button>
+            </div>
+            {cashEntries.length > 0 && (
+              <div className="card" style={{ overflow: 'hidden' }}>
+                {cashEntries.map((entry: any, idx: number) => (
+                  <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: idx < cashEntries.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--dark)', fontWeight: 400 }}>{entry.client}</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{entry.note} · {entry.date}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: '#4CAF50' }}>Rs.{entry.amount.toLocaleString('en-IN')}</span>
+                      <button onClick={() => setCashEntries(prev => prev.filter(e => e.id !== entry.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey)', padding: '4px' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ padding: '16px 24px', background: 'var(--cream)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', fontWeight: 500 }}>Total Cash Logged</span>
+                  <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>Rs.{cashEntries.reduce((s: number, e: any) => s + e.amount, 0).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════ PRE-WEDDING CHECKLIST ════ */}
+        {activeTab === 'checklist' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Pre-Wedding Checklist</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Per-client checklist to complete before every wedding. Never forget a critical step again.</p>
+            {checklists.map((cl: any) => {
+              const done = cl.items.filter((i: any) => i.done).length;
+              const total = cl.items.length;
+              return (
+                <div key={cl.id} className="card" style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', color: 'var(--dark)' }}>{cl.client}</div>
+                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: done === total ? '#4CAF50' : 'var(--gold)', fontWeight: 500 }}>{done}/{total} complete</span>
+                  </div>
+                  <div style={{ background: 'var(--border)', borderRadius: '4px', height: '4px', marginBottom: '16px' }}>
+                    <div style={{ width: `${(done / total) * 100}%`, height: '100%', background: done === total ? '#4CAF50' : 'var(--gold)', borderRadius: '4px', transition: 'width 0.3s' }} />
+                  </div>
+                  {cl.items.map((item: any, idx: number) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: idx < cl.items.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
+                      onClick={() => setChecklists(prev => prev.map(c => c.id === cl.id ? { ...c, items: c.items.map((it: any, i: number) => i === idx ? { ...it, done: !it.done } : it) } : c))}>
+                      <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `1.5px solid ${item.done ? 'var(--dark)' : 'var(--border)'}`, background: item.done ? 'var(--dark)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {item.done && <Check size={10} color="var(--gold)" />}
+                      </div>
+                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: item.done ? 'var(--grey)' : 'var(--dark)', textDecoration: item.done ? 'line-through' : 'none' }}>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ════ AVAILABILITY CALENDAR ════ */}
+        {activeTab === 'availability' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Availability Calendar</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Your month at a glance. Screenshot and share with enquiring couples.</p>
+            {(() => {
+              const now = new Date();
+              const year = now.getFullYear();
+              const month = now.getMonth();
+              const firstDay = new Date(year, month, 1).getDay();
+              const daysInMonth = new Date(year, month + 1, 0).getDate();
+              const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+              const blockedSet = new Set(blockedDates.map((d: any) => {
+                const date = new Date(d.blocked_date);
+                return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+              }));
+              const cells = [];
+              for (let i = 0; i < firstDay; i++) cells.push(null);
+              for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+              const isBlocked = (d: number) => blockedSet.has(`${year}-${month}-${d}`);
+              const isToday = (d: number) => d === now.getDate();
+              return (
+                <div className="card" style={{ padding: '32px' }}>
+                  <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', color: 'var(--dark)', textAlign: 'center', marginBottom: '24px' }}>{monthName}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '16px' }}>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                      <div key={d} style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', textAlign: 'center', fontWeight: 500, letterSpacing: '0.5px' }}>{d}</div>
+                    ))}
+                    {cells.map((d, idx) => (
+                      <div key={idx} style={{
+                        height: '48px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: d && isToday(d) ? 600 : 300,
+                        background: !d ? 'transparent' : isBlocked(d) ? 'var(--dark)' : '#4CAF5015',
+                        color: !d ? 'transparent' : isBlocked(d) ? 'var(--gold)' : isToday(d) ? 'var(--dark)' : '#4CAF50',
+                        border: d && isToday(d) ? '2px solid var(--gold)' : '1px solid transparent',
+                      }}>
+                        {d || ''}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+                    {[{ color: '#4CAF5015', textColor: '#4CAF50', label: 'Available' }, { color: 'var(--dark)', textColor: 'var(--gold)', label: 'Blocked/Booked' }, { color: 'transparent', textColor: 'var(--dark)', label: 'Today', border: '2px solid var(--gold)' }].map(item => (
+                      <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: item.color, border: item.border || '1px solid transparent' }} />
+                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ════ DAY-OF RUNSHEET ════ */}
+        {activeTab === 'runsheet' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Day-of Runsheet</h2>
+              <a href={`https://wa.me/?text=${encodeURIComponent('*Wedding Day Runsheet*
+
+' + runsheet.map(r => `${r.time} — ${r.task}
+Assigned: ${r.assignee}`).join('
+
+'))}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D36615', border: '1px solid #25D36640', borderRadius: '8px', padding: '10px 16px', color: '#25D366', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
+                Share with Team
+              </a>
+            </div>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Minute-by-minute timeline. Share with your full team via WhatsApp.</p>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              {runsheet.map((item: any, idx: number) => (
+                <div key={item.id} style={{ display: 'flex', gap: '16px', padding: '16px 24px', borderBottom: idx < runsheet.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'flex-start' }}>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, minWidth: '80px', flexShrink: 0 }}>{item.time}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--dark)' }}>{item.task}</div>
+                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '3px' }}>Assigned: {item.assignee}</div>
+                  </div>
+                  <button onClick={() => setRunsheet(prev => prev.filter(r => r.id !== item.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grey)', padding: '4px', flexShrink: 0 }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '14px' }}>Add Entry</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <input style={inp} placeholder="Time (e.g. 09:00 AM)" value={newRunItem.time} onChange={e => setNewRunItem(p => ({ ...p, time: e.target.value }))} />
+                <input style={inp} placeholder="Task description" value={newRunItem.task} onChange={e => setNewRunItem(p => ({ ...p, task: e.target.value }))} />
+                <input style={inp} placeholder="Assigned to" value={newRunItem.assignee} onChange={e => setNewRunItem(p => ({ ...p, assignee: e.target.value }))} />
+              </div>
+              <button style={goldBtn} onClick={() => {
+                if (!newRunItem.time || !newRunItem.task) return;
+                setRunsheet(prev => [...prev, { id: Date.now().toString(), ...newRunItem }].sort((a, b) => a.time.localeCompare(b.time)));
+                setNewRunItem({ time: '', task: '', assignee: '' });
+              }}>
+                <Plus size={14} /> Add to Runsheet
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ════ EQUIPMENT CHECKLIST ════ */}
+        {activeTab === 'equipment' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Equipment Checklist</h2>
+              <button style={goldBtn} onClick={() => setEquipment(prev => prev.map(e => ({ ...e, checked: false })))}>
+                Reset All
+              </button>
+            </div>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Run through this before every shoot. Never forget critical equipment again.</p>
+            {(() => {
+              const checked = equipment.filter(e => e.checked).length;
+              const total = equipment.length;
+              return (
+                <div className="card" style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>{checked}/{total} items checked</span>
+                    {checked === total && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: '#4CAF50', fontWeight: 500 }}>Ready to shoot!</span>}
+                  </div>
+                  <div style={{ background: 'var(--border)', borderRadius: '4px', height: '4px', marginBottom: '20px' }}>
+                    <div style={{ width: `${(checked / total) * 100}%`, height: '100%', background: checked === total ? '#4CAF50' : 'var(--gold)', borderRadius: '4px', transition: 'width 0.3s' }} />
+                  </div>
+                  {equipment.map((item: any, idx: number) => (
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: idx < equipment.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
+                      onClick={() => setEquipment(prev => prev.map(e => e.id === item.id ? { ...e, checked: !e.checked } : e))}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '4px', border: `1.5px solid ${item.checked ? '#4CAF50' : 'var(--border)'}`, background: item.checked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}>
+                        {item.checked && <Check size={11} color="white" />}
+                      </div>
+                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: item.checked ? 'var(--grey)' : 'var(--dark)', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.item}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ════ CSV IMPORT / EXPORT ════ */}
+        {activeTab === 'csvimport' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 300, color: 'var(--dark)' }}>Import / Export</h2>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '-12px' }}>Bring your existing client data in. Take your data out anytime. Your data is always yours.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="card" style={{ padding: '32px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--light-gold)', border: '1px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                  <Upload size={20} color="var(--gold)" />
+                </div>
+                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>Import Clients</div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', marginBottom: '20px' }}>Upload a CSV or Excel file from any CRM, spreadsheet or WedMeGood export. We auto-map the columns.</div>
+                <div style={{ border: '2px dashed var(--border)', borderRadius: '10px', padding: '32px', textAlign: 'center', marginBottom: '16px', cursor: 'pointer', background: 'var(--cream)' }}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file) alert(`File "${file.name}" received. CSV import will process ${file.name} and add clients to your database. (Full processing coming in next update)`);
+                  }}>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Drag and drop CSV here</div>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', marginTop: '4px', opacity: 0.6 }}>or</div>
+                  <label style={{ display: 'inline-block', marginTop: '8px', cursor: 'pointer' }}>
+                    <input type="file" accept=".csv,.xlsx" style={{ display: 'none' }} onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) alert(`File "${file.name}" received. Import will process and add your clients to the database.`);
+                    }} />
+                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--gold)', fontWeight: 500, textDecoration: 'underline' }}>Browse files</span>
+                  </label>
+                </div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', lineHeight: '1.6' }}>Expected columns: Name, Phone, Wedding Date, Notes (optional). Any extra columns are ignored.</div>
+              </div>
+              <div className="card" style={{ padding: '32px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--light-gold)', border: '1px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                  <ArrowDownCircle size={20} color="var(--gold)" />
+                </div>
+                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--dark)', marginBottom: '8px' }}>Export Your Data</div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--grey)', lineHeight: '1.6', marginBottom: '24px' }}>Download everything — clients, invoices, expenses, TDS records. Your data is always yours. No lock-in.</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[
+                    { label: 'Client Database', data: clients, fields: ['name', 'phone', 'wedding_date'] },
+                    { label: 'Invoice History', data: invoices, fields: ['client_name', 'amount', 'description', 'invoice_number'] },
+                    { label: 'Expense Records', data: expenses, fields: ['description', 'amount', 'category', 'client_name', 'expense_date'] },
+                  ].map(item => (
+                    <button key={item.label} style={{ ...goldBtn, justifyContent: 'space-between', background: 'var(--cream)', color: 'var(--dark)', border: '1px solid var(--border)' }}
+                      onClick={() => {
+                        const headers = item.fields.join(',');
+                        const rows = item.data.map((d: any) => item.fields.map(f => `"${d[f] || ''}"`).join(','));
+                        const csv = [headers, ...rows].join('
+');
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = `${item.label.toLowerCase().replace(/ /g, '_')}.csv`;
+                        a.click(); URL.revokeObjectURL(url);
+                      }}>
+                      <span>{item.label}</span>
+                      <Download size={14} />
+                    </button>
+                  ))}
+                </div>
+                <div style={{ marginTop: '16px', fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--grey)', lineHeight: '1.6' }}>Exports are instant CSV downloads. Open in Excel, Google Sheets or any spreadsheet tool.</div>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Coming Soon Modal */}
       <ComingSoonModal tab={comingSoonTab} onClose={() => setComingSoonTab(null)} />
