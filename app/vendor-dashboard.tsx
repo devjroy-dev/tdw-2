@@ -138,6 +138,7 @@ export default function VendorDashboardScreen() {
   const [isLive, setIsLive] = useState(true);
   const [vendorSession, setVendorSession] = useState<any>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
   const [editName, setEditName] = useState('');
   const [editAbout, setEditAbout] = useState('');
   const [editStartingPrice, setEditStartingPrice] = useState('');
@@ -1393,6 +1394,72 @@ export default function VendorDashboardScreen() {
         ════════════════════════════════ */}
         {activeTab === 'Overview' && (
           <View style={styles.tabPane}>
+
+            {/* Vendor Onboarding Checklist */}
+            {!checklistDismissed && (
+              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E8E0D5', padding: 20, marginBottom: 16, gap: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontSize: 16, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular', letterSpacing: 0.2 }}>Complete your profile</Text>
+                    <Text style={{ fontSize: 12, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Finish these steps to go live and start getting enquiries</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setChecklistDismissed(true)}>
+                    <Feather name="x" size={16} color="#8C7B6E" />
+                  </TouchableOpacity>
+                </View>
+                {[
+                  { label: 'Upload 10+ portfolio photos', icon: 'image', done: (vendorSession?.portfolioCount || 0) >= 10, action: () => setActiveTab('Overview') },
+                  { label: 'Add 3 past clients', icon: 'users', done: clients.length >= 3, action: () => setActiveTab('Clients') },
+                  { label: 'Set your starting price', icon: 'tag', done: !!vendorSession?.startingPrice, action: () => openSettings() },
+                  { label: 'Write your bio', icon: 'edit-2', done: !!vendorSession?.about, action: () => openSettings() },
+                  { label: 'Share your profile link', icon: 'share-2', done: false, action: () => { const link = 'https://thedreamwedding.in/vendor/' + vendorSession?.vendorId; Linking.openURL('whatsapp://send?text=' + encodeURIComponent('Check out my profile on The Dream Wedding: ' + link)); } },
+                ].map((step, idx) => {
+                  const allDone = [
+                    (vendorSession?.portfolioCount || 0) >= 10,
+                    clients.length >= 3,
+                    !!vendorSession?.startingPrice,
+                    !!vendorSession?.about,
+                    false,
+                  ];
+                  const doneCount = allDone.filter(Boolean).length;
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      onPress={step.action}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, opacity: step.done ? 0.5 : 1 }}
+                    >
+                      <View style={{
+                        width: 28, height: 28, borderRadius: 14,
+                        backgroundColor: step.done ? '#4CAF5015' : '#FFF8EC',
+                        borderWidth: 1,
+                        borderColor: step.done ? '#4CAF50' : '#E8D9B5',
+                        justifyContent: 'center', alignItems: 'center',
+                      }}>
+                        {step.done
+                          ? <Feather name="check" size={12} color="#4CAF50" />
+                          : <Feather name={step.icon as any} size={12} color="#C9A84C" />
+                        }
+                      </View>
+                      <Text style={{
+                        flex: 1, fontSize: 13, color: '#2C2420',
+                        fontFamily: step.done ? 'DMSans_300Light' : 'DMSans_400Regular',
+                        textDecorationLine: step.done ? 'line-through' : 'none',
+                      }}>
+                        {step.label}
+                      </Text>
+                      {!step.done && <Feather name="chevron-right" size={14} color="#C9A84C" />}
+                    </TouchableOpacity>
+                  );
+                })}
+                <View style={{ backgroundColor: '#E8E0D5', borderRadius: 4, height: 6, marginTop: 4 }}>
+                  <View style={{
+                    backgroundColor: '#C9A84C', borderRadius: 4, height: 6,
+                    width: `${([ (vendorSession?.portfolioCount || 0) >= 10, clients.length >= 3, !!vendorSession?.startingPrice, !!vendorSession?.about, false ].filter(Boolean).length / 5) * 100}%`,
+                  }} />
+                </View>
+              </View>
+            )}
+
             <View style={styles.statsRow}>
               {[
                 { num: '142', lbl: 'Profile Views' },

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity, Animated,
   Dimensions, ScrollView, Image, ActivityIndicator,
   Alert, Share
 } from 'react-native';
@@ -108,6 +108,13 @@ export default function MoodboardScreen() {
     }
   };
 
+  const removeAnimations = useRef<Record<string, Animated.Value>>({}).current;
+
+  const getRemoveAnim = (id: string) => {
+    if (!removeAnimations[id]) removeAnimations[id] = new Animated.Value(1);
+    return removeAnimations[id];
+  };
+
   const handleRemove = async (id: string) => {
     Alert.alert(
       'Remove vendor',
@@ -121,10 +128,15 @@ export default function MoodboardScreen() {
             try {
               setRemoving(id);
               await removeFromMoodboard(id);
-              setSaved(prev => prev.filter(s => s.id !== id));
+              // Animate out then remove
+              Animated.parallel([
+                Animated.timing(getRemoveAnim(id), { toValue: 0, duration: 300, useNativeDriver: true }),
+              ]).start(() => {
+                setSaved(prev => prev.filter(s => s.id !== id));
+                delete removeAnimations[id];
+              });
             } catch (e) {
               Alert.alert('Error', 'Could not remove. Please try again.');
-            } finally {
               setRemoving(null);
             }
           },
@@ -327,7 +339,7 @@ export default function MoodboardScreen() {
         ) : (
           <View style={styles.grid}>
             {filtered.map(item => (
-              <View key={item.id} style={styles.card}>
+              <Animated.View key={item.id} style={[styles.card, { opacity: getRemoveAnim(item.id), transform: [{ scale: getRemoveAnim(item.id) }] }]}>
 
                 {/* Vendor image */}
                 <TouchableOpacity
@@ -393,7 +405,7 @@ export default function MoodboardScreen() {
                   </View>
                 </View>
 
-              </View>
+              </Animated.View>
             ))}
           </View>
         )}
