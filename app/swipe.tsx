@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   Alert, View, Text, StyleSheet, TouchableOpacity,
   Dimensions, Animated, PanResponder, Image,
-  ActivityIndicator
+  ActivityIndicator, Modal, ScrollView, TextInput
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -49,6 +49,13 @@ export default function SwipeScreen() {
   const [userBudget, setUserBudget] = useState<number | null>(null);
   const [savedCount, setSavedCount] = useState(0);
 
+  // Filter state
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterCity, setFilterCity] = useState(city || '');
+  const [filterBudget, setFilterBudget] = useState(budget || '');
+  const [sessionCity, setSessionCity] = useState('');
+  const [sessionBudget, setSessionBudget] = useState('');
+
 
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
@@ -87,19 +94,68 @@ export default function SwipeScreen() {
         const parsed = JSON.parse(session);
         setUserId(parsed.userId || parsed.uid || null);
         if (parsed.budget) setUserBudget(parsed.budget);
+        const sCity = parsed.city || parsed.wedding_city || '';
+        const sBudget = parsed.budget ? String(parsed.budget) : '';
+        setSessionCity(sCity);
+        setSessionBudget(sBudget);
+        if (!filterCity && sCity) setFilterCity(sCity);
+        if (!filterBudget && sBudget) setFilterBudget(sBudget);
       }
     } catch (e) {}
   };
+
+  const applyFilters = (newCity: string, newBudget: string) => {
+    setFilterCity(newCity);
+    setFilterBudget(newBudget);
+    setShowFilterModal(false);
+    setCurrentIndex(0);
+    position.setValue({ x: 0, y: 0 });
+    // Reload vendors with new filters
+    setLoading(true);
+    setError(false);
+    getVendors(category, newCity).then(result => {
+      if (result.success && result.data?.length > 0) {
+        let filtered = result.data;
+        if (newBudget) {
+          const budgetNum = parseInt(newBudget);
+          filtered = filtered.filter((v: any) => v.starting_price <= budgetNum);
+        }
+        setVendors(filtered.length > 0 ? filtered : getFallback());
+      } else {
+        setVendors(getFallback());
+      }
+    }).catch(() => {
+      setVendors(getFallback());
+    }).finally(() => setLoading(false));
+  };
+
+  const formatBudgetLabel = (b: string) => {
+    if (!b) return '';
+    const n = parseInt(b);
+    if (n >= 10000000) return '₹1Cr+';
+    if (n >= 1000000) return '₹' + (n/100000).toFixed(0) + 'L';
+    if (n >= 100000) return '₹' + (n/100000).toFixed(0) + 'L';
+    return '₹' + (n/1000).toFixed(0) + 'K';
+  };
+
+  const FILTER_CITIES = ['Delhi NCR', 'Mumbai', 'Bangalore', 'Chennai', 'Hyderabad', 'Kolkata', 'Jaipur', 'Pune', 'Udaipur', 'Goa'];
+  const FILTER_BUDGETS = [
+    { id: '100000', label: 'Under ₹1L' },
+    { id: '300000', label: '₹1L – ₹3L' },
+    { id: '500000', label: '₹3L – ₹5L' },
+    { id: '1000000', label: '₹5L – ₹10L' },
+    { id: '99999999', label: '₹10L+' },
+  ];
 
   const loadVendors = async () => {
     try {
       setLoading(true);
       setError(false);
-      const result = await getVendors(category, city);
+      const result = await getVendors(category, filterCity || city);
       if (result.success && result.data?.length > 0) {
         let filtered = result.data;
-        if (budget) {
-          const budgetNum = parseInt(budget);
+        if (filterBudget || budget) {
+          const budgetNum = parseInt(filterBudget || budget);
           filtered = filtered.filter((v: any) => v.starting_price <= budgetNum);
         }
         setVendors(filtered.length > 0 ? filtered : getFallback());
@@ -270,7 +326,7 @@ export default function SwipeScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.replace('/home')} style={styles.backBtn}>
             <Feather name="arrow-left" size={20} color="#2C2420" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{categoryLabel}</Text>
@@ -289,7 +345,7 @@ export default function SwipeScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.replace('/home')} style={styles.backBtn}>
             <Feather name="arrow-left" size={20} color="#2C2420" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{categoryLabel}</Text>
@@ -323,7 +379,7 @@ export default function SwipeScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.replace('/home')} style={styles.backBtn}>
             <Feather name="arrow-left" size={20} color="#2C2420" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -341,7 +397,7 @@ export default function SwipeScreen() {
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 32, marginTop: 28 }}
-            onPress={() => savedCount > 0 ? router.push('/moodboard') : router.back()}
+            onPress={() => savedCount > 0 ? router.push('/moodboard') : router.replace('/home')}
           >
             <Text style={{ color: '#F5F0E8', fontSize: 13, fontFamily: 'DMSans_300Light', letterSpacing: 2, textTransform: 'uppercase' }}>
               {savedCount > 0 ? 'VIEW MOODBOARD' : 'GO BACK'}
@@ -387,7 +443,7 @@ export default function SwipeScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace('/home')} style={styles.backBtn}>
           <Feather name="arrow-left" size={20} color="#2C2420" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -418,13 +474,37 @@ export default function SwipeScreen() {
 
           {/* Filter */}
           <TouchableOpacity
-            onPress={() => router.push('/filter?from=swipe' as any)}
+            onPress={() => setShowFilterModal(true)}
             style={styles.filterBtn}
           >
             <Feather name="sliders" size={16} color="#C9A84C" />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Filter pills */}
+      {(filterCity || filterBudget) && (
+        <View style={styles.filterPills}>
+          {filterCity ? (
+            <TouchableOpacity style={styles.filterPill} onPress={() => setShowFilterModal(true)}>
+              <Feather name="map-pin" size={10} color="#C9A84C" />
+              <Text style={styles.filterPillText}>{filterCity}</Text>
+              <TouchableOpacity onPress={() => applyFilters('', filterBudget)} hitSlop={{top:8,bottom:8,left:8,right:8}}>
+                <Feather name="x" size={10} color="#8C7B6E" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ) : null}
+          {filterBudget ? (
+            <TouchableOpacity style={styles.filterPill} onPress={() => setShowFilterModal(true)}>
+              <Feather name="tag" size={10} color="#C9A84C" />
+              <Text style={styles.filterPillText}>{formatBudgetLabel(filterBudget)}</Text>
+              <TouchableOpacity onPress={() => applyFilters(filterCity, '')} hitSlop={{top:8,bottom:8,left:8,right:8}}>
+                <Feather name="x" size={10} color="#8C7B6E" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      )}
 
       {/* Card stack */}
       <View style={styles.cardContainer}>
@@ -556,7 +636,7 @@ export default function SwipeScreen() {
           onPress={handleSwipeLeft}
           activeOpacity={0.8}
         >
-          <Feather name="x" size={22} color="#8C7B6E" />
+          <Feather name="x" size={18} color="#8C7B6E" />
         </TouchableOpacity>
 
         {/* Profile — medium, dark with gold icon */}
@@ -565,7 +645,7 @@ export default function SwipeScreen() {
           onPress={() => router.push(`/vendor-profile?id=${vendor.id}` as any)}
           activeOpacity={0.8}
         >
-          <Feather name="eye" size={20} color="#C9A84C" />
+          <Feather name="eye" size={16} color="#C9A84C" />
         </TouchableOpacity>
 
         {/* Save — largest, gold fill */}
@@ -574,10 +654,68 @@ export default function SwipeScreen() {
           onPress={handleSwipeRight}
           activeOpacity={0.8}
         >
-          <Feather name="heart" size={26} color="#2C2420" />
+          <Feather name="heart" size={24} color="#2C2420" />
         </TouchableOpacity>
 
       </View>
+
+      {/* Filter Modal */}
+      <Modal visible={showFilterModal} transparent animationType="slide">
+        <View style={styles.filterModalOverlay}>
+          <View style={styles.filterModalCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular' }}>Filters</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Feather name="x" size={20} color="#8C7B6E" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_500Medium', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>City</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {FILTER_CITIES.map(c => (
+                  <TouchableOpacity
+                    key={c}
+                    style={[styles.filterChip, filterCity === c && styles.filterChipActive]}
+                    onPress={() => setFilterCity(filterCity === c ? '' : c)}
+                  >
+                    <Text style={[styles.filterChipText, filterCity === c && styles.filterChipTextActive]}>{c}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_500Medium', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Budget</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+              {FILTER_BUDGETS.map(b => (
+                <TouchableOpacity
+                  key={b.id}
+                  style={[styles.filterChip, filterBudget === b.id && styles.filterChipActive]}
+                  onPress={() => setFilterBudget(filterBudget === b.id ? '' : b.id)}
+                >
+                  <Text style={[styles.filterChipText, filterBudget === b.id && styles.filterChipTextActive]}>{b.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={{ backgroundColor: '#2C2420', borderRadius: 10, paddingVertical: 15, alignItems: 'center' }}
+              onPress={() => applyFilters(filterCity, filterBudget)}
+            >
+              <Text style={{ color: '#F5F0E8', fontSize: 13, fontFamily: 'DMSans_300Light', letterSpacing: 2, textTransform: 'uppercase' }}>Apply Filters</Text>
+            </TouchableOpacity>
+
+            {(filterCity || filterBudget) && (
+              <TouchableOpacity
+                style={{ alignItems: 'center', paddingTop: 12 }}
+                onPress={() => applyFilters('', '')}
+              >
+                <Text style={{ color: '#C9A84C', fontSize: 13, fontFamily: 'DMSans_400Regular' }}>Clear all filters</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Genie budget bar */}
       <View style={styles.genieBar}>
@@ -875,18 +1013,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
 
-  // Pass — smallest, white, muted
+  // Pass — small, understated
   passBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E8E0D5',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#2C2420',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
@@ -894,16 +1032,16 @@ const styles = StyleSheet.create({
 
   // Profile — medium, dark, gold icon
   profileBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#2C2420',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#C9A84C',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#2C2420',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 4,
@@ -911,17 +1049,17 @@ const styles = StyleSheet.create({
 
   // Save — largest, gold fill, dark icon
   saveBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#C9A84C',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#C9A84C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   // Genie bar
@@ -932,6 +1070,62 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 24,
     paddingBottom: 28,
+  },
+  filterPills: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
+    backgroundColor: '#FFF8EC',
+    borderWidth: 1,
+    borderColor: '#E8D9B5',
+  },
+  filterPillText: {
+    fontSize: 12,
+    color: '#2C2420',
+    fontFamily: 'DMSans_400Regular',
+  },
+  filterModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  filterModalCard: {
+    backgroundColor: '#F5F0E8',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    backgroundColor: '#FFFFFF',
+  },
+  filterChipActive: {
+    backgroundColor: '#2C2420',
+    borderColor: '#2C2420',
+  },
+  filterChipText: {
+    fontSize: 13,
+    color: '#2C2420',
+    fontFamily: 'DMSans_400Regular',
+  },
+  filterChipTextActive: {
+    color: '#F5F0E8',
+    fontFamily: 'DMSans_500Medium',
   },
   genieText: {
     fontSize: 12,

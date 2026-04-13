@@ -224,7 +224,7 @@ export default function HomeScreen() {
             <View key={cat.id}>
               <TouchableOpacity
                 style={styles.categoryRow}
-                onPress={() => router.push(`/filter?category=${cat.id}` as any)}
+                onPress={() => router.push(`/swipe?category=${cat.id}` as any)}
                 activeOpacity={0.75}
               >
                 <View style={styles.categoryIconBox}>
