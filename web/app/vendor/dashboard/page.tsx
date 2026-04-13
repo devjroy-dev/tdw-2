@@ -1555,6 +1555,9 @@ export default function VendorDashboard() {
                         Rs.{(con.total_amount || 0).toLocaleString('en-IN')}
                       </div>
                       <span className="badge-gold">Issued</span>
+                      <button onClick={() => setConfirmDelete({ type: 'contract', id: con.id, name: `Contract — ${con.client_name}` })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '4px' }} title="Delete">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -1858,7 +1861,7 @@ export default function VendorDashboard() {
                       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--red)' }}>
                         −Rs.{(exp.amount || 0).toLocaleString('en-IN')}
                       </span>
-                      <button onClick={() => handleDeleteExpense(exp.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                      <button onClick={() => setConfirmDelete({ type: 'expense', id: exp.id, name: exp.description })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                         <Trash2 size={14} color="var(--grey)" />
                       </button>
                     </div>
@@ -2178,7 +2181,7 @@ export default function VendorDashboard() {
                           <MessageCircle size={12} /> WhatsApp
                         </a>
                       )}
-                      <button onClick={() => handleRemoveTeamMember(member.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
+                      <button onClick={() => setConfirmDelete({ type: 'team', id: member.id, name: member.name })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
                         <Trash2 size={14} color="var(--grey)" />
                       </button>
                     </div>
