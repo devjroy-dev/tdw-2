@@ -1660,7 +1660,7 @@ export default function VendorDashboard() {
                 <CreditCard size={32} color="#E5E7EB" style={{ marginBottom: '16px' }} />
                 <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>No payment schedules yet</div>
                 <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>Break down your booking fee into instalments. Never chase payments manually again.</div>
-                <button onClick={() => setShowPayForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Add Payment Schedule</button>
+                <button onClick={() => setShowPaymentForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Add Payment Schedule</button>
               </div>
             ) : (
               paymentSchedules.map(schedule => (
@@ -1801,7 +1801,7 @@ export default function VendorDashboard() {
                   <MinusCircle size={32} color="#E5E7EB" style={{ marginBottom: '16px' }} />
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>No expenses recorded yet</div>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>Track every shoot cost, travel expense and equipment purchase. Know your real profit per booking.</div>
-                  <button onClick={() => setShowExpForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Log Expense</button>
+                  <button onClick={() => setShowExpenseForm(true)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', background: 'var(--dark)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer' }}>Log Expense</button>
                 </div>
               ) : (
                 expenses.map((exp, i) => (
