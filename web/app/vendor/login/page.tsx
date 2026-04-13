@@ -93,19 +93,19 @@ export default function VendorLoginPage() {
             <input
               type="text"
               maxLength={6}
-              placeholder="Enter 6-digit code"
+              placeholder="000000"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
               onKeyDown={(e) => e.key === 'Enter' && handleCodeLogin()}
               style={{
                 width: '100%',
-                padding: '18px 20px',
-                fontSize: '28px',
+                padding: '14px 20px',
+                fontSize: '22px',
                 fontFamily: 'Playfair Display, serif',
-                letterSpacing: '12px',
+                letterSpacing: '8px',
                 textAlign: 'center',
-                border: '2px solid #C9A84C',
-                borderRadius: '12px',
+                border: '1px solid #C9A84C',
+                borderRadius: '10px',
                 backgroundColor: '#FFF8EC',
                 color: '#2C2420',
                 outline: 'none',
