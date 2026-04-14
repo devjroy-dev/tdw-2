@@ -732,6 +732,9 @@ export default function VendorDashboardScreen() {
   const [referralStats, setReferralStats] = useState<any>(null);
   const [showDeluxeSuite, setShowDeluxeSuite] = useState(false);
 
+  // WhatsApp broadcast state
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+
   // Prestige Deluxe Suite data
   const [dsData, setDsData] = useState({
     activeBookings: 0,
@@ -771,6 +774,8 @@ export default function VendorDashboardScreen() {
       if (activeTab === 'Tax') { loadTDS(); }
       if (activeTab === 'Team') { loadTeamMembers(); }
       if (activeTab === 'Referral') { loadReferralStats(); }
+      if (activeTab === 'WhatsApp') { loadClients(); }
+      if (activeTab === 'Analytics') { loadLeads(); loadBookings(); loadInvoices(); loadExpenses(); }
     }
   }, [vendorSession, activeTab]);
 
@@ -1903,6 +1908,160 @@ export default function VendorDashboardScreen() {
                     ))}
                   </View>
                 )}
+              </View>
+            )}
+
+
+            {/* ── WHATSAPP BROADCAST (Signature+) ── */}
+            {activeTab === 'WhatsApp' && (
+              <View style={styles.tabPane}>
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#EDE8E0', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#25D36615', justifyContent: 'center', alignItems: 'center' }}>
+                      <Feather name="message-circle" size={16} color="#25D366" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular' }}>Compose Message</Text>
+                      <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Write once, send to all clients via WhatsApp</Text>
+                    </View>
+                  </View>
+                  <TextInput
+                    style={{ backgroundColor: '#FAF6F0', borderRadius: 10, borderWidth: 1, borderColor: '#EDE8E0', padding: 14, fontSize: 14, color: '#2C2420', fontFamily: 'DMSans_400Regular', minHeight: 100, textAlignVertical: 'top' }}
+                    placeholder="Type your message here..."
+                    placeholderTextColor="#B8ADA4"
+                    multiline
+                    value={broadcastMessage}
+                    onChangeText={setBroadcastMessage}
+                  />
+                </View>
+
+                <Text style={styles.sectionLabel}>QUICK TEMPLATES</Text>
+                {[
+                  { label: 'Seasonal Offer', icon: 'gift', msg: 'Exciting news! I am offering a special discount for upcoming wedding season bookings. Limited slots available. Reply to know more!' },
+                  { label: 'Portfolio Update', icon: 'image', msg: 'Hi! I have just updated my portfolio with my latest work. Would love for you to check it out on The Dream Wedding app!' },
+                  { label: 'Referral Request', icon: 'share-2', msg: 'Hi! If you know any couple planning their wedding, I would love a referral. They get a special rate through The Dream Wedding. Here is my link: https://thedreamwedding.in' },
+                  { label: 'Festival Greeting', icon: 'sun', msg: 'Wishing you and your family a very happy festival season! If you are planning any celebrations, I would love to be part of them.' },
+                  { label: 'Availability Alert', icon: 'calendar', msg: 'Quick update — I have a few dates opening up for the upcoming season. If you or anyone you know is looking, please reach out soon!' },
+                ].map((tmpl, idx) => (
+                  <TouchableOpacity key={idx} style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                    onPress={() => setBroadcastMessage(tmpl.msg)}>
+                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FFF8EC', borderWidth: 1, borderColor: '#E8D9B5', justifyContent: 'center', alignItems: 'center' }}>
+                      <Feather name={tmpl.icon as any} size={14} color="#C9A84C" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_500Medium' }}>{tmpl.label}</Text>
+                    </View>
+                    <Text style={{ fontSize: 11, color: '#C9A84C', fontFamily: 'DMSans_400Regular' }}>Use</Text>
+                  </TouchableOpacity>
+                ))}
+
+                {broadcastMessage.length > 0 && (
+                  <>
+                    <Text style={styles.sectionLabel}>SEND TO CLIENTS</Text>
+                    {clients.length === 0 ? (
+                      <View style={styles.emptyCard}><Feather name="users" size={24} color="#EDE8E0" /><Text style={styles.emptyTitle}>No clients yet</Text><Text style={styles.emptySub}>Add clients first, then broadcast</Text></View>
+                    ) : clients.map((client: any) => (
+                      <TouchableOpacity key={client.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                        onPress={() => { const url = 'whatsapp://send?phone=91' + client.phone + '&text=' + encodeURIComponent(broadcastMessage); Linking.openURL(url); }}>
+                        <View style={{ gap: 2 }}>
+                          <Text style={{ fontSize: 14, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular' }}>{client.name}</Text>
+                          <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{client.phone}</Text>
+                        </View>
+                        <View style={{ backgroundColor: '#25D366', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                          <Text style={{ fontSize: 11, color: '#FFFFFF', fontFamily: 'DMSans_500Medium' }}>Send</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* ── ANALYTICS (Signature+) ── */}
+            {activeTab === 'Analytics' && (
+              <View style={styles.tabPane}>
+                {/* Revenue Overview */}
+                <View style={{ backgroundColor: '#2C2420', borderRadius: 14, padding: 18, gap: 14 }}>
+                  <Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_500Medium', letterSpacing: 1.5 }}>REVENUE OVERVIEW</Text>
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 22, color: '#C9A84C', fontFamily: 'PlayfairDisplay_400Regular' }}>
+                        {invoices.length > 0 ? '₹' + Math.round(invoices.reduce((s: number, i: any) => s + (i.amount || 0), 0) / 100000 * 10) / 10 + 'L' : '₹0'}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Total Revenue</Text>
+                    </View>
+                    <View style={{ width: 1, backgroundColor: '#3C3430', height: 32 }} />
+                    <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 22, color: '#F5F0E8', fontFamily: 'PlayfairDisplay_400Regular' }}>{invoices.length}</Text>
+                      <Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Invoices</Text>
+                    </View>
+                    <View style={{ width: 1, backgroundColor: '#3C3430', height: 32 }} />
+                    <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 22, color: '#F5F0E8', fontFamily: 'PlayfairDisplay_400Regular' }}>{clients.length}</Text>
+                      <Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Clients</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Booking Pipeline */}
+                <Text style={styles.sectionLabel}>BOOKING PIPELINE</Text>
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#EDE8E0', gap: 12 }}>
+                  {[
+                    { label: 'New Enquiries', count: leads.filter((l: any) => l.stage === 'New Inquiry').length, color: '#C9A84C' },
+                    { label: 'Quoted', count: leads.filter((l: any) => l.stage === 'Quoted').length, color: '#8C7B6E' },
+                    { label: 'Confirmed', count: bookings.filter((b: any) => b.status === 'confirmed').length, color: '#4CAF50' },
+                    { label: 'Completed', count: leads.filter((l: any) => l.stage === 'Completed').length, color: '#2C2420' },
+                  ].map((stage, idx) => (
+                    <View key={idx} style={{ gap: 6 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{stage.label}</Text>
+                        <Text style={{ fontSize: 15, color: stage.color, fontFamily: 'PlayfairDisplay_400Regular' }}>{stage.count}</Text>
+                      </View>
+                      <View style={{ height: 4, backgroundColor: '#F5F0E8', borderRadius: 2 }}>
+                        <View style={{ height: 4, backgroundColor: stage.color, borderRadius: 2, width: (stage.count > 0 ? Math.min(100, stage.count * 20) + '%' : '0%') as any, opacity: 0.7 }} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Expense Breakdown */}
+                <Text style={styles.sectionLabel}>EXPENSE BREAKDOWN</Text>
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#EDE8E0', gap: 10 }}>
+                  {expenses.length === 0 ? (
+                    <Text style={{ fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>No expenses recorded yet</Text>
+                  ) : (
+                    (() => {
+                      const cats: Record<string, number> = {};
+                      expenses.forEach((e: any) => { cats[e.category || 'Other'] = (cats[e.category || 'Other'] || 0) + (e.amount || 0); });
+                      const total = Object.values(cats).reduce((a, b) => a + b, 0);
+                      return Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([cat, amt], idx) => (
+                        <View key={idx} style={{ gap: 4 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                            <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{cat}</Text>
+                            <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_500Medium' }}>{'₹'}{amt.toLocaleString('en-IN')}</Text>
+                          </View>
+                          <View style={{ height: 4, backgroundColor: '#F5F0E8', borderRadius: 2 }}>
+                            <View style={{ height: 4, backgroundColor: '#C9A84C', borderRadius: 2, width: (total > 0 ? Math.round(amt / total * 100) + '%' : '0%') as any, opacity: 0.6 }} />
+                          </View>
+                        </View>
+                      ));
+                    })()
+                  )}
+                </View>
+
+                {/* Quick Stats */}
+                <Text style={styles.sectionLabel}>PERFORMANCE</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  {[
+                    { n: invoices.filter((i: any) => i.status === 'paid').length, l: 'Paid', t: invoices.length > 0 ? Math.round(invoices.filter((i: any) => i.status === 'paid').length / invoices.length * 100) + '%' : '0%' },
+                    { n: bookings.filter((b: any) => b.status === 'confirmed').length, l: 'Confirmed', t: bookings.length > 0 ? Math.round(bookings.filter((b: any) => b.status === 'confirmed').length / bookings.length * 100) + '%' : '0%' },
+                  ].map((s, i) => (
+                    <View key={i} style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#EDE8E0' }}>
+                      <Text style={{ fontSize: 24, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular' }}>{s.t}</Text>
+                      <Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{s.l} Rate</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
 

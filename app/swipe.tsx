@@ -63,9 +63,14 @@ export default function SwipeScreen() {
   const heartScale = useRef(new Animated.Value(0)).current;
   const shimmerOpacity = useRef(new Animated.Value(0)).current;
 
-  // Blind mode
-  const [blindMode, setBlindMode] = useState(false);
+  // Blind mode — default ON (token system)
+  const [blindMode, setBlindMode] = useState(true);
   const [revealName, setRevealName] = useState<string | null>(null);
+
+  // Token system
+  const [tokenBalance, setTokenBalance] = useState(3); // 3 free tokens to start
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [pendingRevealVendor, setPendingRevealVendor] = useState<any>(null);
 
   // Swipe position — useNativeDriver: false required for x/y interpolation
   const position = useRef(new Animated.ValueXY()).current;
@@ -86,6 +91,9 @@ export default function SwipeScreen() {
         const parsed = JSON.parse(session);
         setUserId(parsed.userId || parsed.uid || null);
         if (parsed.budget) setUserBudget(parsed.budget);
+        // Load token balance
+        const storedTokens = await AsyncStorage.getItem('tdw_token_balance');
+        if (storedTokens !== null) setTokenBalance(parseInt(storedTokens));
         const sCity = parsed.city || parsed.wedding_city || '';
         const sBudget = parsed.budget ? String(parsed.budget) : '';
         setSessionCity(sCity);
@@ -260,13 +268,13 @@ export default function SwipeScreen() {
       }
     }
 
-    // Blind mode reveal
+    // Token system — blind mode reveal costs 1 token
     if (blindMode) {
-      setRevealName(vendor.name);
-      fireToast(`You loved their work ✦`);
-      setTimeout(() => setRevealName(null), 3000);
+      setPendingRevealVendor(vendor);
+      setShowTokenModal(true);
+      fireToast('Saved to Moodboard');
     } else {
-      fireToast('Saved to Moodboard ✦');
+      fireToast('Saved to Moodboard');
     }
   };
 
@@ -651,6 +659,60 @@ export default function SwipeScreen() {
 
       </View>
 
+
+      {/* Token Unlock Modal */}
+      <Modal visible={showTokenModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <View style={{ backgroundColor: '#FAF6F0', borderRadius: 20, padding: 28, width: '100%', maxWidth: 340, alignItems: 'center', gap: 16 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#2C2420', justifyContent: 'center', alignItems: 'center' }}>
+              <Feather name="eye" size={22} color="#C9A84C" />
+            </View>
+            <Text style={{ fontSize: 20, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular', textAlign: 'center' }}>Reveal this vendor?</Text>
+            <Text style={{ fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_300Light', textAlign: 'center', lineHeight: 20 }}>
+              Use 1 token to see their name, price, and full profile
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF8EC', borderRadius: 50, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: '#E8D9B5' }}>
+              <Feather name="zap" size={12} color="#C9A84C" />
+              <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_500Medium' }}>{tokenBalance} token{tokenBalance !== 1 ? 's' : ''} remaining</Text>
+            </View>
+            {tokenBalance > 0 ? (
+              <TouchableOpacity
+                style={{ backgroundColor: '#C9A84C', borderRadius: 12, paddingVertical: 14, width: '100%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                onPress={async () => {
+                  const newBalance = tokenBalance - 1;
+                  setTokenBalance(newBalance);
+                  await AsyncStorage.setItem('tdw_token_balance', String(newBalance));
+                  if (pendingRevealVendor) {
+                    setRevealName(pendingRevealVendor.name);
+                    setTimeout(() => setRevealName(null), 4000);
+                  }
+                  setShowTokenModal(false);
+                  setPendingRevealVendor(null);
+                }}
+              >
+                <Feather name="unlock" size={14} color="#2C2420" />
+                <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_500Medium', letterSpacing: 1 }}>UNLOCK (1 TOKEN)</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={{ backgroundColor: '#2C2420', borderRadius: 12, paddingVertical: 14, width: '100%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                onPress={() => {
+                  setShowTokenModal(false);
+                  setPendingRevealVendor(null);
+                  Alert.alert('Get More Tokens', 'Token packs coming soon!\n\n5 tokens — Rs.299\n12 tokens — Rs.599\n25 tokens — Rs.999');
+                }}
+              >
+                <Feather name="shopping-bag" size={14} color="#C9A84C" />
+                <Text style={{ fontSize: 13, color: '#C9A84C', fontFamily: 'DMSans_500Medium', letterSpacing: 1 }}>GET MORE TOKENS</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => { setShowTokenModal(false); setPendingRevealVendor(null); }}>
+              <Text style={{ fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Skip for now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Filter Modal */}
       <Modal visible={showFilterModal} transparent animationType="slide">
         <View style={styles.filterModalOverlay}>
@@ -713,10 +775,7 @@ export default function SwipeScreen() {
       <View style={styles.genieBar}>
         <Feather name="zap" size={11} color="#C9A84C" />
         <Text style={styles.genieText}>
-          {userBudget
-            ? `Genie · ${savedCount} saved · Budget ₹${formatPrice(userBudget)}`
-            : `Genie · ${savedCount} vendor${savedCount !== 1 ? 's' : ''} saved`
-          }
+          {`${tokenBalance} token${tokenBalance !== 1 ? 's' : ''} · ${savedCount} saved`}
         </Text>
       </View>
 
