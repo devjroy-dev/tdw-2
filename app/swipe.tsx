@@ -540,7 +540,7 @@ export default function SwipeScreen() {
         >
           <Image
             source={{ uri: (() => {
-              const heroes = vendor.swipe_heroes?.length > 0 ? vendor.swipe_heroes : vendor.portfolio_images;
+              const heroes = vendor.featured_photos?.length > 0 ? vendor.featured_photos : vendor.portfolio_images;
               if (!heroes || heroes.length === 0) return '';
               const seed = vendor.id ? vendor.id.charCodeAt(0) + currentIndex : currentIndex;
               return heroes[seed % heroes.length];
@@ -728,7 +728,7 @@ export default function SwipeScreen() {
                 onPress={() => {
                   setShowTokenModal(false);
                   setPendingRevealVendor(null);
-                  Alert.alert('Get More Tokens', 'Token packs coming soon!\n\n5 tokens — Rs.299\n12 tokens — Rs.599\n25 tokens — Rs.999');
+                  Alert.alert('Get More Tokens', 'Token packs coming soon!\n\n5 tokens — Rs.249\n15 tokens — Rs.499\n30 tokens — Rs.799');
                 }}
               >
                 <Feather name="shopping-bag" size={14} color="#C9A84C" />

@@ -20,6 +20,7 @@ import { blockDate, getBenchmark, getBlockedDates, getInvoices, getLeads, getVen
 import { uploadImage } from '../services/cloudinary';
 import { registerForPushNotifications } from '../services/notifications';
 import { generateInvoiceNumber, generateInvoicePDF, generateContractPDF } from '../services/invoice';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { VendorDashSkeleton, ListSkeleton } from '../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
@@ -644,7 +645,7 @@ export default function VendorDashboardScreen() {
   const [invoiceTDSApplicable, setInvoiceTDSApplicable] = useState(false);
   const [invoiceTDSDeductedByClient, setInvoiceTDSDeductedByClient] = useState(false);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
-  const [swipeHeroes, setSwipeHeroes] = useState<string[]>([]);
+  const [featuredPhotos, setFeaturedPhotos] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Clients state
@@ -733,6 +734,39 @@ export default function VendorDashboardScreen() {
   const [foundingBadge, setFoundingBadge] = useState(false);
   const [referralStats, setReferralStats] = useState<any>(null);
   const [showDeluxeSuite, setShowDeluxeSuite] = useState(false);
+
+  // Date picker states
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<string>('');
+  const [datePickerValue, setDatePickerValue] = useState(new Date());
+
+  const openDatePicker = (target: string, currentValue?: string) => {
+    setDatePickerTarget(target);
+    if (currentValue) {
+      const parsed = new Date(currentValue);
+      if (!isNaN(parsed.getTime())) setDatePickerValue(parsed);
+      else setDatePickerValue(new Date());
+    } else {
+      setDatePickerValue(new Date());
+    }
+    setShowDatePicker(true);
+  };
+
+  const handleDatePicked = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (!selectedDate || event.type === 'dismissed') return;
+    const formatted = selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (datePickerTarget === 'clientDate') setNewClientDate(formatted);
+    else if (datePickerTarget === 'promoExpiry') setNewPromoExpiry(formatted);
+    else if (datePickerTarget === 'blockDate') setNewBlockDate(formatted);
+    else if (datePickerTarget === 'contractDate') setContractEventDate(formatted);
+    else if (datePickerTarget.startsWith('instalment_')) {
+      const idx = parseInt(datePickerTarget.split('_')[1]);
+      const u = [...paymentInstalments];
+      u[idx] = { ...u[idx], due_date: formatted };
+      setPaymentInstalments(u);
+    }
+  };
 
   // WhatsApp broadcast state
   const [broadcastMessage, setBroadcastMessage] = useState('');
@@ -1174,17 +1208,17 @@ export default function VendorDashboardScreen() {
         setPortfolioImages(prev => [...prev, url]);
         // Ask if this should be a swipe hero
         Alert.alert(
-          'Swipe-Worthy?',
-          'Should this photo appear in the swipe deck? Mark your best work as swipe-worthy so couples see your strongest images first.',
+          'Featured?',
+          'Should this photo appear in the discover feed? Mark your best work as featured so couples see your strongest images first.',
           [
             { text: 'Portfolio Only', style: 'cancel' },
-            { text: 'Mark as Swipe-Worthy', onPress: () => {
-              setSwipeHeroes(prev => [...prev, url]);
+            { text: 'Mark as Featured', onPress: () => {
+              setFeaturedPhotos(prev => [...prev, url]);
               // Save to backend
               if (vendorSession?.vendorId) {
                 fetch(API + '/api/vendors/' + vendorSession.vendorId, {
                   method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ swipe_heroes: [...swipeHeroes, url] }),
+                  body: JSON.stringify({ featured_photos: [...featuredPhotos, url] }),
                 }).catch(() => {});
               }
             }},
@@ -1307,7 +1341,7 @@ export default function VendorDashboardScreen() {
             <Text style={styles.modalSubtitle}>Saved securely to your account</Text>
             <TextInput style={styles.modalInput} placeholder="Couple names (e.g. Priya & Rahul)" placeholderTextColor="#8C7B6E" value={newClientName} onChangeText={setNewClientName} />
             <TextInput style={styles.modalInput} placeholder="Phone number (10 digits)" placeholderTextColor="#8C7B6E" value={newClientPhone} onChangeText={setNewClientPhone} keyboardType="phone-pad" maxLength={10} />
-            <TextInput style={styles.modalInput} placeholder="Wedding date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={newClientDate} onChangeText={setNewClientDate} />
+            <TouchableOpacity style={styles.modalInput} onPress={() => openDatePicker('clientDate', newClientDate)}><Text style={{ fontSize: 14, color: newClientDate ? '#2C2420' : '#8C7B6E', fontFamily: 'DMSans_400Regular' }}>{newClientDate || 'Wedding date'}</Text></TouchableOpacity>
             <TextInput style={styles.modalInput} placeholder="Email (optional)" placeholderTextColor="#8C7B6E" value={newClientEmail} onChangeText={setNewClientEmail} keyboardType="email-address" autoCapitalize="none" />
             <TextInput style={styles.modalInput} placeholder="Wedding city (optional)" placeholderTextColor="#8C7B6E" value={newClientCity} onChangeText={setNewClientCity} />
             <TextInput style={styles.modalInput} placeholder="Venue (optional)" placeholderTextColor="#8C7B6E" value={newClientVenue} onChangeText={setNewClientVenue} />
@@ -1375,7 +1409,7 @@ export default function VendorDashboardScreen() {
             <Text style={styles.modalTitle}>Create Promo</Text>
             <Text style={styles.modalSubtitle}>Couples in your city will be notified instantly</Text>
             <TextInput style={styles.modalInput} placeholder="Promo title (e.g. 15% Off December Bookings)" placeholderTextColor="#8C7B6E" value={newPromoTitle} onChangeText={setNewPromoTitle} />
-            <TextInput style={styles.modalInput} placeholder="Expires on (e.g. Dec 31, 2025)" placeholderTextColor="#8C7B6E" value={newPromoExpiry} onChangeText={setNewPromoExpiry} />
+            <TouchableOpacity style={styles.modalInput} onPress={() => openDatePicker('promoExpiry', newPromoExpiry)}><Text style={{ fontSize: 14, color: newPromoExpiry ? '#2C2420' : '#8C7B6E', fontFamily: 'DMSans_400Regular' }}>{newPromoExpiry || 'Expires on'}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.modalBtn} onPress={handleCreatePromo}><Text style={styles.modalBtnText}>GO LIVE</Text></TouchableOpacity>
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowPromoForm(false)}><Text style={styles.modalCancelText}>Cancel</Text></TouchableOpacity>
           </View>
@@ -1678,7 +1712,7 @@ export default function VendorDashboardScreen() {
                 {showDateInput ? (
                   <View style={styles.listCard}>
                     <View style={{ padding: 16, gap: 10 }}>
-                      <TextInput style={styles.fieldInput} placeholder="Date (e.g. March 15, 2026)" placeholderTextColor="#8C7B6E" value={newBlockDate} onChangeText={setNewBlockDate} />
+                      <TouchableOpacity style={styles.fieldInput} onPress={() => openDatePicker('blockDate', newBlockDate)}><Text style={{ fontSize: 14, color: newBlockDate ? '#2C2420' : '#8C7B6E', fontFamily: 'DMSans_400Regular' }}>{newBlockDate || 'Select date'}</Text></TouchableOpacity>
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         <TouchableOpacity style={[styles.unblockBtn, { flex: 1, alignItems: 'center' }]} onPress={() => setShowDateInput(false)}><Text style={styles.unblockBtnText}>Cancel</Text></TouchableOpacity>
                         <TouchableOpacity style={[styles.goldBtn, { flex: 2 }]} onPress={handleBlockDate}><Text style={styles.goldBtnText}>BLOCK DATE</Text></TouchableOpacity>
@@ -1778,7 +1812,7 @@ export default function VendorDashboardScreen() {
                       <View key={idx} style={{ flexDirection: 'row', gap: 8 }}>
                         <Text style={{ width: 60, fontSize: 12, color: '#8C7B6E', fontFamily: 'DMSans_400Regular', alignSelf: 'center' }}>{inst.label}</Text>
                         <TextInput style={[styles.fieldInput, { flex: 1 }]} placeholder="Amount" placeholderTextColor="#8C7B6E" value={inst.amount} onChangeText={(v) => { const u = [...paymentInstalments]; u[idx] = { ...u[idx], amount: v }; setPaymentInstalments(u); }} keyboardType="numeric" />
-                        <TextInput style={[styles.fieldInput, { flex: 1 }]} placeholder="Due date" placeholderTextColor="#8C7B6E" value={inst.due_date} onChangeText={(v) => { const u = [...paymentInstalments]; u[idx] = { ...u[idx], due_date: v }; setPaymentInstalments(u); }} />
+                        <TouchableOpacity style={[styles.fieldInput, { flex: 1 }]} onPress={() => openDatePicker('instalment_' + idx, inst.due_date)}><Text style={{ fontSize: 14, color: inst.due_date ? '#2C2420' : '#8C7B6E', fontFamily: 'DMSans_400Regular' }}>{inst.due_date || 'Due date'}</Text></TouchableOpacity>
                       </View>
                     ))}
                     <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -1816,7 +1850,7 @@ export default function VendorDashboardScreen() {
                   <View style={[styles.listCard, { padding: 16, gap: 10 }]}>
                     <TextInput style={styles.fieldInput} placeholder="Client name" placeholderTextColor="#8C7B6E" value={contractClient} onChangeText={setContractClient} />
                     <TextInput style={styles.fieldInput} placeholder="Phone (optional)" placeholderTextColor="#8C7B6E" value={contractPhone} onChangeText={setContractPhone} keyboardType="phone-pad" />
-                    <TextInput style={styles.fieldInput} placeholder="Event date" placeholderTextColor="#8C7B6E" value={contractEventDate} onChangeText={setContractEventDate} />
+                    <TouchableOpacity style={styles.fieldInput} onPress={() => openDatePicker('contractDate', contractEventDate)}><Text style={{ fontSize: 14, color: contractEventDate ? '#2C2420' : '#8C7B6E', fontFamily: 'DMSans_400Regular' }}>{contractEventDate || 'Event date'}</Text></TouchableOpacity>
                     <TextInput style={styles.fieldInput} placeholder="Venue (optional)" placeholderTextColor="#8C7B6E" value={contractVenue} onChangeText={setContractVenue} />
                     <TextInput style={styles.fieldInput} placeholder="Services description" placeholderTextColor="#8C7B6E" value={contractServices} onChangeText={setContractServices} multiline />
                     <TextInput style={styles.fieldInput} placeholder="Total amount (Rs.)" placeholderTextColor="#8C7B6E" value={contractTotal} onChangeText={setContractTotal} keyboardType="numeric" />
@@ -2122,6 +2156,17 @@ export default function VendorDashboardScreen() {
             <View style={{ height: 40 }} />
           </ScrollView>
         </>
+      )}
+
+      {/* ── Date Picker ── */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={datePickerValue}
+          mode="date"
+          display="spinner"
+          onChange={handleDatePicked}
+          minimumDate={new Date()}
+        />
       )}
 
       {/* ── Bottom Nav ── */}
