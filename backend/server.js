@@ -1497,6 +1497,42 @@ app.post('/api/credentials/verify-phone', async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
+app.put('/api/subscriptions/:vendorId/tier', async (req, res) => {
+  try {
+    const { tier } = req.body;
+    if (!tier || !['essential', 'signature', 'prestige'].includes(tier)) {
+      return res.status(400).json({ success: false, error: 'Invalid tier' });
+    }
+    // Check if subscription exists
+    const { data: existing } = await supabase.from('vendor_subscriptions').select('id').eq('vendor_id', req.params.vendorId).single();
+    if (existing) {
+      const { data, error } = await supabase.from('vendor_subscriptions').update({ tier, updated_at: new Date().toISOString() }).eq('vendor_id', req.params.vendorId).select().single();
+      if (error) throw error;
+      res.json({ success: true, data });
+    } else {
+      const { data, error } = await supabase.from('vendor_subscriptions').insert([{ vendor_id: req.params.vendorId, tier, status: 'active' }]).select().single();
+      if (error) throw error;
+      res.json({ success: true, data });
+    }
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/subscriptions/:vendorId/founding', async (req, res) => {
+  try {
+    const { founding_badge } = req.body;
+    const { data: existing } = await supabase.from('vendor_subscriptions').select('id').eq('vendor_id', req.params.vendorId).single();
+    if (existing) {
+      const { data, error } = await supabase.from('vendor_subscriptions').update({ founding_badge: !!founding_badge, updated_at: new Date().toISOString() }).eq('vendor_id', req.params.vendorId).select().single();
+      if (error) throw error;
+      res.json({ success: true, data });
+    } else {
+      const { data, error } = await supabase.from('vendor_subscriptions').insert([{ vendor_id: req.params.vendorId, tier: 'essential', status: 'active', founding_badge: !!founding_badge }]).select().single();
+      if (error) throw error;
+      res.json({ success: true, data });
+    }
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
 app.get('/api/credentials/:vendorId', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vendor_credentials').select('username, phone_verified, phone_number')

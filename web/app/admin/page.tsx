@@ -130,6 +130,18 @@ export default function AdminPage() {
     setCopied(code); setTimeout(() => setCopied(''), 2000);
   };
 
+  const updateTier = async (vendorId: string, tier: string) => {
+    try {
+      await fetch(`${API}/api/subscriptions/${vendorId}/tier`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tier }) });
+      alert(`Tier updated to ${tier}`);
+    } catch(e) { alert('Failed to update tier'); }
+  };
+  const toggleFoundingBadge = async (vendorId: string, current: boolean) => {
+    try {
+      await fetch(`${API}/api/subscriptions/${vendorId}/founding`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ founding_badge: !current }) });
+      alert(current ? 'Founding badge removed' : 'Founding badge granted');
+    } catch(e) { alert('Failed to update badge'); }
+  };
   const updateVendor = async (id: string, payload: any) => {
     await fetch(`${API}/api/vendors/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -383,7 +395,7 @@ export default function AdminPage() {
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1100 }}>
-                <thead><tr>{['Vendor', 'Category', 'City', 'Rating', 'Plan', 'Status', 'Verified', 'Featured', 'Actions'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Vendor', 'Category', 'City', 'Rating', 'Tier', 'Founding', 'Status', 'Verified', 'Featured', 'Actions'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {filteredVendors.map(v => (
                     <tr key={v.id} style={{ opacity: v.subscription_active ? 1 : 0.55 }}>
@@ -392,9 +404,12 @@ export default function AdminPage() {
                       <td style={{ ...s.td, color: '#8C7B6E' }}>{v.city}</td>
                       <td style={{ ...s.td, color: '#C9A84C' }}>★ {v.rating || 0}</td>
                       <td style={s.td}>
-                        <select value={v.plan || 'basic'} onChange={e => updateVendor(v.id, { plan: e.target.value })} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #E8E0D5', cursor: 'pointer', background: '#fff' }}>
-                          {PLANS.map(p => <option key={p} value={p}>{p}</option>)}
+                        <select value={'essential'} onChange={e => updateTier(v.id, e.target.value)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #E8E0D5', cursor: 'pointer', background: '#fff' }}>
+                          <option value="essential">Essential</option><option value="signature">Signature</option><option value="prestige">Prestige</option>
                         </select>
+                      </td>
+                      <td style={s.td}>
+                        <button onClick={() => toggleFoundingBadge(v.id, false)} style={s.btnSm('#FFF8EC', '#C9A84C', '#E8D9B5')}>Grant</button>
                       </td>
                       <td style={s.td}>
                         <button onClick={() => updateVendor(v.id, { subscription_active: !v.subscription_active })} style={s.btnSm(v.subscription_active ? '#4CAF5015' : '#E5737315', v.subscription_active ? '#4CAF50' : '#E57373', 'transparent')}>
