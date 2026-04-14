@@ -1429,185 +1429,145 @@ export default function VendorDashboard() {
               </div>
             </div>
           )}
-          <div style={{
-            padding: '8px 24px 6px',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '9px',
-            fontWeight: 500,
-            color: 'rgba(140,123,110,0.6)',
-            letterSpacing: '1.5px',
-            textTransform: 'uppercase',
-          }}>
-            Active Tools
-          </div>
-          {ACTIVE_TABS.filter(tab => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase())).map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            const locked = !hasTabAccess(vendorTier, tab.id);
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (locked) {
-                    const requiredTier = TAB_TIER[tab.id] || 'signature';
-                    setDeluxeSuiteTab({ ...tab, desc: `This feature is available on the ${requiredTier.charAt(0).toUpperCase() + requiredTier.slice(1)} plan. Upgrade to unlock.` });
-                  } else {
-                    setActiveTab(tab.id);
-                  }
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  padding: '11px 24px',
-                  background: isActive ? 'rgba(201,168,76,0.1)' : 'transparent',
-                  borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
-                  border: 'none',
-                  borderRadius: 0,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  opacity: locked ? 0.45 : 1,
-                }}
-              >
-                <Icon size={14} color={isActive ? 'var(--gold)' : locked ? 'var(--grey)' : 'var(--grey)'} />
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 500 : 300,
-                  color: isActive ? 'var(--gold)' : 'var(--grey)',
-                  letterSpacing: '0.2px',
-                  flex: 1,
-                }}>
-                  {!sidebarCollapsed && tab.label}
-                </span>
-                {locked && !sidebarCollapsed && <Lock size={10} color="var(--grey)" />}
-              </button>
-            );
-          })}
+          {/* ── TIER-AWARE SIDEBAR ── */}
+          {(() => {
+            const essentialTabs = [
+              { id: 'overview', label: 'Overview', icon: Grid },
+              { id: 'clients', label: 'Clients', icon: Users },
+              { id: 'inquiries', label: 'Inquiries', icon: MessageCircle },
+              { id: 'calendar', label: 'Calendar', icon: Calendar },
+              { id: 'availability', label: 'Availability', icon: Calendar },
+              { id: 'templates', label: 'Message Templates', icon: MessageCircle },
+              { id: 'invoices', label: 'Invoices', icon: FileText },
+              { id: 'contracts', label: 'Contracts', icon: FileText },
+              { id: 'runsheet', label: 'Day-of Runsheet', icon: List },
+              { id: 'checklist', label: 'Pre-Wedding Checklist', icon: CheckSquare },
+              { id: 'equipment', label: 'Equipment Checklist', icon: Tool },
+              { id: 'packages', label: 'Package Builder', icon: Package },
+            ];
+            const signatureSections = [
+              { title: 'Client Management', tabs: [
+                { id: 'overview', label: 'Overview', icon: Grid },
+                { id: 'clients', label: 'Clients', icon: Users },
+                { id: 'inquiries', label: 'Inquiries', icon: MessageCircle },
+                { id: 'portal', label: 'Client Portal', icon: Share2 },
+                { id: 'timeline', label: 'Client Timeline', icon: Activity },
+                { id: 'templates', label: 'Message Templates', icon: MessageCircle },
+              ]},
+              { title: 'Calendar & Planning', tabs: [
+                { id: 'calendar', label: 'Calendar', icon: Calendar },
+                { id: 'availability', label: 'Availability', icon: Calendar },
+                { id: 'runsheet', label: 'Day-of Runsheet', icon: List },
+                { id: 'checklist', label: 'Pre-Wedding Checklist', icon: CheckSquare },
+                { id: 'equipment', label: 'Equipment Checklist', icon: Tool },
+              ]},
+              { title: 'Finance', tabs: [
+                { id: 'invoices', label: 'Invoices', icon: FileText },
+                { id: 'payments', label: 'Payment Schedules', icon: CreditCard },
+                { id: 'outstanding', label: 'Outstanding Payments', icon: DollarSign },
+                { id: 'expenses', label: 'Expense Tracker', icon: MinusCircle },
+                { id: 'profit', label: 'Profit per Booking', icon: Target },
+                { id: 'cash', label: 'Cash Payments', icon: DollarSign },
+                { id: 'tax', label: 'Tax & Finance', icon: Percent },
+                { id: 'advancetax', label: 'Advance Tax', icon: BookOpen },
+                { id: 'forecast', label: 'Revenue Forecast', icon: TrendingUp },
+                { id: 'paymentshield', label: 'Payment Shield', icon: Shield },
+              ]},
+              { title: 'Growth', tabs: [
+                { id: 'referral', label: 'Referral Tracker', icon: Gift },
+                { id: 'whatsapp', label: 'WhatsApp Broadcast', icon: Send },
+                { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+                { id: 'csvimport', label: 'Import / Export', icon: Upload },
+              ]},
+              { title: 'Team & Packages', tabs: [
+                { id: 'team', label: 'My Team', icon: Users },
+                { id: 'packages', label: 'Package Builder', icon: Package },
+                { id: 'delivery', label: 'Delivery Tracker', icon: Truck },
+                { id: 'contracts', label: 'Contracts', icon: FileText },
+              ]},
+            ];
+            const dsSection = { title: 'Deluxe Suite', tabs: DELUXE_SUITE_TABS.map(t => ({ id: t.id, label: t.label, icon: t.icon })) };
+            const accountSection = { title: 'Account', tabs: [{ id: 'settings', label: 'Settings', icon: Settings }] };
+            const comingSoonSection = { title: 'Coming Soon', tabs: COMING_SOON_TABS.map(t => ({ id: t.id, label: t.label, icon: t.icon, build: t.build })) };
 
-          {/* Coming soon tabs */}
-          <div style={{
-            padding: '16px 24px 6px',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '9px',
-            fontWeight: 500,
-            color: 'rgba(140,123,110,0.4)',
-            letterSpacing: '1.5px',
-            textTransform: 'uppercase',
-            marginTop: '8px',
-          }}>
-            Coming Soon
-          </div>
-          {COMING_SOON_TABS.filter(tab => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase())).map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setComingSoonTab(tab)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  padding: '10px 24px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderLeft: '2px solid transparent',
-                  borderRadius: 0,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  opacity: 0.4,
-                }}
-              >
-                <Icon size={13} color="var(--grey)" />
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  fontWeight: 300,
-                  color: 'var(--grey)',
-                  flex: 1,
-                }}>
-                  {!sidebarCollapsed && tab.label}
-                </span>
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '9px',
-                  color: tab.build === 'Build 2' ? 'var(--gold)' : 'var(--grey)',
-                  border: `1px solid ${tab.build === 'Build 2' ? 'rgba(201,168,76,0.4)' : 'rgba(140,123,110,0.3)'}`,
-                  borderRadius: '50px',
-                  padding: '2px 8px',
-                }}>
-                  {tab.build}
-                </span>
-              </button>
-            );
-          })}
-          {/* Deluxe Suite */}
-          <div style={{
-            marginTop: '12px',
-            borderTop: '1px solid rgba(201,168,76,0.15)',
-            paddingTop: '12px',
-          }}>
-            <div style={{
-              padding: '8px 24px 6px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}>
-              <Award size={9} color="#C9A84C" />
-              <span style={{
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '9px',
-                fontWeight: 500,
-                color: 'rgba(201,168,76,0.7)',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-              }}>
-                Deluxe Suite
-              </span>
-            </div>
-            {DELUXE_SUITE_TABS.filter(tab => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase())).map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              const dsLocked = vendorTier !== 'prestige';
+            // Build section rendering helper
+            const renderSection = (section: any, opts?: { locked?: boolean; gold?: boolean; collapsed?: boolean }) => {
+              const isOpen = openSections[section.title] !== false;
+              const filteredTabs = section.tabs.filter((tab: any) => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase()));
+              if (sidebarSearch && filteredTabs.length === 0) return null;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => dsLocked ? setDeluxeSuiteTab(tab) : setActiveTab(tab.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    width: '100%',
-                    padding: '10px 24px',
-                    background: isActive ? 'rgba(201,168,76,0.1)' : 'transparent',
-                    border: 'none',
-                    borderLeft: isActive ? '2px solid #C9A84C' : '2px solid transparent',
-                    borderRadius: 0,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <Icon size={13} color={isActive ? '#C9A84C' : 'rgba(201,168,76,0.4)'} />
-                  <span style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: isActive ? 500 : 300,
-                    color: isActive ? '#C9A84C' : 'rgba(201,168,76,0.5)',
-                    flex: 1,
+                <div key={section.title} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <button onClick={() => setOpenSections(prev => ({ ...prev, [section.title]: !isOpen }))} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+                    padding: '10px 24px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
                   }}>
-                    {!sidebarCollapsed && tab.label}
-                  </span>
-                  {!sidebarCollapsed && (
-                    dsLocked
-                      ? <Lock size={9} color="rgba(201,168,76,0.35)" />
-                      : <Award size={9} color={isActive ? '#C9A84C' : 'rgba(201,168,76,0.35)'} />
-                  )}
-                </button>
+                    {opts?.gold && <Award size={9} color="#C9A84C" />}
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500,
+                      letterSpacing: '1.5px', textTransform: 'uppercase', flex: 1,
+                      color: opts?.gold ? 'rgba(201,168,76,0.7)' : opts?.locked ? 'rgba(140,123,110,0.4)' : 'rgba(140,123,110,0.6)',
+                    }}>{section.title}</span>
+                    {opts?.locked && !sidebarCollapsed && <Lock size={8} color="rgba(140,123,110,0.3)" />}
+                    {!sidebarCollapsed && <ChevronDown size={10} color="rgba(140,123,110,0.3)" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />}
+                  </button>
+                  {isOpen && filteredTabs.map((tab: any) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    const tabLocked = opts?.locked || !hasTabAccess(vendorTier, tab.id);
+                    return (
+                      <button key={tab.id} onClick={() => {
+                        if (opts?.locked && opts.gold) setDeluxeSuiteTab(DELUXE_SUITE_TABS.find(t => t.id === tab.id) || tab);
+                        else if (tabLocked) {
+                          const req = TAB_TIER[tab.id] || 'signature';
+                          setDeluxeSuiteTab({ ...tab, desc: `This feature is available on the ${req.charAt(0).toUpperCase() + req.slice(1)} plan. Upgrade to unlock.` });
+                        } else setActiveTab(tab.id);
+                      }} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                        padding: '9px 24px 9px 36px', background: isActive ? 'rgba(201,168,76,0.1)' : 'transparent',
+                        borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
+                        border: 'none', borderRadius: 0, cursor: 'pointer', textAlign: 'left',
+                        opacity: tabLocked ? 0.4 : 1,
+                      }}>
+                        <Icon size={13} color={isActive ? (opts?.gold ? '#C9A84C' : 'var(--gold)') : opts?.gold ? 'rgba(201,168,76,0.4)' : 'var(--grey)'} />
+                        <span style={{
+                          fontFamily: 'Inter, sans-serif', fontSize: '12px',
+                          fontWeight: isActive ? 500 : 300, flex: 1,
+                          color: isActive ? (opts?.gold ? '#C9A84C' : 'var(--gold)') : opts?.gold ? 'rgba(201,168,76,0.5)' : 'var(--grey)',
+                        }}>{!sidebarCollapsed && tab.label}</span>
+                        {tabLocked && !sidebarCollapsed && <Lock size={9} color={opts?.gold ? 'rgba(201,168,76,0.35)' : 'rgba(140,123,110,0.3)'} />}
+                        {!tabLocked && opts?.gold && !sidebarCollapsed && <Award size={9} color={isActive ? '#C9A84C' : 'rgba(201,168,76,0.35)'} />}
+                      </button>
+                    );
+                  })}
+                </div>
               );
-            })}
-          </div>
+            };
+
+            // ESSENTIAL TIER SIDEBAR
+            if (vendorTier === 'essential') return (<>
+              {renderSection({ title: 'Essential Tools', tabs: essentialTabs })}
+              {renderSection({ title: 'Signature', tabs: [...signatureSections.flatMap(s => s.tabs.filter(t => !essentialTabs.find(e => e.id === t.id)))] }, { locked: true })}
+              {renderSection(dsSection, { locked: true, gold: true })}
+              {renderSection(accountSection)}
+              {comingSoonSection.tabs.length > 0 && renderSection(comingSoonSection, { locked: true })}
+            </>);
+
+            // SIGNATURE TIER SIDEBAR
+            if (vendorTier === 'signature') return (<>
+              {signatureSections.map(s => renderSection(s))}
+              {renderSection(dsSection, { locked: true, gold: true })}
+              {renderSection(accountSection)}
+              {comingSoonSection.tabs.length > 0 && renderSection(comingSoonSection, { locked: true })}
+            </>);
+
+            // PRESTIGE TIER SIDEBAR
+            return (<>
+              {renderSection(dsSection, { gold: true })}
+              {signatureSections.map(s => renderSection(s))}
+              {renderSection(accountSection)}
+              {comingSoonSection.tabs.length > 0 && renderSection(comingSoonSection, { locked: true })}
+            </>);
+          })()}
         </nav>
 
         {/* Logout */}
