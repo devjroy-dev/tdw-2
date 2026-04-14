@@ -3,8 +3,6 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display/index';
-import { DMSans_300Light, DMSans_400Regular, DMSans_500Medium } from '@expo-google-fonts/dm-sans';
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean; error: any}> {
   constructor(props: any) {
@@ -55,7 +53,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       ]);
 
       const inAuthGroup = AUTH_SCREENS.includes(segments[0] as string);
-      const isIndexScreen = segments[0] === 'index' as any || segments[0] === undefined;
+      const isIndexScreen = segments[0] === 'index' || segments[0] === undefined;
 
       if (vendorSession) {
         const parsed = JSON.parse(vendorSession);
@@ -99,22 +97,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_600SemiBold,
-    DMSans_300Light,
-    DMSans_400Regular,
-    DMSans_500Medium,
-  });
-
-  if (!fontsLoaded && !fontError) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F5F0E8', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color="#C9A84C" size="large" />
-      </View>
-    );
-  }
-
   return (
     <ErrorBoundary>
       <StatusBar style="dark" />

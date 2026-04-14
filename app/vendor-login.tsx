@@ -1,24 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert,
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
-let GoogleSignin: any = null;
-let statusCodes: any = {};
-try {
-  const gsi = require('@react-native-google-signin/google-signin');
-  GoogleSignin = gsi.GoogleSignin;
-  statusCodes = gsi.statusCodes;
-} catch (e) {
-  console.warn('Google Sign-In native module not available:', e);
-}
+import { PhoneAuthProvider, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../services/firebase';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
+
+GoogleSignin.configure({
+  webClientId: '707007171164-3uphuoa96s37ur6h76dl09854k8tqa16.apps.googleusercontent.com',
+  offlineAccess: true,
+});
 
 async function lookupVendor(firebaseUID: string) {
   try {
@@ -42,19 +39,6 @@ async function saveVendorLogin(firebaseUID: string, vendorId: string, email?: st
 export default function VendorLoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
-
-  useEffect(() => {
-    try {
-      if (GoogleSignin) {
-        GoogleSignin.configure({
-          webClientId: '707007171164-3uphuoa96s37ur6h76dl09854k8tqa16.apps.googleusercontent.com',
-          offlineAccess: true,
-        });
-      }
-    } catch (e) {
-      console.warn('GoogleSignin.configure failed:', e);
-    }
-  }, []);
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -107,40 +91,27 @@ export default function VendorLoginScreen() {
   const handleSendOTP = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        Alert.alert('Error', data.error || 'Could not send OTP.');
-        return;
-      }
-      setVerificationId(data.sessionInfo);
+      const provider = new PhoneAuthProvider(auth);
+      const vid = await provider.verifyPhoneNumber(`+91${phone}`, { type: 'recaptcha', verify: () => Promise.resolve('') } as any);
+      setVerificationId(vid);
       setOtpSent(true);
       Alert.alert('Code Sent', `Verification code sent to +91 ${phone}`);
     } catch (error: any) {
-      Alert.alert('Error', 'Could not send OTP. Please try again.');
+      const msg = error?.code === 'auth/invalid-phone-number' ? 'Please enter a valid 10-digit number.'
+        : error?.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.'
+        : 'Could not send OTP. Please try again.';
+      Alert.alert('Error', msg);
     } finally { setLoading(false); }
   };
 
   const handleVerify = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionInfo: verificationId, code: otp }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        Alert.alert('Error', data.error || 'Verification failed.');
-        return;
-      }
-      const vendor = await lookupVendor(data.localId);
-      await buildAndSaveSession(data.localId, {
-        phone: data.phoneNumber || `+91${phone}`,
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      const result = await signInWithCredential(auth, credential);
+      const vendor = await lookupVendor(result.user.uid);
+      await buildAndSaveSession(result.user.uid, {
+        phone: result.user.phoneNumber || `+91${phone}`,
       }, vendor);
     } catch (error: any) {
       Alert.alert('Error', 'Incorrect OTP. Please check and try again.');
