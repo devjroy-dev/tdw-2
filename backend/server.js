@@ -234,7 +234,7 @@ app.post('/api/bookings/check-expired', async (req, res) => {
       .from('bookings')
       .update({
         status: 'auto_refunded',
-        escrow_status: 'refunded_to_couple',
+        shield_status: 'refunded_to_couple',
         platform_fee_retained: true,
         auto_refunded_at: new Date().toISOString(),
       })
@@ -339,7 +339,7 @@ app.post('/api/bookings/:id/confirm', async (req, res) => {
       .update({
         status: 'confirmed',
         confirmed_at: new Date().toISOString(),
-        escrow_status: 'released_to_vendor',
+        shield_status: 'released_to_vendor',
       })
       .eq('id', id)
       .select()
@@ -382,7 +382,7 @@ app.post('/api/bookings/:id/confirm', async (req, res) => {
       read: false,
     }]);
 
-    res.json({ success: true, data, message: 'Booking confirmed. Escrow released to vendor.' });
+    res.json({ success: true, data, message: 'Booking confirmed. Payment Shield released to vendor.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -409,7 +409,7 @@ app.post('/api/bookings/:id/decline', async (req, res) => {
         status: 'declined',
         declined_at: new Date().toISOString(),
         decline_reason: reason || 'Vendor unavailable',
-        escrow_status: 'refunded_to_couple',
+        shield_status: 'refunded_to_couple',
         platform_fee_retained: true,
       })
       .eq('id', id)
@@ -457,7 +457,7 @@ app.post('/api/bookings/:id/cancel', async (req, res) => {
         status: 'cancelled_by_vendor',
         cancelled_at: new Date().toISOString(),
         cancel_reason: reason || 'Vendor cancelled',
-        escrow_status: 'refunded_to_couple',
+        shield_status: 'refunded_to_couple',
         platform_fee_retained: true,
       })
       .eq('id', id)

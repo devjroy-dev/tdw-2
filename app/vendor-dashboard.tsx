@@ -1067,7 +1067,7 @@ export default function VendorDashboardScreen() {
   };
 
   const handleConfirmBooking = async (bookingId: string) => {
-    Alert.alert('Confirm Booking', 'This will lock the date and release escrow payment to you.', [
+    Alert.alert('Confirm Booking', 'This will lock the date and activate Payment Shield release to you.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Confirm', onPress: async () => {
@@ -1078,7 +1078,7 @@ export default function VendorDashboardScreen() {
             });
             const data = await res.json();
             if (data.success) {
-              Alert.alert('Confirmed!', 'Payment released from escrow. TDS entry recorded automatically.');
+              Alert.alert('Confirmed!', 'Payment Shield released successfully. TDS entry recorded automatically.');
               loadBookings();
             } else Alert.alert('Error', data.error || 'Could not confirm.');
           } catch (e) { Alert.alert('Error', 'Network error.'); }
@@ -1525,7 +1525,7 @@ export default function VendorDashboardScreen() {
                       ? `₹${Math.round(pendingBookings.reduce((s, b) => s + (b.token_amount || 0), 0) / 100000 * 10) / 10}L`
                       : '₹0'}
                   </Text>
-                  <Text style={styles.revenueLabel}>In Escrow</Text>
+                  <Text style={styles.revenueLabel}>Payment Shield</Text>
                 </View>
                 <View style={styles.revenueDivider} />
                 <View style={styles.revenueItem}>
@@ -1701,8 +1701,8 @@ export default function VendorDashboardScreen() {
                         <Text style={styles.bookingMeta}>Token: ₹{booking.token_amount?.toLocaleString('en-IN')} · Protection: ₹999</Text>
                         <Text style={styles.bookingMeta}>Booked: {new Date(booking.created_at).toLocaleDateString('en-IN')}</Text>
                       </View>
-                      <View style={styles.escrowBadge}>
-                        <Text style={styles.escrowBadgeText}>In Escrow</Text>
+                      <View style={styles.shieldBadge}>
+                        <Text style={styles.shieldBadgeText}>Payment Shield</Text>
                       </View>
                     </View>
                     <View style={styles.bookingActions}>
@@ -2347,8 +2347,8 @@ const styles = StyleSheet.create({
   bookingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   bookingName: { fontSize: 15, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular' },
   bookingMeta: { fontSize: 12, color: '#8C7B6E', fontFamily: 'DMSans_300Light', marginTop: 3 },
-  escrowBadge: { backgroundColor: '#C9A84C20', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 },
-  escrowBadgeText: { fontSize: 11, color: '#C9A84C', fontFamily: 'DMSans_500Medium' },
+  shieldBadge: { backgroundColor: '#C9A84C20', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 },
+  shieldBadgeText: { fontSize: 11, color: '#C9A84C', fontFamily: 'DMSans_500Medium' },
   bookingActions: { flexDirection: 'row', gap: 10 },
   declineBtn: { flex: 1, borderWidth: 1, borderColor: '#E8E0D5', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
   declineBtnText: { fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_400Regular' },

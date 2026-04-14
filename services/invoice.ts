@@ -44,7 +44,7 @@ export const generateInvoicePDF = async (data: InvoiceData): Promise<void> => {
         .total-value { color: #2C2420; }
         .final .total-value { color: #C9A84C; }
         .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #E8E0D5; font-size: 11px; color: #8C7B6E; text-align: center; line-height: 1.8; }
-        .escrow-note { background: #2C2420; color: #C9A84C; padding: 16px 20px; border-radius: 8px; font-size: 12px; margin-top: 24px; text-align: center; letter-spacing: 0.5px; }
+        .shield-note { background: #2C2420; color: #C9A84C; padding: 16px 20px; border-radius: 8px; font-size: 12px; margin-top: 24px; text-align: center; letter-spacing: 0.5px; }
       </style>
     </head>
     <body>
@@ -107,8 +107,8 @@ export const generateInvoicePDF = async (data: InvoiceData): Promise<void> => {
         </div>
       </div>
 
-      <div class="escrow-note">
-        Token payment held securely in DreamWedding escrow · Released upon booking confirmation
+      <div class="shield-note">
+        Payment secured by TDW Payment Shield · Released upon vendor confirmation
       </div>
 
       <div class="footer">

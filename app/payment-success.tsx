@@ -24,7 +24,7 @@ export default function PaymentSuccessScreen() {
 
       <Text style={styles.successTitle}>Date Locked!</Text>
       <Text style={styles.successSubtitle}>
-        Your token of {formatAmount(displayToken)} is safely held in escrow.{'\n'}
+        Your token of {formatAmount(displayToken)} is secured by Payment Shield.{'\n'}
         {displayVendor} has 48 hours to confirm.
       </Text>
 
@@ -34,7 +34,7 @@ export default function PaymentSuccessScreen() {
           { key: 'Wedding Date', val: displayDate },
           { key: 'Token Paid', val: formatAmount(displayToken) },
           { key: 'Protection Fee', val: '₹999' },
-          { key: 'Status', val: 'In Escrow', gold: true },
+          { key: 'Status', val: 'Payment Shield Active', gold: true },
         ].map((row, i, arr) => (
           <View key={row.key}>
             <View style={styles.successCardRow}>
@@ -48,9 +48,9 @@ export default function PaymentSuccessScreen() {
         ))}
       </View>
 
-      <View style={styles.escrowCard}>
-        <Text style={styles.escrowTitle}>Protected by The Dream Wedding</Text>
-        <Text style={styles.escrowText}>
+      <View style={styles.shieldCard}>
+        <Text style={styles.shieldTitle}>Protected by The Dream Wedding</Text>
+        <Text style={styles.shieldText}>
           If {displayVendor} doesn't confirm within 48 hours, your full token is automatically refunded. Your ₹999 booking protection fee is non-refundable.
         </Text>
       </View>
@@ -137,20 +137,20 @@ const styles = StyleSheet.create({
   },
   successCardKey: { fontSize: 13, color: '#8C7B6E' },
   successCardVal: { fontSize: 13, color: '#2C2420', fontWeight: '500' },
-  escrowCard: {
+  shieldCard: {
     backgroundColor: '#2C2420',
     borderRadius: 14,
     padding: 18,
     width: '100%',
     gap: 8,
   },
-  escrowTitle: {
+  shieldTitle: {
     fontSize: 13,
     color: '#C9A84C',
     fontWeight: '500',
     letterSpacing: 0.3,
   },
-  escrowText: {
+  shieldText: {
     fontSize: 13,
     color: '#B8A99A',
     lineHeight: 20,

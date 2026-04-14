@@ -554,7 +554,7 @@ export default function BTSPlannerScreen() {
                   <Text style={[styles.summaryAmount, { color: '#4CAF50' }]}>
                     {formatAmount(totalInEscrow)}
                   </Text>
-                  <Text style={styles.summaryLabel}>In Escrow</Text>
+                  <Text style={styles.summaryLabel}>Payment Shield</Text>
                 </View>
               </View>
               <View style={styles.progressBg}>
@@ -939,7 +939,7 @@ export default function BTSPlannerScreen() {
                 <Feather name="shield" size={28} color="#E8E0D5" />
                 <Text style={styles.emptyStateTitle}>No payments yet</Text>
                 <Text style={styles.emptyStateText}>
-                  Lock a vendor date to see your escrow payments here
+                  Lock a vendor date to see your shielded payments here
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyStateBtn}
@@ -966,7 +966,7 @@ export default function BTSPlannerScreen() {
                           <Text style={[styles.paymentStatus, {
                             color: booking.status === 'pending_confirmation' ? '#C9A84C' : '#4CAF50'
                           }]}>
-                            {booking.status === 'pending_confirmation' ? 'In Escrow' : 'Confirmed'}
+                            {booking.status === 'pending_confirmation' ? 'Payment Shield' : 'Confirmed'}
                           </Text>
                         </View>
                       </View>
