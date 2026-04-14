@@ -1533,6 +1533,51 @@ app.put('/api/subscriptions/:vendorId/founding', async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
+// ==================
+// VENDOR REFERRAL SYSTEM
+// ==================
+
+app.get('/api/referral-code/:vendorId', async (req, res) => {
+  try {
+    // Check if vendor already has a referral code
+    const { data: existing } = await supabase.from('vendor_referrals').select('referral_code').eq('vendor_id', req.params.vendorId).limit(1);
+    if (existing && existing.length > 0 && existing[0].referral_code) {
+      return res.json({ success: true, data: { code: existing[0].referral_code } });
+    }
+    // Generate new unique referral code from vendor name
+    const { data: vendor } = await supabase.from('vendors').select('name').eq('id', req.params.vendorId).single();
+    const namePart = (vendor?.name || 'vendor').replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase();
+    const code = namePart + Math.random().toString(36).substring(2, 6).toUpperCase();
+    res.json({ success: true, data: { code } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/referrals/track-click', async (req, res) => {
+  try {
+    const { referral_code, vendor_id } = req.body;
+    // Just increment a click counter — we'll track detailed signups later
+    const { data, error } = await supabase.from('vendor_referrals').insert([{
+      vendor_id, referral_code, status: 'clicked',
+      couple_name: 'Unknown', couple_phone: '',
+    }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.get('/api/referrals/stats/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('vendor_referrals').select('*').eq('vendor_id', req.params.vendorId);
+    if (error) throw error;
+    const all = data || [];
+    const clicked = all.filter(r => r.status === 'clicked').length;
+    const signed_up = all.filter(r => r.status === 'signed_up').length;
+    const active = all.filter(r => r.status === 'active' || r.status === 'token_purchased').length;
+    const dormant = all.filter(r => r.status === 'dormant').length;
+    res.json({ success: true, data: { total: all.length, clicked, signed_up, active, dormant, referrals: all } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
 app.get('/api/credentials/:vendorId', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vendor_credentials').select('username, phone_verified, phone_number')

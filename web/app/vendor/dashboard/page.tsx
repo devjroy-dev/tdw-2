@@ -408,6 +408,8 @@ export default function VendorDashboard() {
   const [dsNewSentiment, setDsNewSentiment] = useState({ client_name: '', milestone: '', rating: 'happy', logger_name: '', notes: '' });
   const [dsNewTemplate, setDsNewTemplate] = useState({ template_name: '', event_type: 'wedding', tasks: '[]' });
   const [dsEventView, setDsEventView] = useState<string | null>(null);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [referralLink, setReferralLink] = useState('');
   const [vendorData, setVendorData] = useState<any>(null);
   const [vendorTier, setVendorTier] = useState<'essential' | 'signature' | 'prestige'>('essential');
   const [foundingBadge, setFoundingBadge] = useState(false);
@@ -626,6 +628,7 @@ export default function VendorDashboard() {
       if (activeTab === 'expenses') loadExpenses();
       if (activeTab === 'payments') loadPayments();
       if (activeTab === 'tax') loadTDS();
+      if (activeTab === 'referral') { loadClients(); if (vendorData?.id) fetch(`${API}/referral-code/${vendorData.id}`).then(r => r.json()).then(d => { if (d.success) setReferralLink(`https://thedreamwedding.in/ref/${d.data.code}`); }).catch(() => {}); }
       if (activeTab === 'whatsapp') loadClients();
       if (activeTab === 'analytics') { loadBookings(); loadInvoices(); loadExpenses(); }
       if (activeTab === 'portal') loadClients();
@@ -3779,89 +3782,86 @@ export default function VendorDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
               <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>Referral Tracker</h2>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Every 10 past clients who join and send an enquiry earns you 10% off your subscription. Up to 50% off.</p>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Invite your past clients to download The Dream Wedding. The more couples join through you, the more you earn.</p>
             </div>
 
-            {/* Discount progress */}
+            {/* Your referral link */}
             <div className="card" style={{ padding: '28px 32px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Current Discount Earned</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '40px', fontWeight: 700, color: 'var(--dark)', letterSpacing: '-1px' }}>10% <span style={{ fontSize: '16px', fontWeight: 400, color: 'var(--grey)' }}>off subscription</span></div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Next milestone</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)' }}>20% off at 20 clients</div>
-                </div>
-              </div>
-              {/* Progress bar */}
-              <div style={{ background: '#F3F4F6', borderRadius: '4px', height: '6px', marginBottom: '10px' }}>
-                <div style={{ background: 'var(--gold)', borderRadius: '4px', height: '6px', width: '20%' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>2 of 10 clients joined & sent enquiry</span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)' }}>8 more to next tier</span>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '16px' }}>Your Referral Link</div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', background: '#FAFAFA', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--dark)', letterSpacing: '0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{referralLink || `https://thedreamwedding.in/ref/${vendorData?.id?.substring(0, 8) || 'loading'}`}</div>
+                <button onClick={() => { const link = referralLink || `https://thedreamwedding.in/ref/${vendorData?.id || ''}`; navigator.clipboard.writeText(link); toast.success('Link copied'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', color: 'var(--dark)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Copy Link</button>
+                <a href={`https://wa.me/?text=${encodeURIComponent(`Hey! I use The Dream Wedding for all my wedding bookings. You should check it out too: ${referralLink || `https://thedreamwedding.in/ref/${vendorData?.id || ''}`}`)}`} target="_blank" rel="noreferrer" style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '12px 20px', borderRadius: '8px', border: 'none', background: '#25D366', color: '#fff', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}><Send size={12} /> Share</a>
               </div>
             </div>
 
-            {/* Milestone tiers */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
+            {/* Referral stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
               {[
-                { clients: 10, discount: '10%', reached: true },
-                { clients: 20, discount: '20%', reached: false },
-                { clients: 30, discount: '30%', reached: false },
-                { clients: 40, discount: '40%', reached: false },
-                { clients: 50, discount: '50%', reached: false },
-              ].map(tier => (
-                <div key={tier.clients} className="card" style={{ padding: '20px', textAlign: 'center', border: tier.reached ? '1px solid var(--gold)' : '1px solid var(--card-border)', background: tier.reached ? 'rgba(201,168,76,0.04)' : '#fff' }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', fontWeight: 700, color: tier.reached ? 'var(--gold)' : 'var(--text-muted)', marginBottom: '4px' }}>{tier.discount}</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>{tier.clients} clients</div>
-                  {tier.reached && <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 600, color: 'var(--gold)', marginTop: '6px', letterSpacing: '0.5px' }}>EARNED</div>}
+                { num: String(clients.length), label: 'Total Clients', color: 'var(--dark)' },
+                { num: String(selectedClients.length), label: 'Selected', color: 'var(--gold)' },
+                { num: '0', label: 'Downloaded App', color: '#4CAF50' },
+                { num: '0', label: 'Active on App', color: '#1D4ED8' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '20px 16px', borderTop: `3px solid ${s.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Past clients list */}
-            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+            {/* Client list with checkboxes */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Past Clients Status</span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>{clients.length} total clients</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input type="checkbox" checked={clients.length > 0 && selectedClients.length === clients.length} onChange={(e) => { if (e.target.checked) { setSelectedClients(clients.map((c: any) => c.id)); } else { setSelectedClients([]); } }} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#C9A84C' }} />
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Your Clients ({clients.length})</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {selectedClients.length > 0 && (
+                    <button onClick={() => {
+                      const link = referralLink || `https://thedreamwedding.in/ref/${vendorData?.id || ''}`;
+                      const msg = `Hi! This is ${vendorData?.name || 'your vendor'}. I use The Dream Wedding app to manage all my bookings. Download it here and find the best wedding vendors in your city: ${link}`;
+                      navigator.clipboard.writeText(msg);
+                      toast.success(`Message copied — send to ${selectedClients.length} clients via WhatsApp Broadcast`);
+                    }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#25D366', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Send size={11} /> Send to {selectedClients.length} Selected</button>
+                  )}
+                </div>
               </div>
               {clients.length === 0 ? (
-                <div style={{ padding: '32px', textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>No clients added yet</div>
-                  <button onClick={() => setActiveTab('clients')} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--dark)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Add your first client →</button>
-                </div>
-              ) : clients.filter((c: any) => !clientSearch || c.name?.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone?.includes(clientSearch)).map((client: any, idx: number) => (
-                <div key={client.id} style={{ padding: '14px 20px', borderBottom: idx < clients.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{client.name}</div>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{client.phone}</div>
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Users size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No clients yet</p><button onClick={() => setActiveTab('clients')} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', marginTop: '4px' }}>Add your first client</button></div>
+              ) : clients.map((c: any, idx: number) => (
+                <div key={c.id} style={{ padding: '14px 20px', borderBottom: idx < clients.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input type="checkbox" checked={selectedClients.includes(c.id)} onChange={(e) => { if (e.target.checked) { setSelectedClients(prev => [...prev, c.id]); } else { setSelectedClients(prev => prev.filter(id => id !== c.id)); } }} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#C9A84C' }} />
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{c.name || c.client_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{c.phone} {c.wedding_date ? `· ${c.wedding_date}` : ''}</div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {client.invited ? (
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: '#16A34A', background: 'rgba(22,163,74,0.08)', padding: '3px 8px', borderRadius: '4px' }}>Joined</span>
-                    ) : (
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', background: '#F3F4F6', padding: '3px 8px', borderRadius: '4px' }}>Not joined</span>
-                    )}
-                  </div>
+                  <a href={`https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hi ${(c.name || c.client_name || '').split('&')[0].trim()}! I use The Dream Wedding app for all my bookings. Download it and find the best vendors: ${referralLink || `https://thedreamwedding.in/ref/${vendorData?.id || ''}`}`)}`} target="_blank" rel="noreferrer" style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '6px 14px', borderRadius: '6px', border: 'none', background: '#25D36615', color: '#25D366', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Send size={11} /> Send</a>
                 </div>
               ))}
             </div>
 
-            {/* Invite CTA */}
-            <div style={{ background: '#0F1117', borderRadius: '10px', padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 600, color: '#fff', marginBottom: '6px' }}>Invite your past clients to The Dream Wedding</div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Share your unique link. Every couple who joins and enquires counts toward your discount.</div>
+            {/* How it works */}
+            <div style={{ background: '#0F1117', borderRadius: '10px', padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>How Referrals Work</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                {[
+                  { step: '1', title: 'Share your link', desc: 'Send your unique referral link to past clients via WhatsApp. Select clients above and broadcast.' },
+                  { step: '2', title: 'They download', desc: 'Your clients download The Dream Wedding app using your link. They are automatically linked to you.' },
+                  { step: '3', title: 'You earn rewards', desc: 'As your referrals become active on the platform, you unlock discounts and visibility boosts.' },
+                ].map(s => (
+                  <div key={s.step} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 700, color: '#0F1117' }}>{s.step}</div>
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>{s.title}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <button onClick={() => {
-                const link = `https://thedreamwedding.in/join?ref=${vendorData?.id || ''}`;
-                navigator.clipboard.writeText(link);
-                toast.success('Invite link copied to clipboard');
-              }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#0F1117', background: 'var(--gold)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: '24px' }}>
-                Copy Invite Link
-              </button>
             </div>
           </div>
         )}
