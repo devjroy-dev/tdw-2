@@ -337,7 +337,7 @@ export default function BTSPlannerScreen() {
   const confirmedGuests = guests.filter(g => g.rsvp === 'confirmed').length;
   const pendingGuests = guests.filter(g => g.rsvp === 'pending').length;
   const completedTodos = todos.filter(t => t.done).length;
-  const totalInEscrow = bookings.reduce((sum, b) =>
+  const totalShielded = bookings.reduce((sum, b) =>
     b.status === 'pending_confirmation' ? sum + (b.token_amount || 0) : sum, 0);
   const unclaimedGifts = registry.filter(g => !g.claimed).length;
   const claimedGifts = registry.filter(g => g.claimed).length;
@@ -552,13 +552,13 @@ export default function BTSPlannerScreen() {
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
                   <Text style={[styles.summaryAmount, { color: '#4CAF50' }]}>
-                    {formatAmount(totalInEscrow)}
+                    {formatAmount(totalShielded)}
                   </Text>
                   <Text style={styles.summaryLabel}>Payment Shield</Text>
                 </View>
               </View>
               <View style={styles.progressBg}>
-                <View style={[styles.progressFill, { width: totalInEscrow > 0 ? `${Math.min((totalInEscrow / totalBudget) * 100, 100)}%` : '2%' }]} />
+                <View style={[styles.progressFill, { width: totalShielded > 0 ? `${Math.min((totalShielded / totalBudget) * 100, 100)}%` : '2%' }]} />
               </View>
               <Text style={styles.progressLabel}>Heart vendors to track your spend</Text>
             </View>
