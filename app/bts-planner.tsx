@@ -974,6 +974,53 @@ export default function BTSPlannerScreen() {
                     </View>
                   ))}
                 </View>
+
+                <Text style={styles.sectionLabel}>Payment Shield</Text>
+                <View style={styles.listCard}>
+                  {bookings.filter(b => b.status === 'confirmed').length === 0 ? (
+                    <View style={{ padding: 20, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center', lineHeight: 20 }}>
+                        Once a vendor confirms your booking, you can secure their final payment here.
+                      </Text>
+                    </View>
+                  ) : (
+                    bookings.filter(b => b.status === 'confirmed').map((booking, idx) => (
+                      <View key={'shield-' + booking.id}>
+                        <View style={{ padding: 16 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <View>
+                              <Text style={{ fontSize: 15, color: '#2C2420', fontWeight: '500' }}>{booking.vendor_name}</Text>
+                              <Text style={{ fontSize: 12, color: '#8C7B6E', marginTop: 2 }}>{booking.vendor_category}</Text>
+                            </View>
+                            <View style={{ backgroundColor: '#C9A84C20', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 }}>
+                              <Text style={{ fontSize: 11, color: '#C9A84C', fontWeight: '500' }}>Shield Ready</Text>
+                            </View>
+                          </View>
+                          <View style={{ backgroundColor: '#FAF6F0', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                              <Text style={{ fontSize: 12, color: '#8C7B6E' }}>Shield Amount (50%)</Text>
+                              <Text style={{ fontSize: 14, color: '#2C2420', fontWeight: '600' }}>{formatAmount((booking.token_amount || 100000) * 5)}</Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                              <Text style={{ fontSize: 12, color: '#8C7B6E' }}>Deposit by</Text>
+                              <Text style={{ fontSize: 12, color: '#C9A84C', fontWeight: '500' }}>3 days before event</Text>
+                            </View>
+                          </View>
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#2C2420', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                            onPress={() => Alert.alert('Deposit Payment Shield', 'This will securely hold the amount until after your wedding. Settle in cash or release digitally.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Deposit Now', onPress: () => Alert.alert('Coming Soon', 'Payment Shield deposits launching soon.') }])}
+                          >
+                            <Text style={{ color: '#F5F0E8', fontSize: 13, fontWeight: '500', letterSpacing: 1 }}>DEPOSIT NOW</Text>
+                          </TouchableOpacity>
+                          <Text style={{ fontSize: 11, color: '#8C7B6E', textAlign: 'center', marginTop: 8, fontStyle: 'italic' }}>
+                            Your money is protected. Settle in cash or release digitally after the wedding.
+                          </Text>
+                        </View>
+                        {idx < bookings.filter(b => b.status === 'confirmed').length - 1 && <View style={styles.listDivider} />}
+                      </View>
+                    ))
+                  )}
+                </View>
               </>
             )}
           </View>
