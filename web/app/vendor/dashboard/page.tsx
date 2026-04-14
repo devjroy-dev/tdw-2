@@ -9,7 +9,7 @@ import {
   Edit2, Phone, Lock, Activity, Zap, Image, Percent,
   MinusCircle, Share2, List, Package, Target,
   DollarSign, BookOpen, Tool, Truck, Coffee,
-  Navigation, Upload, ArrowDownCircle, Shield
+  Navigation, Upload, ArrowDownCircle, Shield, Search, Printer
 } from 'react-feather';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app/api';
@@ -263,6 +263,12 @@ export default function VendorDashboard() {
   const [loading, setLoading] = useState(true);
   const [isLive, setIsLive] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [invoiceFilter, setInvoiceFilter] = useState('all');
+  const [contractFilter, setContractFilter] = useState('all');
+  const [expenseFilter, setExpenseFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ 'Overview': true, 'Daily Operations': true, 'Finance': false, 'Planning': false, 'Growth': false, 'Account': false });
 
   // Data states
@@ -1019,6 +1025,52 @@ export default function VendorDashboard() {
     gap: '6px',
   };
 
+  const exportToCSV = (data: any[], filename: string, columns: {key: string, label: string}[]) => {
+    const header = columns.map(c => c.label).join(',');
+    const rows = data.map(row => columns.map(c => {
+      const val = String(row[c.key] || '').replace(/,/g, ' ');
+      return '"' + val + '"';
+    }).join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename + '.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = (title: string) => {
+    const el = document.querySelector('main');
+    if (!el) return;
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write('<html><head><title>' + title + '</title>');
+      w.document.write('<style>body{font-family:Inter,sans-serif;padding:40px;color:#2C2420}button,nav,aside{display:none!important}</style>');
+      w.document.write('</head><body>');
+      w.document.write('<h1 style="font-size:14px;color:#8C7B6E;letter-spacing:3px">THE DREAM WEDDING</h1>');
+      w.document.write('<h2 style="font-size:22px;margin-bottom:24px">' + title + '</h2>');
+      w.document.write(el.innerHTML);
+      w.document.write('</body></html>');
+      w.document.close();
+      w.print();
+    }
+  };
+
+  const filterPill = (active: boolean): React.CSSProperties => ({
+    padding: '6px 16px', borderRadius: '50px',
+    border: active ? '1px solid var(--gold)' : '1px solid var(--card-border)',
+    background: active ? 'rgba(201,168,76,0.08)' : 'transparent',
+    cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '12px',
+    fontWeight: active ? 500 : 400, color: active ? 'var(--gold)' : 'var(--text-muted)',
+  });
+
+  const actionBtnSmall: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--card-border)',
+    background: '#fff', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+    fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)',
+  };
+
   const greyBtn: React.CSSProperties = {
     background: 'transparent',
     color: 'var(--grey)',
@@ -1107,7 +1159,16 @@ export default function VendorDashboard() {
         </div>
 
         {/* Active tabs */}
-        <nav style={{ flex: 1, padding: '12px 0' }}>
+        <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
+          {!sidebarCollapsed && (
+            <div style={{ padding: '8px 16px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '8px 12px' }}>
+                <Search size={13} color="var(--grey)" />
+                <input value={sidebarSearch} onChange={e => setSidebarSearch(e.target.value)} placeholder="Search tools..." style={{ background: 'transparent', border: 'none', outline: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--cream)', width: '100%' }} />
+                {sidebarSearch && <button onClick={() => setSidebarSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={12} color="var(--grey)" /></button>}
+              </div>
+            </div>
+          )}
           <div style={{
             padding: '8px 24px 6px',
             fontFamily: 'Inter, sans-serif',
@@ -1119,7 +1180,7 @@ export default function VendorDashboard() {
           }}>
             Active Tools
           </div>
-          {ACTIVE_TABS.map(tab => {
+          {ACTIVE_TABS.filter(tab => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase())).map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -1167,7 +1228,7 @@ export default function VendorDashboard() {
           }}>
             Coming Soon
           </div>
-          {COMING_SOON_TABS.map(tab => {
+          {COMING_SOON_TABS.filter(tab => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase())).map(tab => {
             const Icon = tab.icon;
             return (
               <button
@@ -1442,11 +1503,24 @@ export default function VendorDashboard() {
         {activeTab === 'invoices' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Invoices</h2>
-              <button style={goldBtn} onClick={() => setShowInvoiceForm(!showInvoiceForm)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Invoices</h2>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['all', 'paid', 'unpaid'].map(f => (
+                    <button key={f} style={filterPill(invoiceFilter === f)} onClick={() => setInvoiceFilter(f)}>
+                      {f === 'all' ? 'All' : f === 'paid' ? 'Paid' : 'Unpaid'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={actionBtnSmall} onClick={() => exportToCSV(invoices, 'TDW_Invoices', [{key:'client_name',label:'Client'},{key:'amount',label:'Amount'},{key:'status',label:'Status'},{key:'invoice_number',label:'Invoice #'}])}><Download size={12} /> Export</button>
+                <button style={actionBtnSmall} onClick={() => handlePrint('Invoices')}><Printer size={12} /> Print</button>
+                <button style={goldBtn} onClick={() => setShowInvoiceForm(!showInvoiceForm)}>
                 <Plus size={14} />
                 {showInvoiceForm ? 'Cancel' : 'New Invoice'}
               </button>
+              </div>
             </div>
 
             {showInvoiceForm && (
@@ -1811,11 +1885,24 @@ export default function VendorDashboard() {
         {activeTab === 'payments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Payment Schedules</h2>
-              <button style={goldBtn} onClick={() => setShowPaymentForm(!showPaymentForm)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Payment Schedules</h2>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['all', 'overdue', 'upcoming'].map(f => (
+                    <button key={f} style={filterPill(paymentFilter === f)} onClick={() => setPaymentFilter(f)}>
+                      {f === 'all' ? 'All' : f === 'overdue' ? 'Overdue' : 'Upcoming'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={actionBtnSmall} onClick={() => exportToCSV(paymentSchedules, 'TDW_Payments', [{key:'client_name',label:'Client'},{key:'total_amount',label:'Total'},{key:'client_phone',label:'Phone'}])}><Download size={12} /> Export</button>
+                <button style={actionBtnSmall} onClick={() => handlePrint('Payment Schedules')}><Printer size={12} /> Print</button>
+                <button style={goldBtn} onClick={() => setShowPaymentForm(!showPaymentForm)}>
                 <Plus size={14} />
                 {showPaymentForm ? 'Cancel' : 'New Schedule'}
               </button>
+              </div>
             </div>
 
             {showPaymentForm && (
@@ -2049,10 +2136,14 @@ export default function VendorDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Tax & Finance</h2>
-              <button style={goldBtn} onClick={() => setShowTDSForm(!showTDSForm)}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={actionBtnSmall} onClick={() => exportToCSV(tdsLedger, 'TDW_TDS', [{key:'transaction_type',label:'Type'},{key:'gross_amount',label:'Gross'},{key:'tds_amount',label:'TDS'},{key:'created_at',label:'Date'}])}><Download size={12} /> Export</button>
+                <button style={actionBtnSmall} onClick={() => handlePrint('Tax & Finance')}><Printer size={12} /> Print</button>
+                <button style={goldBtn} onClick={() => setShowTDSForm(!showTDSForm)}>
                 <Plus size={14} />
                 Add TDS Entry
               </button>
+              </div>
             </div>
 
             {tdsSummary && (
@@ -2185,11 +2276,22 @@ export default function VendorDashboard() {
         {activeTab === 'clients' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Clients ({clients.length})</h2>
-              <button style={goldBtn} onClick={() => setShowClientForm(!showClientForm)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Clients ({clients.length})</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fff', border: '1px solid var(--card-border)', borderRadius: '8px', padding: '6px 12px', flex: 1, maxWidth: '280px' }}>
+                  <Search size={14} color="var(--text-muted)" />
+                  <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Search clients..." style={{ border: 'none', outline: 'none', fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--dark)', width: '100%', background: 'transparent' }} />
+                  {clientSearch && <button onClick={() => setClientSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={12} color="var(--text-muted)" /></button>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={actionBtnSmall} onClick={() => exportToCSV(clients, 'TDW_Clients', [{key:'name',label:'Name'},{key:'phone',label:'Phone'},{key:'wedding_date',label:'Wedding Date'},{key:'notes',label:'Notes'}])}><Download size={12} /> Export</button>
+                <button style={actionBtnSmall} onClick={() => handlePrint('Clients')}><Printer size={12} /> Print</button>
+                <button style={goldBtn} onClick={() => setShowClientForm(!showClientForm)}>
                 <Plus size={14} />
                 {showClientForm ? 'Cancel' : 'Add Client'}
               </button>
+              </div>
             </div>
 
             <div className="card-dark" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -3322,7 +3424,7 @@ export default function VendorDashboard() {
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>No clients added yet</div>
                   <button onClick={() => setActiveTab('clients')} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--dark)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Add your first client →</button>
                 </div>
-              ) : clients.map((client: any, idx: number) => (
+              ) : clients.filter((c: any) => !clientSearch || c.name?.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone?.includes(clientSearch)).map((client: any, idx: number) => (
                 <div key={client.id} style={{ padding: '14px 20px', borderBottom: idx < clients.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{client.name}</div>
@@ -3352,6 +3454,65 @@ export default function VendorDashboard() {
               }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#0F1117', background: 'var(--gold)', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: '24px' }}>
                 Copy Invite Link
               </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'paymentshield' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>Payment Shield</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Secure your final payment before the wedding day. Focus on the work, not the collection.</p>
+            </div>
+            <div className="card" style={{ padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '20px' }}>Shield Configuration</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: '6px' }}>Shield Amount</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {['30%', '50%', '100%'].map(pct => (<button key={pct} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: pct === '50%' ? '2px solid var(--gold)' : '1px solid var(--card-border)', background: pct === '50%' ? 'rgba(201,168,76,0.06)' : '#fff', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: pct === '50%' ? 600 : 400, color: pct === '50%' ? 'var(--gold)' : 'var(--dark)' }}>{pct}</button>))}
+                  </div>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>Percentage of final balance couple must deposit</p>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: '6px' }}>Deposit Deadline</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {['1 day', '3 days', '7 days'].map(d => (<button key={d} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: d === '3 days' ? '2px solid var(--gold)' : '1px solid var(--card-border)', background: d === '3 days' ? 'rgba(201,168,76,0.06)' : '#fff', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: d === '3 days' ? 600 : 400, color: d === '3 days' ? 'var(--gold)' : 'var(--dark)' }}>{d}</button>))}
+                  </div>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>Days before event couple must deposit</p>
+                </div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Active Shields</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>Demo data</span>
+              </div>
+              {[{client:'Priya & Rahul',amount:150000,deadline:'Mar 12, 2026',status:'deposited'},{client:'Ananya & Karan',amount:85000,deadline:'Apr 2, 2026',status:'pending'},{client:'Meera & Arjun',amount:200000,deadline:'Apr 18, 2026',status:'deposited'}].map((shield,idx) => (
+                <div key={idx} style={{ padding: '18px 20px', borderBottom: idx < 2 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>{shield.client}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)' }}>Rs.{shield.amount.toLocaleString('en-IN')} · Due by {shield.deadline}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {shield.status === 'deposited' ? (<><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: '#16A34A', background: 'rgba(22,163,74,0.08)', padding: '4px 10px', borderRadius: '4px' }}>Deposited</span><button style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--gold)', background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer' }}>Confirm Cash</button><button style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: '#fff', background: 'var(--dark)', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer' }}>Release to Me</button></>) : (<span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--gold)', background: 'rgba(201,168,76,0.08)', padding: '4px 10px', borderRadius: '4px' }}>Awaiting Deposit</span>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: '#0F1117', borderRadius: '10px', padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>How Payment Shield Works</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {[{step:'1',title:'You set the terms',desc:'Choose shield amount (30-100%) and deposit deadline (1-7 days before event).'},{step:'2',title:'Couple deposits',desc:'Before the deadline, couple deposits the shield amount securely via Razorpay.'},{step:'3a',title:'Cash settlement',desc:'Couple pays in cash. You confirm. Digital deposit returns to couple.'},{step:'3b',title:'Digital release',desc:'Couple releases held amount to you. 1% convenience fee applies.'}].map(s => (
+                  <div key={s.step} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 700, color: '#0F1117' }}>{s.step}</div>
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>{s.title}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
