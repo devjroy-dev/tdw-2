@@ -1574,33 +1574,97 @@ export default function VendorDashboardScreen() {
           )}
 
 
-          {/* ── PRESTIGE: Live Command Feed ── */}
+
+          {/* ── PRESTIGE: CEO Command Feed ── */}
           {vendorTier === 'prestige' && (
             <>
               <PrestigeStatsRow dsData={dsData} />
 
-              {/* ── TASKS (inline, actionable) ── */}
+              {/* ── QUICK ACTIONS BAR ── */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {[
+                  { icon: 'plus', label: 'Task', onPress: () => setShowCreateTask(true) },
+                  { icon: 'dollar-sign', label: 'Reminder', onPress: () => {
+                    const overdue = paymentSchedules.filter((s: any) => (s.instalments || []).some((inst: any) => !inst.paid && inst.due_date && new Date(inst.due_date) < new Date()));
+                    if (overdue.length === 0) { Alert.alert('All Clear', 'No overdue payments.'); return; }
+                    const c = overdue[0];
+                    Linking.openURL('whatsapp://send?phone=91' + (c.client_phone || '') + '&text=' + encodeURIComponent('Hi ' + (c.client_name || '') + '! Gentle reminder about your pending payment. Please let me know if you need details.'));
+                  }},
+                  { icon: 'send', label: 'Broadcast', onPress: () => setDsChannel('broadcast') },
+                  { icon: 'user-plus', label: 'Add Member', onPress: () => setShowTeamForm(true) },
+                  { icon: 'calendar', label: 'Block Date', onPress: () => openDatePicker('blockDate', '') },
+                  { icon: 'message-circle', label: 'WhatsApp', onPress: () => { if (clients.length > 0) Linking.openURL('whatsapp://send?phone=91' + clients[0].phone); else Alert.alert('No Clients', 'Add clients first.'); }},
+                ].map((a, i) => (
+                  <TouchableOpacity key={i} onPress={a.onPress} style={{ backgroundColor: '#2C2420', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name={a.icon as any} size={13} color="#C9A84C" />
+                    <Text style={{ fontSize: 11, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>{a.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* ── ATTENTION NEEDED ── */}
+              {(dsData.overdueTasks > 0 || paymentSchedules.some((s: any) => (s.instalments || []).some((inst: any) => !inst.paid && inst.due_date && new Date(inst.due_date) < new Date())) || dsPhotos.filter((p: any) => p.status === 'pending').length > 0) && (
+                <View style={{ backgroundColor: '#FEF2F2', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#FECACA', gap: 10 }}>
+                  <Text style={{ fontSize: 10, color: '#E57373', fontFamily: 'DMSans_500Medium', letterSpacing: 1.5 }}>ATTENTION NEEDED</Text>
+                  {dsData.overdueTasks > 0 && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Feather name="alert-circle" size={14} color="#E57373" /><Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular', flex: 1 }}>{dsData.overdueTasks} overdue task{dsData.overdueTasks > 1 ? 's' : ''}</Text></View>
+                  )}
+                  {paymentSchedules.filter((s: any) => (s.instalments || []).some((inst: any) => !inst.paid && inst.due_date && new Date(inst.due_date) < new Date())).map((sched: any) => (
+                    <View key={sched.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Feather name="dollar-sign" size={14} color="#E57373" />
+                      <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular', flex: 1 }}>{sched.client_name} — overdue</Text>
+                      <TouchableOpacity onPress={() => Linking.openURL('whatsapp://send?phone=91' + (sched.client_phone || '') + '&text=' + encodeURIComponent('Hi ' + (sched.client_name || '') + '! Gentle reminder about your pending payment.'))} style={{ backgroundColor: '#25D366', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}><Feather name="message-circle" size={10} color="#FFFFFF" /></TouchableOpacity>
+                    </View>
+                  ))}
+                  {dsPhotos.filter((p: any) => p.status === 'pending').length > 0 && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Feather name="image" size={14} color="#C9A84C" /><Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular', flex: 1 }}>{dsPhotos.filter((p: any) => p.status === 'pending').length} photo{dsPhotos.filter((p: any) => p.status === 'pending').length > 1 ? 's' : ''} awaiting approval</Text></View>
+                  )}
+                </View>
+              )}
+
+              {/* ── TODAY ── */}
+              <Text style={styles.sectionLabel}>TODAY</Text>
+              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#EDE8E0', gap: 10 }}>
+                {dsData.trials.filter((t: any) => { try { return new Date(t.date).toDateString() === new Date().toDateString(); } catch { return false; } }).length > 0 ? (
+                  dsData.trials.filter((t: any) => { try { return new Date(t.date).toDateString() === new Date().toDateString(); } catch { return false; } }).map((trial: any) => (
+                    <View key={trial.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FFF8EC', justifyContent: 'center', alignItems: 'center' }}><Feather name="clipboard" size={14} color="#C9A84C" /></View>
+                      <View style={{ flex: 1 }}><Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{trial.type || 'Trial'} — {trial.client_name || 'Client'}</Text><Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{trial.assigned_to || 'Unassigned'}</Text></View>
+                      {trial.status === 'scheduled' ? (
+                        <TouchableOpacity onPress={() => handleUpdateTrialStatus(trial.id, 'confirmed')} style={{ backgroundColor: '#FFF8EC', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: '#E8D9B5' }}><Text style={{ fontSize: 10, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>Confirm</Text></TouchableOpacity>
+                      ) : (
+                        <View style={{ backgroundColor: '#4CAF5015', borderRadius: 50, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ fontSize: 9, color: '#4CAF50', fontFamily: 'DMSans_500Medium' }}>{trial.status}</Text></View>
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>No events scheduled for today</Text>
+                )}
+                {dsTeamMembers.filter((m: any) => m.status === 'active').length > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: '#EDE8E0', paddingTop: 10 }}>
+                    <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>Team:</Text>
+                    {dsTeamMembers.filter((m: any) => m.status === 'active').slice(0, 6).map((m: any) => (
+                      <View key={m.id} style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#2C2420', justifyContent: 'center', alignItems: 'center' }}><Text style={{ fontSize: 9, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>{(m.name || '?')[0]}</Text></View>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* ── TASKS ── */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.sectionLabel}>TASKS</Text>
-                <TouchableOpacity onPress={() => setShowCreateTask(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#2C2420', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                  <Feather name="plus" size={11} color="#C9A84C" />
-                  <Text style={{ fontSize: 11, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>New Task</Text>
-                </TouchableOpacity>
+                <Text style={styles.sectionLabel}>TASKS ({dsData.tasks.filter((t: any) => t.status !== 'completed').length})</Text>
+                <TouchableOpacity onPress={() => setShowCreateTask(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#2C2420', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}><Feather name="plus" size={11} color="#C9A84C" /><Text style={{ fontSize: 11, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>New</Text></TouchableOpacity>
               </View>
               {showCreateTask && (
                 <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#EDE8E0', gap: 10 }}>
-                  <TextInput style={styles.fieldInput} placeholder="Task title" placeholderTextColor="#B8ADA4" value={newTaskTitle} onChangeText={setNewTaskTitle} />
+                  <TextInput style={styles.fieldInput} placeholder="What needs to be done?" placeholderTextColor="#B8ADA4" value={newTaskTitle} onChangeText={setNewTaskTitle} />
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TextInput style={[styles.fieldInput, { flex: 1 }]} placeholder="Assign to" placeholderTextColor="#B8ADA4" value={newTaskAssignee} onChangeText={setNewTaskAssignee} />
-                    <TouchableOpacity style={[styles.fieldInput, { justifyContent: 'center' }]} onPress={() => openDatePicker('dsTaskDue', newTaskDueDate)}>
-                      <Text style={{ fontSize: 14, color: newTaskDueDate ? '#2C2420' : '#B8ADA4', fontFamily: 'DMSans_400Regular' }}>{newTaskDueDate || 'Due date'}</Text>
-                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.fieldInput, { justifyContent: 'center' }]} onPress={() => openDatePicker('dsTaskDue', newTaskDueDate)}><Text style={{ fontSize: 14, color: newTaskDueDate ? '#2C2420' : '#B8ADA4', fontFamily: 'DMSans_400Regular' }}>{newTaskDueDate || 'Due date'}</Text></TouchableOpacity>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 6 }}>
                     {['low', 'medium', 'high', 'urgent'].map(p => (
-                      <TouchableOpacity key={p} onPress={() => setNewTaskPriority(p)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 50, backgroundColor: newTaskPriority === p ? '#2C2420' : '#FFFFFF', borderWidth: 1, borderColor: newTaskPriority === p ? '#2C2420' : '#EDE8E0' }}>
-                        <Text style={{ fontSize: 11, color: newTaskPriority === p ? '#C9A84C' : '#8C7B6E', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>{p}</Text>
-                      </TouchableOpacity>
+                      <TouchableOpacity key={p} onPress={() => setNewTaskPriority(p)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 50, backgroundColor: newTaskPriority === p ? '#2C2420' : '#FFFFFF', borderWidth: 1, borderColor: newTaskPriority === p ? '#2C2420' : '#EDE8E0' }}><Text style={{ fontSize: 11, color: newTaskPriority === p ? '#C9A84C' : '#8C7B6E', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>{p}</Text></TouchableOpacity>
                     ))}
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -1609,13 +1673,9 @@ export default function VendorDashboardScreen() {
                   </View>
                 </View>
               )}
-              {dsData.tasks.length === 0 ? (
-                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#EDE8E0', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>No tasks yet. Create your first task above.</Text>
-                </View>
-              ) : (
+              {dsData.tasks.length > 0 && (
                 <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#EDE8E0', overflow: 'hidden' }}>
-                  {dsData.tasks.slice(0, 8).map((task: any, idx: number) => (
+                  {dsData.tasks.slice(0, 10).map((task: any, idx: number) => (
                     <View key={task.id}>
                       <TouchableOpacity onPress={() => handleToggleTaskStatus(task.id, task.status)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
                         <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: task.status === 'completed' ? '#4CAF50' : task.priority === 'urgent' ? '#E57373' : task.priority === 'high' ? '#C9A84C' : '#EDE8E0', backgroundColor: task.status === 'completed' ? '#4CAF5015' : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
@@ -1627,28 +1687,23 @@ export default function VendorDashboardScreen() {
                         </View>
                         {task.priority === 'urgent' && <View style={{ backgroundColor: '#E5737320', borderRadius: 50, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ fontSize: 9, color: '#E57373', fontFamily: 'DMSans_500Medium' }}>URGENT</Text></View>}
                       </TouchableOpacity>
-                      {idx < Math.min(dsData.tasks.length, 8) - 1 && <View style={{ height: 1, backgroundColor: '#EDE8E0', marginHorizontal: 16 }} />}
+                      {idx < Math.min(dsData.tasks.length, 10) - 1 && <View style={{ height: 1, backgroundColor: '#EDE8E0', marginHorizontal: 16 }} />}
                     </View>
                   ))}
                 </View>
               )}
 
-              {/* ── TEAM CHAT (inline) ── */}
+              {/* ── TEAM CHAT ── */}
               <Text style={styles.sectionLabel}>TEAM CHAT</Text>
               <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#EDE8E0', gap: 12 }}>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   {['general', 'broadcast'].map(ch => (
-                    <TouchableOpacity key={ch} onPress={() => setDsChannel(ch)} style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 50, backgroundColor: dsChannel === ch ? '#2C2420' : '#FAF6F0', borderWidth: 1, borderColor: dsChannel === ch ? '#2C2420' : '#EDE8E0' }}>
-                      <Text style={{ fontSize: 11, color: dsChannel === ch ? '#C9A84C' : '#8C7B6E', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>#{ch}</Text>
-                    </TouchableOpacity>
+                    <TouchableOpacity key={ch} onPress={() => setDsChannel(ch)} style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 50, backgroundColor: dsChannel === ch ? '#2C2420' : '#FAF6F0', borderWidth: 1, borderColor: dsChannel === ch ? '#2C2420' : '#EDE8E0' }}><Text style={{ fontSize: 11, color: dsChannel === ch ? '#C9A84C' : '#8C7B6E', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>#{ch}</Text></TouchableOpacity>
                   ))}
                 </View>
                 {dsMessages.filter((m: any) => m.channel === dsChannel).slice(0, 5).map((msg: any) => (
                   <View key={msg.id} style={{ gap: 2 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 12, color: '#2C2420', fontFamily: 'DMSans_500Medium' }}>{msg.sender_name || 'Team'}</Text>
-                      <Text style={{ fontSize: 9, color: '#B8ADA4', fontFamily: 'DMSans_300Light' }}>{msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}</Text>
-                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={{ fontSize: 12, color: '#2C2420', fontFamily: 'DMSans_500Medium' }}>{msg.sender_name || 'Team'}</Text><Text style={{ fontSize: 9, color: '#B8ADA4', fontFamily: 'DMSans_300Light' }}>{msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}</Text></View>
                     <Text style={{ fontSize: 13, color: '#8C7B6E', fontFamily: 'DMSans_300Light', lineHeight: 18 }}>{msg.message}</Text>
                   </View>
                 ))}
@@ -1657,125 +1712,53 @@ export default function VendorDashboardScreen() {
                 )}
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TextInput style={[styles.fieldInput, { flex: 1 }]} placeholder="Type a message..." placeholderTextColor="#B8ADA4" value={dsNewMessage} onChangeText={setDsNewMessage} />
-                  <TouchableOpacity onPress={handleSendDsMessage} style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: '#C9A84C', justifyContent: 'center', alignItems: 'center' }}>
-                    <Feather name="send" size={14} color="#2C2420" />
-                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleSendDsMessage} style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: '#C9A84C', justifyContent: 'center', alignItems: 'center' }}><Feather name="send" size={14} color="#2C2420" /></TouchableOpacity>
                 </View>
               </View>
 
-              {/* ── PROCUREMENT STATUS ── */}
-              {dsData.procurement.length > 0 && (
+              {/* ── PROCUREMENT & DELIVERIES ── */}
+              {(dsData.procurement.length > 0 || dsData.deliveries.length > 0) && (
                 <>
-                  <Text style={styles.sectionLabel}>PROCUREMENT</Text>
+                  <Text style={styles.sectionLabel}>PIPELINE</Text>
                   {dsData.procurement.slice(0, 5).map((item: any) => {
-                    const nextStatus: Record<string, string> = { ordered: 'in_transit', in_transit: 'received', received: 'verified' };
+                    const next: Record<string, string> = { ordered: 'in_transit', in_transit: 'received', received: 'verified' };
                     return (
                       <View key={item.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{item.item_name || item.description || 'Item'}</Text>
-                          <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{item.supplier || ''}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => nextStatus[item.status] && handleUpdateProcStatus(item.id, nextStatus[item.status])} style={{ backgroundColor: item.status === 'verified' ? '#4CAF5015' : '#FFF8EC', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: item.status === 'verified' ? '#4CAF50' : '#E8D9B5' }}>
-                          <Text style={{ fontSize: 10, color: item.status === 'verified' ? '#4CAF50' : '#C9A84C', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>{item.status === 'verified' ? 'Done' : item.status?.replace('_', ' ') + ' →'}</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}><Feather name="package" size={12} color="#8C7B6E" /><View style={{ flex: 1 }}><Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{item.item_name || item.description || 'Item'}</Text><Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{item.supplier || ''}</Text></View></View>
+                        <TouchableOpacity onPress={() => next[item.status] && handleUpdateProcStatus(item.id, next[item.status])} style={{ backgroundColor: item.status === 'verified' ? '#4CAF5015' : '#FFF8EC', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: item.status === 'verified' ? '#4CAF50' : '#E8D9B5' }}><Text style={{ fontSize: 10, color: item.status === 'verified' ? '#4CAF50' : '#C9A84C', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>{item.status === 'verified' ? 'Done' : (item.status?.replace('_', ' ') || '') + ' →'}</Text></TouchableOpacity>
                       </View>
                     );
                   })}
-                </>
-              )}
-
-              {/* ── DELIVERIES STATUS ── */}
-              {dsData.deliveries.length > 0 && (
-                <>
-                  <Text style={styles.sectionLabel}>DELIVERIES</Text>
                   {dsData.deliveries.slice(0, 5).map((item: any) => {
-                    const nextStatus: Record<string, string> = { preparing: 'dispatched', dispatched: 'delivered', delivered: 'client_confirmed' };
+                    const next: Record<string, string> = { preparing: 'dispatched', dispatched: 'delivered', delivered: 'client_confirmed' };
                     return (
                       <View key={item.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{item.item_name || item.description || 'Delivery'}</Text>
-                          <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{item.client_name || ''}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => nextStatus[item.status] && handleUpdateDelStatus(item.id, nextStatus[item.status])} style={{ backgroundColor: item.status === 'client_confirmed' ? '#4CAF5015' : '#FFF8EC', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: item.status === 'client_confirmed' ? '#4CAF50' : '#E8D9B5' }}>
-                          <Text style={{ fontSize: 10, color: item.status === 'client_confirmed' ? '#4CAF50' : '#C9A84C', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>{item.status === 'client_confirmed' ? 'Confirmed' : item.status?.replace('_', ' ') + ' →'}</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}><Feather name="truck" size={12} color="#8C7B6E" /><View style={{ flex: 1 }}><Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{item.item_name || item.description || 'Delivery'}</Text><Text style={{ fontSize: 10, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{item.client_name || ''}</Text></View></View>
+                        <TouchableOpacity onPress={() => next[item.status] && handleUpdateDelStatus(item.id, next[item.status])} style={{ backgroundColor: item.status === 'client_confirmed' ? '#4CAF5015' : '#FFF8EC', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: item.status === 'client_confirmed' ? '#4CAF50' : '#E8D9B5' }}><Text style={{ fontSize: 10, color: item.status === 'client_confirmed' ? '#4CAF50' : '#C9A84C', fontFamily: 'DMSans_500Medium', textTransform: 'capitalize' }}>{item.status === 'client_confirmed' ? 'Confirmed' : (item.status?.replace('_', ' ') || '') + ' →'}</Text></TouchableOpacity>
                       </View>
                     );
                   })}
-                </>
-              )}
-
-              {/* ── TRIALS ── */}
-              {dsData.trials.length > 0 && (
-                <>
-                  <Text style={styles.sectionLabel}>UPCOMING TRIALS</Text>
-                  {dsData.trials.slice(0, 4).map((trial: any) => (
-                    <View key={trial.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{trial.type || 'Trial'} — {trial.client_name || 'Client'}</Text>
-                        <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{trial.date} · {trial.assigned_to || 'Unassigned'}</Text>
-                      </View>
-                      {trial.status === 'scheduled' ? (
-                        <TouchableOpacity onPress={() => handleUpdateTrialStatus(trial.id, 'confirmed')} style={{ backgroundColor: '#FFF8EC', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: '#E8D9B5' }}>
-                          <Text style={{ fontSize: 10, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>Confirm</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={{ backgroundColor: '#4CAF5015', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 }}>
-                          <Text style={{ fontSize: 10, color: '#4CAF50', fontFamily: 'DMSans_500Medium' }}>{trial.status}</Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </>
-              )}
-
-              {/* ── TEAM ON SITE ── */}
-              {dsTeamMembers.length > 0 && (
-                <>
-                  <Text style={styles.sectionLabel}>TEAM ({dsTeamMembers.filter((m: any) => m.status === 'active').length} active)</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {dsTeamMembers.filter((m: any) => m.status === 'active').slice(0, 8).map((member: any) => (
-                      <View key={member.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#2C2420', justifyContent: 'center', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 10, color: '#C9A84C', fontFamily: 'DMSans_500Medium' }}>{(member.name || '?')[0]}</Text>
-                        </View>
-                        <View>
-                          <Text style={{ fontSize: 12, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{member.name}</Text>
-                          <Text style={{ fontSize: 9, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{member.role || 'Staff'}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
                 </>
               )}
 
               {/* ── PHOTO APPROVALS ── */}
               {dsPhotos.filter((p: any) => p.status === 'pending').length > 0 && (
                 <>
-                  <Text style={styles.sectionLabel}>PHOTO APPROVALS ({dsPhotos.filter((p: any) => p.status === 'pending').length} pending)</Text>
+                  <Text style={styles.sectionLabel}>APPROVE ({dsPhotos.filter((p: any) => p.status === 'pending').length})</Text>
                   {dsPhotos.filter((p: any) => p.status === 'pending').slice(0, 4).map((photo: any) => (
                     <View key={photo.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#EDE8E0', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#FAF6F0', justifyContent: 'center', alignItems: 'center' }}>
-                        <Feather name="image" size={20} color="#C9A84C" />
-                      </View>
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{photo.description || 'Photo submission'}</Text>
-                        <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{photo.submitted_by || 'Team member'}</Text>
-                      </View>
+                      <View style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#FAF6F0', justifyContent: 'center', alignItems: 'center' }}><Feather name="image" size={20} color="#C9A84C" /></View>
+                      <View style={{ flex: 1, gap: 2 }}><Text style={{ fontSize: 13, color: '#2C2420', fontFamily: 'DMSans_400Regular' }}>{photo.description || 'Photo'}</Text><Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light' }}>{photo.submitted_by || 'Team'}</Text></View>
                       <View style={{ flexDirection: 'row', gap: 6 }}>
-                        <TouchableOpacity onPress={() => handleApprovePhoto(photo.id, 'approved')} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#4CAF5015', justifyContent: 'center', alignItems: 'center' }}>
-                          <Feather name="check" size={14} color="#4CAF50" />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleApprovePhoto(photo.id, 'revision_needed')} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E5737315', justifyContent: 'center', alignItems: 'center' }}>
-                          <Feather name="rotate-ccw" size={14} color="#E57373" />
-                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleApprovePhoto(photo.id, 'approved')} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#4CAF5015', justifyContent: 'center', alignItems: 'center' }}><Feather name="check" size={14} color="#4CAF50" /></TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleApprovePhoto(photo.id, 'revision_needed')} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E5737315', justifyContent: 'center', alignItems: 'center' }}><Feather name="rotate-ccw" size={14} color="#E57373" /></TouchableOpacity>
                       </View>
                     </View>
                   ))}
                 </>
               )}
 
-              {/* ── Quick access to remaining tools ── */}
+              {/* ── DELUXE SUITE ACCESS ── */}
               <TouchableOpacity style={{ backgroundColor: '#2C2420', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' }} onPress={() => setShowDeluxeSuite(true)}>
                 <Feather name="award" size={16} color="#C9A84C" />
                 <Text style={{ fontSize: 14, color: '#C9A84C', fontFamily: 'PlayfairDisplay_400Regular' }}>All Deluxe Suite Tools</Text>
@@ -1783,7 +1766,6 @@ export default function VendorDashboardScreen() {
               </TouchableOpacity>
             </>
           )}
-
 
           {/* ── SIGNATURE: Business Pulse + Tool Grid ── */}
           {vendorTier === 'signature' && (
