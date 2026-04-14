@@ -20,6 +20,7 @@ import { blockDate, getBenchmark, getBlockedDates, getInvoices, getLeads, getVen
 import { uploadImage } from '../services/cloudinary';
 import { registerForPushNotifications } from '../services/notifications';
 import { generateInvoiceNumber, generateInvoicePDF, generateContractPDF } from '../services/invoice';
+import { VendorDashSkeleton, ListSkeleton } from '../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const API = 'https://dream-wedding-production-89ae.up.railway.app';

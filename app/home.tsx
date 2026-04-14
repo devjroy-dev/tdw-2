@@ -16,6 +16,7 @@ import {
   DMSans_500Medium,
 } from '@expo-google-fonts/dm-sans';
 import BottomNav from '../components/BottomNav';
+import { CardSkeleton, ListSkeleton } from '../components/SkeletonLoader';
 import { registerForPushNotifications, savePushToken } from '../services/notifications';
 
 const { width } = Dimensions.get('window');
@@ -165,22 +166,22 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={{
               flexDirection: 'row', alignItems: 'center', gap: 16,
-              backgroundColor: '#2C2420', borderRadius: 16, padding: 20,
-              borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)',
+              backgroundColor: '#FFFBF3', borderRadius: 16, padding: 20,
+              borderWidth: 1, borderColor: '#E8D9B5',
             }}
             onPress={() => router.push('/luxury-browse' as any)}
             activeOpacity={0.85}
           >
             <View style={{
               width: 44, height: 44, borderRadius: 12,
-              backgroundColor: 'rgba(201,168,76,0.12)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)',
+              backgroundColor: '#FFF8EC', borderWidth: 1, borderColor: '#E8D9B5',
               justifyContent: 'center', alignItems: 'center',
             }}>
               <Feather name="award" size={18} color="#C9A84C" />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ fontSize: 16, color: '#C9A84C', fontFamily: 'PlayfairDisplay_400Regular', letterSpacing: 0.3 }}>Curated</Text>
-              <Text style={{ fontSize: 11, color: 'rgba(245,240,232,0.5)', fontFamily: 'DMSans_300Light', letterSpacing: 0.2 }}>India's most distinguished wedding professionals</Text>
+              <Text style={{ fontSize: 16, color: '#2C2420', fontFamily: 'PlayfairDisplay_400Regular', letterSpacing: 0.3 }}>Couture</Text>
+              <Text style={{ fontSize: 11, color: '#8C7B6E', fontFamily: 'DMSans_300Light', letterSpacing: 0.2 }}>India's most distinguished wedding professionals</Text>
             </View>
             <Feather name="chevron-right" size={16} color="#C9A84C" />
           </TouchableOpacity>
@@ -285,7 +286,7 @@ const s = StyleSheet.create({
   },
   primaryIconBox: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: '#C9A84C', borderWidth: 0, borderColor: 'transparent',
+    backgroundColor: '#FFF8EC', borderWidth: 1, borderColor: '#E8D9B5',
     justifyContent: 'center', alignItems: 'center',
   },
   primaryTextWrap: { flex: 1, gap: 4 },

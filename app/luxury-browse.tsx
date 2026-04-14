@@ -16,6 +16,8 @@ import {
     View
 } from 'react-native';
 
+import { CardSkeleton } from '../components/SkeletonLoader';
+
 const { width } = Dimensions.get('window');
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -356,7 +358,7 @@ export default function LuxuryBrowseScreen() {
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <Text style={s.headerTitle}>THE DREAM WEDDING</Text>
-          <Text style={s.headerSub}>C U R A T E D</Text>
+          <Text style={s.headerSub}>C O U T U R E</Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
@@ -401,7 +403,7 @@ export default function LuxuryBrowseScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#C9A84C" style={{ paddingVertical: 40 }} />
+          <View style={{ gap: 16 }}><CardSkeleton /><CardSkeleton /><CardSkeleton /></View>
         ) : filteredVendors.length === 0 ? (
           <View style={s.emptyWrap}>
             <Feather name="search" size={32} color="#E8E0D5" />

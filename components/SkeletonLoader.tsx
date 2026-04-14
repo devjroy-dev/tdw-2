@@ -25,7 +25,7 @@ function ShimmerBlock({ w, h, radius = 8, style = {} }: { w: number | string; h:
       width: w as any,
       height: h,
       borderRadius: radius,
-      backgroundColor: '#E8E0D5',
+      backgroundColor: '#EDE8E0',
       opacity,
     }, style]} />
   );
@@ -116,15 +116,15 @@ export default function SkeletonScreen() {
 }
 
 const sk = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F5F0E8', paddingTop: 60, paddingHorizontal: 24 },
+  screen: { flex: 1, backgroundColor: '#FAF6F0', paddingTop: 60, paddingHorizontal: 24 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  card: { marginHorizontal: 24, marginBottom: 16, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E8E0D5', overflow: 'hidden' },
+  card: { marginHorizontal: 24, marginBottom: 16, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#EDE8E0', overflow: 'hidden' },
   cardBody: { padding: 16, gap: 8 },
-  listCard: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E8E0D5', overflow: 'hidden' },
+  listCard: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#EDE8E0', overflow: 'hidden' },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 18 },
   listText: { flex: 1, gap: 6 },
-  divider: { height: 1, backgroundColor: '#E8E0D5', marginHorizontal: 18 },
-  profileWrap: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 20, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E8E0D5', marginBottom: 16 },
+  divider: { height: 1, backgroundColor: '#EDE8E0', marginHorizontal: 18 },
+  profileWrap: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 20, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#EDE8E0', marginBottom: 16 },
   profileText: { flex: 1, gap: 8 },
   grid: { paddingHorizontal: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   dashWrap: { paddingHorizontal: 24 },
