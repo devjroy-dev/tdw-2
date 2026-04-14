@@ -1366,6 +1366,9 @@ app.post('/api/tier-codes/redeem', async (req, res) => {
       .single();
 
     if (codeErr || !codeData) return res.json({ success: false, error: 'Invalid code' });
+    if (codeData.used) {
+      return res.json({ success: false, error: 'Code already used' });
+    }
     if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
       return res.json({ success: false, error: 'Code expired' });
     }
@@ -1434,6 +1437,73 @@ app.get('/api/subscriptions/:vendorId', async (req, res) => {
   } catch (error) {
     res.json({ success: true, data: { tier: 'essential', status: 'active' } });
   }
+});
+
+// ==================
+// VENDOR CREDENTIALS (username/password)
+// ==================
+
+app.post('/api/credentials/create', async (req, res) => {
+  try {
+    const { vendor_id, username, password } = req.body;
+    if (!vendor_id || !username || !password) return res.status(400).json({ success: false, error: 'All fields required' });
+    if (username.length < 3) return res.status(400).json({ success: false, error: 'Username must be at least 3 characters' });
+    if (password.length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    // Check if username already taken
+    const { data: existing } = await supabase.from('vendor_credentials').select('id').eq('username', username.toLowerCase().trim()).single();
+    if (existing) return res.json({ success: false, error: 'Username already taken' });
+    // Check if vendor already has credentials
+    const { data: existingVendor } = await supabase.from('vendor_credentials').select('id').eq('vendor_id', vendor_id).single();
+    if (existingVendor) return res.json({ success: false, error: 'Account already created. Please log in.' });
+    const { data, error } = await supabase.from('vendor_credentials').insert([{
+      vendor_id, username: username.toLowerCase().trim(), password_hash: password,
+    }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data: { id: data.id, vendor_id: data.vendor_id, username: data.username } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/credentials/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ success: false, error: 'Username and password required' });
+    const { data: cred, error } = await supabase.from('vendor_credentials')
+      .select('*').eq('username', username.toLowerCase().trim()).single();
+    if (error || !cred) return res.json({ success: false, error: 'Invalid username or password' });
+    if (cred.password_hash !== password) return res.json({ success: false, error: 'Invalid username or password' });
+    // Get vendor data
+    const { data: vendor } = await supabase.from('vendors').select('*').eq('id', cred.vendor_id).single();
+    if (!vendor) return res.json({ success: false, error: 'Vendor account not found' });
+    // Get subscription tier
+    const { data: sub } = await supabase.from('vendor_subscriptions').select('tier, status, trial_end_date')
+      .eq('vendor_id', cred.vendor_id).order('created_at', { ascending: false }).limit(1).single();
+    res.json({ success: true, data: {
+      id: vendor.id, name: vendor.name, category: vendor.category, city: vendor.city,
+      tier: sub?.tier || 'essential', status: sub?.status || 'active',
+      trial_end: sub?.trial_end_date || null, phone_verified: cred.phone_verified,
+    }});
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/credentials/verify-phone', async (req, res) => {
+  try {
+    const { vendor_id, phone_number } = req.body;
+    if (!vendor_id || !phone_number) return res.status(400).json({ success: false, error: 'Vendor ID and phone required' });
+    const { data, error } = await supabase.from('vendor_credentials')
+      .update({ phone_verified: true, phone_number, updated_at: new Date().toISOString() })
+      .eq('vendor_id', vendor_id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.get('/api/credentials/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('vendor_credentials').select('username, phone_verified, phone_number')
+      .eq('vendor_id', req.params.vendorId).single();
+    if (error) return res.json({ success: true, data: null });
+    res.json({ success: true, data });
+  } catch (error) { res.json({ success: true, data: null }); }
 });
 
 app.post('/api/access-codes/generate', async (req, res) => {

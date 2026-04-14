@@ -7,7 +7,9 @@ export default function VendorLoginPage() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<'tier' | 'app'>('tier');
+  const [mode, setMode] = useState<'tier' | 'login' | 'app'>('tier');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleTierCodeLogin = async () => {
     if (!code.trim()) { setError('Please enter your vendor code'); return; }
@@ -28,7 +30,7 @@ export default function VendorLoginPage() {
           tier: data.data.tier,
           trialEnd: data.data.trial_end,
         }));
-        window.location.href = '/vendor/dashboard';
+        window.location.href = '/vendor/setup';
       } else {
         setError(data.error || 'Invalid or expired code.');
       }
@@ -61,6 +63,34 @@ export default function VendorLoginPage() {
       }
     } catch (e) {
       setError('Could not verify code. Please try again.');
+    } finally { setLoading(false); }
+  };
+
+  const handleUsernameLogin = async () => {
+    if (!username.trim() || !password.trim()) { setError('Enter username and password'); return; }
+    try {
+      setLoading(true); setError('');
+      const res = await fetch(`${API}/api/credentials/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        localStorage.setItem('vendor_web_session', JSON.stringify({
+          vendorId: data.data.id,
+          vendorName: data.data.name,
+          category: data.data.category,
+          city: data.data.city,
+          tier: data.data.tier,
+          trialEnd: data.data.trial_end,
+        }));
+        window.location.href = '/vendor/dashboard';
+      } else {
+        setError(data.error || 'Invalid credentials.');
+      }
+    } catch (e) {
+      setError('Could not sign in. Please try again.');
     } finally { setLoading(false); }
   };
 
@@ -120,17 +150,23 @@ export default function VendorLoginPage() {
           {/* Mode toggle */}
           <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #E5E7EB' }}>
             <button onClick={() => { setMode('tier'); setCode(''); setError(''); }} style={{
-              flex: 1, padding: '10px', fontSize: '12px', fontWeight: mode === 'tier' ? 600 : 400, fontFamily: 'Inter, sans-serif',
+              flex: 1, padding: '10px', fontSize: '11px', fontWeight: mode === 'tier' ? 600 : 400, fontFamily: 'Inter, sans-serif',
               background: mode === 'tier' ? '#0F1117' : '#fff',
               color: mode === 'tier' ? '#C9A84C' : '#6B7280',
               border: 'none', cursor: 'pointer',
             }}>Vendor Code</button>
+            <button onClick={() => { setMode('login'); setCode(''); setError(''); }} style={{
+              flex: 1, padding: '10px', fontSize: '11px', fontWeight: mode === 'login' ? 600 : 400, fontFamily: 'Inter, sans-serif',
+              background: mode === 'login' ? '#0F1117' : '#fff',
+              color: mode === 'login' ? '#C9A84C' : '#6B7280',
+              border: 'none', cursor: 'pointer', borderLeft: '1px solid #E5E7EB',
+            }}>Sign In</button>
             <button onClick={() => { setMode('app'); setCode(''); setError(''); }} style={{
-              flex: 1, padding: '10px', fontSize: '12px', fontWeight: mode === 'app' ? 600 : 400, fontFamily: 'Inter, sans-serif',
+              flex: 1, padding: '10px', fontSize: '11px', fontWeight: mode === 'app' ? 600 : 400, fontFamily: 'Inter, sans-serif',
               background: mode === 'app' ? '#0F1117' : '#fff',
               color: mode === 'app' ? '#C9A84C' : '#6B7280',
               border: 'none', cursor: 'pointer', borderLeft: '1px solid #E5E7EB',
-            }}>App Login Code</button>
+            }}>App Code</button>
           </div>
 
           {mode === 'tier' ? (
@@ -168,6 +204,56 @@ export default function VendorLoginPage() {
               </button>
               <div style={{ fontSize: '11px', color: '#9CA3AF', textAlign: 'center', lineHeight: 1.6 }}>
                 This code was provided during your onboarding with The Dream Wedding team. It gives you access to your personalized CRM dashboard.
+              </div>
+            </>
+          ) : mode === 'login' ? (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 500, color: '#6B7280', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Username</label>
+                <input
+                  type="text" placeholder="Your username"
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && document.getElementById('pwd')?.focus()}
+                  style={{
+                    width: '100%', padding: '14px 18px', fontSize: '14px', fontFamily: 'Inter, sans-serif',
+                    border: error ? '1.5px solid #DC2626' : '1.5px solid #E5E7EB',
+                    borderRadius: '8px', backgroundColor: '#FAFAFA', color: '#0F1117',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => { if (!error) e.target.style.border = '1.5px solid #C9A84C'; }}
+                  onBlur={(e) => { if (!error) e.target.style.border = '1.5px solid #E5E7EB'; }}
+                />
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 500, color: '#6B7280', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Password</label>
+                <input
+                  id="pwd" type="password" placeholder="Your password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUsernameLogin()}
+                  style={{
+                    width: '100%', padding: '14px 18px', fontSize: '14px', fontFamily: 'Inter, sans-serif',
+                    border: error ? '1.5px solid #DC2626' : '1.5px solid #E5E7EB',
+                    borderRadius: '8px', backgroundColor: '#FAFAFA', color: '#0F1117',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => { if (!error) e.target.style.border = '1.5px solid #C9A84C'; }}
+                  onBlur={(e) => { if (!error) e.target.style.border = '1.5px solid #E5E7EB'; }}
+                />
+              </div>
+              {error && <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '12px' }}>{error}</div>}
+              <button onClick={handleUsernameLogin} disabled={loading || !username.trim() || !password.trim()} style={{
+                width: '100%', background: loading || !username.trim() || !password.trim() ? '#E5E7EB' : '#0F1117',
+                color: loading || !username.trim() || !password.trim() ? '#9CA3AF' : '#fff',
+                fontSize: '13px', fontWeight: 600, letterSpacing: '0.5px', fontFamily: 'Inter, sans-serif',
+                padding: '14px 24px', borderRadius: '8px', border: 'none',
+                cursor: loading || !username.trim() || !password.trim() ? 'not-allowed' : 'pointer', marginBottom: '16px',
+              }}>
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+              <div style={{ fontSize: '11px', color: '#9CA3AF', textAlign: 'center', lineHeight: 1.6 }}>
+                Sign in with the username and password you created during onboarding.
               </div>
             </>
           ) : (
