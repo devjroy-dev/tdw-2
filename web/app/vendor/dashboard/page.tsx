@@ -51,6 +51,9 @@ const SIDEBAR_SECTIONS = [
   ]},
   { title: 'Growth', tabs: [
     { id: 'referral', label: 'Referral Tracker', icon: Gift },
+    { id: 'whatsapp', label: 'WhatsApp Broadcast', icon: Send },
+    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+    { id: 'portal', label: 'Client Portal', icon: Share2 },
     { id: 'csvimport', label: 'Import / Export', icon: Upload },
   ]},
   { title: 'Account', tabs: [
@@ -62,10 +65,9 @@ const SIDEBAR_SECTIONS = [
 const ACTIVE_TABS = SIDEBAR_SECTIONS.flatMap(s => s.tabs);
 
 const COMING_SOON_TABS = [
-  { id: 'analytics', label: 'Analytics', icon: BarChart2, build: 'Build 2', desc: 'Deep performance insights, conversion rates, seasonal demand curves and revenue forecasting.' },
-  { id: 'whatsapp', label: 'WhatsApp Broadcast', icon: Send, build: 'Build 2', desc: 'One tap sends a promotional message to all your past clients simultaneously. The most requested vendor feature in India.' },
+
   { id: 'spotlight', label: 'Spotlight Auction', icon: TrendingUp, build: 'Build 2', desc: 'Bid for Spotlight positions 4-10 at Rs.999/month. Top 3 always earned by algorithm — never sold.' },
-  { id: 'portal', label: 'Client Portal', icon: Share2, build: 'Build 2', desc: 'A private link for your couples — they see their event timeline, deliverables and payment schedule without downloading anything.' },
+
   { id: 'tasks', label: 'Team Tasks', icon: CheckSquare, build: 'Build 2', desc: 'Assign tasks to team members per booking. Set deadlines, track completion, get photo confirmation.' },
   { id: 'ai', label: 'AI Brief Generator', icon: Cpu, build: 'Build 3', desc: 'Auto-generates a complete creative brief from the couple profile at the moment of booking. Zero briefing calls needed.' },
   { id: 'pricing', label: 'Pricing Intelligence', icon: TrendingUp, build: 'Build 3', desc: 'Dynamic pricing recommendations based on demand patterns, competitor rates and your booking velocity.' },
@@ -103,6 +105,7 @@ const TAB_TIER: Record<string, string> = {
   'advancetax': 'signature', 'forecast': 'signature', 'paymentshield': 'signature',
   'referral': 'signature', 'csvimport': 'signature', 'team': 'signature',
   'delivery': 'signature', 'timeline': 'signature',
+  'whatsapp': 'signature', 'analytics': 'signature', 'portal': 'signature',
   // Prestige (Deluxe Suite)
   'ds-event-dashboard': 'prestige', 'ds-team-hub': 'prestige', 'ds-team-chat': 'prestige',
   'ds-daily-briefing': 'prestige', 'ds-procurement': 'prestige', 'ds-deliveries': 'prestige',
@@ -622,6 +625,9 @@ export default function VendorDashboard() {
       if (activeTab === 'expenses') loadExpenses();
       if (activeTab === 'payments') loadPayments();
       if (activeTab === 'tax') loadTDS();
+      if (activeTab === 'whatsapp') loadClients();
+      if (activeTab === 'analytics') { loadBookings(); loadInvoices(); loadExpenses(); }
+      if (activeTab === 'portal') loadClients();
       if (activeTab === 'ds-team-hub') loadDsTeam();
       if (activeTab === 'ds-event-dashboard') { loadDsTasks(); loadDsTaskStats(); loadDsTeam(); }
       if (activeTab === 'ds-team-chat') loadDsMessages();
@@ -1654,6 +1660,16 @@ export default function VendorDashboard() {
               letterSpacing: '0.3px',
             }}>
               {vendorData?.name || 'Your Business'}
+              {vendorTier !== 'essential' && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  marginLeft: '10px', padding: '3px 10px', borderRadius: '50px',
+                  background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)',
+                  fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500,
+                  color: '#C9A84C', letterSpacing: '1px', textTransform: 'uppercase',
+                  verticalAlign: 'middle',
+                }}>Est. 2026</span>
+              )}
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
               <p style={{
@@ -3915,6 +3931,223 @@ export default function VendorDashboard() {
             </div>
           </div>
         )}
+        {/* ── WhatsApp Broadcast ── */}
+        {activeTab === 'whatsapp' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>WhatsApp Broadcast</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Send a message to all your past clients in one tap. The most powerful growth tool for Indian vendors.</p>
+            </div>
+
+            {/* Quick broadcast templates */}
+            <div className="card" style={{ padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Broadcast Templates</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  { title: 'Seasonal Offer', msg: `Hi! This is ${vendorData?.name || 'your vendor'}. We have special rates for winter weddings (Nov-Feb). Limited slots available. Reply to know more or visit thedreamwedding.in` },
+                  { title: 'Portfolio Update', msg: `Hi! We just wrapped up a stunning wedding and our new work is live. Check out our latest portfolio on The Dream Wedding app. Would love to work with anyone you know who is getting married!` },
+                  { title: 'Referral Request', msg: `Hi! Hope married life is treating you wonderfully. If you know anyone planning their wedding, we would love to be part of their journey too. Share our profile on The Dream Wedding app — it means the world to us!` },
+                  { title: 'Festival Greeting', msg: `Wishing you and your family a very happy festive season! If any friends or family are planning a wedding, do share our name. We are booking dates for the upcoming season. Thank you for your continued trust!` },
+                  { title: 'Availability Alert', msg: `Hi! Quick update — we have a few premium dates still available for the upcoming wedding season. If you know anyone looking, please share our profile. Early bookings get priority. Thank you!` },
+                ].map((tmpl, idx) => (
+                  <div key={idx} style={{ padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)', marginBottom: '6px' }}>{tmpl.title}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--grey)', lineHeight: 1.6 }}>{tmpl.msg}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button onClick={() => { navigator.clipboard.writeText(tmpl.msg); toast.success('Message copied'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', color: 'var(--dark)', cursor: 'pointer' }}>Copy</button>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(tmpl.msg)}`} target="_blank" rel="noreferrer" style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#25D366', color: '#fff', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Send size={11} /> Send</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Client list for broadcast */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Your Clients ({clients.length})</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>Tap a name to open WhatsApp</span>
+              </div>
+              {clients.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Users size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No clients yet. Add clients to start broadcasting.</p></div>
+              ) : clients.map((c: any, idx: number) => (
+                <a key={c.id || idx} href={`https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hi ${(c.name || c.client_name || '').split('&')[0].trim()}! This is ${vendorData?.name || 'your vendor'} from The Dream Wedding.`)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: idx < clients.length - 1 ? '1px solid var(--card-border)' : 'none', textDecoration: 'none', cursor: 'pointer' }}>
+                  <div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{c.name || c.client_name}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)' }}>{c.phone} {c.wedding_date ? `· ${c.wedding_date}` : ''}</div>
+                  </div>
+                  <Send size={14} color="#25D366" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Analytics Dashboard ── */}
+        {activeTab === 'analytics' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>Analytics</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>Performance insights across your bookings, revenue, and expenses.</p>
+            </div>
+
+            {/* Revenue metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {[
+                { label: 'Total Revenue', value: `Rs.${invoices.reduce((sum: number, inv: any) => sum + (parseInt(inv.amount) || 0), 0).toLocaleString('en-IN')}`, color: 'var(--gold)' },
+                { label: 'Total Bookings', value: String(bookings.length), color: 'var(--dark)' },
+                { label: 'Total Expenses', value: `Rs.${expenses.reduce((sum: number, exp: any) => sum + (parseInt(exp.amount) || 0), 0).toLocaleString('en-IN')}`, color: '#DC2626' },
+                { label: 'Net Profit', value: `Rs.${(invoices.reduce((sum: number, inv: any) => sum + (parseInt(inv.amount) || 0), 0) - expenses.reduce((sum: number, exp: any) => sum + (parseInt(exp.amount) || 0), 0)).toLocaleString('en-IN')}`, color: '#4CAF50' },
+              ].map((m, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '24px 16px', borderTop: `3px solid ${m.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', fontWeight: 300, color: m.color }}>{m.value}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '6px' }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Booking conversion */}
+            <div className="card" style={{ padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Booking Pipeline</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                {[
+                  { label: 'Inquiries', count: bookings.filter((b: any) => b.status === 'pending').length, color: 'var(--gold)' },
+                  { label: 'Confirmed', count: bookings.filter((b: any) => b.status === 'confirmed').length, color: '#4CAF50' },
+                  { label: 'Completed', count: bookings.filter((b: any) => b.status === 'completed').length, color: 'var(--dark)' },
+                  { label: 'Declined', count: bookings.filter((b: any) => b.status === 'declined' || b.status === 'cancelled').length, color: '#DC2626' },
+                ].map((s, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.count}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                    <div style={{ marginTop: '8px', height: '4px', borderRadius: '2px', background: 'rgba(140,123,110,0.1)' }}>
+                      <div style={{ height: '100%', borderRadius: '2px', background: s.color, width: `${bookings.length > 0 ? (s.count / bookings.length) * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Monthly revenue breakdown */}
+            <div className="card" style={{ padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Revenue by Month</div>
+              {(() => {
+                const months: Record<string, number> = {};
+                invoices.forEach((inv: any) => {
+                  const d = new Date(inv.created_at);
+                  const key = d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+                  months[key] = (months[key] || 0) + (parseInt(inv.amount) || 0);
+                });
+                const entries = Object.entries(months).slice(-6);
+                const max = Math.max(...entries.map(e => e[1]), 1);
+                return entries.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px', color: 'var(--grey)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>No invoice data yet</div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '160px' }}>
+                    {entries.map(([month, amount], i) => (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--dark)' }}>Rs.{(amount / 1000).toFixed(0)}K</div>
+                        <div style={{ width: '100%', borderRadius: '4px 4px 0 0', background: 'var(--gold)', height: `${(amount / max) * 120}px`, minHeight: '4px' }} />
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: 'var(--grey)' }}>{month}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Expense breakdown */}
+            <div className="card" style={{ padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Expense Breakdown by Category</div>
+              {(() => {
+                const cats: Record<string, number> = {};
+                expenses.forEach((exp: any) => { cats[exp.category || 'Other'] = (cats[exp.category || 'Other'] || 0) + (parseInt(exp.amount) || 0); });
+                const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+                const total = entries.reduce((s, e) => s + e[1], 0) || 1;
+                const colors = ['var(--gold)', '#1D4ED8', '#4CAF50', '#DC2626', '#8C7B6E', '#9C27B0'];
+                return entries.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px', color: 'var(--grey)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>No expense data yet</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {entries.map(([cat, amount], i) => (
+                      <div key={i}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--dark)' }}>{cat}</span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>Rs.{amount.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(140,123,110,0.08)' }}>
+                          <div style={{ height: '100%', borderRadius: '3px', background: colors[i % colors.length], width: `${(amount / total) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ── Client Portal ── */}
+        {activeTab === 'portal' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)', marginBottom: '4px' }}>Client Portal</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)' }}>A private link for your couples. They see their timeline, deliverables, and payment schedule.</p>
+            </div>
+
+            {clients.length === 0 ? (
+              <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
+                <Share2 size={32} color="var(--grey-light)" />
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No clients yet</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Add clients to generate their private portal links.</p>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Client Portals ({clients.length})</span>
+                </div>
+                {clients.map((c: any, idx: number) => {
+                  const portalUrl = `https://thedreamwedding.in/portal/${vendorData?.id}/${c.id}`;
+                  return (
+                    <div key={c.id || idx} style={{ padding: '16px 20px', borderBottom: idx < clients.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{c.name || c.client_name}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{c.wedding_date || 'No date set'} {c.phone ? `· ${c.phone}` : ''}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => { navigator.clipboard.writeText(portalUrl); toast.success('Portal link copied'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', color: 'var(--dark)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Share2 size={11} /> Copy Link</button>
+                        <a href={`https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hi ${(c.name || c.client_name || '').split('&')[0].trim()}! Here is your private wedding portal: ${portalUrl} — You can see your timeline, payments, and deliverables anytime. — ${vendorData?.name || 'Your Vendor'}`)}`} target="_blank" rel="noreferrer" style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#25D366', color: '#fff', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Send size={11} /> Share</a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Portal features info */}
+            <div style={{ background: '#0F1117', borderRadius: '10px', padding: '28px 32px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>What Your Client Sees</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {[
+                  { title: 'Event Timeline', desc: 'Key dates and milestones for their wedding journey.' },
+                  { title: 'Payment Schedule', desc: 'What has been paid, what is due, and when.' },
+                  { title: 'Deliverables', desc: 'Photos, videos, and documents shared with them.' },
+                  { title: 'Your Contact', desc: 'Direct line to you via the app. No middlemen.' },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 700, color: '#0F1117' }}>{i + 1}</div>
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>{f.title}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── DELUXE SUITE: Team Hub ── */}
         {activeTab === 'ds-team-hub' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
