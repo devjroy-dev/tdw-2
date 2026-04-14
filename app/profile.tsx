@@ -39,6 +39,17 @@ export default function ProfileScreen() {
       if (tier) setCoupleTier(tier as any);
       const tokens = await AsyncStorage.getItem('tdw_token_balance');
       if (tokens !== null) setTokenBalance(parseInt(tokens));
+      // Sync from Supabase if available
+      if (session?.userId) {
+        try {
+          const userRes = await fetch('https://dream-wedding-production-89ae.up.railway.app/api/users/' + session.userId);
+          const userData = await userRes.json();
+          if (userData.success && userData.data) {
+            if (userData.data.couple_tier) { setCoupleTier(userData.data.couple_tier); await AsyncStorage.setItem('tdw_couple_tier', userData.data.couple_tier); }
+            if (userData.data.token_balance !== null && userData.data.token_balance !== undefined) { setTokenBalance(userData.data.token_balance); await AsyncStorage.setItem('tdw_token_balance', String(userData.data.token_balance)); }
+          }
+        } catch (e) {}
+      }
       // Check if referred by vendor
       const referredBy = await AsyncStorage.getItem('tdw_referred_by_vendor');
       if (referredBy && !await AsyncStorage.getItem('tdw_referral_credited')) {

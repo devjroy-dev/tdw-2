@@ -708,6 +708,8 @@ export default function SwipeScreen() {
                   const newBalance = tokenBalance - 1;
                   setTokenBalance(newBalance);
                   await AsyncStorage.setItem('tdw_token_balance', String(newBalance));
+                  // Sync to Supabase
+                  if (userId) { fetch('https://dream-wedding-production-89ae.up.railway.app/api/users/' + userId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token_balance: newBalance }) }).catch(() => {}); }
                   if (pendingRevealVendor) {
                     const newUnlocked = [...unlockedVendors, pendingRevealVendor.id];
                     setUnlockedVendors(newUnlocked);
