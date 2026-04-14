@@ -1686,6 +1686,464 @@ app.delete('/api/payment-schedules/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
+// ==================
+// DELUXE SUITE — VENDOR TEAM MEMBERS
+// ==================
+
+app.get('/api/ds/team/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('vendor_team_members').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: true });
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/team', async (req, res) => {
+  try {
+    const { vendor_id, name, email, phone, role, status, permissions } = req.body;
+    const { data, error } = await supabase.from('vendor_team_members').insert([{ vendor_id, name, email, phone, role: role || 'staff', status: status || 'invited', permissions: permissions || {} }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/team/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('vendor_team_members').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/ds/team/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('vendor_team_members').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — TEAM TASKS
+// ==================
+
+app.get('/api/ds/tasks/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('team_tasks').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
+    if (req.query.assigned_to) query = query.eq('assigned_to', req.query.assigned_to);
+    if (req.query.status) query = query.eq('status', req.query.status);
+    if (req.query.category) query = query.eq('category', req.query.category);
+    if (req.query.priority) query = query.eq('priority', req.query.priority);
+    if (req.query.booking_id) query = query.eq('related_booking_id', req.query.booking_id);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/tasks', async (req, res) => {
+  try {
+    const { vendor_id, assigned_to, assigned_by, title, description, priority, status, due_date, related_booking_id, related_client_name, category, notes } = req.body;
+    const { data, error } = await supabase.from('team_tasks').insert([{ vendor_id, assigned_to, assigned_by, title, description, priority: priority || 'medium', status: status || 'pending', due_date, related_booking_id, related_client_name, category: category || 'general', notes }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/tasks/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    if (updates.status === 'completed' && !updates.completed_at) updates.completed_at = new Date().toISOString();
+    const { data, error } = await supabase.from('team_tasks').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/ds/tasks/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('team_tasks').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.get('/api/ds/tasks/:vendorId/stats', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('team_tasks').select('*').eq('vendor_id', req.params.vendorId);
+    if (error) throw error;
+    const total = data.length;
+    const pending = data.filter(t => t.status === 'pending').length;
+    const in_progress = data.filter(t => t.status === 'in_progress').length;
+    const completed = data.filter(t => t.status === 'completed').length;
+    const overdue = data.filter(t => t.status === 'overdue' || (t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed')).length;
+    res.json({ success: true, data: { total, pending, in_progress, completed, overdue } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — TEAM MESSAGES
+// ==================
+
+app.get('/api/ds/messages/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('team_messages').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: true });
+    if (req.query.channel_id) query = query.eq('channel_id', req.query.channel_id);
+    if (req.query.channel_type) query = query.eq('channel_type', req.query.channel_type);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/messages', async (req, res) => {
+  try {
+    const { vendor_id, sender_id, sender_name, channel_type, channel_id, message, message_type, reference_id } = req.body;
+    const { data, error } = await supabase.from('team_messages').insert([{ vendor_id, sender_id, sender_name, channel_type: channel_type || 'group', channel_id, message, message_type: message_type || 'text', reference_id }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/messages/:id/pin', async (req, res) => {
+  try {
+    const { pinned } = req.body;
+    const { data, error } = await supabase.from('team_messages').update({ pinned }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — PROCUREMENT
+// ==================
+
+app.get('/api/ds/procurement/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('procurement_items').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    if (req.query.booking_id) query = query.eq('booking_id', req.query.booking_id);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/procurement', async (req, res) => {
+  try {
+    const { vendor_id, booking_id, item_name, description, vendor_supplier, status, assigned_to, expected_date, cost, notes, related_client_name } = req.body;
+    const { data, error } = await supabase.from('procurement_items').insert([{ vendor_id, booking_id, item_name, description, vendor_supplier, status: status || 'ordered', assigned_to, expected_date, cost, notes, related_client_name }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/procurement/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('procurement_items').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/ds/procurement/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('procurement_items').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — DELIVERIES
+// ==================
+
+app.get('/api/ds/deliveries/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('delivery_items').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/deliveries', async (req, res) => {
+  try {
+    const { vendor_id, booking_id, item_name, description, status, assigned_to, delivery_date, related_client_name, notes } = req.body;
+    const { data, error } = await supabase.from('delivery_items').insert([{ vendor_id, booking_id, item_name, description, status: status || 'preparing', assigned_to, delivery_date, related_client_name, notes }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/deliveries/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    if (updates.status === 'client_confirmed' && !updates.client_confirmed_at) updates.client_confirmed_at = new Date().toISOString();
+    const { data, error } = await supabase.from('delivery_items').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/ds/deliveries/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('delivery_items').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — TRIAL SCHEDULE
+// ==================
+
+app.get('/api/ds/trials/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('trial_schedule').select('*').eq('vendor_id', req.params.vendorId).order('scheduled_date', { ascending: true });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/trials', async (req, res) => {
+  try {
+    const { vendor_id, booking_id, client_name, trial_type, scheduled_date, assigned_to, status, notes } = req.body;
+    const { data, error } = await supabase.from('trial_schedule').insert([{ vendor_id, booking_id, client_name, trial_type: trial_type || 'consultation', scheduled_date, assigned_to, status: status || 'scheduled', notes }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/trials/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('trial_schedule').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/ds/trials/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('trial_schedule').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — PHOTO APPROVALS
+// ==================
+
+app.get('/api/ds/photos/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('photo_approvals').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/photos', async (req, res) => {
+  try {
+    const { vendor_id, uploaded_by, uploader_name, booking_id, related_client_name, file_url, thumbnail_url, file_type, title, description } = req.body;
+    const { data, error } = await supabase.from('photo_approvals').insert([{ vendor_id, uploaded_by, uploader_name, booking_id, related_client_name, file_url, thumbnail_url, file_type: file_type || 'image', title, description, status: 'pending' }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/photos/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body };
+    if (updates.status === 'approved' || updates.status === 'revision_requested') updates.reviewed_at = new Date().toISOString();
+    const { data, error } = await supabase.from('photo_approvals').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — TEAM CHECK-INS
+// ==================
+
+app.get('/api/ds/checkins/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('team_checkins').select('*').eq('vendor_id', req.params.vendorId).order('checked_in_at', { ascending: false });
+    if (req.query.booking_id) query = query.eq('booking_id', req.query.booking_id);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/checkins', async (req, res) => {
+  try {
+    const { vendor_id, member_id, member_name, booking_id, related_client_name, notes } = req.body;
+    const { data, error } = await supabase.from('team_checkins').insert([{ vendor_id, member_id, member_name, booking_id, related_client_name, status: 'checked_in', notes }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/checkins/:id/checkout', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('team_checkins').update({ status: 'checked_out', checked_out_at: new Date().toISOString() }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — CLIENT SENTIMENT
+// ==================
+
+app.get('/api/ds/sentiment/:vendorId', async (req, res) => {
+  try {
+    let query = supabase.from('client_sentiment').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
+    if (req.query.client_name) query = query.eq('client_name', req.query.client_name);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/sentiment', async (req, res) => {
+  try {
+    const { vendor_id, booking_id, client_name, milestone, rating, logged_by, logger_name, notes } = req.body;
+    const { data, error } = await supabase.from('client_sentiment').insert([{ vendor_id, booking_id, client_name, milestone, rating, logged_by, logger_name, notes }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — DELEGATION TEMPLATES
+// ==================
+
+app.get('/api/ds/templates/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('delegation_templates').select('*').eq('vendor_id', req.params.vendorId).order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/ds/templates', async (req, res) => {
+  try {
+    const { vendor_id, template_name, event_type, tasks } = req.body;
+    const { data, error } = await supabase.from('delegation_templates').insert([{ vendor_id, template_name, event_type: event_type || 'wedding', tasks: tasks || [] }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/ds/templates/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('delegation_templates').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/ds/templates/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('delegation_templates').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — DAILY BRIEFING (computed)
+// ==================
+
+app.get('/api/ds/briefing/:vendorId', async (req, res) => {
+  try {
+    const vid = req.params.vendorId;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const weekEnd = new Date(today);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const [tasks, procurement, deliveries, trials, checkins, sentiment] = await Promise.all([
+      supabase.from('team_tasks').select('*').eq('vendor_id', vid),
+      supabase.from('procurement_items').select('*').eq('vendor_id', vid).in('status', ['ordered', 'in_transit']),
+      supabase.from('delivery_items').select('*').eq('vendor_id', vid).in('status', ['preparing', 'dispatched']),
+      supabase.from('trial_schedule').select('*').eq('vendor_id', vid).gte('scheduled_date', today.toISOString()).lte('scheduled_date', weekEnd.toISOString()).in('status', ['scheduled', 'confirmed']),
+      supabase.from('team_checkins').select('*').eq('vendor_id', vid).gte('checked_in_at', today.toISOString()),
+      supabase.from('client_sentiment').select('*').eq('vendor_id', vid).eq('rating', 'concerned'),
+    ]);
+
+    const allTasks = tasks.data || [];
+    const overdueTasks = allTasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed');
+    const todayTasks = allTasks.filter(t => t.due_date && new Date(t.due_date) >= today && new Date(t.due_date) < tomorrow && t.status !== 'completed');
+    const pendingTasks = allTasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
+
+    res.json({
+      success: true,
+      data: {
+        tasks_today: todayTasks.length,
+        tasks_overdue: overdueTasks.length,
+        tasks_pending: pendingTasks.length,
+        tasks_overdue_list: overdueTasks.slice(0, 5),
+        tasks_today_list: todayTasks.slice(0, 5),
+        procurement_active: (procurement.data || []).length,
+        deliveries_pending: (deliveries.data || []).length,
+        trials_this_week: (trials.data || []).length,
+        trials_list: (trials.data || []).slice(0, 5),
+        team_onsite_today: (checkins.data || []).filter(c => c.status === 'checked_in').length,
+        concerns: (sentiment.data || []).length,
+        concerns_list: (sentiment.data || []).slice(0, 3),
+      },
+    });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ==================
+// DELUXE SUITE — TEAM PERFORMANCE (computed)
+// ==================
+
+app.get('/api/ds/performance/:vendorId', async (req, res) => {
+  try {
+    const vid = req.params.vendorId;
+    const [members, tasks] = await Promise.all([
+      supabase.from('vendor_team_members').select('*').eq('vendor_id', vid).eq('status', 'active'),
+      supabase.from('team_tasks').select('*').eq('vendor_id', vid),
+    ]);
+    const allMembers = members.data || [];
+    const allTasks = tasks.data || [];
+    const performance = allMembers.map(m => {
+      const memberTasks = allTasks.filter(t => t.assigned_to === m.id);
+      const completed = memberTasks.filter(t => t.status === 'completed');
+      const overdue = memberTasks.filter(t => t.status === 'overdue' || (t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed'));
+      const onTime = completed.filter(t => t.due_date && t.completed_at && new Date(t.completed_at) <= new Date(t.due_date));
+      return {
+        member_id: m.id,
+        name: m.name,
+        role: m.role,
+        total_tasks: memberTasks.length,
+        completed: completed.length,
+        overdue: overdue.length,
+        on_time: onTime.length,
+        on_time_rate: completed.length > 0 ? Math.round((onTime.length / completed.length) * 100) : 0,
+        pending: memberTasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length,
+      };
+    });
+    res.json({ success: true, data: performance });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
 app.delete('/api/tds/:id', async (req, res) => {
   try {
     const { error } = await supabase.from('vendor_tds_ledger').delete().eq('id', req.params.id);

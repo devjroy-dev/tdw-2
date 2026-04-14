@@ -9,7 +9,9 @@ import {
   Edit2, Phone, Lock, Activity, Zap, Image, Percent,
   MinusCircle, Share2, List, Package, Target,
   DollarSign, BookOpen, Tool, Truck, Coffee,
-  Navigation, Upload, ArrowDownCircle, Shield, Search, Printer
+  Navigation, Upload, ArrowDownCircle, Shield, Search, Printer,
+  Award, Layers, MessageSquare, Sunrise, Box, Camera,
+  MapPin, ThumbsUp, Clipboard, UserCheck, Eye
 } from 'react-feather';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app/api';
@@ -69,6 +71,148 @@ const COMING_SOON_TABS = [
   { id: 'pricing', label: 'Pricing Intelligence', icon: TrendingUp, build: 'Build 3', desc: 'Dynamic pricing recommendations based on demand patterns, competitor rates and your booking velocity.' },
   { id: 'location', label: 'Team Location', icon: Map, build: 'Build 3', desc: 'Real-time opt-in location sharing for your team during active events. For event managers coordinating large teams.' },
 ];
+
+// ── Deluxe Suite Tabs ───────────────────────────────────────────
+const DELUXE_SUITE_TABS = [
+  { id: 'ds-event-dashboard', label: 'Event Dashboard', icon: Layers, desc: 'Your command centre. One view per booking — team, tasks, procurement, deliveries, payments, timeline. Everything in one place.' },
+  { id: 'ds-team-hub', label: 'Team Hub', icon: Users, desc: 'Manage your entire workforce. Add members, assign roles, set permissions, track workload and availability across all events.' },
+  { id: 'ds-team-chat', label: 'Team Chat', icon: MessageSquare, desc: 'Event-based group chats, direct messaging, and owner broadcasts. Your team communication lives here — not on WhatsApp.' },
+  { id: 'ds-daily-briefing', label: 'Daily Briefing', icon: Sunrise, desc: 'Auto-generated morning overview. Active events, overdue tasks, upcoming trials, pending deliveries, outstanding payments — one glance.' },
+  { id: 'ds-procurement', label: 'Procurement Tracker', icon: Box, desc: 'Track every order and purchase across events. Status from ordered to verified, linked to bookings and team members.' },
+  { id: 'ds-deliveries', label: 'Delivery Tracker', icon: Truck, desc: 'Monitor all outgoing deliveries. Preparing to dispatched to delivered to client confirmed. Never miss a handoff.' },
+  { id: 'ds-trials', label: 'Trial Schedule', icon: Calendar, desc: 'Fittings, consultations, tastings, walkthroughs — all scheduled, assigned, and tracked. Confirm or reschedule in one tap.' },
+  { id: 'ds-photo-approvals', label: 'Photo Approvals', icon: Camera, desc: 'Your team uploads deliverables. You review and approve from your desk. Edited photos, video cuts, design renders — all in queue.' },
+  { id: 'ds-checkin', label: 'Check-in Tracker', icon: MapPin, desc: 'Event day attendance. Team members check in on arrival. See who is on-site, who is en route. No more "where are you" messages.' },
+  { id: 'ds-sentiment', label: 'Client Sentiment', icon: ThumbsUp, desc: 'After every milestone, your team logs client mood. Spot concerns before they escalate. Critical for luxury clients who talk.' },
+  { id: 'ds-templates', label: 'Delegation Templates', icon: Clipboard, desc: 'Pre-built task bundles for event types. Select a template, apply to a booking — 30+ tasks auto-created with deadlines and assignees.' },
+  { id: 'ds-performance', label: 'Team Performance', icon: UserCheck, desc: 'Weekly scorecard per team member. Tasks on time, overdue count, response time. See who delivers and who needs support.' },
+];
+
+// ── Deluxe Suite Preview Modal (for non-VV vendors) ─────────────
+function DeluxeSuiteModal({ tab, onClose }: { tab: any; onClose: () => void }) {
+  if (!tab) return null;
+  const Icon = tab.icon;
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '24px',
+    }} onClick={onClose}>
+      <div style={{
+        background: '#0F1117',
+        borderRadius: '20px',
+        padding: '48px',
+        maxWidth: '520px',
+        width: '100%',
+        border: '1px solid rgba(201,168,76,0.25)',
+        position: 'relative',
+        overflow: 'hidden',
+      }} onClick={e => e.stopPropagation()}>
+        {/* Gold gradient accent */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+          background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)',
+        }} />
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px',
+        }}>
+          <div style={{
+            width: '52px', height: '52px',
+            borderRadius: '13px',
+            background: 'rgba(201,168,76,0.1)',
+            border: '1px solid rgba(201,168,76,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={22} color="#C9A84C" />
+          </div>
+          <div>
+            <div style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '9px',
+              fontWeight: 500,
+              color: '#C9A84C',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              marginBottom: '4px',
+            }}>
+              Deluxe Suite
+            </div>
+            <h3 style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '20px',
+              fontWeight: 500,
+              color: '#F5F0E8',
+              margin: 0,
+            }}>
+              {tab.label}
+            </h3>
+          </div>
+        </div>
+        <p style={{
+          fontFamily: 'Inter, sans-serif',
+          fontSize: '14px',
+          fontWeight: 300,
+          color: '#8C7B6E',
+          lineHeight: 1.8,
+          marginBottom: '32px',
+        }}>
+          {tab.desc}
+        </p>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          marginBottom: '28px',
+          padding: '12px 16px',
+          background: 'rgba(201,168,76,0.06)',
+          borderRadius: '10px',
+          border: '1px solid rgba(201,168,76,0.12)',
+        }}>
+          <Award size={14} color="#C9A84C" />
+          <span style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '12px',
+            fontWeight: 400,
+            color: '#C9A84C',
+          }}>
+            Available exclusively on the Deluxe plan
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{
+            flex: 1,
+            background: 'rgba(255,255,255,0.06)',
+            color: '#8C7B6E',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '0.5px',
+            padding: '14px 24px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            cursor: 'pointer',
+          }}>
+            Close
+          </button>
+          <button onClick={onClose} style={{
+            flex: 1,
+            background: 'linear-gradient(135deg, #C9A84C, #B8963A)',
+            color: '#0F1117',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+            padding: '14px 24px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+          }}>
+            Upgrade to Deluxe
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Coming Soon Modal ────────────────────────────────────────────
 function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
@@ -196,6 +340,44 @@ export default function VendorDashboard() {
     info: (msg:string) => { const id = Date.now(); setToasts(p => [...p, {id, msg, type:'info'}]); setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500); },
   };
   const [comingSoonTab, setComingSoonTab] = useState<any>(null);
+  const [deluxeSuiteTab, setDeluxeSuiteTab] = useState<any>(null);
+
+  // Deluxe Suite states
+  const [dsTeam, setDsTeam] = useState<any[]>([]);
+  const [dsTasks, setDsTasks] = useState<any[]>([]);
+  const [dsTaskStats, setDsTaskStats] = useState<any>({ total: 0, pending: 0, in_progress: 0, completed: 0, overdue: 0 });
+  const [dsMessages, setDsMessages] = useState<any[]>([]);
+  const [dsProcurement, setDsProcurement] = useState<any[]>([]);
+  const [dsDeliveries, setDsDeliveries] = useState<any[]>([]);
+  const [dsTrials, setDsTrials] = useState<any[]>([]);
+  const [dsPhotos, setDsPhotos] = useState<any[]>([]);
+  const [dsCheckins, setDsCheckins] = useState<any[]>([]);
+  const [dsSentiment, setDsSentiment] = useState<any[]>([]);
+  const [dsTemplates, setDsTemplates] = useState<any[]>([]);
+  const [dsBriefing, setDsBriefing] = useState<any>(null);
+  const [dsPerformance, setDsPerformance] = useState<any[]>([]);
+  const [dsChatChannel, setDsChatChannel] = useState('general');
+  const [dsChatInput, setDsChatInput] = useState('');
+  const [dsTaskFilter, setDsTaskFilter] = useState('all');
+  const [dsShowTaskForm, setDsShowTaskForm] = useState(false);
+  const [dsShowTeamForm, setDsShowTeamForm] = useState(false);
+  const [dsShowProcForm, setDsShowProcForm] = useState(false);
+  const [dsShowDeliveryForm, setDsShowDeliveryForm] = useState(false);
+  const [dsShowTrialForm, setDsShowTrialForm] = useState(false);
+  const [dsShowPhotoForm, setDsShowPhotoForm] = useState(false);
+  const [dsShowCheckinForm, setDsShowCheckinForm] = useState(false);
+  const [dsShowSentimentForm, setDsShowSentimentForm] = useState(false);
+  const [dsShowTemplateForm, setDsShowTemplateForm] = useState(false);
+  const [dsNewTeam, setDsNewTeam] = useState({ name: '', email: '', phone: '', role: 'staff' });
+  const [dsNewTask, setDsNewTask] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', related_client_name: '', category: 'general' });
+  const [dsNewProc, setDsNewProc] = useState({ item_name: '', vendor_supplier: '', expected_date: '', cost: '', assigned_to: '', related_client_name: '', notes: '' });
+  const [dsNewDelivery, setDsNewDelivery] = useState({ item_name: '', delivery_date: '', assigned_to: '', related_client_name: '', notes: '' });
+  const [dsNewTrial, setDsNewTrial] = useState({ client_name: '', trial_type: 'consultation', scheduled_date: '', assigned_to: '', notes: '' });
+  const [dsNewPhoto, setDsNewPhoto] = useState({ file_url: '', title: '', related_client_name: '', uploader_name: '' });
+  const [dsNewCheckin, setDsNewCheckin] = useState({ member_id: '', member_name: '', related_client_name: '', notes: '' });
+  const [dsNewSentiment, setDsNewSentiment] = useState({ client_name: '', milestone: '', rating: 'happy', logger_name: '', notes: '' });
+  const [dsNewTemplate, setDsNewTemplate] = useState({ template_name: '', event_type: 'wedding', tasks: '[]' });
+  const [dsEventView, setDsEventView] = useState<string | null>(null);
   const [vendorData, setVendorData] = useState<any>(null);
   const [packages, setPackages] = useState<any[]>([
     { id: '1', name: 'Silver', price: 80000, inclusions: ['1 day coverage', '300 edited photos', 'Online gallery'] },
@@ -387,6 +569,21 @@ export default function VendorDashboard() {
     loadInitialData();
   }, []);
 
+  // Deluxe Suite data loaders
+  const loadDsTeam = async () => { try { const r = await fetch(`${API}/ds/team/${vendorData.id}`); const d = await r.json(); if (d.success) setDsTeam(d.data); } catch(e) {} };
+  const loadDsTasks = async () => { try { const r = await fetch(`${API}/ds/tasks/${vendorData.id}`); const d = await r.json(); if (d.success) setDsTasks(d.data); } catch(e) {} };
+  const loadDsTaskStats = async () => { try { const r = await fetch(`${API}/ds/tasks/${vendorData.id}/stats`); const d = await r.json(); if (d.success) setDsTaskStats(d.data); } catch(e) {} };
+  const loadDsMessages = async (channel?: string) => { try { const ch = channel || dsChatChannel; const r = await fetch(`${API}/ds/messages/${vendorData.id}?channel_id=${ch}`); const d = await r.json(); if (d.success) setDsMessages(d.data); } catch(e) {} };
+  const loadDsProcurement = async () => { try { const r = await fetch(`${API}/ds/procurement/${vendorData.id}`); const d = await r.json(); if (d.success) setDsProcurement(d.data); } catch(e) {} };
+  const loadDsDeliveries = async () => { try { const r = await fetch(`${API}/ds/deliveries/${vendorData.id}`); const d = await r.json(); if (d.success) setDsDeliveries(d.data); } catch(e) {} };
+  const loadDsTrials = async () => { try { const r = await fetch(`${API}/ds/trials/${vendorData.id}`); const d = await r.json(); if (d.success) setDsTrials(d.data); } catch(e) {} };
+  const loadDsPhotos = async () => { try { const r = await fetch(`${API}/ds/photos/${vendorData.id}`); const d = await r.json(); if (d.success) setDsPhotos(d.data); } catch(e) {} };
+  const loadDsCheckins = async () => { try { const r = await fetch(`${API}/ds/checkins/${vendorData.id}`); const d = await r.json(); if (d.success) setDsCheckins(d.data); } catch(e) {} };
+  const loadDsSentiment = async () => { try { const r = await fetch(`${API}/ds/sentiment/${vendorData.id}`); const d = await r.json(); if (d.success) setDsSentiment(d.data); } catch(e) {} };
+  const loadDsTemplates = async () => { try { const r = await fetch(`${API}/ds/templates/${vendorData.id}`); const d = await r.json(); if (d.success) setDsTemplates(d.data); } catch(e) {} };
+  const loadDsBriefing = async () => { try { const r = await fetch(`${API}/ds/briefing/${vendorData.id}`); const d = await r.json(); if (d.success) setDsBriefing(d.data); } catch(e) {} };
+  const loadDsPerformance = async () => { try { const r = await fetch(`${API}/ds/performance/${vendorData.id}`); const d = await r.json(); if (d.success) setDsPerformance(d.data); } catch(e) {} };
+
   useEffect(() => {
     if (vendorData?.id) {
       if (activeTab === 'invoices') loadInvoices();
@@ -397,6 +594,18 @@ export default function VendorDashboard() {
       if (activeTab === 'expenses') loadExpenses();
       if (activeTab === 'payments') loadPayments();
       if (activeTab === 'tax') loadTDS();
+      if (activeTab === 'ds-team-hub') loadDsTeam();
+      if (activeTab === 'ds-event-dashboard') { loadDsTasks(); loadDsTaskStats(); loadDsTeam(); }
+      if (activeTab === 'ds-team-chat') loadDsMessages();
+      if (activeTab === 'ds-daily-briefing') loadDsBriefing();
+      if (activeTab === 'ds-procurement') loadDsProcurement();
+      if (activeTab === 'ds-deliveries') loadDsDeliveries();
+      if (activeTab === 'ds-trials') loadDsTrials();
+      if (activeTab === 'ds-photo-approvals') loadDsPhotos();
+      if (activeTab === 'ds-checkin') loadDsCheckins();
+      if (activeTab === 'ds-sentiment') loadDsSentiment();
+      if (activeTab === 'ds-templates') loadDsTemplates();
+      if (activeTab === 'ds-performance') { loadDsPerformance(); loadDsTeam(); }
     }
   }, [activeTab, vendorData]);
 
@@ -1272,6 +1481,68 @@ export default function VendorDashboard() {
               </button>
             );
           })}
+          {/* Deluxe Suite */}
+          <div style={{
+            marginTop: '12px',
+            borderTop: '1px solid rgba(201,168,76,0.15)',
+            paddingTop: '12px',
+          }}>
+            <div style={{
+              padding: '8px 24px 6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <Award size={9} color="#C9A84C" />
+              <span style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '9px',
+                fontWeight: 500,
+                color: 'rgba(201,168,76,0.7)',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+              }}>
+                Deluxe Suite
+              </span>
+            </div>
+            {DELUXE_SUITE_TABS.filter(tab => !sidebarSearch || tab.label.toLowerCase().includes(sidebarSearch.toLowerCase())).map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    width: '100%',
+                    padding: '10px 24px',
+                    background: isActive ? 'rgba(201,168,76,0.1)' : 'transparent',
+                    border: 'none',
+                    borderLeft: isActive ? '2px solid #C9A84C' : '2px solid transparent',
+                    borderRadius: 0,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <Icon size={13} color={isActive ? '#C9A84C' : 'rgba(201,168,76,0.4)'} />
+                  <span style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '12px',
+                    fontWeight: isActive ? 500 : 300,
+                    color: isActive ? '#C9A84C' : 'rgba(201,168,76,0.5)',
+                    flex: 1,
+                  }}>
+                    {!sidebarCollapsed && tab.label}
+                  </span>
+                  {!sidebarCollapsed && (
+                    <Award size={9} color={isActive ? '#C9A84C' : 'rgba(201,168,76,0.35)'} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Logout */}
@@ -3516,6 +3787,906 @@ export default function VendorDashboard() {
             </div>
           </div>
         )}
+        {/* ── DELUXE SUITE: Team Hub ── */}
+        {activeTab === 'ds-team-hub' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Award size={14} color="var(--gold)" />
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span>
+                </div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Team Hub</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Manage your workforce. Roles, permissions, availability — all in one place.</p>
+              </div>
+              <button onClick={() => { setDsNewTeam({ name: '', email: '', phone: '', role: 'staff' }); setDsShowTeamForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', letterSpacing: '0.5px' }}>
+                <Plus size={14} /> Add Member
+              </button>
+            </div>
+
+            {/* Team stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {[
+                { num: String(dsTeam.length), label: 'Total Members' },
+                { num: String(dsTeam.filter(m => m.status === 'active').length), label: 'Active' },
+                { num: String(dsTeam.filter(m => m.status === 'invited').length), label: 'Invited' },
+                { num: String(dsTeam.filter(m => m.role === 'manager').length), label: 'Managers' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '20px 16px' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: 'var(--dark)' }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Team list */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Team Members</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>{dsTeam.length} members</span>
+              </div>
+              {dsTeam.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+                  <Users size={32} color="var(--grey-light)" />
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No team members yet</p>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Add your first team member to start delegating.</p>
+                </div>
+              ) : dsTeam.map((m, idx) => (
+                <div key={m.id} style={{ padding: '16px 20px', borderBottom: idx < dsTeam.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: m.role === 'owner' ? 'rgba(201,168,76,0.12)' : m.role === 'manager' ? 'rgba(44,36,32,0.08)' : 'rgba(140,123,110,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: m.role === 'owner' ? 'var(--gold)' : 'var(--dark)' }}>{m.name?.charAt(0)?.toUpperCase()}</div>
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{m.name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{m.phone || m.email || 'No contact'}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '4px', background: m.role === 'owner' ? 'rgba(201,168,76,0.1)' : m.role === 'manager' ? 'rgba(44,36,32,0.06)' : 'rgba(140,123,110,0.06)', color: m.role === 'owner' ? 'var(--gold)' : 'var(--dark)' }}>{m.role}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: m.status === 'active' ? 'rgba(76,175,80,0.08)' : m.status === 'invited' ? 'rgba(201,168,76,0.08)' : 'rgba(229,115,115,0.08)', color: m.status === 'active' ? '#4CAF50' : m.status === 'invited' ? 'var(--gold)' : '#E57373' }}>{m.status}</span>
+                    <select value={m.role} onChange={async (e) => { await fetch(`${API}/ds/team/${m.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: e.target.value }) }); loadDsTeam(); toast.success('Role updated'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer' }}>
+                      <option value="owner">Owner</option><option value="manager">Manager</option><option value="staff">Staff</option>
+                    </select>
+                    <button onClick={async () => { const newStatus = m.status === 'active' ? 'deactivated' : 'active'; await fetch(`${API}/ds/team/${m.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }); loadDsTeam(); toast.success(newStatus === 'active' ? 'Member activated' : 'Member deactivated'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: m.status === 'active' ? '#E57373' : '#4CAF50' }}>{m.status === 'active' ? 'Deactivate' : 'Activate'}</button>
+                    <button onClick={async () => { if (confirm('Remove this team member?')) { await fetch(`${API}/ds/team/${m.id}`, { method: 'DELETE' }); loadDsTeam(); toast.success('Member removed'); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--grey)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add team member form */}
+            {dsShowTeamForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Add Team Member</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Name</label>
+                    <input value={dsNewTeam.name} onChange={e => setDsNewTeam({ ...dsNewTeam, name: e.target.value })} placeholder="Full name" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Phone</label>
+                    <input value={dsNewTeam.phone} onChange={e => setDsNewTeam({ ...dsNewTeam, phone: e.target.value })} placeholder="Phone number" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Email</label>
+                    <input value={dsNewTeam.email} onChange={e => setDsNewTeam({ ...dsNewTeam, email: e.target.value })} placeholder="Email address" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Role</label>
+                    <select value={dsNewTeam.role} onChange={e => setDsNewTeam({ ...dsNewTeam, role: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}>
+                      <option value="staff">Staff</option><option value="manager">Manager</option><option value="owner">Owner</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowTeamForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewTeam.name) { toast.error('Name is required'); return; } await fetch(`${API}/ds/team`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewTeam }) }); setDsShowTeamForm(false); loadDsTeam(); toast.success('Team member added'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Add Member</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Event Dashboard ── */}
+        {activeTab === 'ds-event-dashboard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Award size={14} color="var(--gold)" />
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span>
+                </div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Event Dashboard</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Your command centre. Tasks, team, and progress — all per booking.</p>
+              </div>
+              <button onClick={() => { setDsNewTask({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', related_client_name: '', category: 'general' }); setDsShowTaskForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', letterSpacing: '0.5px' }}>
+                <Plus size={14} /> Create Task
+              </button>
+            </div>
+
+            {/* Task stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+              {[
+                { num: String(dsTaskStats.total), label: 'Total', color: 'var(--dark)' },
+                { num: String(dsTaskStats.pending), label: 'Pending', color: 'var(--gold)' },
+                { num: String(dsTaskStats.in_progress), label: 'In Progress', color: '#1D4ED8' },
+                { num: String(dsTaskStats.completed), label: 'Completed', color: '#4CAF50' },
+                { num: String(dsTaskStats.overdue), label: 'Overdue', color: '#DC2626' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '20px 16px', borderLeft: `3px solid ${s.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Task filters */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {['all', 'pending', 'in_progress', 'completed', 'overdue'].map(f => (
+                <button key={f} onClick={() => setDsTaskFilter(f)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: dsTaskFilter === f ? 500 : 400, padding: '8px 16px', borderRadius: '50px', border: dsTaskFilter === f ? '1px solid var(--gold)' : '1px solid var(--card-border)', background: dsTaskFilter === f ? 'rgba(201,168,76,0.08)' : '#fff', color: dsTaskFilter === f ? 'var(--gold)' : 'var(--grey)', cursor: 'pointer', textTransform: 'capitalize' }}>{f === 'all' ? 'All Tasks' : f.replace('_', ' ')}</button>
+              ))}
+            </div>
+
+            {/* Task list */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Tasks</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>{dsTasks.filter(t => dsTaskFilter === 'all' || t.status === dsTaskFilter).length} tasks</span>
+              </div>
+              {dsTasks.filter(t => dsTaskFilter === 'all' || t.status === dsTaskFilter).length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+                  <CheckSquare size={32} color="var(--grey-light)" />
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No tasks found</p>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Create your first task to start managing your events.</p>
+                </div>
+              ) : dsTasks.filter(t => dsTaskFilter === 'all' || t.status === dsTaskFilter).map((t, idx, arr) => (
+                <div key={t.id} style={{ padding: '16px 20px', borderBottom: idx < arr.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                    <button onClick={async () => { const next = t.status === 'pending' ? 'in_progress' : t.status === 'in_progress' ? 'completed' : t.status; await fetch(`${API}/ds/tasks/${t.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) }); loadDsTasks(); loadDsTaskStats(); toast.success('Task updated'); }} style={{ width: '22px', height: '22px', borderRadius: '50%', border: t.status === 'completed' ? '2px solid #4CAF50' : '2px solid var(--card-border)', background: t.status === 'completed' ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>{t.status === 'completed' && <Check size={12} color="#fff" />}</button>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)', textDecoration: t.status === 'completed' ? 'line-through' : 'none', opacity: t.status === 'completed' ? 0.5 : 1 }}>{t.title}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {t.related_client_name && <span>{t.related_client_name}</span>}
+                        {t.due_date && <span>Due: {new Date(t.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
+                        {t.category && t.category !== 'general' && <span style={{ textTransform: 'capitalize' }}>{t.category}</span>}
+                        {(() => { const member = dsTeam.find(m => m.id === t.assigned_to); return member ? <span>Assigned: {member.name}</span> : null; })()}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '4px', background: t.priority === 'urgent' ? 'rgba(220,38,38,0.08)' : t.priority === 'high' ? 'rgba(234,179,8,0.08)' : t.priority === 'medium' ? 'rgba(29,78,216,0.08)' : 'rgba(140,123,110,0.06)', color: t.priority === 'urgent' ? '#DC2626' : t.priority === 'high' ? '#B8860B' : t.priority === 'medium' ? '#1D4ED8' : 'var(--grey)' }}>{t.priority}</span>
+                    <select value={t.status} onChange={async (e) => { await fetch(`${API}/ds/tasks/${t.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: e.target.value }) }); loadDsTasks(); loadDsTaskStats(); toast.success('Status updated'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer' }}>
+                      <option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="completed">Completed</option><option value="overdue">Overdue</option>
+                    </select>
+                    <button onClick={async () => { if (confirm('Delete this task?')) { await fetch(`${API}/ds/tasks/${t.id}`, { method: 'DELETE' }); loadDsTasks(); loadDsTaskStats(); toast.success('Task deleted'); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--grey)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Create task form */}
+            {dsShowTaskForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Create Task</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Task Title</label>
+                    <input value={dsNewTask.title} onChange={e => setDsNewTask({ ...dsNewTask, title: e.target.value })} placeholder="What needs to be done?" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} />
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Description</label>
+                    <textarea value={dsNewTask.description} onChange={e => setDsNewTask({ ...dsNewTask, description: e.target.value })} placeholder="Details..." rows={2} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', resize: 'vertical' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Assign To</label>
+                    <select value={dsNewTask.assigned_to} onChange={e => setDsNewTask({ ...dsNewTask, assigned_to: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}>
+                      <option value="">Unassigned</option>
+                      {dsTeam.filter(m => m.status === 'active').map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Priority</label>
+                    <select value={dsNewTask.priority} onChange={e => setDsNewTask({ ...dsNewTask, priority: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}>
+                      <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Due Date</label>
+                    <input type="date" value={dsNewTask.due_date} onChange={e => setDsNewTask({ ...dsNewTask, due_date: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
+                    <select value={dsNewTask.category} onChange={e => setDsNewTask({ ...dsNewTask, category: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}>
+                      <option value="general">General</option><option value="procurement">Procurement</option><option value="delivery">Delivery</option><option value="trial">Trial</option><option value="setup">Setup</option><option value="payment">Payment</option>
+                    </select>
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Client / Event</label>
+                    <input value={dsNewTask.related_client_name} onChange={e => setDsNewTask({ ...dsNewTask, related_client_name: e.target.value })} placeholder="e.g. Priya & Rahul Sharma" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowTaskForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewTask.title) { toast.error('Task title is required'); return; } await fetch(`${API}/ds/tasks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewTask, due_date: dsNewTask.due_date ? new Date(dsNewTask.due_date).toISOString() : null, assigned_to: dsNewTask.assigned_to || null }) }); setDsShowTaskForm(false); loadDsTasks(); loadDsTaskStats(); toast.success('Task created'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Create Task</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Team Chat ── */}
+        {activeTab === 'ds-team-chat' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Award size={14} color="var(--gold)" />
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span>
+              </div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Team Chat</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Event-based group chats, direct messages, and broadcasts. Your team talks here — not on WhatsApp.</p>
+            </div>
+
+            {/* Channel selector */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {['general', 'broadcast', ...(clients.length > 0 ? clients.slice(0, 5).map((c: any) => c.client_name || c.name) : [])].map(ch => (
+                <button key={ch} onClick={() => { setDsChatChannel(ch); loadDsMessages(ch); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: dsChatChannel === ch ? 500 : 400, padding: '8px 16px', borderRadius: '50px', border: dsChatChannel === ch ? '1px solid var(--gold)' : '1px solid var(--card-border)', background: dsChatChannel === ch ? 'rgba(201,168,76,0.08)' : '#fff', color: dsChatChannel === ch ? 'var(--gold)' : 'var(--grey)', cursor: 'pointer', textTransform: 'capitalize' }}>{ch === 'general' ? 'General' : ch === 'broadcast' ? 'Broadcast' : ch}</button>
+              ))}
+            </div>
+
+            {/* Chat area */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '500px' }}>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageSquare size={14} color="var(--gold)" />
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)', textTransform: 'capitalize' }}>{dsChatChannel}</span>
+                </div>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)' }}>{dsMessages.length} messages</span>
+              </div>
+              <div style={{ flex: 1, padding: '20px', overflowY: 'auto', maxHeight: '400px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {dsMessages.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <MessageSquare size={32} color="var(--grey-light)" />
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No messages yet</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Start the conversation with your team.</p>
+                  </div>
+                ) : dsMessages.map(msg => (
+                  <div key={msg.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: msg.message_type === 'system' ? 'rgba(201,168,76,0.1)' : 'rgba(44,36,32,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, color: msg.message_type === 'system' ? 'var(--gold)' : 'var(--dark)' }}>{msg.message_type === 'system' ? 'S' : msg.sender_name?.charAt(0)?.toUpperCase() || '?'}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>{msg.sender_name || 'System'}</span>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: 'var(--text-muted)' }}>{new Date(msg.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        {msg.pinned && <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', background: 'rgba(201,168,76,0.08)', padding: '2px 6px', borderRadius: '4px' }}>Pinned</span>}
+                      </div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{msg.message}</div>
+                    </div>
+                    <button onClick={async () => { await fetch(`${API}/ds/messages/${msg.id}/pin`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pinned: !msg.pinned }) }); loadDsMessages(); toast.info(msg.pinned ? 'Unpinned' : 'Pinned'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', opacity: 0.4 }} title={msg.pinned ? 'Unpin' : 'Pin'}><Star size={12} color="var(--gold)" /></button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: '14px 20px', borderTop: '1px solid var(--card-border)', display: 'flex', gap: '10px' }}>
+                <input value={dsChatInput} onChange={e => setDsChatInput(e.target.value)} onKeyDown={async (e) => { if (e.key === 'Enter' && dsChatInput.trim()) { await fetch(`${API}/ds/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, sender_id: null, sender_name: vendorData.name || 'Owner', channel_type: dsChatChannel === 'broadcast' ? 'broadcast' : dsChatChannel === 'general' ? 'group' : 'event', channel_id: dsChatChannel, message: dsChatInput }) }); setDsChatInput(''); loadDsMessages(); } }} placeholder="Type a message..." style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', outline: 'none' }} />
+                <button onClick={async () => { if (!dsChatInput.trim()) return; await fetch(`${API}/ds/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, sender_id: null, sender_name: vendorData.name || 'Owner', channel_type: dsChatChannel === 'broadcast' ? 'broadcast' : dsChatChannel === 'general' ? 'group' : 'event', channel_id: dsChatChannel, message: dsChatInput }) }); setDsChatInput(''); loadDsMessages(); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '8px', background: 'var(--dark)', border: 'none', cursor: 'pointer' }}><Send size={16} color="var(--cream)" /></button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Daily Briefing ── */}
+        {activeTab === 'ds-daily-briefing' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Award size={14} color="var(--gold)" />
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span>
+              </div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Daily Briefing</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Your morning overview. Everything that matters today — one glance.</p>
+            </div>
+
+            {!dsBriefing ? (
+              <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
+                <Sunrise size={32} color="var(--grey-light)" />
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>Loading your briefing...</p>
+              </div>
+            ) : (
+              <>
+                {/* Top stats row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                  {[
+                    { num: String(dsBriefing.tasks_today), label: 'Tasks Today', color: 'var(--dark)', icon: CheckSquare },
+                    { num: String(dsBriefing.tasks_overdue), label: 'Overdue', color: '#DC2626', icon: AlertCircle },
+                    { num: String(dsBriefing.trials_this_week), label: 'Trials This Week', color: 'var(--gold)', icon: Calendar },
+                    { num: String(dsBriefing.team_onsite_today), label: 'Team On-Site', color: '#4CAF50', icon: MapPin },
+                  ].map((s, i) => {
+                    const SIcon = s.icon;
+                    return (
+                      <div key={i} className="card" style={{ padding: '24px 20px', borderLeft: `3px solid ${s.color}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '32px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                          </div>
+                          <SIcon size={18} color={s.color} style={{ opacity: 0.3 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Secondary stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                  {[
+                    { num: String(dsBriefing.tasks_pending), label: 'Tasks Pending', icon: Clock },
+                    { num: String(dsBriefing.procurement_active), label: 'Active Procurement', icon: Box },
+                    { num: String(dsBriefing.deliveries_pending), label: 'Pending Deliveries', icon: Truck },
+                  ].map((s, i) => {
+                    const SIcon = s.icon;
+                    return (
+                      <div key={i} className="card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(201,168,76,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SIcon size={18} color="var(--gold)" /></div>
+                        <div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '22px', fontWeight: 300, color: 'var(--dark)' }}>{s.num}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>{s.label}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Overdue tasks */}
+                {dsBriefing.tasks_overdue > 0 && (
+                  <div className="card" style={{ padding: 0, overflow: 'hidden', borderLeft: '3px solid #DC2626' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--card-border)', background: 'rgba(220,38,38,0.03)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: '#DC2626' }}>Overdue Tasks</span>
+                    </div>
+                    {(dsBriefing.tasks_overdue_list || []).map((t: any, idx: number) => (
+                      <div key={t.id || idx} style={{ padding: '12px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>{t.title}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{t.related_client_name || 'No client'} · Due: {t.due_date ? new Date(t.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'No date'}</div>
+                        </div>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: 'rgba(220,38,38,0.08)', color: '#DC2626', textTransform: 'capitalize' }}>{t.priority}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Today's tasks */}
+                {dsBriefing.tasks_today > 0 && (
+                  <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--card-border)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Today's Tasks</span>
+                    </div>
+                    {(dsBriefing.tasks_today_list || []).map((t: any, idx: number) => (
+                      <div key={t.id || idx} style={{ padding: '12px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>{t.title}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{t.related_client_name || 'No client'}</div>
+                        </div>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: 'rgba(201,168,76,0.08)', color: 'var(--gold)', textTransform: 'capitalize' }}>{t.priority}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upcoming trials */}
+                {dsBriefing.trials_this_week > 0 && (
+                  <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--card-border)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Upcoming Trials This Week</span>
+                    </div>
+                    {(dsBriefing.trials_list || []).map((t: any, idx: number) => (
+                      <div key={t.id || idx} style={{ padding: '12px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>{t.client_name}</div>
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', textTransform: 'capitalize' }}>{t.trial_type} · {new Date(t.scheduled_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: 'rgba(76,175,80,0.08)', color: '#4CAF50', textTransform: 'capitalize' }}>{t.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Concerns */}
+                {dsBriefing.concerns > 0 && (
+                  <div className="card" style={{ padding: 0, overflow: 'hidden', borderLeft: '3px solid #F59E0B' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--card-border)', background: 'rgba(245,158,11,0.03)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: '#B8860B' }}>Client Concerns</span>
+                    </div>
+                    {(dsBriefing.concerns_list || []).map((s: any, idx: number) => (
+                      <div key={s.id || idx} style={{ padding: '12px 20px', borderBottom: '1px solid var(--card-border)' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, color: 'var(--dark)' }}>{s.client_name}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{s.milestone} · Logged by {s.logger_name || 'Team'}</div>
+                        {s.notes && <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#B8860B', marginTop: '4px' }}>{s.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Procurement Tracker ── */}
+        {activeTab === 'ds-procurement' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Procurement Tracker</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Track every order and purchase. From ordered to verified — nothing falls through.</p>
+              </div>
+              <button onClick={() => { setDsNewProc({ item_name: '', vendor_supplier: '', expected_date: '', cost: '', assigned_to: '', related_client_name: '', notes: '' }); setDsShowProcForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Add Item</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {[
+                { num: String(dsProcurement.filter(p => p.status === 'ordered').length), label: 'Ordered', color: 'var(--gold)' },
+                { num: String(dsProcurement.filter(p => p.status === 'in_transit').length), label: 'In Transit', color: '#1D4ED8' },
+                { num: String(dsProcurement.filter(p => p.status === 'received').length), label: 'Received', color: '#4CAF50' },
+                { num: String(dsProcurement.filter(p => p.status === 'verified').length), label: 'Verified', color: 'var(--dark)' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '20px 16px', borderTop: `3px solid ${s.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>All Procurement Items</span></div>
+              {dsProcurement.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Box size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No procurement items yet</p></div>
+              ) : dsProcurement.map((p, idx) => (
+                <div key={p.id} style={{ padding: '16px 20px', borderBottom: idx < dsProcurement.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{p.item_name}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', gap: '12px' }}>
+                      {p.vendor_supplier && <span>Supplier: {p.vendor_supplier}</span>}
+                      {p.related_client_name && <span>Client: {p.related_client_name}</span>}
+                      {p.expected_date && <span>Expected: {new Date(p.expected_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
+                      {p.cost && <span>Rs.{(p.cost / 100).toLocaleString('en-IN')}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <select value={p.status} onChange={async (e) => { await fetch(`${API}/ds/procurement/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: e.target.value }) }); loadDsProcurement(); toast.success('Status updated'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer' }}>
+                      <option value="ordered">Ordered</option><option value="in_transit">In Transit</option><option value="received">Received</option><option value="verified">Verified</option>
+                    </select>
+                    <button onClick={async () => { if (confirm('Delete this item?')) { await fetch(`${API}/ds/procurement/${p.id}`, { method: 'DELETE' }); loadDsProcurement(); toast.success('Item deleted'); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--grey)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {dsShowProcForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Add Procurement Item</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Item Name</label><input value={dsNewProc.item_name} onChange={e => setDsNewProc({ ...dsNewProc, item_name: e.target.value })} placeholder="What are you ordering?" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Supplier</label><input value={dsNewProc.vendor_supplier} onChange={e => setDsNewProc({ ...dsNewProc, vendor_supplier: e.target.value })} placeholder="Supplier name" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Expected Date</label><input type="date" value={dsNewProc.expected_date} onChange={e => setDsNewProc({ ...dsNewProc, expected_date: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Cost (Rs.)</label><input type="number" value={dsNewProc.cost} onChange={e => setDsNewProc({ ...dsNewProc, cost: e.target.value })} placeholder="Amount" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Assign To</label><select value={dsNewProc.assigned_to} onChange={e => setDsNewProc({ ...dsNewProc, assigned_to: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="">Unassigned</option>{dsTeam.filter(m => m.status === 'active').map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Client / Event</label><input value={dsNewProc.related_client_name} onChange={e => setDsNewProc({ ...dsNewProc, related_client_name: e.target.value })} placeholder="e.g. Sharma Wedding" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowProcForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewProc.item_name) { toast.error('Item name is required'); return; } await fetch(`${API}/ds/procurement`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewProc, cost: dsNewProc.cost ? parseInt(dsNewProc.cost) * 100 : null, assigned_to: dsNewProc.assigned_to || null }) }); setDsShowProcForm(false); loadDsProcurement(); toast.success('Item added'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Add Item</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Delivery Tracker ── */}
+        {activeTab === 'ds-deliveries' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Delivery Tracker</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Monitor all outgoing deliveries. From preparing to client confirmed.</p>
+              </div>
+              <button onClick={() => { setDsNewDelivery({ item_name: '', delivery_date: '', assigned_to: '', related_client_name: '', notes: '' }); setDsShowDeliveryForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Add Delivery</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {[
+                { num: String(dsDeliveries.filter(d => d.status === 'preparing').length), label: 'Preparing', color: 'var(--gold)' },
+                { num: String(dsDeliveries.filter(d => d.status === 'dispatched').length), label: 'Dispatched', color: '#1D4ED8' },
+                { num: String(dsDeliveries.filter(d => d.status === 'delivered').length), label: 'Delivered', color: '#4CAF50' },
+                { num: String(dsDeliveries.filter(d => d.status === 'client_confirmed').length), label: 'Confirmed', color: 'var(--dark)' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '20px 16px', borderTop: `3px solid ${s.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>All Deliveries</span></div>
+              {dsDeliveries.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Truck size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No deliveries yet</p></div>
+              ) : dsDeliveries.map((d, idx) => (
+                <div key={d.id} style={{ padding: '16px 20px', borderBottom: idx < dsDeliveries.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{d.item_name}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', gap: '12px' }}>
+                      {d.related_client_name && <span>{d.related_client_name}</span>}
+                      {d.delivery_date && <span>Date: {new Date(d.delivery_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <select value={d.status} onChange={async (e) => { await fetch(`${API}/ds/deliveries/${d.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: e.target.value }) }); loadDsDeliveries(); toast.success('Status updated'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer' }}>
+                      <option value="preparing">Preparing</option><option value="dispatched">Dispatched</option><option value="delivered">Delivered</option><option value="client_confirmed">Client Confirmed</option>
+                    </select>
+                    <button onClick={async () => { if (confirm('Delete this delivery?')) { await fetch(`${API}/ds/deliveries/${d.id}`, { method: 'DELETE' }); loadDsDeliveries(); toast.success('Deleted'); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--grey)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {dsShowDeliveryForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Add Delivery</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Item Name</label><input value={dsNewDelivery.item_name} onChange={e => setDsNewDelivery({ ...dsNewDelivery, item_name: e.target.value })} placeholder="What is being delivered?" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Delivery Date</label><input type="date" value={dsNewDelivery.delivery_date} onChange={e => setDsNewDelivery({ ...dsNewDelivery, delivery_date: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Assign To</label><select value={dsNewDelivery.assigned_to} onChange={e => setDsNewDelivery({ ...dsNewDelivery, assigned_to: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="">Unassigned</option>{dsTeam.filter(m => m.status === 'active').map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Client / Event</label><input value={dsNewDelivery.related_client_name} onChange={e => setDsNewDelivery({ ...dsNewDelivery, related_client_name: e.target.value })} placeholder="e.g. Sharma Wedding" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowDeliveryForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewDelivery.item_name) { toast.error('Item name is required'); return; } await fetch(`${API}/ds/deliveries`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewDelivery, assigned_to: dsNewDelivery.assigned_to || null }) }); setDsShowDeliveryForm(false); loadDsDeliveries(); toast.success('Delivery added'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Add Delivery</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Trial Schedule ── */}
+        {activeTab === 'ds-trials' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Trial Schedule</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Fittings, consultations, tastings, walkthroughs — scheduled, assigned, and tracked.</p>
+              </div>
+              <button onClick={() => { setDsNewTrial({ client_name: '', trial_type: 'consultation', scheduled_date: '', assigned_to: '', notes: '' }); setDsShowTrialForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Schedule Trial</button>
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>All Trials</span></div>
+              {dsTrials.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Calendar size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No trials scheduled</p></div>
+              ) : dsTrials.map((t, idx) => (
+                <div key={t.id} style={{ padding: '16px 20px', borderBottom: idx < dsTrials.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{t.client_name}</div>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', gap: '12px' }}>
+                      <span style={{ textTransform: 'capitalize' }}>{t.trial_type}</span>
+                      <span>{new Date(t.scheduled_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      {(() => { const member = dsTeam.find(m => m.id === t.assigned_to); return member ? <span>Assigned: {member.name}</span> : null; })()}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <select value={t.status} onChange={async (e) => { await fetch(`${API}/ds/trials/${t.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: e.target.value }) }); loadDsTrials(); toast.success('Status updated'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer' }}>
+                      <option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="rescheduled">Rescheduled</option><option value="cancelled">Cancelled</option>
+                    </select>
+                    <button onClick={async () => { if (confirm('Delete this trial?')) { await fetch(`${API}/ds/trials/${t.id}`, { method: 'DELETE' }); loadDsTrials(); toast.success('Deleted'); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--grey)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {dsShowTrialForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Schedule Trial</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Client Name</label><input value={dsNewTrial.client_name} onChange={e => setDsNewTrial({ ...dsNewTrial, client_name: e.target.value })} placeholder="Client name" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Trial Type</label><select value={dsNewTrial.trial_type} onChange={e => setDsNewTrial({ ...dsNewTrial, trial_type: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="consultation">Consultation</option><option value="fitting">Fitting</option><option value="tasting">Tasting</option><option value="walkthrough">Walkthrough</option><option value="other">Other</option></select></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Date and Time</label><input type="datetime-local" value={dsNewTrial.scheduled_date} onChange={e => setDsNewTrial({ ...dsNewTrial, scheduled_date: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Assign To</label><select value={dsNewTrial.assigned_to} onChange={e => setDsNewTrial({ ...dsNewTrial, assigned_to: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="">Unassigned</option>{dsTeam.filter(m => m.status === 'active').map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowTrialForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewTrial.client_name || !dsNewTrial.scheduled_date) { toast.error('Client name and date required'); return; } await fetch(`${API}/ds/trials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewTrial, scheduled_date: new Date(dsNewTrial.scheduled_date).toISOString(), assigned_to: dsNewTrial.assigned_to || null }) }); setDsShowTrialForm(false); loadDsTrials(); toast.success('Trial scheduled'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Schedule Trial</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Photo Approvals ── */}
+        {activeTab === 'ds-photo-approvals' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Photo Approvals</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Review deliverables from your team. Approve or request revisions.</p>
+              </div>
+              <button onClick={() => { setDsNewPhoto({ file_url: '', title: '', related_client_name: '', uploader_name: '' }); setDsShowPhotoForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Upload</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              {[
+                { num: String(dsPhotos.filter(p => p.status === 'pending').length), label: 'Pending Review', color: 'var(--gold)' },
+                { num: String(dsPhotos.filter(p => p.status === 'approved').length), label: 'Approved', color: '#4CAF50' },
+                { num: String(dsPhotos.filter(p => p.status === 'revision_requested').length), label: 'Needs Revision', color: '#DC2626' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '20px 16px', borderTop: `3px solid ${s.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Approval Queue</span></div>
+              {dsPhotos.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Camera size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No items in queue</p></div>
+              ) : dsPhotos.map((p, idx) => (
+                <div key={p.id} style={{ padding: '16px 20px', borderBottom: idx < dsPhotos.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                    {p.file_url ? <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: `url(${p.file_url}) center/cover`, border: '1px solid var(--card-border)' }} /> : <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: 'rgba(140,123,110,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera size={18} color="var(--grey)" /></div>}
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{p.title || 'Untitled'}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
+                        {p.uploader_name && <span>By: {p.uploader_name}</span>}
+                        {p.related_client_name && <span>{p.related_client_name}</span>}
+                        <span>{new Date(p.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: p.status === 'approved' ? 'rgba(76,175,80,0.08)' : p.status === 'revision_requested' ? 'rgba(220,38,38,0.08)' : 'rgba(201,168,76,0.08)', color: p.status === 'approved' ? '#4CAF50' : p.status === 'revision_requested' ? '#DC2626' : 'var(--gold)', textTransform: 'capitalize' }}>{p.status === 'revision_requested' ? 'Revision' : p.status}</span>
+                    {p.status === 'pending' && (
+                      <>
+                        <button onClick={async () => { await fetch(`${API}/ds/photos/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'approved' }) }); loadDsPhotos(); toast.success('Approved'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '6px 14px', borderRadius: '6px', border: 'none', background: '#4CAF50', color: '#fff', cursor: 'pointer' }}>Approve</button>
+                        <button onClick={async () => { const notes = prompt('Revision notes:'); if (notes) { await fetch(`${API}/ds/photos/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'revision_requested', revision_notes: notes }) }); loadDsPhotos(); toast.info('Revision requested'); } }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '6px 14px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', color: 'var(--dark)', cursor: 'pointer' }}>Revise</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {dsShowPhotoForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Upload for Review</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Title</label><input value={dsNewPhoto.title} onChange={e => setDsNewPhoto({ ...dsNewPhoto, title: e.target.value })} placeholder="e.g. Edited Photos - Batch 1" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>File URL</label><input value={dsNewPhoto.file_url} onChange={e => setDsNewPhoto({ ...dsNewPhoto, file_url: e.target.value })} placeholder="Cloudinary or drive link" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Uploaded By</label><input value={dsNewPhoto.uploader_name} onChange={e => setDsNewPhoto({ ...dsNewPhoto, uploader_name: e.target.value })} placeholder="Team member name" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Client / Event</label><input value={dsNewPhoto.related_client_name} onChange={e => setDsNewPhoto({ ...dsNewPhoto, related_client_name: e.target.value })} placeholder="e.g. Sharma Wedding" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowPhotoForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewPhoto.file_url) { toast.error('File URL is required'); return; } await fetch(`${API}/ds/photos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewPhoto }) }); setDsShowPhotoForm(false); loadDsPhotos(); toast.success('Uploaded for review'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Upload</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Check-in Tracker ── */}
+        {activeTab === 'ds-checkin' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Check-in Tracker</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Event day attendance. See who is on-site and who is en route.</p>
+              </div>
+              <button onClick={() => { setDsNewCheckin({ member_id: '', member_name: '', related_client_name: '', notes: '' }); setDsShowCheckinForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Check In</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+              <div className="card" style={{ textAlign: 'center', padding: '24px', borderLeft: '3px solid #4CAF50' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '32px', fontWeight: 300, color: '#4CAF50' }}>{dsCheckins.filter(c => c.status === 'checked_in').length}</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>On-Site Now</div>
+              </div>
+              <div className="card" style={{ textAlign: 'center', padding: '24px', borderLeft: '3px solid var(--grey)' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '32px', fontWeight: 300, color: 'var(--grey)' }}>{dsCheckins.filter(c => c.status === 'checked_out').length}</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>Checked Out</div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Check-in Log</span></div>
+              {dsCheckins.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><MapPin size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No check-ins yet</p></div>
+              ) : dsCheckins.map((c, idx) => (
+                <div key={c.id} style={{ padding: '14px 20px', borderBottom: idx < dsCheckins.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: c.status === 'checked_in' ? '#4CAF50' : 'var(--grey)' }} />
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{c.member_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
+                        {c.related_client_name && <span>{c.related_client_name}</span>}
+                        <span>In: {new Date(c.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        {c.checked_out_at && <span>Out: {new Date(c.checked_out_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: c.status === 'checked_in' ? 'rgba(76,175,80,0.08)' : 'rgba(140,123,110,0.06)', color: c.status === 'checked_in' ? '#4CAF50' : 'var(--grey)' }}>{c.status === 'checked_in' ? 'On-Site' : 'Left'}</span>
+                    {c.status === 'checked_in' && (
+                      <button onClick={async () => { await fetch(`${API}/ds/checkins/${c.id}/checkout`, { method: 'PUT' }); loadDsCheckins(); toast.success('Checked out'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '6px 14px', borderRadius: '6px', border: '1px solid var(--card-border)', background: '#fff', color: 'var(--dark)', cursor: 'pointer' }}>Check Out</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {dsShowCheckinForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Check In Team Member</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Team Member</label><select value={dsNewCheckin.member_id} onChange={e => { const m = dsTeam.find(t => t.id === e.target.value); setDsNewCheckin({ ...dsNewCheckin, member_id: e.target.value, member_name: m?.name || '' }); }} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="">Select member</option>{dsTeam.filter(m => m.status === 'active').map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Event / Client</label><input value={dsNewCheckin.related_client_name} onChange={e => setDsNewCheckin({ ...dsNewCheckin, related_client_name: e.target.value })} placeholder="e.g. Sharma Wedding" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowCheckinForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewCheckin.member_id) { toast.error('Select a team member'); return; } await fetch(`${API}/ds/checkins`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewCheckin }) }); setDsShowCheckinForm(false); loadDsCheckins(); toast.success('Checked in'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Check In</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Client Sentiment ── */}
+        {activeTab === 'ds-sentiment' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Client Sentiment</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Track client mood after every milestone. Spot concerns before they escalate.</p>
+              </div>
+              <button onClick={() => { setDsNewSentiment({ client_name: '', milestone: '', rating: 'happy', logger_name: '', notes: '' }); setDsShowSentimentForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Log Sentiment</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              {[
+                { num: String(dsSentiment.filter(s => s.rating === 'happy').length), label: 'Happy', color: '#4CAF50', emoji: 'Good' },
+                { num: String(dsSentiment.filter(s => s.rating === 'neutral').length), label: 'Neutral', color: 'var(--gold)', emoji: 'Okay' },
+                { num: String(dsSentiment.filter(s => s.rating === 'concerned').length), label: 'Concerned', color: '#DC2626', emoji: 'Alert' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ textAlign: 'center', padding: '24px', borderTop: `3px solid ${s.color}` }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: 300, color: s.color }}>{s.num}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Sentiment Log</span></div>
+              {dsSentiment.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><ThumbsUp size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No sentiment logged yet</p></div>
+              ) : dsSentiment.map((s, idx) => (
+                <div key={s.id} style={{ padding: '14px 20px', borderBottom: idx < dsSentiment.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: s.rating === 'happy' ? '#4CAF50' : s.rating === 'neutral' ? 'var(--gold)' : '#DC2626' }} />
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{s.client_name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
+                        <span>{s.milestone}</span>
+                        {s.logger_name && <span>By: {s.logger_name}</span>}
+                        <span>{new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                      </div>
+                      {s.notes && <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>{s.notes}</div>}
+                    </div>
+                  </div>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, padding: '4px 10px', borderRadius: '4px', background: s.rating === 'happy' ? 'rgba(76,175,80,0.08)' : s.rating === 'neutral' ? 'rgba(201,168,76,0.08)' : 'rgba(220,38,38,0.08)', color: s.rating === 'happy' ? '#4CAF50' : s.rating === 'neutral' ? 'var(--gold)' : '#DC2626', textTransform: 'capitalize' }}>{s.rating}</span>
+                </div>
+              ))}
+            </div>
+            {dsShowSentimentForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Log Client Sentiment</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Client Name</label><input value={dsNewSentiment.client_name} onChange={e => setDsNewSentiment({ ...dsNewSentiment, client_name: e.target.value })} placeholder="Client name" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Milestone</label><input value={dsNewSentiment.milestone} onChange={e => setDsNewSentiment({ ...dsNewSentiment, milestone: e.target.value })} placeholder="e.g. First fitting, Final delivery" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Rating</label><select value={dsNewSentiment.rating} onChange={e => setDsNewSentiment({ ...dsNewSentiment, rating: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="happy">Happy</option><option value="neutral">Neutral</option><option value="concerned">Concerned</option></select></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Logged By</label><input value={dsNewSentiment.logger_name} onChange={e => setDsNewSentiment({ ...dsNewSentiment, logger_name: e.target.value })} placeholder="Your name or team member" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div style={{ gridColumn: 'span 2' }}><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Notes</label><textarea value={dsNewSentiment.notes} onChange={e => setDsNewSentiment({ ...dsNewSentiment, notes: e.target.value })} placeholder="Any context..." rows={2} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', resize: 'vertical' }} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowSentimentForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewSentiment.client_name || !dsNewSentiment.milestone) { toast.error('Client and milestone required'); return; } await fetch(`${API}/ds/sentiment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, ...dsNewSentiment }) }); setDsShowSentimentForm(false); loadDsSentiment(); toast.success('Sentiment logged'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Log Sentiment</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Delegation Templates ── */}
+        {activeTab === 'ds-templates' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Delegation Templates</h2>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Pre-built task bundles. Select a template, apply to a booking — tasks auto-created.</p>
+              </div>
+              <button onClick={() => { setDsNewTemplate({ template_name: '', event_type: 'wedding', tasks: '[]' }); setDsShowTemplateForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--dark)', color: 'var(--cream)', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><Plus size={14} /> Create Template</button>
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--dark)' }}>Your Templates</span></div>
+              {dsTemplates.length === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}><Clipboard size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No templates yet</p><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Create a template to auto-generate tasks for new bookings.</p></div>
+              ) : dsTemplates.map((t, idx) => {
+                let taskList: any[] = [];
+                try { taskList = typeof t.tasks === 'string' ? JSON.parse(t.tasks) : (t.tasks || []); } catch(e) { taskList = []; }
+                return (
+                  <div key={t.id} style={{ padding: '20px', borderBottom: idx < dsTemplates.length - 1 ? '1px solid var(--card-border)' : 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 500, color: 'var(--dark)' }}>{t.template_name}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', textTransform: 'capitalize' }}>{t.event_type} · {taskList.length} tasks</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={async () => { if (!vendorData?.id) return; const clientName = prompt('Enter client/event name to apply template:'); if (!clientName) return; for (const task of taskList) { await fetch(`${API}/ds/tasks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, title: task.title || task, description: task.description || '', priority: task.priority || 'medium', category: task.category || 'general', related_client_name: clientName, status: 'pending' }) }); } toast.success(`${taskList.length} tasks created for ${clientName}`); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 500, padding: '6px 14px', borderRadius: '6px', border: '1px solid var(--gold)', background: 'rgba(201,168,76,0.06)', color: 'var(--gold)', cursor: 'pointer' }}>Apply to Booking</button>
+                        <button onClick={async () => { if (confirm('Delete this template?')) { await fetch(`${API}/ds/templates/${t.id}`, { method: 'DELETE' }); loadDsTemplates(); toast.success('Deleted'); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--grey)" /></button>
+                      </div>
+                    </div>
+                    {taskList.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {taskList.slice(0, 8).map((task: any, ti: number) => (
+                          <span key={ti} style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '4px 10px', borderRadius: '4px', background: 'rgba(140,123,110,0.06)', color: 'var(--grey)' }}>{typeof task === 'string' ? task : task.title}</span>
+                        ))}
+                        {taskList.length > 8 && <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', padding: '4px 10px', color: 'var(--text-muted)' }}>+{taskList.length - 8} more</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {dsShowTemplateForm && (
+              <div className="card" style={{ padding: '28px 32px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--dark)', marginBottom: '20px' }}>Create Delegation Template</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Template Name</label><input value={dsNewTemplate.template_name} onChange={e => setDsNewTemplate({ ...dsNewTemplate, template_name: e.target.value })} placeholder="e.g. Destination Wedding - Udaipur" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }} /></div>
+                  <div><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Event Type</label><select value={dsNewTemplate.event_type} onChange={e => setDsNewTemplate({ ...dsNewTemplate, event_type: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', background: '#fff' }}><option value="wedding">Wedding</option><option value="engagement">Engagement</option><option value="reception">Reception</option><option value="destination">Destination Wedding</option><option value="other">Other</option></select></div>
+                  <div style={{ gridColumn: 'span 2' }}><label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>Tasks (one per line)</label><textarea value={dsNewTemplate.tasks} onChange={e => setDsNewTemplate({ ...dsNewTemplate, tasks: e.target.value })} placeholder="Venue recce and walkthrough\nConfirm vendor deliverables\nBrief second team\nEquipment check and packing\nTravel and hotel arrangements" rows={6} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--card-border)', fontFamily: 'Inter, sans-serif', fontSize: '13px', resize: 'vertical' }} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDsShowTemplateForm(false)} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--grey)' }}>Cancel</button>
+                  <button onClick={async () => { if (!dsNewTemplate.template_name) { toast.error('Template name required'); return; } const taskLines = dsNewTemplate.tasks.split('\n').filter((l: string) => l.trim()); const taskArray = taskLines.map((l: string) => ({ title: l.trim(), priority: 'medium', category: 'general' })); await fetch(`${API}/ds/templates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendor_id: vendorData.id, template_name: dsNewTemplate.template_name, event_type: dsNewTemplate.event_type, tasks: taskArray }) }); setDsShowTemplateForm(false); loadDsTemplates(); toast.success('Template created'); }} style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--dark)', color: 'var(--cream)', cursor: 'pointer' }}>Create Template</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── DELUXE SUITE: Team Performance ── */}
+        {activeTab === 'ds-performance' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}><Award size={14} color="var(--gold)" /><span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', fontWeight: 500, color: 'var(--gold)', letterSpacing: '2px', textTransform: 'uppercase' }}>Deluxe Suite</span></div>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 500, color: 'var(--dark)' }}>Team Performance</h2>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'var(--grey)', marginTop: '2px' }}>Weekly scorecard. See who delivers and who needs support.</p>
+            </div>
+            {dsPerformance.length === 0 ? (
+              <div className="card" style={{ padding: '48px', textAlign: 'center' }}><UserCheck size={32} color="var(--grey-light)" /><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--grey)', marginTop: '12px' }}>No performance data yet</p><p style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Add team members and assign tasks to see performance metrics.</p></div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: '12px' }}>
+                  {['Member', 'Total', 'Completed', 'On Time', 'Overdue', 'Rate'].map(h => (
+                    <span key={h} style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: 'var(--grey)', letterSpacing: '1px', textTransform: 'uppercase' }}>{h}</span>
+                  ))}
+                </div>
+                {dsPerformance.map((p, idx) => (
+                  <div key={p.member_id} style={{ padding: '14px 20px', borderBottom: idx < dsPerformance.length - 1 ? '1px solid var(--card-border)' : 'none', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: '12px', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 500, color: 'var(--dark)' }}>{p.name}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{p.role}</div>
+                    </div>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--dark)' }}>{p.total_tasks}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#4CAF50' }}>{p.completed}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: 'var(--gold)' }}>{p.on_time}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: p.overdue > 0 ? '#DC2626' : 'var(--grey)' }}>{p.overdue}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: 'rgba(140,123,110,0.1)', overflow: 'hidden' }}>
+                        <div style={{ width: `${p.on_time_rate}%`, height: '100%', borderRadius: '3px', background: p.on_time_rate >= 80 ? '#4CAF50' : p.on_time_rate >= 50 ? 'var(--gold)' : '#DC2626' }} />
+                      </div>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 500, color: p.on_time_rate >= 80 ? '#4CAF50' : p.on_time_rate >= 50 ? 'var(--gold)' : '#DC2626', minWidth: '36px' }}>{p.on_time_rate}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
       {/* Delete Confirmation Dialog */}
       {confirmDelete && (
@@ -3549,6 +4720,8 @@ export default function VendorDashboard() {
       </div>
       {/* Coming Soon Modal */}
       <ComingSoonModal tab={comingSoonTab} onClose={() => setComingSoonTab(null)} />
+      {/* Deluxe Suite Modal */}
+      <DeluxeSuiteModal tab={deluxeSuiteTab} onClose={() => setDeluxeSuiteTab(null)} />
 
     </div>
   );
