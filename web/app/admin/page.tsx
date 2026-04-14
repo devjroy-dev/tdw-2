@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
-const DEFAULT_PASSWORD = 'TDW@2026!Dev';
+const DEFAULT_PASSWORD = 'Mira@2551354';
 
 const CODE_TYPES = [
   { value: 'vendor_permanent', label: 'Vendor Permanent', desc: 'Never expires · Full access', color: '#C9A84C' },
