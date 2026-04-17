@@ -3693,6 +3693,104 @@ app.get('/api/couple-codes', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
+// DREAMER CODES — Alias for couple-codes (mobile login uses this name)
+// Mirrors /api/couple-codes/redeem but supports re-login (idempotent)
+// and returns wedding_date + budget so login can route correctly.
+// ══════════════════════════════════════════════════════════════
+
+app.post('/api/dreamer-codes/redeem', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ success: false, error: 'Code required' });
+
+    const codeUpper = code.toUpperCase().trim();
+
+    const { data: codeData, error: codeErr } = await supabase
+      .from('access_codes')
+      .select('*')
+      .eq('code', codeUpper)
+      .eq('type', 'couple_tier')
+      .single();
+
+    if (codeErr || !codeData) return res.json({ success: false, error: 'Invalid code' });
+    if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
+      return res.json({ success: false, error: 'Code expired' });
+    }
+
+    const tierMap = { basic: 'free', gold: 'premium', platinum: 'elite' };
+    const tokenMap = { basic: 3, gold: 15, platinum: 999 };
+    const coupleTier = tierMap[codeData.tier] || 'free';
+    const tokens = tokenMap[codeData.tier] || 3;
+
+    // Re-login support: if code already redeemed, find the existing user via redeemed_user_id
+    if (codeData.used && codeData.redeemed_user_id) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', codeData.redeemed_user_id)
+        .single();
+
+      if (existingUser) {
+        return res.json({
+          success: true,
+          data: {
+            id: existingUser.id,
+            name: existingUser.name || '',
+            couple_tier: existingUser.couple_tier || coupleTier,
+            tier_label: codeData.tier,
+            tokens: existingUser.token_balance ?? tokens,
+            wedding_date: existingUser.wedding_date || '',
+            budget: existingUser.budget || 0,
+          }
+        });
+      }
+    }
+
+    if (codeData.used) {
+      return res.json({ success: false, error: 'Code already used' });
+    }
+
+    // First-time redemption — create new user
+    const coupleName = codeData.vendor_name || '';
+    const { data: user, error: userErr } = await supabase.from('users').insert([{
+      name: coupleName,
+      couple_tier: coupleTier,
+      token_balance: tokens,
+      dreamer_type: 'couple',
+    }]).select().single();
+
+    if (userErr) throw userErr;
+
+    // Mark code as used and link to the user (so re-login works)
+    await supabase.from('access_codes').update({
+      used: true,
+      used_count: (codeData.used_count || 0) + 1,
+      redeemed_user_id: user.id,
+      redeemed_at: new Date().toISOString(),
+    }).eq('id', codeData.id);
+
+    if (typeof logActivity === 'function') {
+      logActivity('dreamer_registered', `${coupleName || 'Dreamer'} joined via invite code (${codeData.tier})`);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name || '',
+        couple_tier: coupleTier,
+        tier_label: codeData.tier,
+        tokens,
+        wedding_date: '',
+        budget: 0,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
 // UNIFIED SIGNUP — Code-based onboarding for both couples + vendors
 // ══════════════════════════════════════════════════════════════
 
