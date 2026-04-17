@@ -86,6 +86,24 @@ app.get('/api/vendors', async (req, res) => {
     }
     const { data, error } = await query;
     if (error) throw error;
+    // Enrich with tier from vendor_subscriptions so admin + clients can show correct tier
+    try {
+      if (Array.isArray(data) && data.length > 0) {
+        const ids = data.map((v) => v.id);
+        const { data: subs } = await supabase
+          .from('vendor_subscriptions')
+          .select('vendor_id, tier, status, founding_badge')
+          .in('vendor_id', ids);
+        const subMap = {};
+        for (const s of (subs || [])) subMap[s.vendor_id] = s;
+        for (const v of data) {
+          const s = subMap[v.id];
+          v.tier = s?.tier || 'essential';
+          v.subscription_status = s?.status || 'active';
+          v.founding_badge = !!s?.founding_badge;
+        }
+      }
+    } catch (e) { /* tier enrichment is best-effort */ }
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -96,6 +114,21 @@ app.get('/api/vendors/:id', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vendors').select('*').eq('id', req.params.id).single();
     if (error) throw error;
+    // Attach tier from vendor_subscriptions
+    try {
+      const { data: sub } = await supabase
+        .from('vendor_subscriptions')
+        .select('tier, status, founding_badge')
+        .eq('vendor_id', req.params.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        data.tier = sub?.tier || 'essential';
+        data.subscription_status = sub?.status || 'active';
+        data.founding_badge = !!sub?.founding_badge;
+      }
+    } catch (e) { /* best-effort */ }
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
