@@ -52,18 +52,29 @@ const SIGNATURE_TOOLS = [
 // ── Brand Tokens (match React Native theme) ──────────────────────────────
 
 const C = {
-  cream: '#FAF6F0',
-  ivory: '#FFFFFF',
+  // Surfaces (lightest → warmest)
+  cream: '#FAF6F0',          // page background
+  ivory: '#FFFFFF',          // card base
   card: '#FFFFFF',
-  dark: '#2C2420',
-  gold: '#C9A84C',
-  goldSoft: '#FFF8EC',
-  goldBorder: '#E8D9B5',
-  muted: '#8C7B6E',
-  light: '#B8ADA4',
-  border: '#EDE8E0',
+  pearl: '#FBF8F2',          // subtle off-ivory for layered cards
+  champagne: '#FFFDF7',      // whisper-warm gold-tinted cream
+  goldSoft: '#FFF8EC',       // soft gold-cream (primary accent surface)
+  goldMist: '#FFF3DB',       // deeper gold-cream for hero moments
+  goldBorder: '#E8D9B5',     // warm gold border
+  border: '#EDE8E0',         // neutral cream border
+  borderSoft: '#F2EDE4',     // whisper border
+  // Ink (text + deep accent)
+  dark: '#2C2420',           // primary text (espresso) — still used for text, rarely for backgrounds
+  gold: '#C9A84C',           // warm gold accent
+  goldDeep: '#B8963A',       // deeper gold for small dense text
+  muted: '#8C7B6E',          // muted brown-taupe
+  light: '#B8ADA4',          // light taupe
+  // Semantic
   green: '#4CAF50',
+  greenSoft: 'rgba(76,175,80,0.08)',
   red: '#E57373',
+  redSoft: 'rgba(229,115,115,0.06)',
+  redBorder: 'rgba(229,115,115,0.22)',
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -103,6 +114,17 @@ export default function VendorMobilePage() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiRequestSent, setAiRequestSent] = useState(false);
   const [buyingTokens, setBuyingTokens] = useState<string | null>(null);
+
+  // ── Essential onboarding checklist state ──────────────────────────────
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem('tdw_checklist_dismissed') === '1') setChecklistDismissed(true);
+  }, []);
+  const dismissChecklist = () => {
+    setChecklistDismissed(true);
+    if (typeof window !== 'undefined') localStorage.setItem('tdw_checklist_dismissed', '1');
+  };
 
   // ── Add Client modal ───────────────────────────────────────────────────
   const [showAddClient, setShowAddClient] = useState(false);
@@ -249,6 +271,9 @@ export default function VendorMobilePage() {
             onJumpToTab={(t: Tab) => setActiveTab(t)}
             vendorData={vendorData}
             onOpenAiModal={() => setShowAiModal(true)}
+            checklistDismissed={checklistDismissed}
+            onDismissChecklist={dismissChecklist}
+            onAddClient={() => setShowAddClient(true)}
           />
         )}
         {activeTab === 'Inquiries' && (
@@ -370,12 +395,16 @@ function Header({ session, tier }: { session: VendorSession; tier: Tier }) {
           </div>
         </div>
         <div style={{
-          padding: '4px 10px',
+          padding: '4px 12px',
           borderRadius: '50px',
-          background: tier === 'prestige' ? C.dark : C.goldSoft,
-          border: tier === 'prestige' ? 'none' : `1px solid ${C.goldBorder}`,
+          background: tier === 'prestige' ? C.goldMist : C.goldSoft,
+          border: `1px solid ${tier === 'prestige' ? C.gold : C.goldBorder}`,
         }}>
-          <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '1.5px', color: tier === 'prestige' ? C.gold : tierColor }}>
+          <span style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '9px', fontWeight: 600, letterSpacing: '2px',
+            color: tier === 'prestige' ? C.goldDeep : tierColor,
+          }}>
             {tierLabel}
           </span>
         </div>
@@ -388,7 +417,7 @@ function Header({ session, tier }: { session: VendorSession; tier: Tier }) {
 // DASHBOARD TAB (mirrors React Native Overview)
 // ══════════════════════════════════════════════════════════════════════════
 
-function DashboardTab({ session, tier, bookings, invoices, clients, leads, paymentSchedules, loading, onJumpToTab, vendorData, onOpenAiModal }: any) {
+function DashboardTab({ session, tier, bookings, invoices, clients, leads, paymentSchedules, loading, onJumpToTab, vendorData, onOpenAiModal, checklistDismissed, onDismissChecklist, onAddClient }: any) {
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const todayBookings = bookings.filter((b: any) => {
     if (!b.event_date) return false;
@@ -400,6 +429,23 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
   const overdueSchedules = paymentSchedules.filter((s: any) =>
     (s.instalments || []).some((inst: any) => !inst.paid && inst.due_date && new Date(inst.due_date) < new Date())
   );
+  const unpaidInvoices = invoices.filter((i: any) => i.status !== 'paid');
+  const totalOwed = unpaidInvoices.reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+  const nextEvent = bookings
+    .filter((b: any) => b.status === 'confirmed' && b.event_date && new Date(b.event_date) >= new Date())
+    .sort((a: any, b: any) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())[0];
+
+  // ── Profile completion — real signals from vendorData ──────────────────
+  const profileSteps = [
+    { key: 'photos',   label: 'Upload 10+ portfolio photos', done: (vendorData?.portfolio_images?.length || 0) >= 10 },
+    { key: 'featured', label: 'Select 3 featured photos',    done: (vendorData?.featured_photos?.length || 0) >= 3 },
+    { key: 'price',    label: 'Set your starting price',     done: !!vendorData?.starting_price },
+    { key: 'bio',      label: 'Write your bio',              done: !!vendorData?.about && (vendorData.about.length >= 100) },
+    { key: 'tags',     label: 'Add 3 vibe tags',             done: (vendorData?.vibe_tags?.length || 0) >= 3 },
+  ];
+  const profileCompletedCount = profileSteps.filter(s => s.done).length;
+  const profilePercent = Math.round((profileCompletedCount / profileSteps.length) * 100);
+  const profileIncomplete = profilePercent < 100;
 
   if (loading) {
     return <div style={{ padding: '40px 0', textAlign: 'center', color: C.muted }}>Loading your business…</div>;
@@ -407,6 +453,15 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '8px' }}>
+
+      {/* ── PROFILE COMPLETION CARD (sits above Dream Ai — dismissible, collapsable) ── */}
+      {profileIncomplete && !checklistDismissed && vendorData && (
+        <ProfileCompletionCard
+          percent={profilePercent}
+          steps={profileSteps}
+          onDismiss={onDismissChecklist}
+        />
+      )}
 
       {/* ── DREAM AI HERO CARD ── */}
       <div
@@ -515,140 +570,318 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
         </div>
       </div>
 
-      {/* ── TODAY CARD ── */}
+      {/* ══════════════════════════════════════════════════════════════════
+          TIER-SPECIFIC DASHBOARD BODY
+          - Essential: personal-assistant feel (onboarding, next event, money owed, enquiries, actions)
+          - Signature: business-briefing (Turn 3 expands; placeholder uses Essential for now)
+          - Prestige:  CEO command-feed (Turn 3 expands; placeholder uses Essential for now)
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {/* ── TODAY RIBBON — editorial cream-gold, NOT dark ── */}
       <div style={{
-        background: C.dark,
-        borderRadius: '16px',
-        padding: '20px',
-        color: C.cream,
+        background: `linear-gradient(180deg, ${C.champagne} 0%, ${C.goldSoft} 100%)`,
+        borderRadius: '18px',
+        padding: '22px 22px 20px',
+        border: `1px solid ${C.goldBorder}`,
+        position: 'relative',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <span style={{ fontSize: '14px', fontFamily: 'Playfair Display, serif', color: '#F5F0E8' }}>{today}</span>
-          <div style={{ width: 6, height: 6, borderRadius: 3, background: C.green }} />
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '18px' }}>
+          <span style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '15px', fontStyle: 'italic', fontWeight: 400,
+            color: C.goldDeep, letterSpacing: '0.4px',
+          }}>{today}</span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(201,168,76,0.25)' }} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'end' }}>
           {[
-            { num: todayBookings.length, label: 'Today' },
-            { num: upcomingBookings, label: 'Upcoming' },
-            { num: pendingPayments, label: 'Unpaid', highlight: pendingPayments > 0 },
-            { num: clients.length, label: 'Clients' },
-          ].map((stat, i, arr) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center', position: 'relative' }}>
-              <div style={{ fontSize: '24px', fontFamily: 'Playfair Display, serif', color: stat.highlight ? C.red : C.gold }}>
-                {stat.num}
-              </div>
-              <div style={{ fontSize: '10px', letterSpacing: '1px', color: '#F5F0E8', marginTop: '2px', textTransform: 'uppercase' }}>
-                {stat.label}
-              </div>
+            { num: todayBookings.length, label: 'Today',    highlight: todayBookings.length > 0 },
+            { num: upcomingBookings,     label: 'Upcoming', highlight: false },
+            { num: pendingPayments,      label: 'Unpaid',   highlight: pendingPayments > 0, warn: pendingPayments > 0 },
+            { num: clients.length,       label: 'Clients',  highlight: false },
+          ].map((stat: any, i: number, arr: any[]) => (
+            <div key={i} style={{ textAlign: 'center', position: 'relative' }}>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '32px', fontWeight: 400,
+                color: stat.warn ? C.red : (stat.highlight ? C.gold : C.dark),
+                letterSpacing: '-0.5px', lineHeight: 1,
+              }}>{stat.num}</div>
+              <div style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '9px', fontWeight: 500,
+                letterSpacing: '2px', textTransform: 'uppercase',
+                color: C.muted, marginTop: '8px',
+              }}>{stat.label}</div>
               {i < arr.length - 1 && (
-                <div style={{ position: 'absolute', right: 0, top: '20%', height: '60%', width: 1, background: 'rgba(245,240,232,0.15)' }} />
+                <div style={{
+                  position: 'absolute', right: 0, top: '18%',
+                  height: '55%', width: 1,
+                  background: 'rgba(201,168,76,0.18)',
+                }} />
               )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── PENDING BOOKINGS ALERT ── */}
+      {/* ══════════════════════════════════════════════════════════════════
+          ESSENTIAL — Personal Assistant
+          (Used for Essential now. Signature & Prestige fall through to this
+          in Turn 1; Turn 3 will add their distinct layouts.)
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {/* ── NEXT EVENT (cream + gold, editorial) ── */}
+      {nextEvent && (
+        <div style={{
+          background: C.ivory,
+          borderRadius: '18px',
+          padding: '22px',
+          border: `1px solid ${C.goldBorder}`,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Whisper decorative diagonal line (gold) */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+            background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+          }} />
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '9px', fontWeight: 600,
+            letterSpacing: '2.5px', textTransform: 'uppercase',
+            color: C.goldDeep, marginBottom: '10px',
+          }}>Your Next Event</div>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '26px', fontWeight: 400,
+            color: C.dark, letterSpacing: '0.2px',
+            marginBottom: '6px',
+          }}>{nextEvent.users?.name || nextEvent.client_name || 'Client'}</div>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '13px', color: C.muted,
+            fontStyle: 'italic', fontWeight: 400,
+          }}>
+            {nextEvent.event_date
+              ? new Date(nextEvent.event_date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+              : 'Date to be confirmed'}
+            {nextEvent.venue ? ` · ${nextEvent.venue}` : ''}
+          </div>
+        </div>
+      )}
+
+      {/* ── PENDING ENQUIRIES ALERT (warm gold) ── */}
       {leads.length > 0 && (
         <button
           onClick={() => onJumpToTab('Inquiries')}
           style={{
             background: C.goldSoft,
             border: `1px solid ${C.goldBorder}`,
-            borderRadius: '14px',
-            padding: '16px',
+            borderRadius: '18px',
+            padding: '18px 20px',
             textAlign: 'left',
             cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
+            display: 'flex', flexDirection: 'column', gap: '6px',
             fontFamily: 'inherit',
+            width: '100%',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Zap size={14} color={C.gold} />
-            <span style={{ fontSize: '14px', fontWeight: 600, color: C.dark }}>
-              {leads.length} {leads.length === 1 ? 'enquiry' : 'enquiries'} waiting
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '30px', height: '30px', borderRadius: '50%',
+              background: C.ivory, border: `1px solid ${C.goldBorder}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Zap size={13} color={C.gold} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '17px', color: C.dark, fontWeight: 400,
+                letterSpacing: '0.2px',
+              }}>
+                {leads.length} {leads.length === 1 ? 'enquiry' : 'enquiries'} waiting
+              </div>
+              <div style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px', color: C.muted, marginTop: '2px',
+              }}>Respond within 48 hours</div>
+            </div>
+            <ChevronRight size={16} color={C.gold} />
           </div>
-          <span style={{ fontSize: '12px', color: C.muted }}>Respond within 48 hours or token is auto-refunded</span>
-          <span style={{ fontSize: '11px', color: C.gold, fontWeight: 600, marginTop: '2px' }}>Review now →</span>
         </button>
       )}
 
-      {/* ── REVENUE SNAPSHOT (Signature/Prestige) ── */}
-      {tier !== 'essential' && (
-        <div style={{ background: C.card, borderRadius: '14px', padding: '18px', border: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: C.muted, fontWeight: 600 }}>REVENUE THIS MONTH</div>
-          <div style={{ fontSize: '28px', fontFamily: 'Playfair Display, serif', color: C.dark, marginTop: '4px' }}>
-            ₹{fmtINR(totalRevenue)}
+      {/* ── MONEY OWED (top 3 unpaid invoices with WhatsApp reminders) ── */}
+      {unpaidInvoices.length > 0 && (
+        <div style={{
+          background: C.champagne,
+          borderRadius: '18px',
+          padding: '22px',
+          border: `1px solid ${C.goldBorder}`,
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+            marginBottom: '16px', paddingBottom: '12px',
+            borderBottom: `1px solid rgba(201,168,76,0.18)`,
+          }}>
+            <div style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '9px', fontWeight: 600,
+              letterSpacing: '2.5px', textTransform: 'uppercase',
+              color: C.goldDeep,
+            }}>Money Owed to You</div>
+            <div style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '22px', fontWeight: 400,
+              color: C.dark, letterSpacing: '-0.3px',
+            }}>₹{fmtINR(totalOwed)}</div>
           </div>
-          <div style={{ fontSize: '11px', color: C.muted, marginTop: '4px' }}>
-            From {invoices.filter((i: any) => i.status === 'paid').length} paid invoice{invoices.filter((i: any) => i.status === 'paid').length === 1 ? '' : 's'}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {unpaidInvoices.slice(0, 3).map((inv: any) => (
+              <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '13px', color: C.dark, fontWeight: 500,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{inv.client_name || 'Client'}</div>
+                  <div style={{ fontSize: '11px', color: C.muted, marginTop: '1px' }}>
+                    {inv.invoice_number || 'Invoice'}
+                  </div>
+                </div>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '15px', color: C.dark, fontWeight: 400,
+                }}>₹{fmtINR(parseInt(inv.amount) || 0)}</div>
+                {inv.client_phone && (
+                  <a
+                    href={`https://wa.me/91${String(inv.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${inv.client_name || ''}! Gentle reminder on invoice ${inv.invoice_number || ''} for ₹${(parseInt(inv.amount) || 0).toLocaleString('en-IN')}.`)}`}
+                    target="_blank" rel="noreferrer"
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${C.goldBorder}`,
+                      borderRadius: '50%', width: '32px', height: '32px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      textDecoration: 'none', flexShrink: 0,
+                    }}
+                  >
+                    <MessageCircle size={13} color={C.gold} />
+                  </a>
+                )}
+              </div>
+            ))}
           </div>
+          {unpaidInvoices.length > 3 && (
+            <button
+              onClick={() => onJumpToTab('Tools')}
+              style={{
+                background: 'none', border: 'none',
+                fontSize: '11px', color: C.goldDeep, fontWeight: 600,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
+                cursor: 'pointer', marginTop: '14px', padding: 0,
+                fontFamily: 'inherit',
+              }}
+            >View all {unpaidInvoices.length} →</button>
+          )}
         </div>
       )}
 
-      {/* ── ATTENTION NEEDED (overdue payments) ── */}
+      {/* ── ATTENTION NEEDED (overdue payment schedules) ── */}
       {overdueSchedules.length > 0 && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: C.red, fontWeight: 600 }}>ATTENTION NEEDED</div>
+        <div style={{
+          background: C.redSoft,
+          borderRadius: '18px', padding: '18px 20px',
+          border: `1px solid ${C.redBorder}`,
+          display: 'flex', flexDirection: 'column', gap: '10px',
+        }}>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '9px', fontWeight: 600,
+            letterSpacing: '2.5px', textTransform: 'uppercase',
+            color: C.red,
+          }}>Attention Needed</div>
           {overdueSchedules.slice(0, 3).map((sched: any) => (
-            <div key={sched.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CreditCard size={14} color={C.red} />
-              <span style={{ fontSize: '13px', color: C.dark, flex: 1 }}>{sched.client_name} — overdue</span>
-              <a
-                href={`https://wa.me/91${(sched.client_phone || '').replace(/\D/g, '')}?text=${encodeURIComponent('Hi ' + (sched.client_name || '') + '! Gentle reminder about your pending payment.')}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ background: '#25D366', borderRadius: '6px', padding: '6px 10px', textDecoration: 'none' }}
-              >
-                <MessageCircle size={11} color="#FFFFFF" />
-              </a>
+            <div key={sched.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '13px', color: C.dark, flex: 1 }}>
+                {sched.client_name} — overdue
+              </span>
+              {sched.client_phone && (
+                <a
+                  href={`https://wa.me/91${String(sched.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${sched.client_name || ''}! Gentle reminder about your pending payment.`)}`}
+                  target="_blank" rel="noreferrer"
+                  style={{
+                    background: 'transparent',
+                    border: `1px solid ${C.redBorder}`,
+                    borderRadius: '50%', width: '28px', height: '28px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <MessageCircle size={11} color={C.red} />
+                </a>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* ── QUICK ACTIONS BAR ── */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
+      {/* ── THREE QUICK ACTIONS (real, all wired) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
         {[
-          { icon: Plus, label: 'Invoice', onClick: () => { onJumpToTab('Tools'); } },
-          { icon: Calendar, label: 'Block Date', onClick: () => { onJumpToTab('Calendar'); } },
-          { icon: Users, label: 'Add Client', onClick: () => { onJumpToTab('Tools'); } },
-          { icon: MessageCircle, label: 'WhatsApp', onClick: () => {
-              if (clients.length > 0) window.open(`https://wa.me/91${(clients[0].phone || '').replace(/\D/g, '')}`, '_blank');
-              else alert('Add clients first.');
-          } },
-        ].map((a, i) => {
+          { icon: FileText, label: 'Invoice',    onClick: () => onJumpToTab('Tools') },
+          { icon: Calendar, label: 'Block Date', onClick: () => onJumpToTab('Calendar') },
+          { icon: Users,    label: 'Add Client', onClick: () => onAddClient && onAddClient() },
+        ].map((a: any, i: number) => {
           const I = a.icon;
           return (
             <button
               key={i}
               onClick={a.onClick}
               style={{
-                background: C.dark, color: C.gold, border: 'none', borderRadius: '12px',
-                padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '6px',
-                fontSize: '11px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-                fontFamily: 'inherit', flexShrink: 0,
+                background: C.ivory,
+                border: `1px solid ${C.goldBorder}`,
+                borderRadius: '14px',
+                padding: '18px 10px 16px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.25s ease',
               }}
+              onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.background = C.goldSoft; }}
+              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.background = C.ivory; }}
             >
-              <I size={13} color={C.gold} />
-              {a.label}
+              <I size={18} color={C.gold} />
+              <span style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '10px', fontWeight: 500,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
+                color: C.dark,
+              }}>{a.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* ── TODAY'S EVENTS ── */}
+      {/* ── TODAY'S EVENTS (if any) ── */}
       {todayBookings.length > 0 && (
         <div>
-          <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: C.muted, fontWeight: 600, marginBottom: '8px' }}>TODAY</div>
-          <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+          <SectionLabel>Today</SectionLabel>
+          <div style={{
+            background: C.ivory, borderRadius: '14px',
+            border: `1px solid ${C.border}`, overflow: 'hidden',
+          }}>
             {todayBookings.map((b: any, idx: number) => (
-              <div key={b.id} style={{ padding: '14px 16px', borderBottom: idx < todayBookings.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>{b.users?.name || b.client_name || 'Client'}</div>
-                <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>{b.event_type || 'Event'} · {b.venue || 'Venue TBC'}</div>
+              <div key={b.id} style={{
+                padding: '14px 18px',
+                borderBottom: idx < todayBookings.length - 1 ? `1px solid ${C.borderSoft}` : 'none',
+              }}>
+                <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>
+                  {b.users?.name || b.client_name || 'Client'}
+                </div>
+                <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>
+                  {b.event_type || 'Event'}{b.venue ? ` · ${b.venue}` : ''}
+                </div>
               </div>
             ))}
           </div>
@@ -658,24 +891,58 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
       {/* ── RECENT CLIENTS ── */}
       {clients.length > 0 && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: C.muted, fontWeight: 600 }}>RECENT CLIENTS</div>
-            <button onClick={() => onJumpToTab('Tools')} style={{ background: 'none', border: 'none', fontSize: '11px', color: C.gold, fontWeight: 600, cursor: 'pointer' }}>
-              View all →
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <SectionLabel>Recent Clients</SectionLabel>
+            <button
+              onClick={() => onJumpToTab('Tools')}
+              style={{
+                background: 'none', border: 'none',
+                fontSize: '10px', color: C.goldDeep, fontWeight: 600,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
+                cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+              }}
+            >View all →</button>
           </div>
-          <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+          <div style={{
+            background: C.ivory, borderRadius: '14px',
+            border: `1px solid ${C.border}`, overflow: 'hidden',
+          }}>
             {clients.slice(0, 4).map((c: any, idx: number) => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderBottom: idx < Math.min(clients.length, 4) - 1 ? `1px solid ${C.border}` : 'none' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 18, background: C.goldSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.gold, fontWeight: 600, fontSize: '13px' }}>
-                  {(c.name || '?')[0].toUpperCase()}
-                </div>
+              <div key={c.id} style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 16px',
+                borderBottom: idx < Math.min(clients.length, 4) - 1 ? `1px solid ${C.borderSoft}` : 'none',
+              }}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '50%',
+                  background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: C.goldDeep, fontWeight: 600, fontSize: '14px',
+                  fontFamily: "'Playfair Display', serif",
+                  flexShrink: 0,
+                }}>{(c.name || '?')[0].toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                  <div style={{ fontSize: '11px', color: C.muted }}>{c.event_date ? new Date(c.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBC'}</div>
+                  <div style={{
+                    fontSize: '13px', color: C.dark, fontWeight: 500,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{c.name}</div>
+                  <div style={{ fontSize: '11px', color: C.muted, marginTop: '1px' }}>
+                    {c.event_date
+                      ? new Date(c.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Date TBC'}
+                  </div>
                 </div>
                 {c.phone && (
-                  <a href={`tel:${c.phone}`} style={{ background: C.goldSoft, border: `1px solid ${C.goldBorder}`, borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                  <a
+                    href={`tel:${c.phone}`}
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${C.goldBorder}`,
+                      borderRadius: '50%', width: '32px', height: '32px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      textDecoration: 'none', flexShrink: 0,
+                    }}
+                  >
                     <Phone size={13} color={C.gold} />
                   </a>
                 )}
@@ -685,13 +952,33 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
         </div>
       )}
 
-      {/* ── EMPTY STATE ── */}
+      {/* ── EMPTY STATE — editorial greeting for new vendors ── */}
       {bookings.length === 0 && clients.length === 0 && (
-        <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '32px 20px', textAlign: 'center' }}>
-          <Briefcase size={32} color={C.light} />
-          <div style={{ fontSize: '15px', fontWeight: 600, color: C.dark, marginTop: '12px' }}>Your business starts here</div>
-          <div style={{ fontSize: '12px', color: C.muted, marginTop: '6px', lineHeight: 1.5 }}>
-            Add your first client or wait for an enquiry. Everything you do flows into this dashboard.
+        <div style={{
+          background: C.ivory, borderRadius: '18px',
+          border: `1px solid ${C.goldBorder}`,
+          padding: '40px 24px', textAlign: 'center',
+        }}>
+          <div style={{
+            width: '54px', height: '54px', borderRadius: '16px',
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: '16px',
+          }}>
+            <Briefcase size={22} color={C.gold} />
+          </div>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '20px', color: C.dark,
+            fontWeight: 400, letterSpacing: '0.2px',
+            marginBottom: '8px',
+          }}>Your business begins here</div>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '12px', color: C.muted,
+            lineHeight: 1.65, maxWidth: '260px', margin: '0 auto',
+          }}>
+            Add your first client, or wait for an enquiry. Everything you do flows into this dashboard.
           </div>
         </div>
       )}
@@ -803,10 +1090,10 @@ function InquiriesTab({ session, leads, bookings, onRefresh }: any) {
                 )}
                 {b.status === 'pending_confirmation' && (
                   <>
-                    <button onClick={() => handleConfirm(b.id)} style={{ flex: 1, background: C.dark, color: C.gold, border: 'none', borderRadius: '8px', padding: '10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <button onClick={() => handleConfirm(b.id)} style={{ flex: 1, background: C.gold, color: C.ivory, border: 'none', borderRadius: '10px', padding: '12px', fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                       Confirm
                     </button>
-                    <button onClick={() => handleDecline(b.id)} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '10px 14px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <button onClick={() => handleDecline(b.id)} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '12px 16px', fontSize: '11px', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                       Decline
                     </button>
                   </>
@@ -862,12 +1149,12 @@ function CalendarTab({ session, bookings, blockedDates, onRefresh, onAddClient }
           <div style={{ fontSize: '20px', fontWeight: 600, color: C.dark, fontFamily: 'Playfair Display, serif' }}>Calendar</div>
           <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>Bookings and blocked dates</div>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button onClick={() => onAddClient && onAddClient()} style={{ background: C.gold, color: C.dark, border: 'none', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <Plus size={13} /> Event
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => onAddClient && onAddClient()} style={{ background: C.goldSoft, color: C.goldDeep, border: `1px solid ${C.goldBorder}`, borderRadius: '10px', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+            <Plus size={12} /> Event
           </button>
-          <button onClick={() => setShowBlock(!showBlock)} style={{ background: C.dark, color: C.gold, border: 'none', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <Lock size={12} /> Block
+          <button onClick={() => setShowBlock(!showBlock)} style={{ background: C.ivory, color: C.muted, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+            <Lock size={11} /> Block
           </button>
         </div>
       </div>
@@ -876,7 +1163,7 @@ function CalendarTab({ session, bookings, blockedDates, onRefresh, onAddClient }
         <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <input type="date" value={blockDate} onChange={e => setBlockDate(e.target.value)} style={{ background: C.cream, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '12px 14px', fontSize: '14px', color: C.dark, fontFamily: 'inherit' }} />
           <input type="text" placeholder="Reason (optional)" value={blockReason} onChange={e => setBlockReason(e.target.value)} style={{ background: C.cream, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '12px 14px', fontSize: '14px', color: C.dark, fontFamily: 'inherit' }} />
-          <button onClick={handleBlock} style={{ background: C.gold, color: C.dark, border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={handleBlock} style={{ background: C.gold, color: C.ivory, border: 'none', borderRadius: '10px', padding: '12px', fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
             Block Date
           </button>
         </div>
@@ -977,15 +1264,47 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
         })}
       </div>
 
-      {/* Tier upsell */}
+      {/* Tier upsell — editorial invitation, not tech banner */}
       {tier === 'essential' && (
-        <div style={{ background: C.dark, borderRadius: '14px', padding: '20px', color: C.cream }}>
-          <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: C.gold, fontWeight: 600, marginBottom: '8px' }}>UPGRADE TO SIGNATURE</div>
-          <div style={{ fontSize: '14px', color: '#F5F0E8', lineHeight: 1.5, marginBottom: '12px' }}>
-            Unlock Expenses, Tax & TDS, Team management, Referrals, WhatsApp Broadcast, and Analytics.
+        <div style={{
+          background: C.champagne,
+          borderRadius: '18px', padding: '24px 22px',
+          border: `1px solid ${C.goldBorder}`,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+            background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+          }} />
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '9px', fontWeight: 600,
+            letterSpacing: '2.5px', textTransform: 'uppercase',
+            color: C.goldDeep, marginBottom: '10px',
+          }}>Upgrade to Signature</div>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '20px', fontWeight: 400,
+            color: C.dark, letterSpacing: '0.2px',
+            lineHeight: 1.3, marginBottom: '10px',
+          }}>Your business, uncompromised.</div>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '12px', color: C.muted,
+            lineHeight: 1.6, marginBottom: '18px',
+          }}>
+            Expenses, Tax &amp; TDS, Team, Referrals, WhatsApp Broadcast, and Analytics — all unlocked.
           </div>
-          <a href="/vendor/dashboard" style={{ display: 'inline-block', background: C.gold, color: C.dark, textDecoration: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>
-            View plans
+          <a href="/vendor/dashboard" style={{
+            display: 'inline-block',
+            background: C.gold, color: C.ivory,
+            textDecoration: 'none',
+            padding: '10px 18px', borderRadius: '10px',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '11px', fontWeight: 600,
+            letterSpacing: '1.8px', textTransform: 'uppercase',
+          }}>
+            View Plans
           </a>
         </div>
       )}
@@ -1105,14 +1424,42 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
 
     // Default: complex tools redirect to desktop
     return (
-      <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '32px 20px', textAlign: 'center' }}>
-        <Lock size={28} color={C.light} />
-        <div style={{ fontSize: '15px', fontWeight: 600, color: C.dark, marginTop: '12px' }}>{titles[sub]} works best on desktop</div>
-        <div style={{ fontSize: '12px', color: C.muted, marginTop: '6px', lineHeight: 1.5 }}>
-          The full {titles[sub].toLowerCase()} experience is on the business portal. Open vendor.thedreamwedding.in on a laptop or tablet for the complete view.
+      <div style={{
+        background: C.ivory, borderRadius: '18px',
+        border: `1px solid ${C.border}`,
+        padding: '36px 22px', textAlign: 'center',
+      }}>
+        <div style={{
+          width: '54px', height: '54px', borderRadius: '16px',
+          background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: '14px',
+        }}>
+          <Lock size={20} color={C.gold} />
         </div>
-        <a href="/vendor/dashboard" style={{ display: 'inline-block', background: C.dark, color: C.gold, textDecoration: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, marginTop: '14px' }}>
-          Open business portal
+        <div style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '18px', color: C.dark, fontWeight: 400,
+          letterSpacing: '0.2px', marginBottom: '8px',
+        }}>{titles[sub]} works best on desktop</div>
+        <div style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '12px', color: C.muted,
+          lineHeight: 1.65, maxWidth: '280px', margin: '0 auto 18px',
+        }}>
+          The full {titles[sub].toLowerCase()} experience lives on the business portal.
+        </div>
+        <a href="/vendor/dashboard" style={{
+          display: 'inline-block',
+          background: C.goldSoft, color: C.goldDeep,
+          border: `1px solid ${C.goldBorder}`,
+          textDecoration: 'none',
+          padding: '11px 20px', borderRadius: '10px',
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '11px', fontWeight: 600,
+          letterSpacing: '1.8px', textTransform: 'uppercase',
+        }}>
+          Open Business Portal
         </a>
       </div>
     );
@@ -1529,13 +1876,15 @@ function AddClientModal(p: AddClientModalProps) {
                 key={type}
                 onClick={() => p.setEventType(type)}
                 style={{
-                  background: p.eventType === type ? C.dark : C.cream,
-                  color: p.eventType === type ? C.gold : C.muted,
-                  border: `1px solid ${p.eventType === type ? C.dark : C.border}`,
+                  background: p.eventType === type ? C.goldSoft : C.ivory,
+                  color: p.eventType === type ? C.goldDeep : C.muted,
+                  border: `1px solid ${p.eventType === type ? C.gold : C.border}`,
                   borderRadius: '50px',
-                  padding: '7px 14px',
-                  fontSize: '12px', fontWeight: p.eventType === type ? 600 : 500,
-                  cursor: 'pointer', fontFamily: 'inherit',
+                  padding: '8px 14px',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '11px', fontWeight: p.eventType === type ? 600 : 500,
+                  letterSpacing: p.eventType === type ? '1.2px' : '0.8px',
+                  cursor: 'pointer',
                 }}
               >{type}</button>
             ))}
@@ -1596,12 +1945,13 @@ function AddClientModal(p: AddClientModalProps) {
             disabled={p.submitting || !p.name.trim()}
             style={{
               flex: 2,
-              background: (p.submitting || !p.name.trim()) ? C.border : C.dark,
-              color: (p.submitting || !p.name.trim()) ? C.light : C.gold,
+              background: (p.submitting || !p.name.trim()) ? C.border : C.gold,
+              color: (p.submitting || !p.name.trim()) ? C.light : C.ivory,
               border: 'none', borderRadius: '10px',
-              padding: '13px', fontSize: '13px', fontWeight: 600,
+              padding: '14px', fontSize: '11px', fontWeight: 600,
+              letterSpacing: '1.8px', textTransform: 'uppercase',
               cursor: (p.submitting || !p.name.trim()) ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
+              fontFamily: 'DM Sans, sans-serif',
             }}
           >{p.submitting ? 'Saving…' : 'Save Client'}</button>
         </div>
@@ -1801,5 +2151,171 @@ function DreamAiModal({ vendorData, aiRequestSent, onClose, onRequestSent }: any
         </div>
       </div>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PROFILE COMPLETION CARD — collapsable, editorial, honest progress
+// ══════════════════════════════════════════════════════════════════════════
+
+function ProfileCompletionCard({ percent, steps, onDismiss }: {
+  percent: number;
+  steps: { key: string; label: string; done: boolean }[];
+  onDismiss: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const completedCount = steps.filter(s => s.done).length;
+
+  return (
+    <div style={{
+      background: C.ivory,
+      borderRadius: '18px',
+      border: `1px solid ${C.goldBorder}`,
+      overflow: 'hidden',
+    }}>
+      {/* Collapsed head — tap to expand */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '100%',
+          background: 'transparent', border: 'none',
+          padding: '18px 20px',
+          display: 'flex', alignItems: 'center', gap: '14px',
+          cursor: 'pointer', fontFamily: 'inherit',
+          textAlign: 'left',
+        }}
+      >
+        {/* Circular progress ring */}
+        <div style={{
+          width: '44px', height: '44px',
+          position: 'relative', flexShrink: 0,
+        }}>
+          <svg width="44" height="44" viewBox="0 0 44 44" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="22" cy="22" r="19" stroke={C.goldSoft} strokeWidth="3" fill="none" />
+            <circle
+              cx="22" cy="22" r="19"
+              stroke={C.gold} strokeWidth="3" fill="none"
+              strokeDasharray={`${(percent / 100) * 119.38} 119.38`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '13px', color: C.dark, fontWeight: 500,
+          }}>{percent}%</div>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '16px', color: C.dark, fontWeight: 400,
+            letterSpacing: '0.2px',
+          }}>Complete your profile</div>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '11px', color: C.muted, marginTop: '2px',
+          }}>
+            {completedCount} of {steps.length} complete · Tap to see what's left
+          </div>
+        </div>
+
+        <ChevronRight
+          size={16}
+          color={C.muted}
+          style={{
+            transition: 'transform 0.25s ease',
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            flexShrink: 0,
+          }}
+        />
+      </button>
+
+      {/* Expanded body — step list + dismiss option */}
+      {expanded && (
+        <div style={{
+          padding: '4px 20px 20px',
+          borderTop: `1px solid ${C.borderSoft}`,
+        }}>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '9px', fontWeight: 600,
+            letterSpacing: '2.5px', textTransform: 'uppercase',
+            color: C.goldDeep, marginTop: '16px', marginBottom: '12px',
+          }}>What's next</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {steps.map((step) => (
+              <div
+                key={step.key}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  opacity: step.done ? 0.55 : 1,
+                }}
+              >
+                {/* Check / empty circle */}
+                <div style={{
+                  width: '22px', height: '22px', borderRadius: '50%',
+                  background: step.done ? C.goldSoft : 'transparent',
+                  border: `1px solid ${step.done ? C.gold : C.goldBorder}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  {step.done && <CheckCircle size={12} color={C.gold} />}
+                </div>
+                <span style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px', color: C.dark,
+                  textDecoration: step.done ? 'line-through' : 'none',
+                  textDecorationColor: C.muted,
+                  flex: 1,
+                }}>{step.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA — full editor coming in Turn 2 */}
+          <div style={{
+            marginTop: '18px', paddingTop: '16px',
+            borderTop: `1px solid ${C.borderSoft}`,
+            display: 'flex', alignItems: 'center', gap: '12px',
+          }}>
+            <div style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px', color: C.muted,
+              fontStyle: 'italic', flex: 1,
+            }}>
+              In-app editing coming soon.
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+              style={{
+                background: 'transparent', border: 'none',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '10px', color: C.muted, fontWeight: 500,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
+                cursor: 'pointer', padding: '4px 0',
+              }}
+            >Hide</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SECTION LABEL — editorial all-caps section header
+// ══════════════════════════════════════════════════════════════════════════
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontFamily: 'DM Sans, sans-serif',
+      fontSize: '9px', fontWeight: 600,
+      letterSpacing: '2.5px', textTransform: 'uppercase',
+      color: C.goldDeep, marginBottom: '10px',
+    }}>{children}</div>
   );
 }
