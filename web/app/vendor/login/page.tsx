@@ -20,10 +20,16 @@ export default function VendorLoginPage() {
   const [loginId, setLoginId] = useState('');
   const [loginPass, setLoginPass] = useState('');
 
+  // Route post-login: mobile vendors (<768px) get app-style PWA, desktop/tablet gets full business portal.
+  const goToVendorHome = () => {
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+    window.location.href = isMobileViewport ? '/vendor/mobile' : '/vendor/dashboard';
+  };
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check(); window.addEventListener('resize', check);
-    try { const s = localStorage.getItem('vendor_web_session'); if (s) { const p = JSON.parse(s); if (p.vendorId) window.location.href = '/vendor/dashboard'; } } catch {}
+    try { const s = localStorage.getItem('vendor_web_session'); if (s) { const p = JSON.parse(s); if (p.vendorId) goToVendorHome(); } } catch {}
     return () => window.removeEventListener('resize', check);
   }, []);
 
@@ -59,7 +65,7 @@ export default function VendorLoginPage() {
       const data = await res.json();
       if (data.success && data.data) {
         localStorage.setItem('vendor_web_session', JSON.stringify({ vendorId: data.data.id, vendorName: data.data.name, category: data.data.category, city: data.data.city, tier: data.data.tier, trialEnd: data.data.trial_end }));
-        window.location.href = '/vendor/dashboard';
+        goToVendorHome();
       } else { setError(data.error || 'Signup failed'); }
     } catch { setError('Network error.'); } finally { setLoading(false); }
   };
@@ -74,7 +80,7 @@ export default function VendorLoginPage() {
       if (data.success && data.data) {
         if (data.data.type === 'couple') { setError('This is a couple account. Please use thedreamwedding.in/couple/login'); return; }
         localStorage.setItem('vendor_web_session', JSON.stringify({ vendorId: data.data.id, vendorName: data.data.name, category: data.data.category, city: data.data.city, tier: data.data.tier, teamRole: data.data.team_role || 'owner', teamMemberName: data.data.team_member_name || null, isTeamMember: data.data.is_team_member || false }));
-        window.location.href = '/vendor/dashboard';
+        goToVendorHome();
       } else { setError(data.error || 'Login failed'); }
     } catch { setError('Network error.'); } finally { setLoading(false); }
   };
