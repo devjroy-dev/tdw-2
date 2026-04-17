@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { getMoodboard, removeFromMoodboard } from '../services/api';
 import BottomNav from '../components/BottomNav';
+import DreamAiFab from '../components/DreamAiFab';
 
 const { width } = Dimensions.get('window');
 const COL_WIDTH = (width - 56) / 2;
@@ -179,7 +180,8 @@ export default function MoodboardScreen() {
           <View style={{ width: 160, height: 26, borderRadius: 8, backgroundColor: '#EDE8E0', opacity: 0.5, marginBottom: 8 }} />
           <View style={{ width: 100, height: 12, borderRadius: 6, backgroundColor: '#EDE8E0', opacity: 0.3 }} />
         </View>
-        <BottomNav />
+        <DreamAiFab />
+      <BottomNav />
       </View>
     );
   }

@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import DreamAiFab from '../components/DreamAiFab';
 import { getBudgetTier, TIER_CONTENT } from '../constants/journeyConfig';
 
 const { width } = Dimensions.get('window');
@@ -226,6 +227,7 @@ export default function HomeScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      <DreamAiFab />
       <BottomNav />
     </View>
   );

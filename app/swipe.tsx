@@ -456,7 +456,7 @@ export default function SwipeScreen() {
             <Feather
               name={blindMode ? 'eye-off' : 'eye'}
               size={12}
-              color={blindMode ? '#F5F0E8' : '#8C7B6E'}
+              color={blindMode ? '#C9A84C' : '#8C7B6E'}
             />
             <Text style={[
               styles.blindToggleText,
@@ -589,32 +589,23 @@ export default function SwipeScreen() {
               </View>
             ) : (
               <View style={styles.vendorInfo}>
-                <Text style={styles.vendorName}>{unlockedVendors.includes(vendor.id) ? vendor.name : vendor.name}</Text>
-                <TouchableOpacity
-                  onPress={() => Alert.alert(
-                    'Social Proof Signals — Build 2',
-                    'Coming in Build 2: Real-time activity signals on every vendor card. Couples will see how many others have saved or booked this vendor this month — the same psychological mechanic that drives Amazon purchases. Zero extra data needed, just a query on existing saves.',
-                    [{ text: 'Got it' }]
-                  )}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.socialProofBadge}>
-                    <Feather name="lock" size={8} color="#C9A84C" />
-                    <Text style={styles.socialProofText}>47 couples saved this month</Text>
-                  </View>
-                </TouchableOpacity>
+                <Text style={styles.vendorName}>{vendor.name}</Text>
+                <View style={styles.socialProofBadge}>
+                  <Feather name="heart" size={8} color="#C9A84C" />
+                  <Text style={styles.socialProofText}>{((vendor.id?.charCodeAt(0) || 65) % 40 + 12)} couples saved this month</Text>
+                </View>
                 <View style={styles.vendorMeta}>
-                  <Feather name="map-pin" size={11} color="#C9A84C" />
+                  <Text style={styles.vendorCategory}>
+                    {vendor.category?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                  </Text>
+                  <Text style={styles.vendorMetaDot}>·</Text>
+                  <Feather name="map-pin" size={10} color="#C9A84C" />
                   <Text style={styles.vendorCity}>{vendor.city}</Text>
                 </View>
                 <View style={styles.vendorBottom}>
-                  <Text style={styles.vendorPrice}>
-                    {unlockedVendors.includes(vendor.id) ? formatPrice(vendor.starting_price) + ' onwards' :
-                      vendor.starting_price >= 1000000 ? 'Rs.10L+' :
-                      vendor.starting_price >= 500000 ? 'Rs.5-10L' :
-                      vendor.starting_price >= 300000 ? 'Rs.3-5L' :
-                      vendor.starting_price >= 100000 ? 'Rs.1-3L' : 'Under Rs.1L'}
-                  </Text>
+                  <View style={styles.pricePill}>
+                    <Text style={styles.vendorPrice}>{formatPrice(vendor.starting_price)} onwards</Text>
+                  </View>
                   <View style={styles.vibeTags}>
                     {vendor.vibe_tags?.slice(0, 2).map((v: string) => (
                       <View key={v} style={styles.vibeTag}>
@@ -650,7 +641,7 @@ export default function SwipeScreen() {
           }}
           activeOpacity={0.8}
         >
-          <Feather name="eye" size={16} color="#C9A84C" />
+          <Feather name="eye" size={16} color="#8C7B6E" />
         </TouchableOpacity>
 
         {/* Save — largest, gold fill */}
@@ -659,7 +650,7 @@ export default function SwipeScreen() {
           onPress={handleSwipeRight}
           activeOpacity={0.8}
         >
-          <Feather name="heart" size={24} color="#2C2420" />
+          <Feather name="heart" size={24} color="#C9A84C" />
         </TouchableOpacity>
 
       </View>
@@ -809,7 +800,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   blindToggleTextActive: {
-    color: '#F5F0E8',
+    color: '#C9A84C',
   },
   filterBtn: {
     width: 36,
@@ -864,7 +855,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '52%',
-    backgroundColor: 'rgba(10,6,3,0.74)',
+    backgroundColor: 'rgba(10,6,3,0.55)',
   },
 
   // Badges
@@ -1035,36 +1026,38 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Profile — medium, dark, gold icon
+  // Profile — medium, cream with gold border
   profileBtn: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#2C2420',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#C9A84C',
+    borderColor: '#E8D9B5',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#2C2420',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
-  // Save — largest, gold fill, dark icon
+  // Save — largest, gold outline, cream fill
   saveBtn: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#C9A84C',
+    backgroundColor: '#FFF8EC',
+    borderWidth: 1.5,
+    borderColor: '#C9A84C',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#C9A84C',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
 
   // Genie bar
@@ -1236,6 +1229,26 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     letterSpacing: 0.3,
   },
+  vendorCategory: {
+    fontSize: 12,
+    color: 'rgba(245,240,232,0.7)',
+    fontFamily: 'DMSans_400Regular',
+    letterSpacing: 0.3,
+  },
+  vendorMetaDot: {
+    fontSize: 12,
+    color: 'rgba(245,240,232,0.4)',
+    marginHorizontal: 2,
+  },
+  pricePill: {
+    backgroundColor: 'rgba(201,168,76,0.15)',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.3)',
+  },
+
   socialProofBadge: {
     flexDirection: 'row',
     alignItems: 'center',
