@@ -1473,7 +1473,16 @@ export default function VendorDashboard() {
   // ── Mobile soft-block: Business Portal is a desktop-optimized SaaS surface.
   // On narrow viewports we invite the vendor to the mobile PWA instead,
   // while preserving a "Continue anyway" escape hatch.
+  //
+  // BUT: If the vendor arrived with ?intent=mobile in the URL (a deliberate
+  // click from the PWA More tab, or the landing page "Business Portal" button),
+  // skip the gate entirely — they explicitly asked for the desktop experience.
   const [mobileGateDismissed, setMobileGateDismissed] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('intent') === 'mobile') setMobileGateDismissed(true);
+  }, []);
   if (isMobile && !mobileGateDismissed) {
     return (
       <div style={{

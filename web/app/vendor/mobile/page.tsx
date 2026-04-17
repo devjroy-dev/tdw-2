@@ -127,6 +127,20 @@ export default function VendorMobilePage() {
     if (typeof window !== 'undefined') localStorage.setItem('tdw_checklist_dismissed', '1');
   };
 
+  // Respect ?sub=<subtool> query param — lets external entry points
+  // (like MoreTab ToolsGrid) deep-link into a specific Clients sub-tool
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sub = params.get('sub');
+      if (sub && ['clients', 'invoices', 'contracts', 'payments', 'expenses'].includes(sub)) {
+        setActiveTab('Clients');
+        setActiveSubTool(sub);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // ── Quick Action bottom sheets ────────────────────────────────────────
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
   const [showQuickBlock, setShowQuickBlock] = useState(false);
@@ -277,7 +291,16 @@ export default function VendorMobilePage() {
             leads={leads}
             paymentSchedules={paymentSchedules}
             loading={loading}
-            onJumpToTab={(t: Tab) => setActiveTab(t)}
+            onJumpToTab={(t: Tab) => {
+              setActiveTab(t);
+              if (typeof window !== 'undefined') {
+                const pending = localStorage.getItem('tdw_pwa_open_sub');
+                if (t === 'Clients' && pending) {
+                  setActiveSubTool(pending);
+                  localStorage.removeItem('tdw_pwa_open_sub');
+                }
+              }
+            }}
             vendorData={vendorData}
             onOpenAiModal={() => setShowAiModal(true)}
             checklistDismissed={checklistDismissed}
@@ -345,7 +368,21 @@ export default function VendorMobilePage() {
       <BottomNav
         active={activeTab}
         pending={pendingBookings.length}
-        onChange={(t) => { setActiveTab(t); setActiveSubTool(null); }}
+        onChange={(t) => {
+          setActiveTab(t);
+          // Respect a pending sub-tool hint set by a Quick Action (e.g. "Expense")
+          if (typeof window !== 'undefined') {
+            const pending = localStorage.getItem('tdw_pwa_open_sub');
+            if (t === 'Clients' && pending) {
+              setActiveSubTool(pending);
+              localStorage.removeItem('tdw_pwa_open_sub');
+            } else {
+              setActiveSubTool(null);
+            }
+          } else {
+            setActiveSubTool(null);
+          }
+        }}
       />
 
       {/* ── ADD CLIENT MODAL ── */}
@@ -587,7 +624,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${clientsLast7Days} new clients this week — impressive.`,
     body: 'Signature unlocks Analytics so you can see which channels and events drive your best bookings. Plus Expenses, Tax, Team, and Broadcast.',
     cta: 'See Signature',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   // Trigger 2 — Essential: 3+ overdue payment schedules → Broadcast / Signature
@@ -598,7 +635,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `You have ${overdueCount} overdue payments.`,
     body: 'Signature vendors use WhatsApp Broadcast to send polite bulk reminders — and recover 40% faster than one-by-one follow-ups.',
     cta: 'See Signature',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   // Trigger 3 — Essential: 3+ bookings managed this month → Team / Signature
@@ -611,7 +648,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${bookingsThisMonth} bookings this month. That's a team operation.`,
     body: 'Signature unlocks Team — add your assistants, assign roles, share the calendar. Plus Expenses, Tax, and Analytics.',
     cta: 'See Signature',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   // Trigger 4 — Essential: 10+ completed bookings → Pricing / Analytics
@@ -622,7 +659,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${completedBookings} completed bookings — patterns are emerging.`,
     body: 'Signature Analytics shows which seasons, events, and channels drive your best revenue. Price with confidence, not guesses.',
     cta: 'See Signature',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   // Trigger 5 — Essential: profile 100% + bio detailed → Brand maturity / Referrals
@@ -633,7 +670,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: 'Your profile is complete and your story is rich.',
     body: 'Signature unlocks the Past Client Discount Loop — each past client who joins and enquires earns you up to 50% off your subscription. Your best marketing is already there.',
     cta: 'See Signature',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   // Trigger 6 — Signature: 3+ concurrent active events → Ops scale / Prestige
@@ -649,7 +686,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${activeEvents} active events. Ops mode.`,
     body: 'Prestige unlocks Deluxe Suite — team tasks, procurement tracking, deliveries, photo approvals, client sentiment. For teams running operations, not transactions.',
     cta: 'See Prestige',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   // Trigger 7 — Signature: has team members → delegation / Prestige
@@ -659,7 +696,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: 'Your team is growing.',
     body: 'Prestige brings delegation templates — assign standard workflows (trial, shoot, edit, deliver) in one tap. Plus Team Chat, Check-ins, and Photo Approvals.',
     cta: 'See Prestige',
-    href: '/vendor/dashboard',
+    href: '/vendor/dashboard?intent=mobile',
   };
 
   let activeTrigger: NudgeTrigger | null = null;
@@ -1216,16 +1253,16 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
           { icon: Send,        label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
           { icon: Calendar,    label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
           { icon: Users,       label: 'Add Client', onClick: () => onAddClient && onAddClient() },
-          { icon: TrendingDown, label: 'Expense',   onClick: () => { window.location.href = '/vendor/dashboard'; } },
-          { icon: MessageCircle, label: 'Broadcast', onClick: () => { window.location.href = '/vendor/dashboard'; } },
+          { icon: TrendingDown, label: 'Expense',   onClick: () => { onJumpToTab('Clients'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } } },
+          { icon: MessageCircle, label: 'Broadcast', onClick: () => { window.location.href = '/vendor/dashboard?intent=mobile'; } },
         ];
         const prestigeActions = [
-          { icon: CheckCircle,   label: 'Delegate',   onClick: () => { window.location.href = '/vendor/dashboard'; } },
-          { icon: MessageCircle, label: 'Team Chat',  onClick: () => { window.location.href = '/vendor/dashboard'; } },
+          { icon: CheckCircle,   label: 'Delegate',   onClick: () => { window.location.href = '/vendor/dashboard?intent=mobile'; } },
+          { icon: MessageCircle, label: 'Team Chat',  onClick: () => { window.location.href = '/vendor/dashboard?intent=mobile'; } },
           { icon: Send,          label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
           { icon: Calendar,      label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
           { icon: FileText,      label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
-          { icon: Award,         label: 'Approvals',  onClick: () => { window.location.href = '/vendor/dashboard'; } },
+          { icon: Award,         label: 'Approvals',  onClick: () => { window.location.href = '/vendor/dashboard?intent=mobile'; } },
         ];
         const actions = tier === 'prestige' ? prestigeActions : tier === 'signature' ? signatureActions : essentialActions;
         const cols = actions.length === 4 ? 4 : 3;
@@ -1871,7 +1908,7 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
           }}>
             Expenses, Tax &amp; TDS, Team, Referrals, WhatsApp Broadcast, and Analytics — all unlocked.
           </div>
-          <a href="/vendor/dashboard" style={{
+          <a href="/vendor/dashboard?intent=mobile" style={{
             display: 'inline-block',
             background: C.gold, color: C.ivory,
             textDecoration: 'none',
@@ -1892,7 +1929,7 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
 // TOOL DETAIL VIEW (each tool's content)
 // ══════════════════════════════════════════════════════════════════════════
 
-function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedules, onBack, onAddClient }: any) {
+function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedules, onBack, onAddClient, onOpenInvoice, vendorName }: any) {
   const titles: Record<string, string> = {
     clients: 'Clients', invoices: 'Invoices', contracts: 'Contracts', payments: 'Payments',
     expenses: 'Expenses', tax: 'Tax & TDS', team: 'My Team', referral: 'Referrals',
@@ -1915,16 +1952,26 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {clients.map((c: any) => (
-            <div key={c.id} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.border}`, padding: '14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 20, background: C.goldSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.gold, fontWeight: 600 }}>
+            <a
+              key={c.id}
+              href={`/vendor/mobile/clients/${c.id}`}
+              style={{
+                background: C.card, borderRadius: '12px',
+                border: `1px solid ${C.border}`, padding: '14px',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                textDecoration: 'none', color: 'inherit',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 20, background: C.goldSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.goldDeep, fontWeight: 600, fontFamily: "'Playfair Display', serif" }}>
                 {(c.name || '?')[0].toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>{c.name}</div>
                 <div style={{ fontSize: '11px', color: C.muted }}>{c.event_type || 'Event'}{c.event_date ? ` · ${new Date(c.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}</div>
               </div>
-              {c.phone && <a href={`tel:${c.phone}`} style={{ background: C.goldSoft, border: `1px solid ${C.goldBorder}`, borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}><Phone size={13} color={C.gold} /></a>}
-            </div>
+              <ChevronRight size={16} color={C.light} />
+            </a>
           ))}
         </div>
       );
@@ -1933,6 +1980,7 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
     if (sub === 'invoices') {
       const total = invoices.reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
       const paid = invoices.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+      const unpaidCount = invoices.filter((i: any) => i.status !== 'paid').length;
       return (
         <>
           <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '16px', marginBottom: '12px' }}>
@@ -1946,25 +1994,81 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
                 <div style={{ fontSize: '20px', fontFamily: 'Playfair Display, serif', color: C.green, marginTop: '2px' }}>₹{fmtINR(paid)}</div>
               </div>
             </div>
+            {unpaidCount > 0 && (
+              <div style={{
+                marginTop: '10px', paddingTop: '10px',
+                borderTop: `1px solid ${C.borderSoft}`,
+                fontSize: '11px', color: C.muted,
+                fontStyle: 'italic',
+              }}>
+                {unpaidCount} unpaid invoice{unpaidCount === 1 ? '' : 's'} · ₹{fmtINR(total - paid)} outstanding
+              </div>
+            )}
           </div>
+
+          {/* ── Create Invoice CTA ── */}
+          {onOpenInvoice && (
+            <button
+              onClick={onOpenInvoice}
+              style={{
+                background: C.gold, color: C.ivory,
+                border: 'none', borderRadius: '12px',
+                padding: '14px', marginBottom: '14px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px', fontWeight: 600,
+                letterSpacing: '1.8px', textTransform: 'uppercase',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                width: '100%',
+              }}
+            >
+              <Plus size={14} /> Create Invoice
+            </button>
+          )}
+
           {invoices.length === 0 ? (
-            <Empty icon={<FileText size={28} color={C.light} />} title="No invoices yet" sub="Create your first invoice from the desktop dashboard for full GST formatting." />
+            <Empty icon={<FileText size={28} color={C.light} />} title="No invoices yet" sub="Tap 'Create Invoice' above to bill a client. GST is auto-calculated at 18%." />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {invoices.slice(0, 20).map((inv: any) => (
-                <div key={inv.id} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.border}`, padding: '14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>{inv.client_name || 'Client'}</div>
-                      <div style={{ fontSize: '11px', color: C.muted }}>{inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 600, color: C.dark }}>₹{fmtINR(parseInt(inv.amount) || 0)}</div>
-                      <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '50px', background: inv.status === 'paid' ? `${C.green}15` : C.goldSoft, color: inv.status === 'paid' ? C.green : C.gold, marginTop: '4px', display: 'inline-block' }}>{inv.status || 'unpaid'}</span>
+              {invoices.slice(0, 20).map((inv: any) => {
+                const waMsg = `Hi ${inv.client_name || 'there'}, sharing your invoice from ${vendorName || 'our studio'} — ${inv.invoice_number || 'Invoice'} for ₹${fmtINR(parseInt(inv.amount) || 0)}${inv.status === 'paid' ? ' (paid)' : ''}. Please let me know if you have any questions.`;
+                const waUrl = inv.client_phone
+                  ? `https://wa.me/91${(inv.client_phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`
+                  : null;
+                return (
+                  <div key={inv.id} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.border}`, padding: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>{inv.client_name || 'Client'}</div>
+                        <div style={{ fontSize: '11px', color: C.muted }}>{inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 600, color: C.dark }}>₹{fmtINR(parseInt(inv.amount) || 0)}</span>
+                          <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '50px', background: inv.status === 'paid' ? `${C.green}15` : C.goldSoft, color: inv.status === 'paid' ? C.green : C.goldDeep, border: `1px solid ${inv.status === 'paid' ? `${C.green}40` : C.goldBorder}` }}>{inv.status || 'unpaid'}</span>
+                        </div>
+                      </div>
+                      {waUrl && (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="Send on WhatsApp"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            background: '#25D366',
+                            borderRadius: '50%',
+                            width: '36px', height: '36px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <MessageCircle size={16} color={C.ivory} />
+                        </a>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
@@ -1998,6 +2102,10 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
       );
     }
 
+    if (sub === 'expenses') {
+      return <ExpensesPanel session={session} tier={tier} clients={clients} />;
+    }
+
     // Default: complex tools redirect to desktop
     return (
       <div style={{
@@ -2025,7 +2133,7 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
         }}>
           The full {titles[sub].toLowerCase()} experience lives on the business portal.
         </div>
-        <a href="/vendor/dashboard" style={{
+        <a href="/vendor/dashboard?intent=mobile" style={{
           display: 'inline-block',
           background: C.goldSoft, color: C.goldDeep,
           border: `1px solid ${C.goldBorder}`,
@@ -2259,7 +2367,7 @@ function MoreTab({ session, tier, vendorData, aiStatus, buyingTokens, setBuyingT
       <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         {[
           { icon: SettingsIcon, label: 'Edit profile',          href: '/vendor/mobile/profile/edit' },
-          { icon: Briefcase,    label: 'Open business portal',  href: '/vendor/dashboard' },
+          { icon: Briefcase,    label: 'Open business portal',  href: '/vendor/dashboard?intent=mobile' },
         ].map((item, idx, arr) => {
           const I = item.icon;
           return (
@@ -2923,13 +3031,13 @@ type ToolDef = {
 };
 
 const MORE_TOOLS: ToolDef[] = [
-  { id: 'expenses',  label: 'Expenses',   icon: TrendingDown,  minTier: 'signature', href: '/vendor/dashboard', desc: 'Track every expense. See where your money goes. P&L view.' },
-  { id: 'tax',       label: 'Tax & TDS',  icon: Percent,       minTier: 'signature', href: '/vendor/dashboard', desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
-  { id: 'broadcast', label: 'Broadcast',  icon: Send,          minTier: 'signature', href: '/vendor/dashboard', desc: 'Send WhatsApp updates to client groups. Templates included.' },
-  { id: 'analytics', label: 'Analytics',  icon: BarChart2,     minTier: 'signature', href: '/vendor/dashboard', desc: 'Revenue trends. Lead conversion. What\'s working.' },
-  { id: 'team',      label: 'Team',       icon: Users,         minTier: 'signature', href: '/vendor/dashboard', desc: 'Add assistants. Assign roles. Team calendar.' },
-  { id: 'referrals', label: 'Referrals',  icon: Share2,        minTier: 'signature', href: '/vendor/dashboard', desc: 'Past Client Discount Loop. 10% off per 10 clients who join.' },
-  { id: 'deluxe',    label: 'Deluxe Suite', icon: Award,       minTier: 'prestige',  href: '/vendor/dashboard', desc: 'Tasks, procurement, deliveries, photo approvals, client sentiment. For ops teams.' },
+  { id: 'expenses',  label: 'Expenses',   icon: TrendingDown,  minTier: 'signature', href: '/vendor/mobile?sub=expenses',       desc: 'Track every expense. See where your money goes. P&L view.' },
+  { id: 'tax',       label: 'Tax & TDS',  icon: Percent,       minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
+  { id: 'broadcast', label: 'Broadcast',  icon: Send,          minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Send WhatsApp updates to client groups. Templates included.' },
+  { id: 'analytics', label: 'Analytics',  icon: BarChart2,     minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Revenue trends. Lead conversion. What\'s working.' },
+  { id: 'team',      label: 'Team',       icon: Users,         minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Add assistants. Assign roles. Team calendar.' },
+  { id: 'referrals', label: 'Referrals',  icon: Share2,        minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Past Client Discount Loop. 10% off per 10 clients who join.' },
+  { id: 'deluxe',    label: 'Deluxe Suite', icon: Award,       minTier: 'prestige',  href: '/vendor/dashboard?intent=mobile',   desc: 'Tasks, procurement, deliveries, photo approvals, client sentiment. For ops teams.' },
 ];
 
 const TIER_RANK: Record<string, number> = { essential: 1, signature: 2, prestige: 3 };
@@ -3094,7 +3202,7 @@ function ToolsGrid({ tier }: { tier: Tier }) {
 
             {/* CTA */}
             <a
-              href="/vendor/dashboard"
+              href="/vendor/dashboard?intent=mobile"
               style={{
                 display: 'block', textAlign: 'center',
                 background: C.gold, color: C.ivory,
@@ -3854,7 +3962,7 @@ function TeamActivityFeed({ vendorId }: { vendorId: string }) {
             Invite your first team member to see tasks, photos, deliveries, and check-ins as they happen.
           </div>
           <a
-            href="/vendor/dashboard"
+            href="/vendor/dashboard?intent=mobile"
             style={{
               display: 'block', textAlign: 'center',
               background: C.gold, color: C.ivory,
@@ -3951,4 +4059,505 @@ function formatTimeAgo(d: Date): string {
   if (hrs < 24) return `${hrs}h ago`;
   if (days < 7) return `${days}d ago`;
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXPENSES PANEL — full PWA implementation (Signature+)
+// ══════════════════════════════════════════════════════════════════════════
+
+const EXPENSE_CATEGORIES = [
+  'Travel', 'Equipment', 'Assistant', 'Venue', 'Supplies',
+  'Props', 'Food', 'Software', 'Marketing', 'Other',
+];
+
+function ExpensesPanel({ session, tier, clients }: any) {
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [filter, setFilter] = useState<'month' | 'ytd' | 'all'>('month');
+
+  useEffect(() => {
+    if (!session?.vendorId) { setLoading(false); return; }
+    fetch(`${API}/api/expenses/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setExpenses(d.data || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [session?.vendorId]);
+
+  // ── Computed ──────────────────────────────────────────────────────────
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const fyStart = now.getMonth() >= 3
+    ? new Date(now.getFullYear(), 3, 1)
+    : new Date(now.getFullYear() - 1, 3, 1);
+
+  const parseExpenseDate = (exp: any): Date | null => {
+    // expense_date stored as en-IN string "DD/MM/YYYY"
+    if (exp.created_at) return new Date(exp.created_at);
+    return null;
+  };
+
+  const filteredExpenses = expenses.filter(e => {
+    const d = parseExpenseDate(e);
+    if (!d) return filter === 'all';
+    if (filter === 'month') return d >= monthStart;
+    if (filter === 'ytd')   return d >= fyStart;
+    return true;
+  });
+
+  const totalFiltered = filteredExpenses.reduce((s, e) => s + (parseInt(e.amount) || 0), 0);
+  const totalThisMonth = expenses.filter(e => {
+    const d = parseExpenseDate(e);
+    return d && d >= monthStart;
+  }).reduce((s, e) => s + (parseInt(e.amount) || 0), 0);
+  const totalYTD = expenses.filter(e => {
+    const d = parseExpenseDate(e);
+    return d && d >= fyStart;
+  }).reduce((s, e) => s + (parseInt(e.amount) || 0), 0);
+
+  // Category breakdown
+  const categoryTotals: Record<string, number> = {};
+  for (const e of filteredExpenses) {
+    const cat = e.category || 'Other';
+    categoryTotals[cat] = (categoryTotals[cat] || 0) + (parseInt(e.amount) || 0);
+  }
+  const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+  const maxCatAmount = sortedCategories[0]?.[1] || 1;
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this expense?')) return;
+    try {
+      await fetch(`${API}/api/expenses/${id}`, { method: 'DELETE' });
+      setExpenses(prev => prev.filter(e => e.id !== id));
+    } catch { /* ignore */ }
+  };
+
+  if (loading) {
+    return <div style={{ padding: '40px', textAlign: 'center', color: C.muted, fontSize: '13px' }}>Loading expenses…</div>;
+  }
+
+  return (
+    <>
+      {/* ── Summary card ── */}
+      <div style={{
+        background: C.ivory,
+        borderRadius: '16px',
+        border: `1px solid ${C.goldBorder}`,
+        padding: '18px',
+        position: 'relative',
+        overflow: 'hidden',
+        marginBottom: '14px',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+          background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+        }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div>
+            <div style={{ fontSize: '9px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>This Month</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.dark, marginTop: '4px' }}>₹{fmtINR(totalThisMonth)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '9px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>Year to Date</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.dark, marginTop: '4px' }}>₹{fmtINR(totalYTD)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Add Expense CTA ── */}
+      <button
+        onClick={() => setShowAddSheet(true)}
+        style={{
+          background: C.gold, color: C.ivory,
+          border: 'none', borderRadius: '12px',
+          padding: '14px', marginBottom: '14px',
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '11px', fontWeight: 600,
+          letterSpacing: '1.8px', textTransform: 'uppercase',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          width: '100%',
+        }}
+      ><Plus size={14} /> Add Expense</button>
+
+      {/* ── Filter chips ── */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+        {([
+          { k: 'month', label: 'This Month' },
+          { k: 'ytd',   label: 'Year to Date' },
+          { k: 'all',   label: 'All Time' },
+        ] as const).map(f => {
+          const active = filter === f.k;
+          return (
+            <button
+              key={f.k}
+              onClick={() => setFilter(f.k as any)}
+              style={{
+                background: active ? C.goldSoft : C.ivory,
+                color: active ? C.goldDeep : C.muted,
+                border: `1px solid ${active ? C.gold : C.border}`,
+                borderRadius: '50px',
+                padding: '7px 14px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '10px', fontWeight: active ? 600 : 500,
+                letterSpacing: active ? '1.2px' : '0.8px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+              }}
+            >{f.label}</button>
+          );
+        })}
+      </div>
+
+      {/* ── Category breakdown ── */}
+      {sortedCategories.length > 0 && (
+        <div style={{
+          background: C.ivory,
+          borderRadius: '14px',
+          border: `1px solid ${C.border}`,
+          padding: '16px',
+          marginBottom: '14px',
+        }}>
+          <div style={{ fontSize: '9px', letterSpacing: '2px', textTransform: 'uppercase', color: C.goldDeep, fontWeight: 600, marginBottom: '12px' }}>
+            By Category · ₹{fmtINR(totalFiltered)}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {sortedCategories.slice(0, 6).map(([cat, amt]) => (
+              <div key={cat}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', color: C.dark }}>{cat}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: C.dark }}>₹{fmtINR(amt)}</span>
+                </div>
+                <div style={{
+                  height: '4px', background: C.pearl, borderRadius: '2px', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: `${(amt / maxCatAmount) * 100}%`,
+                    height: '100%',
+                    background: C.gold,
+                    borderRadius: '2px',
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Expense list ── */}
+      {filteredExpenses.length === 0 ? (
+        <Empty
+          icon={<TrendingDown size={28} color={C.light} />}
+          title="No expenses logged"
+          sub={filter === 'month' ? 'No expenses this month yet.' : 'Tap Add Expense to log your first one.'}
+        />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filteredExpenses.slice(0, 30).map((exp: any) => (
+            <div key={exp.id} style={{
+              background: C.ivory,
+              border: `1px solid ${C.border}`,
+              borderRadius: '12px',
+              padding: '12px 14px',
+              display: 'flex', alignItems: 'center', gap: '10px',
+            }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '10px',
+                background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <TrendingDown size={13} color={C.goldDeep} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {exp.description || 'Expense'}
+                </div>
+                <div style={{ fontSize: '10px', color: C.muted, marginTop: '2px', letterSpacing: '0.3px' }}>
+                  {exp.category || 'Other'}
+                  {exp.client_name ? ` · ${exp.client_name}` : ''}
+                  {exp.expense_date ? ` · ${exp.expense_date}` : ''}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: C.dark }}>₹{fmtINR(parseInt(exp.amount) || 0)}</div>
+                <button
+                  onClick={() => handleDelete(exp.id)}
+                  style={{
+                    background: 'transparent', border: 'none',
+                    color: C.light, fontSize: '9px', letterSpacing: '1px',
+                    textTransform: 'uppercase', cursor: 'pointer',
+                    marginTop: '2px', padding: 0, fontFamily: 'inherit',
+                  }}
+                >Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Add Expense bottom sheet ── */}
+      {showAddSheet && (
+        <AddExpenseSheet
+          vendorId={session?.vendorId}
+          clients={clients}
+          onClose={() => setShowAddSheet(false)}
+          onSaved={(newExp: any) => {
+            setExpenses(prev => [newExp, ...prev]);
+            setShowAddSheet(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADD EXPENSE SHEET — bottom sheet to log a new expense
+// ══════════════════════════════════════════════════════════════════════════
+
+function AddExpenseSheet({ vendorId, clients, onClose, onSaved }: {
+  vendorId: string;
+  clients: any[];
+  onClose: () => void;
+  onSaved: (exp: any) => void;
+}) {
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Travel');
+  const [clientId, setClientId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const selectedClient = clients.find(c => c.id === clientId);
+  const canSave = amount && parseInt(amount) > 0 && description.trim() && !submitting;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      const r = await fetch(`${API}/api/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: vendorId,
+          description: description.trim(),
+          amount: parseInt(amount),
+          category,
+          client_name: selectedClient?.name || '',
+          expense_date: new Date().toLocaleDateString('en-IN'),
+        }),
+      });
+      const d = await r.json();
+      if (d.success && d.data) {
+        onSaved(d.data);
+      } else {
+        setError(d.error || 'Could not save expense');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(26,20,16,0.62)',
+        zIndex: 200,
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.ivory,
+          borderTopLeftRadius: '24px', borderTopRightRadius: '24px',
+          padding: '24px 20px calc(env(safe-area-inset-bottom) + 24px)',
+          maxHeight: '92dvh',
+          overflowY: 'auto',
+          boxShadow: '0 -8px 40px rgba(26,20,16,0.24)',
+        }}
+      >
+        {/* Handle bar */}
+        <div style={{
+          width: '40px', height: '4px', borderRadius: '2px',
+          background: C.border, margin: '0 auto 18px',
+        }} />
+
+        {/* Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <TrendingDown size={14} color={C.goldDeep} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '9px', letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, fontWeight: 600 }}>New</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', color: C.dark, marginTop: '2px' }}>Add Expense</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px' }}>
+            <X size={16} color={C.muted} />
+          </button>
+        </div>
+
+        {/* Amount */}
+        <label style={{ display: 'block', marginBottom: '14px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '6px' }}>Amount</div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            background: C.ivory,
+            border: `1px solid ${C.border}`,
+            borderRadius: '12px',
+            padding: '13px 14px',
+          }}>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '18px', color: C.goldDeep }}>₹</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={amount ? parseInt(amount).toLocaleString('en-IN') : ''}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="e.g. 5000"
+              style={{
+                flex: 1, background: 'transparent', border: 'none',
+                fontSize: '18px', fontFamily: "'Playfair Display', serif",
+                color: C.dark, outline: 'none',
+              }}
+              autoFocus
+            />
+          </div>
+        </label>
+
+        {/* Description */}
+        <label style={{ display: 'block', marginBottom: '14px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '6px' }}>What was this for?</div>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Taxi to Goa shoot"
+            style={{
+              width: '100%', background: C.ivory,
+              border: `1px solid ${C.border}`, borderRadius: '12px',
+              padding: '13px 14px',
+              fontSize: '14px', color: C.dark,
+              fontFamily: 'DM Sans, sans-serif',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+        </label>
+
+        {/* Category chips */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '8px' }}>Category</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {EXPENSE_CATEGORIES.map(cat => {
+              const active = category === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  style={{
+                    background: active ? C.goldSoft : C.ivory,
+                    color: active ? C.goldDeep : C.muted,
+                    border: `1px solid ${active ? C.gold : C.border}`,
+                    borderRadius: '50px',
+                    padding: '7px 12px',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '10px', fontWeight: active ? 600 : 500,
+                    letterSpacing: active ? '1.2px' : '0.5px',
+                    textTransform: active ? 'uppercase' : 'none',
+                    cursor: 'pointer',
+                  }}
+                >{cat}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Client (optional) */}
+        {clients.length > 0 && (
+          <label style={{ display: 'block', marginBottom: '18px' }}>
+            <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '6px' }}>Link to client <span style={{ textTransform: 'none', letterSpacing: 0, fontStyle: 'italic', color: C.light }}>(optional)</span></div>
+            <select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              style={{
+                width: '100%', background: C.ivory,
+                border: `1px solid ${C.border}`, borderRadius: '12px',
+                padding: '13px 14px',
+                fontSize: '14px', color: clientId ? C.dark : C.muted,
+                fontFamily: 'DM Sans, sans-serif',
+                outline: 'none', boxSizing: 'border-box',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C7B6E' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 14px center',
+                paddingRight: '36px',
+              }}
+            >
+              <option value="">No client</option>
+              {clients.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name || 'Client'}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {error && (
+          <div style={{
+            background: C.redSoft,
+            border: `1px solid ${C.redBorder}`,
+            borderRadius: '8px',
+            padding: '10px 12px',
+            fontSize: '11px', color: C.red,
+            marginBottom: '14px', lineHeight: 1.5,
+          }}>{error}</div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: '0 0 auto',
+              background: 'transparent',
+              border: `1px solid ${C.border}`, color: C.muted,
+              borderRadius: '12px', padding: '13px 20px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px', fontWeight: 600,
+              letterSpacing: '1.5px', textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            style={{
+              flex: 1,
+              background: canSave ? C.gold : C.pearl,
+              color: canSave ? C.ivory : C.light,
+              border: 'none', borderRadius: '12px',
+              padding: '13px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px', fontWeight: 600,
+              letterSpacing: '1.8px', textTransform: 'uppercase',
+              cursor: canSave ? 'pointer' : 'not-allowed',
+            }}
+          >{submitting ? 'Saving…' : 'Save Expense'}</button>
+        </div>
+      </div>
+    </div>
+  );
 }

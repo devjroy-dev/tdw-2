@@ -1096,6 +1096,21 @@ app.get('/api/vendor-clients/:vendorId', async (req, res) => {
   }
 });
 
+// Fetch a single vendor client by id (for client detail view)
+app.get('/api/vendor-clients/by-id/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_clients')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/vendor-clients', async (req, res) => {
   try {
     const { data, error } = await supabase

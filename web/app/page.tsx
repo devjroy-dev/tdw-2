@@ -608,7 +608,7 @@ export default function HomePage() {
         animation: 'tdwFadeIn 1.8s ease forwards',
       }}>
         {userType === 'vendor' && (
-          <a href="https://vendor.thedreamwedding.in/vendor/login" className="tdw-bottom-link" style={{ textDecoration: 'none' }}>Business Portal</a>
+          <a href="https://vendor.thedreamwedding.in/vendor/login?intent=mobile" className="tdw-bottom-link" style={{ textDecoration: 'none' }}>Business Portal</a>
         )}
         <button onClick={() => { switchUserType('vendor'); setAuthMode('signup'); setSignupPath('waitlist'); window.scrollTo(0,0); }} className="tdw-bottom-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>Founding Vendor Program</button>
         <a href="/about" className="tdw-bottom-link">About The Dream Wedding</a>
