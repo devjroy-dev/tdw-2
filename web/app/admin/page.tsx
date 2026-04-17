@@ -608,35 +608,35 @@ export default function AdminPage() {
               <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, color: '#C9A84C', textTransform: 'uppercase' }}>Couple Invites</span>
             </div>
             <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Generate Couple Invite Code</div>
-            <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 20, lineHeight: 1.6 }}>Create a code for a couple. They enter it at thedreamwedding.in/couple/login to access the platform with their assigned tier and tokens.</div>
+            <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 20, lineHeight: 1.6 }}>Create a code for a couple. They enter it at thedreamwedding.in/couple/login to access the platform with their assigned tier.</div>
             <div className='admin-flex-col' style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <input placeholder="Nickname (optional)" value={coupleName} onChange={(e: any) => setCoupleName(e.target.value)} style={{ ...s.input, flex: 1 }} />
               <input placeholder="Note (optional)" value={coupleNote} onChange={(e: any) => setCoupleNote(e.target.value)} style={{ ...s.input, flex: 1 }} />
             </div>
             <div className='admin-flex-col' style={{ display: 'flex', gap: 12 }}>
               <button onClick={() => generateCoupleCode('basic')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#8C7B6E', color: '#fff', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
-                {coupleGenerating ? 'Generating...' : 'Basic (3 tokens)'}
+                {coupleGenerating ? 'Generating...' : 'Basic Access'}
               </button>
               <button onClick={() => generateCoupleCode('gold')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#C9A84C', color: '#fff', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
-                {coupleGenerating ? 'Generating...' : 'Gold (15 tokens)'}
+                {coupleGenerating ? 'Generating...' : 'Gold Access'}
               </button>
               <button onClick={() => generateCoupleCode('platinum')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
-                {coupleGenerating ? 'Generating...' : 'Platinum (Unlimited)'}
+                {coupleGenerating ? 'Generating...' : 'Platinum Access'}
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Basic = 3 tokens, blind discovery</div>
+              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Basic = free access</div>
               <div style={{ fontSize: 11, color: '#8C7B6E' }}>|</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Gold = 15 tokens, Curated For You</div>
+              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Gold = paid features unlocked</div>
               <div style={{ fontSize: 11, color: '#8C7B6E' }}>|</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Platinum = Unlimited + Couture</div>
+              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Platinum = full access incl. Couture & DreamAi</div>
             </div>
             {coupleNewCode && (
               <div style={{ marginTop: 16, background: '#2C2420', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 10, color: '#8C7B6E', letterSpacing: 2, marginBottom: 4 }}>COUPLE INVITE — {(coupleNewCode.tier || '').toUpperCase()}</div>
                   <div style={{ fontSize: 26, color: '#C9A84C', letterSpacing: 4, fontWeight: 300 }}>{coupleNewCode.code}</div>
-                  <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 4 }}>For: {coupleNewCode.vendor_name || 'Couple'} · {coupleNewCode.tokens || 3} tokens</div>
+                  <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 4 }}>For: {coupleNewCode.vendor_name || 'Couple'} · {(coupleNewCode.tier || 'basic').charAt(0).toUpperCase() + (coupleNewCode.tier || 'basic').slice(1)} access</div>
                 </div>
                 <button onClick={() => copyCode(coupleNewCode.code)} style={{ background: copied === coupleNewCode.code ? '#4CAF50' : '#C9A84C', color: '#2C2420', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
                   {copied === coupleNewCode.code ? 'Copied!' : 'Copy'}
