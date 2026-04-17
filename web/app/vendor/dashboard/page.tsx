@@ -1363,6 +1363,33 @@ export default function VendorDashboard() {
   const VIBES = ['Candid', 'Traditional', 'Luxury', 'Cinematic', 'Boho', 'Festive', 'Minimalist', 'Royal'];
   const EXPENSE_CATS = ['Travel', 'Equipment', 'Editing', 'Assistant', 'Food', 'Other'];
 
+  // ── ALL HOOKS MUST BE DECLARED BEFORE ANY EARLY RETURN ──
+  // These two hooks were previously declared at line ~1537, AFTER the
+  // `if (loading) return <Loading />` early return at line 1366. That meant
+  // the first render (loading=true) called 170 hooks, but the second render
+  // (loading=false) called 172 hooks — triggering React error #310:
+  // "Rendered fewer hooks than expected." Moving them here ensures both
+  // renders call exactly the same hooks in the same order.
+  const [mobileGateDismissed, setMobileGateDismissed] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('intent') === 'mobile') setMobileGateDismissed(true);
+    // Deep-link: ?tab=X switches the active tab so tiles like Deluxe Suite land on the right page
+    const tabParam = params.get('tab');
+    if (tabParam) {
+      const aliases: Record<string, string> = {
+        'deluxe': 'ds-event-dashboard', 'deluxe-suite': 'ds-event-dashboard',
+        'referral': 'referral', 'referrals': 'referral',
+        'invoices': 'invoices', 'invoice': 'invoices',
+        'clients': 'clients', 'calendar': 'calendar',
+        'team': 'team', 'overview': 'overview',
+      };
+      const resolved = aliases[tabParam] || tabParam;
+      setActiveTab(resolved);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div style={{
@@ -1528,32 +1555,9 @@ export default function VendorDashboard() {
   };
 
   // ── Mobile soft-block: Business Portal is a desktop-optimized SaaS surface.
-  // On narrow viewports we invite the vendor to the mobile PWA instead,
-  // while preserving a "Continue anyway" escape hatch.
-  //
-  // BUT: If the vendor arrived with ?intent=mobile in the URL (a deliberate
-  // click from the PWA More tab, or the landing page "Business Portal" button),
-  // skip the gate entirely — they explicitly asked for the desktop experience.
-  const [mobileGateDismissed, setMobileGateDismissed] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('intent') === 'mobile') setMobileGateDismissed(true);
-    // Deep-link: ?tab=X switches the active tab so tiles like Deluxe Suite land on the right page
-    const tabParam = params.get('tab');
-    if (tabParam) {
-      // Map short aliases to real tab IDs
-      const aliases: Record<string, string> = {
-        'deluxe': 'ds-event-dashboard', 'deluxe-suite': 'ds-event-dashboard',
-        'referral': 'referral', 'referrals': 'referral',
-        'invoices': 'invoices', 'invoice': 'invoices',
-        'clients': 'clients', 'calendar': 'calendar',
-        'team': 'team', 'overview': 'overview',
-      };
-      const resolved = aliases[tabParam] || tabParam;
-      setActiveTab(resolved);
-    }
-  }, []);
+  // (Hooks moved up before the `if (loading)` early return at line 1366 to avoid
+  //  React error #310: "Rendered fewer hooks than expected" — early returning
+  //  before declaring all hooks violates React's rules-of-hooks.)
   if (isMobile && !mobileGateDismissed) {
     return (
       <div style={{
