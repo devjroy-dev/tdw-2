@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Grid, MessageCircle, Calendar, Tool, User, Plus, Phone, Send,
   FileText, CreditCard, Clock, Users, TrendingDown, Percent,
@@ -347,8 +347,12 @@ export default function VendorMobilePage() {
             setActiveSubTool={setActiveSubTool}
             clients={clients}
             invoices={invoices}
+            bookings={bookings}
+            leads={leads}
             paymentSchedules={paymentSchedules}
             onAddClient={() => setShowAddClient(true)}
+            onOpenInvoice={() => setShowQuickInvoice(true)}
+            vendorName={session?.vendorName}
           />
         )}
         {activeTab === 'More' && (
@@ -1837,9 +1841,9 @@ function CalendarTab({ session, bookings, blockedDates, onRefresh, onAddClient }
 // TOOLS TAB (launcher grid → opens individual tool views)
 // ══════════════════════════════════════════════════════════════════════════
 
-function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, invoices, paymentSchedules, onAddClient }: any) {
+function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, invoices, bookings, leads, paymentSchedules, onAddClient, onOpenInvoice, vendorName }: any) {
   if (activeSubTool) {
-    return <ToolDetailView session={session} tier={tier} sub={activeSubTool} clients={clients} invoices={invoices} paymentSchedules={paymentSchedules} onBack={() => setActiveSubTool(null)} onAddClient={onAddClient} />;
+    return <ToolDetailView session={session} tier={tier} sub={activeSubTool} clients={clients} invoices={invoices} bookings={bookings} leads={leads} paymentSchedules={paymentSchedules} onBack={() => setActiveSubTool(null)} onAddClient={onAddClient} onOpenInvoice={onOpenInvoice} vendorName={vendorName} />;
   }
 
   const allTools = [
@@ -1929,11 +1933,11 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
 // TOOL DETAIL VIEW (each tool's content)
 // ══════════════════════════════════════════════════════════════════════════
 
-function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedules, onBack, onAddClient, onOpenInvoice, vendorName }: any) {
+function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads, paymentSchedules, onBack, onAddClient, onOpenInvoice, vendorName }: any) {
   const titles: Record<string, string> = {
     clients: 'Clients', invoices: 'Invoices', contracts: 'Contracts', payments: 'Payments',
     expenses: 'Expenses', tax: 'Tax & TDS', team: 'My Team', referral: 'Referrals',
-    whatsapp: 'Broadcast', analytics: 'Analytics',
+    whatsapp: 'Broadcast', analytics: 'Analytics', chat: 'Team Chat',
   };
 
   const renderContent = () => {
@@ -2104,6 +2108,26 @@ function ToolDetailView({ session, tier, sub, clients, invoices, paymentSchedule
 
     if (sub === 'expenses') {
       return <ExpensesPanel session={session} tier={tier} clients={clients} />;
+    }
+
+    if (sub === 'analytics') {
+      return <AnalyticsPanel session={session} tier={tier} bookings={bookings} invoices={invoices} leads={leads} clients={clients} paymentSchedules={paymentSchedules} />;
+    }
+
+    if (sub === 'tax') {
+      return <TaxTdsPanel session={session} tier={tier} invoices={invoices} />;
+    }
+
+    if (sub === 'whatsapp') {
+      return <BroadcastPanel session={session} tier={tier} clients={clients} />;
+    }
+
+    if (sub === 'team') {
+      return <TeamPanel session={session} tier={tier} />;
+    }
+
+    if (sub === 'chat') {
+      return <TeamChatPanel session={session} tier={tier} />;
     }
 
     // Default: complex tools redirect to desktop
@@ -3031,13 +3055,14 @@ type ToolDef = {
 };
 
 const MORE_TOOLS: ToolDef[] = [
-  { id: 'expenses',  label: 'Expenses',   icon: TrendingDown,  minTier: 'signature', href: '/vendor/mobile?sub=expenses',       desc: 'Track every expense. See where your money goes. P&L view.' },
-  { id: 'tax',       label: 'Tax & TDS',  icon: Percent,       minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
-  { id: 'broadcast', label: 'Broadcast',  icon: Send,          minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Send WhatsApp updates to client groups. Templates included.' },
-  { id: 'analytics', label: 'Analytics',  icon: BarChart2,     minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Revenue trends. Lead conversion. What\'s working.' },
-  { id: 'team',      label: 'Team',       icon: Users,         minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Add assistants. Assign roles. Team calendar.' },
-  { id: 'referrals', label: 'Referrals',  icon: Share2,        minTier: 'signature', href: '/vendor/dashboard?intent=mobile',   desc: 'Past Client Discount Loop. 10% off per 10 clients who join.' },
-  { id: 'deluxe',    label: 'Deluxe Suite', icon: Award,       minTier: 'prestige',  href: '/vendor/dashboard?intent=mobile',   desc: 'Tasks, procurement, deliveries, photo approvals, client sentiment. For ops teams.' },
+  { id: 'expenses',  label: 'Expenses',   icon: TrendingDown,  minTier: 'signature', href: '/vendor/mobile?sub=expenses',   desc: 'Track every expense. See where your money goes. P&L view.' },
+  { id: 'tax',       label: 'Tax & TDS',  icon: Percent,       minTier: 'signature', href: '/vendor/mobile?sub=tax',        desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
+  { id: 'broadcast', label: 'Broadcast',  icon: Send,          minTier: 'signature', href: '/vendor/mobile?sub=whatsapp',   desc: 'Send WhatsApp updates to client groups. Templates included.' },
+  { id: 'analytics', label: 'Analytics',  icon: BarChart2,     minTier: 'signature', href: '/vendor/mobile?sub=analytics',  desc: 'Revenue trends. Lead conversion. What\'s working.' },
+  { id: 'team',      label: 'Team',       icon: Users,         minTier: 'signature', href: '/vendor/mobile?sub=team',       desc: 'Add assistants. Assign roles. Shared calendar.' },
+  { id: 'chat',      label: 'Team Chat',  icon: MessageCircle, minTier: 'prestige',  href: '/vendor/mobile?sub=chat',       desc: 'Real-time messaging with your team. Channels and direct messages.' },
+  { id: 'referrals', label: 'Referrals',  icon: Share2,        minTier: 'signature', href: '/vendor/dashboard?intent=mobile', desc: 'Past Client Discount Loop. 10% off per 10 clients who join.' },
+  { id: 'deluxe',    label: 'Deluxe Suite', icon: Award,       minTier: 'prestige',  href: '/vendor/dashboard?intent=mobile', desc: 'Tasks, procurement, deliveries, photo approvals, client sentiment. For ops teams.' },
 ];
 
 const TIER_RANK: Record<string, number> = { essential: 1, signature: 2, prestige: 3 };
@@ -4559,5 +4584,1175 @@ function AddExpenseSheet({ vendorId, clients, onClose, onSaved }: {
         </div>
       </div>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TAX & TDS PANEL — Signature+, shows GST summary + TDS ledger + CSV export
+// ══════════════════════════════════════════════════════════════════════════
+
+function TaxTdsPanel({ session, tier, invoices }: { session: VendorSession; tier: Tier; invoices: any[] }) {
+  const [tdsEntries, setTdsEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedFY, setSelectedFY] = useState<string>('');
+
+  // Build list of financial years from invoices + tds data
+  const now = new Date();
+  const currentFYYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const currentFY = `FY ${currentFYYear}-${String(currentFYYear + 1).slice(-2)}`;
+
+  useEffect(() => {
+    if (!session?.vendorId) return;
+    setSelectedFY(currentFY);
+    let cancelled = false;
+    fetch(`${API}/api/tds/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setTdsEntries(d?.data || []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [session?.vendorId]);
+
+  // GST computation — from paid invoices in selected FY
+  const fyStart = new Date(parseInt(selectedFY.slice(3, 7)), 3, 1);
+  const fyEnd = new Date(parseInt(selectedFY.slice(3, 7)) + 1, 2, 31, 23, 59, 59);
+  const fyInvoices = invoices.filter((i: any) => {
+    const d = i.paid_at ? new Date(i.paid_at) : i.issue_date ? new Date(i.issue_date) : null;
+    return d && d >= fyStart && d <= fyEnd;
+  });
+  const gstCollected = fyInvoices
+    .filter((i: any) => i.status === 'paid')
+    .reduce((s: number, i: any) => s + (parseInt(i.gst_amount) || Math.round((parseInt(i.amount) || 0) * 0.18)), 0);
+  const totalRevenue = fyInvoices
+    .filter((i: any) => i.status === 'paid')
+    .reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+
+  // Quarterly breakdown
+  const quarters = ['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)'];
+  const quarterStarts = [[3, 5], [6, 8], [9, 11], [0, 2]];
+  const quarterData = quarters.map((label, idx) => {
+    const [qStartMonth, qEndMonth] = quarterStarts[idx];
+    const qYear = idx === 3 ? parseInt(selectedFY.slice(3, 7)) + 1 : parseInt(selectedFY.slice(3, 7));
+    const qStart = new Date(qYear, qStartMonth, 1);
+    const qEnd = new Date(qYear, qEndMonth + 1, 0, 23, 59, 59);
+    const qRevenue = fyInvoices
+      .filter((i: any) => {
+        const d = i.paid_at ? new Date(i.paid_at) : null;
+        return d && i.status === 'paid' && d >= qStart && d <= qEnd;
+      })
+      .reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+    return { label, revenue: qRevenue, gst: Math.round(qRevenue * 0.18) };
+  });
+
+  // TDS totals for FY
+  const fyTdsEntries = tdsEntries.filter(e => e.financial_year === selectedFY);
+  const totalTdsDeducted = fyTdsEntries.reduce((s, e) => s + (parseInt(e.tds_amount) || 0), 0);
+
+  const exportCsv = () => {
+    if (!session?.vendorId) return;
+    const url = `${API}/api/tds/${session.vendorId}/export?financial_year=${encodeURIComponent(selectedFY)}`;
+    window.location.href = url;
+  };
+
+  if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: C.muted, fontSize: '12px' }}>Loading tax data…</div>;
+
+  return (
+    <>
+      {/* FY selector */}
+      <div style={{
+        display: 'flex', gap: '8px', marginBottom: '14px',
+        overflowX: 'auto', paddingBottom: '4px',
+      }}>
+        {[currentFY, `FY ${currentFYYear - 1}-${String(currentFYYear).slice(-2)}`].map(fy => {
+          const active = selectedFY === fy;
+          return (
+            <button
+              key={fy}
+              onClick={() => setSelectedFY(fy)}
+              style={{
+                background: active ? C.goldSoft : C.ivory,
+                border: `1px solid ${active ? C.goldBorder : C.border}`,
+                borderRadius: '50px', padding: '8px 14px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '10px', fontWeight: active ? 600 : 500,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
+                color: active ? C.goldDeep : C.muted,
+                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >{fy}</button>
+          );
+        })}
+      </div>
+
+      {/* GST summary card */}
+      <div style={{
+        background: C.ivory, borderRadius: '18px',
+        border: `1px solid ${C.goldBorder}`, padding: '20px',
+        marginBottom: '12px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+          background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+        }} />
+        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '14px' }}>GST Summary · {selectedFY}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 14px' }}>
+          <div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.dark, letterSpacing: '-0.2px', lineHeight: 1 }}>₹{fmtINR(totalRevenue)}</div>
+            <div style={{ fontSize: '9px', color: C.muted, marginTop: '4px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500 }}>Total Revenue</div>
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.goldDeep, letterSpacing: '-0.2px', lineHeight: 1 }}>₹{fmtINR(gstCollected)}</div>
+            <div style={{ fontSize: '9px', color: C.muted, marginTop: '4px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500 }}>GST Collected (18%)</div>
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.red, letterSpacing: '-0.2px', lineHeight: 1 }}>₹{fmtINR(totalTdsDeducted)}</div>
+            <div style={{ fontSize: '9px', color: C.muted, marginTop: '4px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500 }}>TDS Deducted</div>
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.green, letterSpacing: '-0.2px', lineHeight: 1 }}>₹{fmtINR(totalRevenue - totalTdsDeducted)}</div>
+            <div style={{ fontSize: '9px', color: C.muted, marginTop: '4px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500 }}>Net Receipts</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quarterly breakdown */}
+      <div style={{ background: C.ivory, borderRadius: '16px', border: `1px solid ${C.border}`, padding: '18px', marginBottom: '12px' }}>
+        <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '14px' }}>Quarterly Breakdown</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {quarterData.map(q => (
+            <div key={q.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.borderSoft}` }}>
+              <span style={{ fontSize: '12px', color: C.dark, fontWeight: 500 }}>{q.label}</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '13px', color: C.dark, fontFamily: "'Playfair Display', serif" }}>₹{fmtINR(q.revenue)}</div>
+                <div style={{ fontSize: '10px', color: C.goldDeep, marginTop: '2px' }}>GST: ₹{fmtINR(q.gst)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CSV export CTA */}
+      <button
+        onClick={exportCsv}
+        style={{
+          background: C.gold, color: C.ivory, border: 'none', borderRadius: '12px',
+          padding: '14px', marginBottom: '14px',
+          fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 600,
+          letterSpacing: '1.8px', textTransform: 'uppercase',
+          cursor: 'pointer', width: '100%',
+        }}
+      >Download CSV for CA</button>
+
+      {/* TDS ledger entries */}
+      <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '8px' }}>TDS Ledger</div>
+      {fyTdsEntries.length === 0 ? (
+        <Empty icon={<Percent size={28} color={C.light} />} title="No TDS entries yet" sub="TDS entries auto-populate when platform bookings are confirmed." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {fyTdsEntries.slice(0, 30).map((e: any) => (
+            <div key={e.id} style={{ background: C.ivory, borderRadius: '12px', border: `1px solid ${C.border}`, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '12px', color: C.dark, fontWeight: 500 }}>{e.transaction_type?.replace(/_/g, ' ') || 'Transaction'}</div>
+                  <div style={{ fontSize: '10px', color: C.muted, marginTop: '2px' }}>{e.created_at ? new Date(e.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '13px', color: C.dark, fontFamily: "'Playfair Display', serif" }}>₹{fmtINR(parseInt(e.gross_amount) || 0)}</div>
+                  <div style={{ fontSize: '10px', color: C.red, marginTop: '2px' }}>−₹{fmtINR(parseInt(e.tds_amount) || 0)} TDS</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ANALYTICS PANEL — Signature+, revenue/conversion/top-clients
+// ══════════════════════════════════════════════════════════════════════════
+
+function AnalyticsPanel({ session, tier, bookings, invoices, leads, clients, paymentSchedules }: {
+  session: VendorSession; tier: Tier;
+  bookings: any[]; invoices: any[]; leads: any[]; clients: any[]; paymentSchedules: any[];
+}) {
+  const now = new Date();
+
+  // 12-month revenue trend
+  const monthlyRevenue: { label: string; amount: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+    const amt = invoices
+      .filter((inv: any) => {
+        if (inv.status !== 'paid') return false;
+        const d = inv.paid_at ? new Date(inv.paid_at) : inv.updated_at ? new Date(inv.updated_at) : null;
+        return d && d >= mStart && d <= mEnd;
+      })
+      .reduce((s: number, inv: any) => s + (parseInt(inv.amount) || 0), 0);
+    monthlyRevenue.push({
+      label: mStart.toLocaleDateString('en-IN', { month: 'short' }),
+      amount: amt,
+    });
+  }
+  const maxMonthRevenue = Math.max(...monthlyRevenue.map(m => m.amount), 1);
+  const totalRevenue12m = monthlyRevenue.reduce((s, m) => s + m.amount, 0);
+
+  // Conversion funnel (lifetime)
+  const leadsCount = leads.length;
+  const quotedCount = bookings.filter((b: any) => b.status === 'quoted').length;
+  const confirmedCount = bookings.filter((b: any) => b.status === 'confirmed').length;
+  const paidCount = invoices.filter((i: any) => i.status === 'paid').length;
+
+  // Top clients by revenue
+  const clientRevenue: Record<string, { name: string; revenue: number }> = {};
+  for (const inv of invoices) {
+    if (inv.status !== 'paid') continue;
+    const key = inv.client_id || inv.client_name || 'unknown';
+    const name = inv.client_name || 'Unknown client';
+    if (!clientRevenue[key]) clientRevenue[key] = { name, revenue: 0 };
+    clientRevenue[key].revenue += parseInt(inv.amount) || 0;
+  }
+  const topClients = Object.values(clientRevenue).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+  // Top event types by revenue
+  const eventTypeRevenue: Record<string, number> = {};
+  for (const b of bookings) {
+    if (b.status !== 'confirmed') continue;
+    const evt = b.event_type || 'Other';
+    const matchingInvoice = invoices.find((i: any) => i.client_name === b.client_name && i.status === 'paid');
+    eventTypeRevenue[evt] = (eventTypeRevenue[evt] || 0) + (matchingInvoice ? parseInt(matchingInvoice.amount) || 0 : 0);
+  }
+  const topEventTypes = Object.entries(eventTypeRevenue)
+    .filter(([, r]) => r > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  // Average deal size
+  const paidInvoices = invoices.filter((i: any) => i.status === 'paid');
+  const avgDealSize = paidInvoices.length ? Math.round(totalRevenue12m / paidInvoices.length) : 0;
+
+  return (
+    <>
+      {/* 12-month revenue */}
+      <div style={{ background: C.ivory, borderRadius: '18px', border: `1px solid ${C.goldBorder}`, padding: '20px', marginBottom: '12px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)` }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '14px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep }}>12-Month Revenue</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', color: C.dark, letterSpacing: '-0.2px' }}>₹{fmtINR(totalRevenue12m)}</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '3px', alignItems: 'end', height: '80px' }}>
+          {monthlyRevenue.map((m, i) => {
+            const pct = m.amount > 0 ? (m.amount / maxMonthRevenue) * 100 : 3;
+            return (
+              <div key={i} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <div style={{ height: `${pct}%`, background: i === 11 ? C.gold : C.goldBorder, borderRadius: '3px 3px 0 0', minHeight: '2px' }} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '3px', marginTop: '6px' }}>
+          {monthlyRevenue.map((m, i) => (
+            <div key={i} style={{ fontSize: '8px', color: C.muted, textAlign: 'center', letterSpacing: '0.3px' }}>
+              {i % 2 === 0 ? m.label : ''}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Conversion funnel */}
+      <div style={{ background: C.ivory, borderRadius: '16px', border: `1px solid ${C.border}`, padding: '18px', marginBottom: '12px' }}>
+        <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '14px' }}>Conversion Funnel</div>
+        {[
+          { label: 'Leads', count: leadsCount, color: C.muted },
+          { label: 'Quoted', count: quotedCount, color: C.goldDeep },
+          { label: 'Confirmed', count: confirmedCount, color: C.green },
+          { label: 'Paid', count: paidCount, color: C.gold },
+        ].map((stage, idx, arr) => {
+          const maxCount = arr[0].count || 1;
+          const pct = (stage.count / maxCount) * 100;
+          const prevCount = idx > 0 ? arr[idx - 1].count : null;
+          const dropPct = prevCount && prevCount > 0 ? Math.round((stage.count / prevCount) * 100) : 100;
+          return (
+            <div key={stage.label} style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                <span style={{ color: C.dark, fontWeight: 500 }}>{stage.label}</span>
+                <span style={{ color: C.muted }}>
+                  {stage.count}{idx > 0 && ` · ${dropPct}% of prev`}
+                </span>
+              </div>
+              <div style={{ height: '5px', background: C.pearl, borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: stage.color, borderRadius: '3px' }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+        <div style={{ background: C.ivory, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500 }}>Avg Deal Size</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', color: C.dark, marginTop: '4px' }}>₹{fmtINR(avgDealSize)}</div>
+        </div>
+        <div style={{ background: C.ivory, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500 }}>Active Clients</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', color: C.dark, marginTop: '4px' }}>{clients.length}</div>
+        </div>
+      </div>
+
+      {/* Top clients */}
+      {topClients.length > 0 && (
+        <div style={{ background: C.ivory, borderRadius: '16px', border: `1px solid ${C.border}`, padding: '18px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '12px' }}>Top Clients by Revenue</div>
+          {topClients.map((c, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: i < topClients.length - 1 ? `1px solid ${C.borderSoft}` : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '14px', color: C.goldDeep, width: '20px', flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ fontSize: '13px', color: C.dark, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+              </div>
+              <span style={{ fontSize: '13px', fontFamily: "'Playfair Display', serif", color: C.dark }}>₹{fmtINR(c.revenue)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Top event types */}
+      {topEventTypes.length > 0 && (
+        <div style={{ background: C.ivory, borderRadius: '16px', border: `1px solid ${C.border}`, padding: '18px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '12px' }}>Top Event Types</div>
+          {topEventTypes.map(([label, revenue], i) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: i < topEventTypes.length - 1 ? `1px solid ${C.borderSoft}` : 'none' }}>
+              <span style={{ fontSize: '13px', color: C.dark, fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: '13px', fontFamily: "'Playfair Display', serif", color: C.dark }}>₹{fmtINR(revenue)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TEAM PANEL — Signature (basic) / Prestige (full), manages team members
+// ══════════════════════════════════════════════════════════════════════════
+
+const TEAM_ROLES = [
+  'Assistant', 'Photographer', 'Editor', 'Coordinator',
+  'Makeup Artist', 'Technician', 'Account Manager', 'Other',
+];
+
+const TEAM_SIZE_LIMIT: Record<string, number> = { essential: 0, signature: 5, prestige: 999 };
+
+function TeamPanel({ session, tier }: { session: VendorSession; tier: Tier }) {
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+
+  useEffect(() => {
+    if (!session?.vendorId) return;
+    let cancelled = false;
+    fetch(`${API}/api/ds/team/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setMembers(d?.data || []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [session?.vendorId]);
+
+  const addMember = async (payload: any) => {
+    const r = await fetch(`${API}/api/ds/team`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, vendor_id: session.vendorId, is_active: true }),
+    });
+    const d = await r.json();
+    if (d.success && d.data) {
+      setMembers(prev => [d.data, ...prev]);
+      return true;
+    }
+    return false;
+  };
+
+  const updateMember = async (id: string, payload: any) => {
+    const r = await fetch(`${API}/api/ds/team/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (d.success && d.data) {
+      setMembers(prev => prev.map(m => m.id === id ? d.data : m));
+      return true;
+    }
+    return false;
+  };
+
+  const removeMember = async (id: string) => {
+    if (!confirm('Remove this team member? They lose access immediately.')) return;
+    try {
+      await fetch(`${API}/api/ds/team/${id}`, { method: 'DELETE' });
+      setMembers(prev => prev.filter(m => m.id !== id));
+    } catch { /* silent */ }
+  };
+
+  if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: C.muted, fontSize: '12px' }}>Loading team…</div>;
+
+  const limit = TEAM_SIZE_LIMIT[tier] || 0;
+  const canAddMore = members.length < limit;
+
+  return (
+    <>
+      {/* Summary */}
+      <div style={{
+        background: C.ivory, borderRadius: '16px',
+        border: `1px solid ${C.border}`, padding: '16px',
+        marginBottom: '14px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.dark, letterSpacing: '-0.2px' }}>
+            {members.length}<span style={{ fontSize: '14px', color: C.muted }}>{tier !== 'prestige' && ` / ${limit}`}</span>
+          </div>
+          <div style={{ fontSize: '9px', color: C.muted, marginTop: '4px', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500 }}>Team Members</div>
+        </div>
+        {tier !== 'prestige' && (
+          <div style={{ fontSize: '10px', color: C.muted, fontStyle: 'italic', textAlign: 'right', maxWidth: '140px' }}>
+            Upgrade to Prestige for unlimited team
+          </div>
+        )}
+      </div>
+
+      {/* Add button */}
+      <button
+        onClick={() => { if (canAddMore) setShowAdd(true); }}
+        disabled={!canAddMore}
+        style={{
+          background: canAddMore ? C.gold : C.border,
+          color: canAddMore ? C.ivory : C.muted,
+          border: 'none', borderRadius: '12px',
+          padding: '14px', marginBottom: '14px',
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '11px', fontWeight: 600,
+          letterSpacing: '1.8px', textTransform: 'uppercase',
+          cursor: canAddMore ? 'pointer' : 'not-allowed',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          width: '100%',
+        }}
+      >
+        <Plus size={14} /> {canAddMore ? 'Add Team Member' : `Limit reached (${limit})`}
+      </button>
+
+      {/* List */}
+      {members.length === 0 ? (
+        <Empty icon={<Users size={28} color={C.light} />} title="No team members yet" sub="Add your first team member to collaborate on clients, events, and tasks." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {members.map((m: any) => (
+            <div key={m.id} style={{
+              background: C.ivory, borderRadius: '12px',
+              border: `1px solid ${C.border}`, padding: '14px',
+              display: 'flex', alignItems: 'center', gap: '12px',
+            }}>
+              <div style={{
+                width: '38px', height: '38px', borderRadius: '50%',
+                background: m.is_active === false ? C.pearl : C.goldSoft,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '16px', color: C.goldDeep, flexShrink: 0,
+              }}>{(m.name || '?')[0].toUpperCase()}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500 }}>{m.name}</div>
+                <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>
+                  {m.role || 'Team'}
+                  {m.phone && ` · ${m.phone}`}
+                  {m.is_active === false && ' · inactive'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {m.phone && (
+                  <a href={`tel:${m.phone}`} aria-label="Call" style={{
+                    background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                    borderRadius: '50%', width: '32px', height: '32px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    textDecoration: 'none',
+                  }}><Phone size={12} color={C.goldDeep} /></a>
+                )}
+                <button
+                  onClick={() => setEditingMember(m)}
+                  aria-label="Edit"
+                  style={{
+                    background: 'transparent', border: `1px solid ${C.border}`,
+                    borderRadius: '50%', width: '32px', height: '32px',
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                ><Edit2 size={12} color={C.muted} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add sheet */}
+      {showAdd && (
+        <TeamMemberSheet
+          title="Add Team Member"
+          initial={{}}
+          onClose={() => setShowAdd(false)}
+          onSave={async (payload) => {
+            const ok = await addMember(payload);
+            if (ok) setShowAdd(false);
+            return ok;
+          }}
+        />
+      )}
+
+      {/* Edit sheet */}
+      {editingMember && (
+        <TeamMemberSheet
+          title="Edit Team Member"
+          initial={editingMember}
+          onClose={() => setEditingMember(null)}
+          onSave={async (payload) => {
+            const ok = await updateMember(editingMember.id, payload);
+            if (ok) setEditingMember(null);
+            return ok;
+          }}
+          onDelete={async () => {
+            await removeMember(editingMember.id);
+            setEditingMember(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function TeamMemberSheet({ title, initial, onClose, onSave, onDelete }: {
+  title: string;
+  initial: any;
+  onClose: () => void;
+  onSave: (payload: any) => Promise<boolean>;
+  onDelete?: () => Promise<void>;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [role, setRole] = useState(initial?.role || TEAM_ROLES[0]);
+  const [phone, setPhone] = useState(initial?.phone || '');
+  const [email, setEmail] = useState(initial?.email || '');
+  const [isActive, setIsActive] = useState(initial?.is_active !== false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const canSave = name.trim() && !submitting;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setError('');
+    setSubmitting(true);
+    const ok = await onSave({
+      name: name.trim(),
+      role,
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      is_active: isActive,
+    });
+    if (!ok) { setError('Could not save. Please try again.'); setSubmitting(false); }
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(26,20,16,0.62)', zIndex: 200,
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.ivory,
+          borderTopLeftRadius: '24px', borderTopRightRadius: '24px',
+          padding: '24px 22px calc(env(safe-area-inset-bottom) + 22px)',
+          maxHeight: '92dvh', overflowY: 'auto',
+          boxShadow: '0 -8px 40px rgba(26,20,16,0.24)',
+        }}
+      >
+        <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: C.border, margin: '0 auto 18px' }} />
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '18px' }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', color: C.dark }}>{title}</div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px' }}>
+            <X size={16} color={C.muted} />
+          </button>
+        </div>
+
+        <FormLabel>Name</FormLabel>
+        <input
+          type="text" value={name} onChange={(e) => setName(e.target.value)}
+          placeholder="Full name"
+          style={{ width: '100%', background: C.pearl, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '13px 14px', fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: C.dark, outline: 'none', boxSizing: 'border-box', marginBottom: '14px' }}
+        />
+
+        <FormLabel>Role</FormLabel>
+        <select
+          value={role} onChange={(e) => setRole(e.target.value)}
+          style={{ width: '100%', background: C.pearl, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '13px 14px', fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: C.dark, outline: 'none', boxSizing: 'border-box', marginBottom: '14px', appearance: 'none' }}
+        >
+          {TEAM_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+
+        <FormLabel>Phone (optional)</FormLabel>
+        <input
+          type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+          placeholder="+91 98765 43210"
+          style={{ width: '100%', background: C.pearl, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '13px 14px', fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: C.dark, outline: 'none', boxSizing: 'border-box', marginBottom: '14px' }}
+        />
+
+        <FormLabel>Email (optional)</FormLabel>
+        <input
+          type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@example.com"
+          autoCapitalize="none"
+          style={{ width: '100%', background: C.pearl, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '13px 14px', fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: C.dark, outline: 'none', boxSizing: 'border-box', marginBottom: '14px' }}
+        />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+          <input
+            type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)}
+            id="member-active"
+            style={{ width: '16px', height: '16px', accentColor: C.gold }}
+          />
+          <label htmlFor="member-active" style={{ fontSize: '13px', color: C.dark }}>Active</label>
+        </div>
+
+        {error && <div style={{ background: C.redSoft, border: `1px solid ${C.redBorder}`, borderRadius: '10px', padding: '10px 12px', fontSize: '12px', color: C.red, marginBottom: '14px' }}>{error}</div>}
+
+        <button
+          onClick={handleSave}
+          disabled={!canSave}
+          style={{
+            width: '100%',
+            background: canSave ? C.gold : C.border,
+            color: canSave ? C.ivory : C.muted,
+            border: 'none', borderRadius: '12px', padding: '14px',
+            fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 600,
+            letterSpacing: '1.8px', textTransform: 'uppercase',
+            cursor: canSave ? 'pointer' : 'not-allowed',
+            marginBottom: onDelete ? '10px' : 0,
+          }}
+        >{submitting ? 'Saving…' : 'Save'}</button>
+
+        {onDelete && (
+          <button
+            onClick={() => { if (confirm('Remove this team member?')) onDelete(); }}
+            style={{
+              width: '100%', background: 'transparent',
+              color: C.red, border: `1px solid ${C.redBorder}`,
+              borderRadius: '12px', padding: '12px',
+              fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 600,
+              letterSpacing: '1.5px', textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >Remove Member</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// BROADCAST PANEL — Signature+, compose + recipient picker + one-at-a-time send
+// ══════════════════════════════════════════════════════════════════════════
+
+const BROADCAST_TEMPLATES = [
+  { id: 'custom',     label: 'Custom', body: '' },
+  { id: 'reminder',   label: 'Payment Reminder', body: 'Hi {{name}}, gentle reminder — there\'s a pending payment on your account. Please let me know if you have any questions. Thanks!' },
+  { id: 'confirm',    label: 'Event Confirmation', body: 'Hi {{name}}, confirming your event is on schedule. I\'m looking forward to working with you. Let me know if anything changes.' },
+  { id: 'seasonal',   label: 'Seasonal Greeting', body: 'Hi {{name}}, wishing you and your family a beautiful festive season. Looking forward to celebrating your special moments!' },
+  { id: 'portfolio',  label: 'Portfolio Update', body: 'Hi {{name}}, just refreshed my portfolio with recent work. Would love your thoughts. More soon!' },
+  { id: 'feedback',   label: 'Feedback Request', body: 'Hi {{name}}, hope you loved the photos / services! Would mean the world if you could share a quick review.' },
+];
+
+function BroadcastPanel({ session, tier, clients }: { session: VendorSession; tier: Tier; clients: any[] }) {
+  const [template, setTemplate] = useState('custom');
+  const [message, setMessage] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [sentIds, setSentIds] = useState<string[]>([]);
+  const [step, setStep] = useState<'compose' | 'send'>('compose');
+  const [history, setHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!session?.vendorId) return;
+    fetch(`${API}/api/broadcasts/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => setHistory(d?.data || []))
+      .catch(() => {});
+  }, [session?.vendorId]);
+
+  const chooseTemplate = (id: string) => {
+    setTemplate(id);
+    const def = BROADCAST_TEMPLATES.find(t => t.id === id);
+    if (def && def.body) setMessage(def.body);
+  };
+
+  const toggleClient = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
+
+  const recipients = clients.filter((c: any) => selectedIds.includes(c.id) && c.phone);
+  const canProceed = message.trim().length > 10 && recipients.length > 0;
+
+  const startSending = () => {
+    if (!canProceed) return;
+    setSentIds([]);
+    setStep('send');
+  };
+
+  const sendToClient = (c: any) => {
+    const personalized = message.replace(/\{\{name\}\}/g, c.name || 'there');
+    const phoneDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
+    window.location.href = `https://wa.me/91${phoneDigits}?text=${encodeURIComponent(personalized)}`;
+    setSentIds(prev => prev.includes(c.id) ? prev : [...prev, c.id]);
+  };
+
+  const logBroadcast = async () => {
+    if (sentIds.length === 0) { setStep('compose'); return; }
+    try {
+      await fetch(`${API}/api/broadcasts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: session.vendorId,
+          template: template === 'custom' ? null : template,
+          message,
+          recipient_count: recipients.length,
+          sent_count: sentIds.length,
+        }),
+      });
+      const r = await fetch(`${API}/api/broadcasts/${session.vendorId}`);
+      const d = await r.json();
+      setHistory(d?.data || []);
+    } catch { /* silent */ }
+    // Reset
+    setMessage(''); setTemplate('custom'); setSelectedIds([]); setSentIds([]);
+    setStep('compose');
+  };
+
+  if (step === 'send') {
+    return (
+      <>
+        <div style={{ background: C.ivory, borderRadius: '16px', border: `1px solid ${C.goldBorder}`, padding: '16px 18px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '8px' }}>Sending · {sentIds.length} / {recipients.length}</div>
+          <div style={{ fontSize: '12px', color: C.muted, lineHeight: 1.55, fontStyle: 'italic' }}>
+            Tap each recipient below — WhatsApp opens with the personalized message. Send it, then return and tap the next.
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+          {recipients.map((c: any) => {
+            const sent = sentIds.includes(c.id);
+            return (
+              <button
+                key={c.id}
+                onClick={() => sendToClient(c)}
+                style={{
+                  background: sent ? C.greenSoft : C.ivory,
+                  border: `1px solid ${sent ? 'rgba(76,175,80,0.3)' : C.border}`,
+                  borderRadius: '12px', padding: '14px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  textAlign: 'left', cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: sent ? C.green : '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {sent ? <CheckCircle size={14} color={C.ivory} /> : <MessageCircle size={14} color={C.ivory} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500 }}>{c.name}</div>
+                  <div style={{ fontSize: '11px', color: C.muted }}>{c.phone}</div>
+                </div>
+                <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: sent ? C.green : C.goldDeep }}>
+                  {sent ? 'Sent' : 'Send'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={logBroadcast}
+          style={{
+            background: C.gold, color: C.ivory, border: 'none', borderRadius: '12px',
+            padding: '14px', width: '100%',
+            fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 600,
+            letterSpacing: '1.8px', textTransform: 'uppercase', cursor: 'pointer',
+          }}
+        >Done · Log Broadcast</button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* Template picker */}
+      <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '10px' }}>Template</div>
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
+        {BROADCAST_TEMPLATES.map(t => {
+          const active = template === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => chooseTemplate(t.id)}
+              style={{
+                background: active ? C.goldSoft : C.ivory,
+                border: `1px solid ${active ? C.goldBorder : C.border}`,
+                borderRadius: '50px', padding: '8px 14px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '10px', fontWeight: active ? 600 : 500,
+                letterSpacing: '1.5px', textTransform: 'uppercase',
+                color: active ? C.goldDeep : C.muted,
+                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >{t.label}</button>
+          );
+        })}
+      </div>
+
+      {/* Message composer */}
+      <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '10px' }}>Message</div>
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        rows={5}
+        placeholder="Type your message. Use {{name}} to personalize with each client's name."
+        style={{
+          width: '100%', background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: '12px', padding: '14px', fontSize: '13px', color: C.dark,
+          fontFamily: 'DM Sans, sans-serif', lineHeight: 1.55,
+          resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+          marginBottom: '8px',
+        }}
+      />
+      <div style={{ fontSize: '10px', color: C.muted, marginBottom: '14px', fontStyle: 'italic' }}>
+        Tip: {'{{name}}'} becomes each client's name automatically.
+      </div>
+
+      {/* Recipient picker */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+        <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep }}>Recipients · {selectedIds.length}</div>
+        <button
+          onClick={() => setSelectedIds(selectedIds.length === clients.length ? [] : clients.filter((c: any) => c.phone).map((c: any) => c.id))}
+          style={{
+            background: 'transparent', border: 'none',
+            fontSize: '10px', color: C.goldDeep, fontWeight: 600,
+            letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer',
+            padding: 0,
+          }}
+        >{selectedIds.length === clients.length ? 'Clear' : 'Select All'}</button>
+      </div>
+      {clients.length === 0 ? (
+        <Empty icon={<Users size={28} color={C.light} />} title="No clients" sub="Add clients first to send broadcasts." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', maxHeight: '320px', overflowY: 'auto' }}>
+          {clients.map((c: any) => {
+            const selected = selectedIds.includes(c.id);
+            const hasPhone = !!c.phone;
+            return (
+              <button
+                key={c.id}
+                onClick={() => hasPhone && toggleClient(c.id)}
+                disabled={!hasPhone}
+                style={{
+                  background: selected ? C.goldSoft : (hasPhone ? C.ivory : C.pearl),
+                  border: `1px solid ${selected ? C.goldBorder : C.border}`,
+                  borderRadius: '10px', padding: '10px 14px',
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  cursor: hasPhone ? 'pointer' : 'not-allowed',
+                  opacity: hasPhone ? 1 : 0.5,
+                  fontFamily: 'inherit', textAlign: 'left',
+                }}
+              >
+                <div style={{
+                  width: '18px', height: '18px', borderRadius: '4px',
+                  background: selected ? C.gold : 'transparent',
+                  border: `1.5px solid ${selected ? C.gold : C.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  {selected && <CheckCircle size={10} color={C.ivory} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500 }}>{c.name}</div>
+                  <div style={{ fontSize: '10px', color: C.muted }}>
+                    {c.phone || 'No phone — cannot broadcast'}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Send button */}
+      <button
+        onClick={startSending}
+        disabled={!canProceed}
+        style={{
+          background: canProceed ? C.gold : C.border,
+          color: canProceed ? C.ivory : C.muted,
+          border: 'none', borderRadius: '12px', padding: '14px',
+          fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 600,
+          letterSpacing: '1.8px', textTransform: 'uppercase',
+          cursor: canProceed ? 'pointer' : 'not-allowed',
+          width: '100%', marginBottom: '14px',
+        }}
+      >
+        Review · Send to {recipients.length} {recipients.length === 1 ? 'Client' : 'Clients'}
+      </button>
+
+      {/* Past broadcasts */}
+      {history.length > 0 && (
+        <>
+          <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '10px' }}>Recent Broadcasts</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {history.slice(0, 10).map((h: any) => (
+              <div key={h.id} style={{ background: C.pearl, borderRadius: '10px', border: `1px solid ${C.borderSoft}`, padding: '10px 14px' }}>
+                <div style={{ fontSize: '12px', color: C.dark, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {(h.message || '').substring(0, 80)}{h.message?.length > 80 ? '…' : ''}
+                </div>
+                <div style={{ fontSize: '10px', color: C.muted, marginTop: '3px' }}>
+                  {h.sent_count || 0}/{h.recipient_count || 0} sent · {h.sent_at ? new Date(h.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TEAM CHAT PANEL — Prestige only, polling-based 3s interval
+// ══════════════════════════════════════════════════════════════════════════
+
+function TeamChatPanel({ session, tier }: { session: VendorSession; tier: Tier }) {
+  const [team, setTeam] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [composerText, setComposerText] = useState('');
+  const [activeChannel, setActiveChannel] = useState<{ type: 'group'; id: 'general' } | { type: 'direct'; id: string }>({ type: 'group', id: 'general' });
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load team
+  useEffect(() => {
+    if (!session?.vendorId) return;
+    fetch(`${API}/api/ds/team/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => setTeam(d?.data || []))
+      .catch(() => {});
+  }, [session?.vendorId]);
+
+  // Polling — 3s interval, pauses when page is backgrounded
+  useEffect(() => {
+    if (!session?.vendorId) return;
+    let cancelled = false;
+    const fetchMessages = async () => {
+      try {
+        const params = new URLSearchParams();
+        params.set('channel_type', activeChannel.type);
+        params.set('channel_id', activeChannel.id);
+        const r = await fetch(`${API}/api/ds/messages/${session.vendorId}?${params.toString()}`);
+        const d = await r.json();
+        if (!cancelled && d?.success) setMessages(d.data || []);
+      } catch { /* silent */ }
+    };
+    fetchMessages();
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    }, 3000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [session?.vendorId, activeChannel.type, activeChannel.id]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages.length]);
+
+  const sendMessage = async () => {
+    const text = composerText.trim();
+    if (!text || !session?.vendorId || sending) return;
+    setSending(true);
+    try {
+      const r = await fetch(`${API}/api/ds/messages`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: session.vendorId,
+          sender_id: session.vendorId,
+          sender_name: session.vendorName || 'Owner',
+          channel_type: activeChannel.type,
+          channel_id: activeChannel.id,
+          message: text,
+          message_type: 'text',
+        }),
+      });
+      const d = await r.json();
+      if (d?.success && d.data) {
+        setMessages(prev => [...prev, d.data]);
+        setComposerText('');
+      }
+    } catch { /* silent */ }
+    finally { setSending(false); }
+  };
+
+  // Channel list: General + each team member
+  const channels: { key: string; label: string; meta: any }[] = [
+    { key: 'group:general', label: '# general', meta: { type: 'group', id: 'general' } },
+    ...team.map(m => ({
+      key: `direct:${m.id}`,
+      label: m.name,
+      meta: { type: 'direct', id: m.id },
+    })),
+  ];
+
+  const activeKey = `${activeChannel.type}:${activeChannel.id}`;
+
+  if (team.length === 0) {
+    return (
+      <div style={{ background: C.champagne, border: `1px solid ${C.goldBorder}`, borderRadius: '18px', padding: '24px 22px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)` }} />
+        <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.goldDeep, marginBottom: '10px' }}>Team Chat</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '18px', color: C.dark, lineHeight: 1.4, marginBottom: '8px' }}>Invite team members first.</div>
+        <div style={{ fontSize: '12px', color: C.muted, lineHeight: 1.55, maxWidth: '320px', margin: '0 auto 16px' }}>Chat needs at least one teammate. Add them from the Team tool.</div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Channel selector (horizontal chips) */}
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '12px' }}>
+        {channels.map(ch => {
+          const active = activeKey === ch.key;
+          return (
+            <button
+              key={ch.key}
+              onClick={() => setActiveChannel(ch.meta)}
+              style={{
+                background: active ? C.goldSoft : C.ivory,
+                border: `1px solid ${active ? C.goldBorder : C.border}`,
+                borderRadius: '50px', padding: '8px 14px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px', fontWeight: active ? 600 : 500,
+                color: active ? C.goldDeep : C.muted,
+                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >{ch.label}</button>
+          );
+        })}
+      </div>
+
+      {/* Messages area */}
+      <div
+        ref={scrollRef}
+        style={{
+          background: C.ivory, border: `1px solid ${C.border}`, borderRadius: '16px',
+          height: '52dvh', overflowY: 'auto', padding: '14px',
+          display: 'flex', flexDirection: 'column', gap: '10px',
+          marginBottom: '10px',
+        }}
+      >
+        {messages.length === 0 ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: '12px', fontStyle: 'italic' }}>
+            No messages in this channel yet.
+          </div>
+        ) : (
+          messages.map((m: any) => {
+            const isOwner = m.sender_id === session.vendorId;
+            return (
+              <div key={m.id} style={{ display: 'flex', justifyContent: isOwner ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth: '80%',
+                  background: isOwner ? C.goldSoft : C.pearl,
+                  border: `1px solid ${isOwner ? C.goldBorder : C.borderSoft}`,
+                  borderRadius: '14px',
+                  borderTopRightRadius: isOwner ? '4px' : '14px',
+                  borderTopLeftRadius: isOwner ? '14px' : '4px',
+                  padding: '10px 14px',
+                }}>
+                  {!isOwner && (
+                    <div style={{ fontSize: '10px', color: C.goldDeep, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                      {m.sender_name || 'Team'}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '13px', color: C.dark, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {m.message}
+                  </div>
+                  <div style={{ fontSize: '9px', color: C.light, marginTop: '4px', textAlign: isOwner ? 'right' : 'left' }}>
+                    {m.created_at ? new Date(m.created_at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : ''}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Composer */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+        <textarea
+          value={composerText}
+          onChange={(e) => setComposerText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
+          rows={1}
+          placeholder="Type a message…"
+          style={{
+            flex: 1, background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: '22px', padding: '11px 16px',
+            fontSize: '14px', color: C.dark,
+            fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4,
+            resize: 'none', outline: 'none', boxSizing: 'border-box',
+            maxHeight: '100px',
+          }}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={!composerText.trim() || sending}
+          aria-label="Send"
+          style={{
+            background: composerText.trim() ? C.gold : C.border,
+            border: 'none', borderRadius: '50%',
+            width: '42px', height: '42px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: composerText.trim() ? 'pointer' : 'not-allowed',
+            flexShrink: 0,
+          }}
+        >
+          <Send size={16} color={composerText.trim() ? C.ivory : C.muted} />
+        </button>
+      </div>
+    </>
+  );
+}
+
+function FormLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontFamily: 'DM Sans, sans-serif',
+      fontSize: '9px', fontWeight: 600,
+      letterSpacing: '2px', textTransform: 'uppercase',
+      color: C.muted, marginBottom: '6px',
+    }}>{children}</div>
   );
 }

@@ -1317,6 +1317,86 @@ app.delete('/api/expenses/:id', async (req, res) => {
 });
 
 // ==================
+// BROADCAST ROUTES (Turn 5+6)
+// ==================
+
+// List past broadcasts for a vendor
+app.get('/api/broadcasts/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_broadcasts')
+      .select('*')
+      .eq('vendor_id', req.params.vendorId)
+      .order('sent_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Log a broadcast (called after vendor finishes one-at-a-time send flow)
+app.post('/api/broadcasts', async (req, res) => {
+  try {
+    const { vendor_id, template, message, recipient_count, sent_count } = req.body;
+    const { data, error } = await supabase
+      .from('vendor_broadcasts')
+      .insert([{
+        vendor_id, template: template || null, message,
+        recipient_count: recipient_count || 0,
+        sent_count: sent_count || 0,
+      }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================
+// TAX & TDS CSV EXPORT
+// ==================
+
+app.get('/api/tds/:vendorId/export', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { financial_year } = req.query;
+    let query = supabase
+      .from('vendor_tds_ledger')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('created_at', { ascending: true });
+    if (financial_year) query = query.eq('financial_year', financial_year);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Build CSV — CA-ready format
+    const headers = ['Date', 'FY', 'Transaction Type', 'Reference', 'Gross Amount', 'TDS Rate', 'TDS Amount', 'Net Amount', 'Deducted By', 'Notes'];
+    const rows = (data || []).map(r => [
+      r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
+      r.financial_year || '',
+      r.transaction_type || '',
+      r.reference_id || '',
+      r.gross_amount || 0,
+      r.tds_rate || 0,
+      r.tds_amount || 0,
+      r.net_amount || 0,
+      r.tds_deducted_by || '',
+      (r.notes || '').replace(/,/g, ';').replace(/\n/g, ' '),
+    ]);
+    const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const filename = `tds-ledger-${financial_year ? financial_year.replace(/\s+/g, '-') : 'all'}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================
 // PAYMENT SCHEDULE ROUTES
 // ==================
 
