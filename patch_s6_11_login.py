@@ -1,4 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+"""
+Session 6 — Patch 11: Login Rewrite
+Full invite-code login with lead capture for non-invited users.
+Flow: "Have an invite?" → Yes (code entry) / No (request form)
+Two tabs for code entry: Dreamer / Vendor
+Request form captures: name, phone, email, type, city
+"""
+
+login = r'''import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ActivityIndicator, Alert, Animated, Dimensions,
@@ -660,3 +668,17 @@ const s = StyleSheet.create({
   },
   requestedBtnText: { fontSize: 13, color: '#C9A84C', fontFamily: 'DMSans_400Regular' },
 });
+'''
+
+with open('app/login.tsx', 'w') as f:
+    f.write(login)
+
+print("✓ app/login.tsx — rewritten with invite code flow")
+print("  Gate: 'Do you have an invite code?' → Yes / No")
+print("  Yes → Dreamer tab (invite code) / Vendor tab (code or sign-in)")
+print("  No → Request form (name, phone, email, type, city) → confirmation")
+print("  Session check on mount (auto-redirect if already logged in)")
+print("  All APIs match web portal endpoints")
+print()
+print("PATCH 11 COMPLETE")
+print("Run: npx tsc --noEmit -p tsconfig.json")
