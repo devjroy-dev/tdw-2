@@ -1679,8 +1679,8 @@ function ProfileTab({ session, tier, vendorData, aiStatus, buyingTokens, setBuyi
       {/* Menu */}
       <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         {[
-          { icon: SettingsIcon, label: 'Settings (full edit)', href: '/vendor/dashboard' },
-          { icon: Briefcase, label: 'Open business portal', href: '/vendor/dashboard' },
+          { icon: SettingsIcon, label: 'Edit profile',          href: '/vendor/mobile/profile/edit' },
+          { icon: Briefcase,    label: 'Open business portal',  href: '/vendor/dashboard' },
         ].map((item, idx, arr) => {
           const I = item.icon;
           return (
@@ -2275,27 +2275,37 @@ function ProfileCompletionCard({ percent, steps, onDismiss }: {
             ))}
           </div>
 
-          {/* CTA — full editor coming in Turn 2 */}
+          {/* CTA — route to in-PWA profile editor */}
           <div style={{
             marginTop: '18px', paddingTop: '16px',
             borderTop: `1px solid ${C.borderSoft}`,
-            display: 'flex', alignItems: 'center', gap: '12px',
+            display: 'flex', alignItems: 'center', gap: '10px',
           }}>
-            <div style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '11px', color: C.muted,
-              fontStyle: 'italic', flex: 1,
-            }}>
-              In-app editing coming soon.
-            </div>
+            <a
+              href="/vendor/mobile/profile/edit"
+              style={{
+                flex: 1,
+                background: C.gold, color: C.ivory,
+                border: 'none', borderRadius: '10px',
+                padding: '12px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px', fontWeight: 600,
+                letterSpacing: '1.8px', textTransform: 'uppercase',
+                cursor: 'pointer', textAlign: 'center',
+                textDecoration: 'none',
+              }}
+            >Complete Profile</a>
             <button
               onClick={(e) => { e.stopPropagation(); onDismiss(); }}
               style={{
-                background: 'transparent', border: 'none',
+                background: 'transparent',
+                border: `1px solid ${C.border}`,
+                borderRadius: '10px',
+                padding: '12px 16px',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '10px', color: C.muted, fontWeight: 500,
                 letterSpacing: '1.5px', textTransform: 'uppercase',
-                cursor: 'pointer', padding: '4px 0',
+                cursor: 'pointer',
               }}
             >Hide</button>
           </div>
