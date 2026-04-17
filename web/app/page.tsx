@@ -471,7 +471,7 @@ export default function HomePage() {
 
   return (
     <div style={{
-      height: '100vh', overflow: 'hidden',
+      minHeight: '100dvh', overflow: 'visible',
       backgroundColor: '#FAF6F0',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',

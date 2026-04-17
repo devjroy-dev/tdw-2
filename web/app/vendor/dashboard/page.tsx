@@ -1470,6 +1470,112 @@ export default function VendorDashboard() {
     gap: '6px',
   };
 
+  // ── Mobile soft-block: Business Portal is a desktop-optimized SaaS surface.
+  // On narrow viewports we invite the vendor to the mobile PWA instead,
+  // while preserving a "Continue anyway" escape hatch.
+  const [mobileGateDismissed, setMobileGateDismissed] = useState(false);
+  if (isMobile && !mobileGateDismissed) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: '#FAF6F0',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '40px 28px',
+        fontFamily: 'DM Sans, sans-serif',
+        color: '#2C2420',
+        position: 'relative',
+      }}>
+        {/* Sparkle mark */}
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '16px',
+          background: '#FFF8EC',
+          border: '1px solid rgba(201,168,76,0.35)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: '28px',
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L14.09 8.26L20.5 9L15.5 13.5L17 20L12 16.5L7 20L8.5 13.5L3.5 9L9.91 8.26L12 2Z" fill="#C9A84C" />
+          </svg>
+        </div>
+
+        {/* BETA badge */}
+        <div style={{
+          display: 'inline-block',
+          background: 'transparent',
+          border: '1px solid rgba(201,168,76,0.45)',
+          borderRadius: '50px', padding: '4px 12px',
+          fontSize: '9px', fontWeight: 600, letterSpacing: '2px',
+          color: '#A88B3A',
+          marginBottom: '22px',
+        }}>BUSINESS PORTAL · DESKTOP</div>
+
+        {/* Title */}
+        <div style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '32px', letterSpacing: '1px',
+          color: '#2C2420', textAlign: 'center',
+          lineHeight: 1.2, marginBottom: '14px',
+          fontWeight: 400,
+        }}>
+          The CRM lives on desktop.
+        </div>
+
+        {/* Subtitle */}
+        <div style={{
+          fontSize: '14px', color: '#8C7B6E',
+          textAlign: 'center', lineHeight: 1.6,
+          maxWidth: '320px', marginBottom: '36px',
+        }}>
+          The Business Portal is designed for larger screens. For the best experience on your phone, open the Vendor app.
+        </div>
+
+        {/* Primary CTA — Open PWA */}
+        <button
+          onClick={() => { window.location.href = '/vendor/mobile'; }}
+          style={{
+            width: '100%', maxWidth: '320px',
+            background: '#2C2420', color: '#FAF6F0',
+            border: 'none', borderRadius: '12px',
+            padding: '16px', fontSize: '13px', fontWeight: 500,
+            letterSpacing: '2px', textTransform: 'uppercase',
+            cursor: 'pointer', marginBottom: '12px',
+            fontFamily: 'DM Sans, sans-serif',
+            boxShadow: '0 4px 16px rgba(44,36,32,0.18)',
+          }}
+        >
+          Open Vendor App
+        </button>
+
+        {/* Secondary — Continue anyway */}
+        <button
+          onClick={() => setMobileGateDismissed(true)}
+          style={{
+            background: 'transparent', color: '#8C7B6E',
+            border: 'none', fontSize: '12px',
+            letterSpacing: '1px', cursor: 'pointer',
+            fontFamily: 'DM Sans, sans-serif',
+            textDecoration: 'underline',
+            textUnderlineOffset: '3px',
+          }}
+        >
+          Continue on mobile anyway
+        </button>
+
+        {/* Footer */}
+        <div style={{
+          position: 'absolute', bottom: '28px',
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '11px', fontStyle: 'italic', fontWeight: 400,
+          color: 'rgba(201,168,76,0.75)',
+          letterSpacing: '0.8px',
+        }}>
+          The Dream Wedding
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div data-portal="vendor" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--content-bg)' }}>
 
