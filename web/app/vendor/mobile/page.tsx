@@ -131,6 +131,9 @@ export default function VendorMobilePage() {
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
   const [showQuickBlock, setShowQuickBlock] = useState(false);
   const [showQuickReminder, setShowQuickReminder] = useState(false);
+  const [showQuickExpense, setShowQuickExpense] = useState(false);
+  const [showQuickBroadcast, setShowQuickBroadcast] = useState(false);
+  const [showQuickTask, setShowQuickTask] = useState(false);
 
   // ── Add Client modal ───────────────────────────────────────────────────
   const [showAddClient, setShowAddClient] = useState(false);
@@ -482,6 +485,72 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     .filter((b: any) => b.status === 'confirmed' && b.event_date && new Date(b.event_date) >= new Date())
     .sort((a: any, b: any) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())[0];
 
+  // ── Month boundaries ───────────────────────────────────────────────────
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  // ── Business Pulse signals (Signature & Prestige) ──────────────────────
+  const paidInvoices = invoices.filter((i: any) => i.status === 'paid');
+  const revenueThisMonth = paidInvoices
+    .filter((i: any) => {
+      const d = i.paid_at ? new Date(i.paid_at) : i.updated_at ? new Date(i.updated_at) : null;
+      return d && d >= monthStart;
+    })
+    .reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+  const revenueLastMonth = paidInvoices
+    .filter((i: any) => {
+      const d = i.paid_at ? new Date(i.paid_at) : i.updated_at ? new Date(i.updated_at) : null;
+      return d && d >= lastMonthStart && d <= lastMonthEnd;
+    })
+    .reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+  const revenueDelta: number | null = revenueLastMonth > 0
+    ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100)
+    : null;
+
+  // Conversion: confirmed bookings this month / total leads this month
+  const leadsThisMonth = leads.filter((l: any) =>
+    l.created_at && new Date(l.created_at) >= monthStart
+  ).length;
+  const confirmedThisMonth = bookings.filter((b: any) =>
+    b.status === 'confirmed' && b.confirmed_at && new Date(b.confirmed_at) >= monthStart
+  ).length;
+  const conversionRate: number | null = leadsThisMonth > 0
+    ? Math.round((confirmedThisMonth / leadsThisMonth) * 100)
+    : null;
+
+  // Data sufficiency gate — 15 days minimum before showing metrics
+  const vendorCreatedAt = vendorData?.created_at ? new Date(vendorData.created_at) : null;
+  const vendorDays = vendorCreatedAt
+    ? Math.floor((Date.now() - vendorCreatedAt.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  const hasEnoughData = vendorDays >= 15;
+  const daysUntilPulseReady = Math.max(0, 15 - vendorDays);
+
+  // ── Lead Pipeline (Signature) ─────────────────────────────────────────
+  const newLeads = leads.filter((l: any) => !l.converted_to_booking);
+  const quotedBookings = bookings.filter((b: any) => b.status === 'quoted');
+  // confirmedThisMonth already computed above
+
+  // ── Revenue Trend (Signature & Prestige) — last 6 months ──────────────
+  const monthlyRevenue: { label: string; amount: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+    const amt = paidInvoices
+      .filter((inv: any) => {
+        const d = inv.paid_at ? new Date(inv.paid_at) : inv.updated_at ? new Date(inv.updated_at) : null;
+        return d && d >= mStart && d <= mEnd;
+      })
+      .reduce((s: number, inv: any) => s + (parseInt(inv.amount) || 0), 0);
+    monthlyRevenue.push({
+      label: mStart.toLocaleDateString('en-IN', { month: 'short' }),
+      amount: amt,
+    });
+  }
+  const maxMonthRevenue = Math.max(...monthlyRevenue.map(m => m.amount), 1);
+
   // ── Profile completion — real signals from vendorData ──────────────────
   const profileSteps = [
     { key: 'photos',   label: 'Upload 10+ portfolio photos', done: (vendorData?.portfolio_images?.length || 0) >= 10 },
@@ -532,12 +601,90 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     href: '/vendor/dashboard',
   };
 
+  // Trigger 3 — Essential: 3+ bookings managed this month → Team / Signature
+  const bookingsThisMonth = bookings.filter((b: any) =>
+    b.created_at && new Date(b.created_at) >= monthStart
+  ).length;
+  const trigger_team_growth: NudgeTrigger = {
+    key: 'team_growth',
+    eyebrow: 'Running a Real Business',
+    title: `${bookingsThisMonth} bookings this month. That's a team operation.`,
+    body: 'Signature unlocks Team — add your assistants, assign roles, share the calendar. Plus Expenses, Tax, and Analytics.',
+    cta: 'See Signature',
+    href: '/vendor/dashboard',
+  };
+
+  // Trigger 4 — Essential: 10+ completed bookings → Pricing / Analytics
+  const completedBookings = bookings.filter((b: any) => b.status === 'confirmed' && b.event_date && new Date(b.event_date) < new Date()).length;
+  const trigger_pricing_optimization: NudgeTrigger = {
+    key: 'pricing_optimization',
+    eyebrow: 'Your Data Has Stories',
+    title: `${completedBookings} completed bookings — patterns are emerging.`,
+    body: 'Signature Analytics shows which seasons, events, and channels drive your best revenue. Price with confidence, not guesses.',
+    cta: 'See Signature',
+    href: '/vendor/dashboard',
+  };
+
+  // Trigger 5 — Essential: profile 100% + bio detailed → Brand maturity / Referrals
+  const bioLength = (vendorData?.about || '').length;
+  const trigger_brand_maturity: NudgeTrigger = {
+    key: 'brand_maturity',
+    eyebrow: 'You\'re Building Something',
+    title: 'Your profile is complete and your story is rich.',
+    body: 'Signature unlocks the Past Client Discount Loop — each past client who joins and enquires earns you up to 50% off your subscription. Your best marketing is already there.',
+    cta: 'See Signature',
+    href: '/vendor/dashboard',
+  };
+
+  // Trigger 6 — Signature: 3+ concurrent active events → Ops scale / Prestige
+  const activeEvents = bookings.filter((b: any) => {
+    if (b.status !== 'confirmed' || !b.event_date) return false;
+    const event = new Date(b.event_date);
+    const daysUntil = (event.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return daysUntil >= -7 && daysUntil <= 45; // active = within 45 days ahead or 7 past
+  }).length;
+  const trigger_ops_scale: NudgeTrigger = {
+    key: 'ops_scale',
+    eyebrow: 'Wedding Season Is Here',
+    title: `${activeEvents} active events. Ops mode.`,
+    body: 'Prestige unlocks Deluxe Suite — team tasks, procurement tracking, deliveries, photo approvals, client sentiment. For teams running operations, not transactions.',
+    cta: 'See Prestige',
+    href: '/vendor/dashboard',
+  };
+
+  // Trigger 7 — Signature: has team members → delegation / Prestige
+  const trigger_delegation: NudgeTrigger = {
+    key: 'delegation',
+    eyebrow: 'Delegation At Scale',
+    title: 'Your team is growing.',
+    body: 'Prestige brings delegation templates — assign standard workflows (trial, shoot, edit, deliver) in one tap. Plus Team Chat, Check-ins, and Photo Approvals.',
+    cta: 'See Prestige',
+    href: '/vendor/dashboard',
+  };
+
   let activeTrigger: NudgeTrigger | null = null;
-  if (tier === 'essential' && vendorData?.id) {
-    if (clientsLast7Days >= 5 && !shownNudges.includes('growth_analytics') && nudgeDismissed !== 'growth_analytics') {
-      activeTrigger = trigger_growth_analytics;
-    } else if (overdueCount >= 3 && !shownNudges.includes('broadcast_reminders') && nudgeDismissed !== 'broadcast_reminders') {
-      activeTrigger = trigger_broadcast_reminders;
+  if (vendorData?.id) {
+    // Essential triggers (check in order of specificity — most specific first)
+    if (tier === 'essential') {
+      if (clientsLast7Days >= 5 && !shownNudges.includes('growth_analytics') && nudgeDismissed !== 'growth_analytics') {
+        activeTrigger = trigger_growth_analytics;
+      } else if (overdueCount >= 3 && !shownNudges.includes('broadcast_reminders') && nudgeDismissed !== 'broadcast_reminders') {
+        activeTrigger = trigger_broadcast_reminders;
+      } else if (bookingsThisMonth >= 3 && !shownNudges.includes('team_growth') && nudgeDismissed !== 'team_growth') {
+        activeTrigger = trigger_team_growth;
+      } else if (completedBookings >= 10 && !shownNudges.includes('pricing_optimization') && nudgeDismissed !== 'pricing_optimization') {
+        activeTrigger = trigger_pricing_optimization;
+      } else if (profilePercent === 100 && bioLength >= 500 && !shownNudges.includes('brand_maturity') && nudgeDismissed !== 'brand_maturity') {
+        activeTrigger = trigger_brand_maturity;
+      }
+    }
+    // Signature triggers
+    else if (tier === 'signature') {
+      if (activeEvents >= 3 && !shownNudges.includes('ops_scale') && nudgeDismissed !== 'ops_scale') {
+        activeTrigger = trigger_ops_scale;
+      }
+      // Note: trigger_delegation requires team data from ds endpoint — activates in Prestige Home
+      // once we have that data in parent. Skipped here for now.
     }
   }
 
@@ -740,6 +887,122 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
+          BUSINESS PULSE — Signature & Prestige only
+          4-stat grid: Revenue this month, vs last month, outstanding, conversion
+          Gated by 15-day data requirement
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {(tier === 'signature' || tier === 'prestige') && (
+        hasEnoughData ? (
+          <div style={{
+            background: C.ivory,
+            borderRadius: '18px',
+            padding: '22px',
+            border: `1px solid ${C.goldBorder}`,
+            position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute', top: 0, left: 22, right: 22, height: '2px',
+              background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+            }} />
+            <div style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '9px', fontWeight: 600,
+              letterSpacing: '2.5px', textTransform: 'uppercase',
+              color: C.goldDeep, marginBottom: '14px',
+            }}>Business Pulse · This Month</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 16px' }}>
+              {/* Revenue this month */}
+              <div>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '26px', color: C.dark, fontWeight: 400,
+                  letterSpacing: '-0.3px', lineHeight: 1,
+                }}>₹{fmtINR(revenueThisMonth)}</div>
+                <div style={{
+                  fontSize: '9px', color: C.muted, marginTop: '4px',
+                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+                }}>Revenue</div>
+              </div>
+
+              {/* Vs last month */}
+              <div>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '26px', fontWeight: 400,
+                  color: revenueDelta == null ? C.muted : revenueDelta >= 0 ? C.green : C.red,
+                  letterSpacing: '-0.3px', lineHeight: 1,
+                }}>
+                  {revenueDelta == null ? '—' : (revenueDelta >= 0 ? '↗' : '↘') + ' ' + Math.abs(revenueDelta) + '%'}
+                </div>
+                <div style={{
+                  fontSize: '9px', color: C.muted, marginTop: '4px',
+                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+                }}>Vs Last Month</div>
+              </div>
+
+              {/* Outstanding */}
+              <div>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '22px', color: totalOwed > 0 ? C.dark : C.muted, fontWeight: 400,
+                  letterSpacing: '-0.3px', lineHeight: 1,
+                }}>₹{fmtINR(totalOwed)}</div>
+                <div style={{
+                  fontSize: '9px', color: C.muted, marginTop: '4px',
+                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+                }}>Outstanding</div>
+              </div>
+
+              {/* Conversion rate */}
+              <div>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '22px', color: C.dark, fontWeight: 400,
+                  letterSpacing: '-0.3px', lineHeight: 1,
+                }}>{conversionRate == null ? '—' : conversionRate + '%'}</div>
+                <div style={{
+                  fontSize: '9px', color: C.muted, marginTop: '4px',
+                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+                }}>Conversion</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Data insufficient state — muted, builds anticipation
+          <div style={{
+            background: C.pearl,
+            borderRadius: '18px',
+            padding: '24px',
+            border: `1px dashed ${C.borderSoft}`,
+            textAlign: 'center',
+          }}>
+            <div style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '9px', fontWeight: 600,
+              letterSpacing: '2.5px', textTransform: 'uppercase',
+              color: C.muted, marginBottom: '10px',
+            }}>Business Pulse</div>
+            <div style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '18px', color: C.dark, fontWeight: 400,
+              letterSpacing: '0.2px', lineHeight: 1.4, marginBottom: '6px',
+            }}>
+              Unlocking in {daysUntilPulseReady} {daysUntilPulseReady === 1 ? 'day' : 'days'}.
+            </div>
+            <div style={{
+              fontSize: '11px', color: C.muted,
+              fontStyle: 'italic', lineHeight: 1.55,
+              maxWidth: '280px', margin: '0 auto',
+            }}>
+              We need at least 15 days of your data to tell you anything meaningful about your business.
+            </div>
+          </div>
+        )
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
           ESSENTIAL — Personal Assistant
           (Used for Essential now. Signature & Prestige fall through to this
           in Turn 1; Turn 3 will add their distinct layouts.)
@@ -940,43 +1203,241 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
         </div>
       )}
 
-      {/* ── QUICK ACTIONS (real, all wired to bottom sheets) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-        {[
+      {/* ── QUICK ACTIONS (real, all wired to bottom sheets, tier-aware) ── */}
+      {(() => {
+        const essentialActions = [
           { icon: FileText,   label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
           { icon: Send,       label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
           { icon: Calendar,   label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
           { icon: Users,      label: 'Add Client', onClick: () => onAddClient && onAddClient() },
-        ].map((a: any, i: number) => {
-          const I = a.icon;
-          return (
-            <button
-              key={i}
-              onClick={a.onClick}
-              style={{
-                background: C.ivory,
-                border: `1px solid ${C.goldBorder}`,
-                borderRadius: '14px',
-                padding: '16px 6px 14px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.25s ease',
-              }}
-              onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.background = C.goldSoft; }}
-              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.background = C.ivory; }}
-            >
-              <I size={16} color={C.gold} />
-              <span style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '9px', fontWeight: 500,
-                letterSpacing: '1.2px', textTransform: 'uppercase',
-                color: C.dark, textAlign: 'center', lineHeight: 1.15,
-              }}>{a.label}</span>
-            </button>
-          );
-        })}
-      </div>
+        ];
+        const signatureActions = [
+          { icon: FileText,    label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
+          { icon: Send,        label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
+          { icon: Calendar,    label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
+          { icon: Users,       label: 'Add Client', onClick: () => onAddClient && onAddClient() },
+          { icon: TrendingDown, label: 'Expense',   onClick: () => { window.location.href = '/vendor/dashboard'; } },
+          { icon: MessageCircle, label: 'Broadcast', onClick: () => { window.location.href = '/vendor/dashboard'; } },
+        ];
+        const prestigeActions = [
+          { icon: CheckCircle,   label: 'Delegate',   onClick: () => { window.location.href = '/vendor/dashboard'; } },
+          { icon: MessageCircle, label: 'Team Chat',  onClick: () => { window.location.href = '/vendor/dashboard'; } },
+          { icon: Send,          label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
+          { icon: Calendar,      label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
+          { icon: FileText,      label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
+          { icon: Award,         label: 'Approvals',  onClick: () => { window.location.href = '/vendor/dashboard'; } },
+        ];
+        const actions = tier === 'prestige' ? prestigeActions : tier === 'signature' ? signatureActions : essentialActions;
+        const cols = actions.length === 4 ? 4 : 3;
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '8px' }}>
+            {actions.map((a: any, i: number) => {
+              const I = a.icon;
+              return (
+                <button
+                  key={i}
+                  onClick={a.onClick}
+                  style={{
+                    background: C.ivory,
+                    border: `1px solid ${C.goldBorder}`,
+                    borderRadius: '14px',
+                    padding: '16px 6px 14px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.25s ease',
+                  }}
+                  onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.background = C.goldSoft; }}
+                  onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.background = C.ivory; }}
+                >
+                  <I size={16} color={C.gold} />
+                  <span style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '9px', fontWeight: 500,
+                    letterSpacing: '1.2px', textTransform: 'uppercase',
+                    color: C.dark, textAlign: 'center', lineHeight: 1.15,
+                  }}>{a.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          LEAD PIPELINE — Signature & Prestige
+          3-column horizontal visual: New Enquiries → Quoted → Confirmed
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {(tier === 'signature' || tier === 'prestige') && (newLeads > 0 || quotedBookings > 0 || confirmedThisMonth > 0) && (
+        <div>
+          <SectionLabel>Pipeline</SectionLabel>
+          <div style={{
+            background: C.ivory,
+            borderRadius: '16px',
+            border: `1px solid ${C.border}`,
+            padding: '16px',
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px',
+            position: 'relative',
+          }}>
+            {[
+              { label: 'New', count: newLeads, tone: C.goldSoft, border: C.goldBorder, text: C.goldDeep },
+              { label: 'Quoted', count: quotedBookings, tone: C.pearl, border: C.border, text: C.muted },
+              { label: 'Confirmed', count: confirmedThisMonth, tone: C.greenSoft, border: C.border, text: C.green },
+            ].map((col, i) => (
+              <div key={i}
+                onClick={() => onJumpToTab('Inquiries')}
+                style={{
+                  background: col.tone,
+                  border: `1px solid ${col.border}`,
+                  borderRadius: '12px',
+                  padding: '14px 10px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '24px', color: col.text, fontWeight: 400,
+                  letterSpacing: '-0.3px', lineHeight: 1,
+                }}>{col.count}</div>
+                <div style={{
+                  fontSize: '9px', color: C.muted, marginTop: '6px',
+                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+                }}>{col.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          ACTIVE EVENTS — Prestige only
+          Currently-in-progress weddings with stage markers
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {tier === 'prestige' && (() => {
+        const activeEventsList = bookings.filter((b: any) => {
+          if (b.status !== 'confirmed' || !b.event_date) return false;
+          const event = new Date(b.event_date);
+          const daysUntil = (event.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+          return daysUntil >= -7 && daysUntil <= 60;
+        }).sort((a: any, b: any) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+
+        if (activeEventsList.length === 0) return null;
+
+        return (
+          <div>
+            <SectionLabel>Active Events · {activeEventsList.length}</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {activeEventsList.slice(0, 3).map((ev: any) => {
+                const eventDate = new Date(ev.event_date);
+                const daysUntil = Math.ceil((eventDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                const stage = daysUntil > 30 ? 'Procurement'
+                            : daysUntil > 7  ? 'Trials'
+                            : daysUntil >= 0 ? 'Event Week'
+                                             : 'Delivery';
+                const stageTone = daysUntil > 30 ? C.goldSoft
+                                : daysUntil > 7  ? C.champagne
+                                : daysUntil >= 0 ? C.goldMist
+                                                 : C.pearl;
+                return (
+                  <div key={ev.id} style={{
+                    background: C.ivory,
+                    borderRadius: '14px',
+                    border: `1px solid ${C.border}`,
+                    padding: '14px 16px',
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                  }}>
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '10px',
+                      background: stageTone, border: `1px solid ${C.goldBorder}`,
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <div style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: '16px', color: C.dark, fontWeight: 400, lineHeight: 1,
+                      }}>{eventDate.getDate()}</div>
+                      <div style={{
+                        fontSize: '8px', color: C.muted, marginTop: '2px',
+                        letterSpacing: '1px', textTransform: 'uppercase',
+                      }}>{eventDate.toLocaleDateString('en-IN', { month: 'short' })}</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: '15px', color: C.dark, fontWeight: 400,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{ev.couple_name || ev.user_name || 'Event'}</div>
+                      <div style={{
+                        fontSize: '10px', color: C.muted, marginTop: '3px',
+                        letterSpacing: '1.2px', textTransform: 'uppercase', fontWeight: 500,
+                      }}>{stage} · {daysUntil >= 0 ? `${daysUntil}d out` : `${Math.abs(daysUntil)}d ago`}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          TEAM ACTIVITY FEED — Prestige only
+          Live feed from Deluxe Suite tables. Empty state with CTA.
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {tier === 'prestige' && (
+        <TeamActivityFeed vendorId={session?.vendorId} />
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          REVENUE TREND — Signature & Prestige
+          Last 6 months sparkline, simple SVG
+         ══════════════════════════════════════════════════════════════════ */}
+
+      {(tier === 'signature' || tier === 'prestige') && (totalRevenue > 0 || monthlyRevenue.some(m => m.amount > 0)) && (
+        <div>
+          <SectionLabel>Revenue Trend</SectionLabel>
+          <div style={{
+            background: C.ivory,
+            borderRadius: '16px',
+            border: `1px solid ${C.border}`,
+            padding: '18px 16px 14px',
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', alignItems: 'end', height: '64px' }}>
+              {monthlyRevenue.map((m, i) => {
+                const pct = m.amount > 0 ? (m.amount / maxMonthRevenue) * 100 : 4;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'stretch', justifyContent: 'flex-end',
+                    height: '100%',
+                  }}>
+                    <div style={{
+                      height: `${pct}%`,
+                      background: i === 5 ? C.gold : C.goldBorder,
+                      borderRadius: '4px 4px 0 0',
+                      minHeight: '3px',
+                    }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginTop: '8px' }}>
+              {monthlyRevenue.map((m, i) => (
+                <div key={i} style={{
+                  fontSize: '9px', color: C.muted,
+                  letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 500,
+                  textAlign: 'center',
+                }}>{m.label}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── TODAY'S EVENTS (if any) ── */}
       {todayBookings.length > 0 && (
@@ -3273,4 +3734,221 @@ function QuickReminderSheet({
       >Done</button>
     </SheetOverlay>
   );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TEAM ACTIVITY FEED — Prestige only
+// Pulls recent team + task activity from Deluxe Suite endpoints.
+// Shows empty state with CTA when no team yet.
+// ══════════════════════════════════════════════════════════════════════════
+
+function TeamActivityFeed({ vendorId }: { vendorId: string }) {
+  const [team, setTeam] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!vendorId) { setLoading(false); return; }
+    let cancelled = false;
+    Promise.all([
+      fetch(`${API}/api/ds/team/${vendorId}`).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(`${API}/api/ds/tasks/${vendorId}`).then(r => r.json()).catch(() => ({ data: [] })),
+    ]).then(([teamRes, tasksRes]) => {
+      if (cancelled) return;
+      setTeam(teamRes?.data || []);
+      setTasks(tasksRes?.data || []);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [vendorId]);
+
+  // Build a unified activity feed — tasks completed, photos approved, etc.
+  // For now, just task activity (most reliable signal).
+  type Activity = {
+    id: string;
+    actor: string;
+    action: string;
+    detail: string;
+    when: Date;
+  };
+  const activities: Activity[] = [];
+
+  // Tasks: recent updates
+  for (const t of tasks) {
+    if (!t.updated_at) continue;
+    const assignee = team.find(m => m.id === t.assigned_to);
+    const actorName = assignee?.name || 'Team';
+    if (t.status === 'completed' && t.completed_at) {
+      activities.push({
+        id: `task-done-${t.id}`,
+        actor: actorName,
+        action: 'completed',
+        detail: t.title || 'a task',
+        when: new Date(t.completed_at),
+      });
+    } else if (t.status === 'in_progress') {
+      activities.push({
+        id: `task-prog-${t.id}`,
+        actor: actorName,
+        action: 'started',
+        detail: t.title || 'a task',
+        when: new Date(t.updated_at),
+      });
+    }
+  }
+
+  activities.sort((a, b) => b.when.getTime() - a.when.getTime());
+  const recent = activities.slice(0, 6);
+
+  if (loading) {
+    return (
+      <div>
+        <SectionLabel>Team Activity</SectionLabel>
+        <div style={{
+          background: C.ivory, borderRadius: '16px',
+          border: `1px solid ${C.border}`, padding: '24px',
+          textAlign: 'center', color: C.muted,
+          fontSize: '12px', fontStyle: 'italic',
+        }}>Loading…</div>
+      </div>
+    );
+  }
+
+  // ── Empty state — no team yet ────────────────────────────────────────
+  if (team.length === 0) {
+    return (
+      <div>
+        <SectionLabel>Team Activity</SectionLabel>
+        <div style={{
+          background: C.ivory,
+          borderRadius: '18px',
+          border: `1px solid ${C.goldBorder}`,
+          padding: '24px 22px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+            background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+          }} />
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '52px', height: '52px', borderRadius: '50%',
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            margin: '0 auto 16px',
+          }}>
+            <Users size={20} color={C.gold} />
+          </div>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '20px', color: C.dark, fontWeight: 400,
+            letterSpacing: '0.2px', lineHeight: 1.35,
+            textAlign: 'center', marginBottom: '8px',
+          }}>Your team activity lives here.</div>
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '12px', color: C.muted, lineHeight: 1.6,
+            textAlign: 'center', marginBottom: '18px',
+            maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto',
+          }}>
+            Invite your first team member to see tasks, photos, deliveries, and check-ins as they happen.
+          </div>
+          <a
+            href="/vendor/dashboard"
+            style={{
+              display: 'block', textAlign: 'center',
+              background: C.gold, color: C.ivory,
+              padding: '12px 18px', borderRadius: '10px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px', fontWeight: 600,
+              letterSpacing: '1.8px', textTransform: 'uppercase',
+              textDecoration: 'none',
+              maxWidth: '260px', marginLeft: 'auto', marginRight: 'auto',
+            }}
+          >Invite Team Member</a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── No recent activity yet ──────────────────────────────────────────
+  if (recent.length === 0) {
+    return (
+      <div>
+        <SectionLabel>Team Activity</SectionLabel>
+        <div style={{
+          background: C.ivory, borderRadius: '16px',
+          border: `1px solid ${C.border}`, padding: '24px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '15px', color: C.dark, fontWeight: 400,
+            fontStyle: 'italic', marginBottom: '4px',
+          }}>Quiet day so far.</div>
+          <div style={{
+            fontSize: '11px', color: C.muted, fontStyle: 'italic',
+          }}>{team.length} team member{team.length === 1 ? '' : 's'} on standby.</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Active feed ─────────────────────────────────────────────────────
+  return (
+    <div>
+      <SectionLabel>Team Activity</SectionLabel>
+      <div style={{
+        background: C.ivory, borderRadius: '16px',
+        border: `1px solid ${C.border}`, padding: '8px 0', overflow: 'hidden',
+      }}>
+        {recent.map((a, idx) => {
+          const isLast = idx === recent.length - 1;
+          const ago = formatTimeAgo(a.when);
+          return (
+            <div key={a.id} style={{
+              display: 'flex', alignItems: 'flex-start', gap: '12px',
+              padding: '12px 16px',
+              borderBottom: isLast ? 'none' : `1px solid ${C.borderSoft}`,
+            }}>
+              <div style={{
+                width: '28px', height: '28px', borderRadius: '50%',
+                background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, marginTop: '2px',
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '11px', color: C.goldDeep, fontWeight: 500,
+              }}>{a.actor.charAt(0).toUpperCase()}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: '12px', color: C.dark, lineHeight: 1.45,
+                  fontFamily: 'DM Sans, sans-serif',
+                }}>
+                  <span style={{ fontWeight: 600 }}>{a.actor}</span>
+                  {' '}<span style={{ color: C.muted }}>{a.action}</span>
+                  {' '}{a.detail}
+                </div>
+                <div style={{
+                  fontSize: '10px', color: C.light, marginTop: '2px',
+                  letterSpacing: '0.5px',
+                }}>{ago}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function formatTimeAgo(d: Date): string {
+  const ms = Date.now() - d.getTime();
+  const mins = Math.floor(ms / (1000 * 60));
+  const hrs = Math.floor(ms / (1000 * 60 * 60));
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hrs < 24) return `${hrs}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
