@@ -13,5 +13,21 @@ export const viewport: Viewport = {
 };
 
 export default function VendorMobileLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      {/*
+        Service worker registration scoped to the PWA only.
+        Registering at the root caused SW to intercept /vendor/dashboard requests
+        and trigger infinite-loop re-fetches that crashed React with error #310.
+      */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js', { scope: '/vendor/mobile/' }).catch(function() {});
+          });
+        }
+      `}} />
+      {children}
+    </>
+  );
 }

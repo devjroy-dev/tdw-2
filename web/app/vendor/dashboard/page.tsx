@@ -383,6 +383,42 @@ export default function VendorDashboard() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // SW KILL-SWITCH: An older deployment registered a service worker at the origin
+  // root (scope '/'). That SW intercepted /vendor/dashboard requests and caused
+  // infinite-loop re-fetches that crashed the dashboard with React error #310.
+  // The fix is to scope the SW to /vendor/mobile only, but users who already
+  // installed the old SW still have it. This effect actively unregisters any SW
+  // whose scope covers the dashboard, then reloads once.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    let reloaded = false;
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      let killedAny = false;
+      regs.forEach((reg) => {
+        try {
+          const scope = reg.scope || '';
+          // Kill any SW whose scope is the origin root (covers everything).
+          // Keep PWA-scoped SWs (/vendor/mobile/) alone.
+          if (!scope.includes('/vendor/mobile')) {
+            reg.unregister();
+            killedAny = true;
+          }
+        } catch (e) { /* ignore */ }
+      });
+      // Once we've killed bad SWs, reload once so the dashboard runs without SW interception.
+      // Use a sessionStorage flag to prevent reload loops.
+      if (killedAny && !reloaded) {
+        try {
+          if (!sessionStorage.getItem('tdw_sw_killed_once')) {
+            sessionStorage.setItem('tdw_sw_killed_once', '1');
+            reloaded = true;
+            window.location.reload();
+          }
+        } catch (e) { /* ignore */ }
+      }
+    }).catch(() => { /* SW APIs may be unavailable in some contexts */ });
+  }, []);
   const [toasts, setToasts] = useState<{id:number, msg:string, type:'success'|'error'|'info'}[]>([]);
   const toast = {
     success: (msg:string) => { const id = Date.now(); setToasts(p => [...p, {id, msg, type:'success'}]); setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500); },

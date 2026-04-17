@@ -37,13 +37,12 @@ export default function RootLayout({
         <SessionProvider>
           {children}
         </SessionProvider>
-        <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function() {});
-            });
-          }
-        `}} />
+        {/*
+          Service worker registration moved to /vendor/mobile/layout.tsx so it only
+          applies to the PWA. Registering here registered SW for the entire origin,
+          which intercepted /vendor/dashboard requests and caused infinite-loop
+          re-fetches that crashed the dashboard with React error #310.
+        */}
               <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </body>
     </html>
