@@ -3,225 +3,705 @@ import { useState, useEffect } from 'react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
-export default function VendorLoginPage() {
-  const [mode, setMode] = useState<'signup' | 'login'>('signup');
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
-  const [code, setCode] = useState('');
-  const [codeData, setCodeData] = useState<any>(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loginId, setLoginId] = useState('');
-  const [loginPass, setLoginPass] = useState('');
+type Mode = 'entry' | 'signup' | 'login' | 'forgot';
 
-  // Route post-login: mobile vendors (<768px) get app-style PWA, desktop/tablet gets full business portal.
+export default function VendorLoginPage() {
+  const [mode, setMode] = useState<Mode>('entry');
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Route post-login to the right surface
   const goToVendorHome = () => {
-    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
-    window.location.href = isMobileViewport ? '/vendor/mobile' : '/vendor/dashboard';
+    const mob = typeof window !== 'undefined' && window.innerWidth < 768;
+    window.location.href = mob ? '/vendor/mobile' : '/vendor/dashboard';
   };
 
   useEffect(() => {
-    // Mobile visitors should never see the dark business portal login — bounce them to the PWA-styled login.
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      window.location.href = '/vendor/mobile/login';
-      return;
-    }
+    setMounted(true);
     const check = () => setIsMobile(window.innerWidth < 768);
-    check(); window.addEventListener('resize', check);
-    try { const s = localStorage.getItem('vendor_web_session'); if (s) { const p = JSON.parse(s); if (p.vendorId) goToVendorHome(); } } catch {}
+    check();
+    window.addEventListener('resize', check);
+    try {
+      const s = localStorage.getItem('vendor_web_session');
+      if (s) {
+        const p = JSON.parse(s);
+        if (p.vendorId) goToVendorHome();
+      }
+    } catch {}
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const handleValidateCode = async () => {
-    if (!code.trim()) { setError('Please enter your vendor code'); return; }
-    try {
-      setLoading(true); setError('');
-      const res = await fetch(`${API}/api/signup/validate-code`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code.trim() }) });
-      const data = await res.json();
-      if (data.success && data.data) {
-        if (data.data.type !== 'vendor') { setError('This is a couple code. Please use thedreamwedding.in/couple/login'); return; }
-        setCodeData(data.data); setStep(2);
-      } else { setError(data.error || 'Invalid or expired code'); }
-    } catch { setError('Network error.'); } finally { setLoading(false); }
-  };
+  if (!mounted) return null;
 
-  const handleGoToPassword = () => {
-    // Business name optional
-    if (!phone || phone.length < 10) { setError('Valid 10-digit phone required'); return; }
-    if (!email || !email.includes('@')) { setError('Valid email required'); return; }
-    if (!instagram.trim()) { setError('Instagram handle required'); return; }
-    setError(''); setStep(3);
-  };
-
-  const handleCompleteSignup = async () => {
-    if (!password || password.length < 6) { setError('Password must be at least 6 characters'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    try {
-      setLoading(true); setError('');
-      const res = await fetch(`${API}/api/signup/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.trim(), name: name.trim(), phone, email: email.trim(), instagram: instagram.trim(), password, code_type: codeData?.type, code_id: codeData?.code_id, tier: codeData?.tier }),
-      });
-      const data = await res.json();
-      if (data.success && data.data) {
-        localStorage.setItem('vendor_web_session', JSON.stringify({ vendorId: data.data.id, vendorName: data.data.name, category: data.data.category, city: data.data.city, tier: data.data.tier, trialEnd: data.data.trial_end }));
-        goToVendorHome();
-      } else { setError(data.error || 'Signup failed'); }
-    } catch { setError('Network error.'); } finally { setLoading(false); }
-  };
-
-  const handleLogin = async () => {
-    if (!loginId.trim()) { setError('Enter your email or phone number'); return; }
-    if (!loginPass) { setError('Enter your password'); return; }
-    try {
-      setLoading(true); setError('');
-      const res = await fetch(`${API}/api/signup/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: loginId.trim(), password: loginPass }) });
-      const data = await res.json();
-      if (data.success && data.data) {
-        if (data.data.type === 'couple') { setError('This is a couple account. Please use thedreamwedding.in/couple/login'); return; }
-        localStorage.setItem('vendor_web_session', JSON.stringify({ vendorId: data.data.id, vendorName: data.data.name, category: data.data.category, city: data.data.city, tier: data.data.tier, teamRole: data.data.team_role || 'owner', teamMemberName: data.data.team_member_name || null, isTeamMember: data.data.is_team_member || false }));
-        goToVendorHome();
-      } else { setError(data.error || 'Login failed'); }
-    } catch { setError('Network error.'); } finally { setLoading(false); }
-  };
-
-  const iS: React.CSSProperties = { width: '100%', padding: '12px 16px', fontSize: '14px', fontFamily: 'Inter, sans-serif', border: '1px solid #E2E8F0', borderRadius: '6px', backgroundColor: '#FFFFFF', color: '#0F172A', outline: 'none', boxSizing: 'border-box' };
-  const lS: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: '#475569', display: 'block', marginBottom: '6px' };
-  const bS = (a: boolean): React.CSSProperties => ({ width: '100%', background: a ? '#0F172A' : '#E2E8F0', color: a ? '#FFFFFF' : '#94A3B8', fontSize: '14px', fontWeight: 500, fontFamily: 'Inter, sans-serif', padding: '12px 24px', borderRadius: '6px', border: 'none', cursor: a ? 'pointer' : 'not-allowed', marginBottom: '16px' });
-  const backBtn: React.CSSProperties = { width: '100%', background: 'transparent', color: '#8C7B6E', fontSize: '12px', fontFamily: 'Inter, sans-serif', padding: '10px', borderRadius: '8px', border: '1px solid #E8DDD4', cursor: 'pointer', marginTop: '8px' };
-  const foc = (e: any) => { e.target.style.border = '1px solid #0F172A'; e.target.style.boxShadow = '0 0 0 3px rgba(15,23,42,0.08)'; };
-  const blr = (e: any) => { e.target.style.border = '1.5px solid #E5E7EB'; };
-
-  const renderSignup = () => {
-    if (step === 1) return (<>
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '18px', fontWeight: 600, color: '#0F1117', marginBottom: '6px' }}>Sign Up</div>
-        <div style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6 }}>Enter the vendor code provided by The Dream Wedding team.</div>
-      </div>
-      <div style={{ marginBottom: '12px' }}>
-        <label style={lS}>Vendor Code</label>
-        <input type="text" placeholder="e.g. SIG-A3KF9M" value={code} onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleValidateCode()} style={{ ...iS, letterSpacing: '3px', textAlign: 'center', textTransform: 'uppercase', fontSize: '16px' }} onFocus={foc} onBlur={blr} />
-      </div>
-      {error && <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '12px' }}>{error}</div>}
-      <button onClick={handleValidateCode} disabled={loading || !code.trim()} style={bS(!loading && !!code.trim())}>{loading ? 'Verifying...' : 'Continue'}</button>
-      <div style={{ fontSize: '11px', color: '#9CA3AF', textAlign: 'center', lineHeight: 1.6 }}>This code was provided during your onboarding with The Dream Wedding team.</div>
-    </>);
-
-    if (step === 2) return (<>
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '18px', fontWeight: 600, color: '#0F1117', marginBottom: '6px' }}>Business Details</div>
-        <div style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6 }}>
-          Set up your vendor profile. All fields are required.
-          {codeData?.tier && <span style={{ marginLeft: '6px', background: 'rgba(201,168,76,0.1)', color: '#C9A84C', padding: '2px 8px', borderRadius: '50px', fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>{codeData.tier}</span>}
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-        <div><label style={lS}>Business Name (optional)</label><input type="text" placeholder="Your business name" value={name} onChange={e => { setName(e.target.value); setError(''); }} style={iS} onFocus={foc} onBlur={blr} /></div>
-        <div><label style={lS}>Phone Number *</label><div style={{ display: 'flex', gap: '8px' }}><div style={{ padding: '14px 12px', background: '#FAFAFA', border: '1.5px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', color: '#6B7280', fontFamily: 'Inter' }}>+91</div><input type="tel" placeholder="10-digit number" value={phone} onChange={e => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(''); }} style={{ ...iS, flex: 1 }} onFocus={foc} onBlur={blr} /></div><div style={{ fontSize: '10px', color: '#B8ADA4', marginTop: '4px', fontStyle: 'italic' }}>This will be your login ID</div></div>
-        <div><label style={lS}>Email Address *</label><input type="email" placeholder="business@email.com" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} style={iS} onFocus={foc} onBlur={blr} /><div style={{ fontSize: '10px', color: '#B8ADA4', marginTop: '4px', fontStyle: 'italic' }}>Or use this to log in</div></div>
-        <div><label style={lS}>Instagram Handle</label><input type="text" placeholder="@yourbusiness" value={instagram} onChange={e => { setInstagram(e.target.value.replace(/\s/g, '')); setError(''); }} style={iS} onFocus={foc} onBlur={(e: any) => { blr(e); const h = instagram.replace('@','').trim(); if (h.length > 0 && h.length < 3) setError('Instagram handle must be at least 3 characters'); else if (h && !/^[a-zA-Z0-9._]+$/.test(h)) setError('Instagram handle can only contain letters, numbers, periods and underscores'); }} /><div style={{ fontSize: '10px', color: '#B8ADA4', marginTop: '4px', fontStyle: 'italic' }}>Optional — leave blank if you don't have Instagram</div></div>
-      </div>
-      {error && <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '12px' }}>{error}</div>}
-      <button onClick={handleGoToPassword} style={bS(true)}>Continue</button>
-      <button onClick={() => { setStep(1); setError(''); }} style={backBtn}>Back</button>
-    </>);
-
-    if (step === 3) return (<>
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '18px', fontWeight: 600, color: '#0F1117', marginBottom: '6px' }}>Create Password</div>
-        <div style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6 }}>Your email ({email}) or phone ({phone}) will be your username.</div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-        <div><label style={lS}>Password</label><input type="password" placeholder="Minimum 6 characters" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} style={iS} onFocus={foc} onBlur={blr} /></div>
-        <div><label style={lS}>Confirm Password</label><input type="password" placeholder="Confirm your password" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleCompleteSignup()} style={iS} onFocus={foc} onBlur={blr} /></div>
-      </div>
-      {error && <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '12px' }}>{error}</div>}
-      <button onClick={handleCompleteSignup} disabled={loading} style={bS(!loading)}>{loading ? 'Creating Account...' : 'Create Account & Go Live'}</button>
-      <button onClick={() => { setStep(2); setError(''); }} style={backBtn}>Back</button>
-    </>);
-  };
-
-  const renderLogin = () => (<>
-    <div style={{ marginBottom: '24px' }}>
-      <div style={{ fontSize: '18px', fontWeight: 600, color: '#0F1117', marginBottom: '6px' }}>Log In</div>
-      <div style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6 }}>Enter your email or phone number and password.</div>
-    </div>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-      <div><label style={lS}>Email or Phone Number</label><input type="text" placeholder="business@email.com or 9876543210" value={loginId} onChange={e => { setLoginId(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && document.getElementById('vlp')?.focus()} style={iS} onFocus={foc} onBlur={blr} /></div>
-      <div><label style={lS}>Password</label><input type="password" id="vlp" placeholder="Your password" value={loginPass} onChange={e => { setLoginPass(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleLogin()} style={iS} onFocus={foc} onBlur={blr} /></div>
-    </div>
-    {error && <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '12px' }}>{error}</div>}
-    <button onClick={handleLogin} disabled={loading || !loginId.trim() || !loginPass} style={bS(!loading && !!loginId.trim() && !!loginPass)}>{loading ? 'Signing in...' : 'Sign In'}</button>
-  </>);
-
+  // ──────────────────────────────────────────────────────────
+  // LAYOUT WRAPPER
+  // ──────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
-      {/* ── Left Panel: Business Portal showcase (desktop only) ── */}
       {!isMobile && (
-        <div style={{ width: '55%', background: '#0F172A', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 56px' }}>
-          {/* Brand */}
+        <div style={{
+          width: '55%', background: '#0F1117',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          padding: '48px 56px',
+        }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '3px', color: '#FFFFFF', textTransform: 'uppercase' }}>THE DREAM WEDDING</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.5px', marginTop: '4px' }}>Business Portal</div>
-          </div>
-
-          {/* Hero tagline + features */}
-          <div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '42px', fontWeight: 300, color: '#FFFFFF', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '16px' }}>
-              The business<br/>behind the dream.
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '2.5px', color: '#C9A84C', textTransform: 'uppercase' }}>
+              THE DREAM WEDDING
             </div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.8, maxWidth: '340px', marginBottom: '48px' }}>
-              The complete operating system<br/>for wedding professionals.
-            </div>
-
-            {/* Feature showcase */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {[
-                { title: 'Dream Ai', desc: 'Run your entire business from WhatsApp.' },
-                { title: 'Financial Operations', desc: 'GST invoicing, TDS tracking, expense management.' },
-                { title: 'Team & Event Control', desc: 'Multi-event dashboards, delegation, procurement.' },
-                { title: 'Couple Discovery', desc: 'They find you through your work, not your brand.' },
-              ].map((f, i) => (
-                <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.3)', marginTop: '6px', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', fontWeight: 500, marginBottom: '2px' }}>{f.title}</div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.22)', fontWeight: 300, lineHeight: 1.5 }}>{f.desc}</div>
-                  </div>
-                </div>
-              ))}
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.5px', marginTop: 4 }}>
+              Vendor Portal
             </div>
           </div>
-
-          {/* Footer */}
-          <div style={{ borderTop: '1px solid rgba(201,168,76,0.12)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.3px' }}>vendor.thedreamwedding.in</div>
-            <div style={{ fontSize: '10px', color: 'rgba(201,168,76,0.3)', letterSpacing: '0.3px' }}>2026</div>
+          <div>
+            <div style={{ fontSize: 38, fontWeight: 300, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.8px', marginBottom: 20 }}>
+              Your business, in your pocket.
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.8, maxWidth: 340 }}>
+              Clients, calendar, enquiries, payments — everything you need to run your wedding business. Without the bulk.
+            </div>
+          </div>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 24 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.3px' }}>
+              vendor.thedreamwedding.in
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── Right Panel: Auth forms ── */}
-      <div style={{ width: isMobile ? '100%' : '45%', background: isMobile ? '#0F172A' : '#FAFAFA', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '32px 24px' : '56px 64px', minHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto', paddingTop: isMobile ? '48px' : '56px' }}>
-        {isMobile && (<div style={{ marginBottom: '28px', textAlign: 'center' }}><div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '3px', color: '#FFFFFF', textTransform: 'uppercase', marginBottom: '4px' }}>THE DREAM WEDDING</div><div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Business Portal</div></div>)}
-        <div style={{ width: '100%', maxWidth: '380px', background: isMobile ? '#FFFFFF' : 'transparent', borderRadius: isMobile ? '16px' : '0', padding: isMobile ? '28px 24px' : '0' }}>
-          {/* Sign In only — signups happen at thedreamwedding.in */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 600, color: '#0F172A', marginBottom: '6px', letterSpacing: '-0.02em' }}>Sign in</div>
-            <div style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.6 }}>Enter your email or phone number and password.</div>
+      <div style={{
+        width: isMobile ? '100%' : '45%',
+        background: isMobile ? '#0F1117' : '#fff',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: isMobile ? '32px 24px' : '56px 64px',
+        minHeight: isMobile ? '100vh' : 'auto',
+        color: isMobile ? '#fff' : '#0F1117',
+      }}>
+        {isMobile && (
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '2.5px', color: '#C9A84C', textTransform: 'uppercase' }}>
+              THE DREAM WEDDING
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.5px', marginTop: 4 }}>
+              Vendor Portal
+            </div>
           </div>
-          {renderLogin()}
-          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #E2E8F0', textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '8px' }}>Don't have an account?</div>
-            <a href="/" style={{ fontSize: '12px', color: '#0F172A', textDecoration: 'none', fontWeight: 500 }}>Sign up at thedreamwedding.in →</a>
-          </div>
+        )}
+
+        <div style={{ width: '100%', maxWidth: 380 }}>
+          {mode === 'entry' && <EntryScreen onSignup={() => setMode('signup')} onLogin={() => setMode('login')} isMobile={isMobile} />}
+          {mode === 'signup' && <SignupFlow onBack={() => setMode('entry')} onComplete={goToVendorHome} isMobile={isMobile} />}
+          {mode === 'login' && <LoginFlow onBack={() => setMode('entry')} onForgot={() => setMode('forgot')} onComplete={goToVendorHome} isMobile={isMobile} />}
+          {mode === 'forgot' && <ForgotFlow onBack={() => setMode('login')} onDone={() => setMode('login')} isMobile={isMobile} />}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// STYLE HELPERS
+// ─────────────────────────────────────────────────────────────
+
+function useStyles(isMobile: boolean) {
+  const textColor = isMobile ? '#fff' : '#0F1117';
+  const mutedColor = isMobile ? 'rgba(255,255,255,0.5)' : '#6B7280';
+  const inputBg = isMobile ? 'rgba(255,255,255,0.05)' : '#FAFAFA';
+  const inputBorder = isMobile ? 'rgba(255,255,255,0.1)' : '#E5E7EB';
+
+  return {
+    textColor,
+    mutedColor,
+    input: {
+      width: '100%', padding: '14px 18px', fontSize: 14,
+      fontFamily: 'Inter, sans-serif',
+      border: `1.5px solid ${inputBorder}`, borderRadius: 8,
+      backgroundColor: inputBg, color: textColor, outline: 'none',
+      boxSizing: 'border-box' as const, marginBottom: 12,
+    },
+    inputWithPrefix: {
+      width: '100%', padding: '14px 18px 14px 52px', fontSize: 14,
+      fontFamily: 'Inter, sans-serif',
+      border: `1.5px solid ${inputBorder}`, borderRadius: 8,
+      backgroundColor: inputBg, color: textColor, outline: 'none',
+      boxSizing: 'border-box' as const, marginBottom: 12,
+    },
+    label: {
+      fontSize: 11, fontWeight: 500, color: mutedColor,
+      letterSpacing: '0.8px', textTransform: 'uppercase' as const,
+      display: 'block', marginBottom: 8,
+    },
+    primaryBtn: (active: boolean): React.CSSProperties => ({
+      width: '100%', padding: 15,
+      background: active ? '#2C2420' : 'rgba(60,50,45,0.4)',
+      color: '#C9A84C',
+      fontSize: 11, fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase' as const,
+      fontFamily: 'Inter, sans-serif',
+      border: 'none', cursor: active ? 'pointer' : 'default',
+      transition: 'all 0.3s ease', marginTop: 4,
+    }),
+    secondaryBtn: {
+      background: 'none', border: 'none', cursor: 'pointer',
+      color: isMobile ? 'rgba(255,255,255,0.5)' : '#6B7280',
+      fontSize: 12, fontWeight: 400,
+      fontFamily: 'Inter, sans-serif',
+      textDecoration: 'underline',
+      padding: '8px 0',
+    } as React.CSSProperties,
+    headline: {
+      fontFamily: 'Inter, sans-serif', fontSize: 22, fontWeight: 500,
+      color: textColor, marginBottom: 8,
+    },
+    subhead: {
+      fontSize: 13, color: mutedColor, marginBottom: 24, lineHeight: 1.6,
+    },
+    error: {
+      fontSize: 12, color: '#DC2626', marginTop: -6, marginBottom: 12,
+      fontFamily: 'Inter, sans-serif',
+    },
+  };
+}
+
+function PhoneInput({ value, onChange, styles, placeholder, disabled }: {
+  value: string; onChange: (v: string) => void; styles: any; placeholder?: string; disabled?: boolean;
+}) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <span style={{
+        position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)',
+        fontSize: 14, color: styles.mutedColor, fontFamily: 'Inter, sans-serif',
+      }}>+91</span>
+      <input
+        type="tel" value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder || '98765 43210'}
+        autoComplete="tel"
+        disabled={disabled}
+        style={styles.inputWithPrefix}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENTRY (signup vs login choice)
+// ─────────────────────────────────────────────────────────────
+
+function EntryScreen({ onSignup, onLogin, isMobile }: {
+  onSignup: () => void; onLogin: () => void; isMobile: boolean;
+}) {
+  const s = useStyles(isMobile);
+  return (
+    <div>
+      <div style={s.headline}>Welcome.</div>
+      <div style={s.subhead}>
+        Built for vendors who'd rather run their business than manage their business.
+      </div>
+
+      <button onClick={onSignup} style={s.primaryBtn(true)}>New here — sign up</button>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        margin: '24px 0 16px',
+      }}>
+        <div style={{ flex: 1, height: 1, background: isMobile ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }} />
+        <span style={{
+          fontSize: 10, color: s.mutedColor, fontWeight: 500,
+          letterSpacing: 2, textTransform: 'uppercase' as const,
+        }}>Or</span>
+        <div style={{ flex: 1, height: 1, background: isMobile ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }} />
+      </div>
+
+      <button onClick={onLogin} style={{
+        ...s.primaryBtn(true),
+        background: 'transparent',
+        border: `1.5px solid ${isMobile ? 'rgba(255,255,255,0.15)' : '#E5E7EB'}`,
+        color: s.textColor,
+      }}>Sign in to your account</button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SIGNUP — 5 steps
+// 1. Code → 2. Business details → 3. Phone → 4. OTP → 5. Password
+// ─────────────────────────────────────────────────────────────
+
+const VENDOR_CATEGORIES = [
+  'Photography', 'Videography', 'Makeup Artist', 'Mehendi Artist',
+  'Venue', 'Catering', 'Decoration', 'Wedding Planner',
+  'DJ / Music', 'Choreography', 'Invitation Designer', 'Couture',
+  'Jewellery', 'Priest / Pandit', 'Transportation', 'Other',
+];
+
+function SignupFlow({ onBack, onComplete, isMobile }: {
+  onBack: () => void; onComplete: () => void; isMobile: boolean;
+}) {
+  const s = useStyles(isMobile);
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [code, setCode] = useState('');
+  const [codeData, setCodeData] = useState<{ tier: string } | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Step 1 — validate code
+  const validateCode = async () => {
+    if (!code.trim()) { setError('Enter your invite code'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/api/vendor-codes/validate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim().toUpperCase() }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Invalid code'); setLoading(false); return; }
+      setCodeData(d.data);
+      setStep(2);
+    } catch { setError('Network error. Try again.'); }
+    setLoading(false);
+  };
+
+  // Step 2 → 3 — business details
+  const goToPhone = () => {
+    if (!name.trim()) { setError('Business name required'); return; }
+    if (!category) { setError('Pick a category'); return; }
+    if (!city.trim()) { setError('City required'); return; }
+    setError('');
+    setStep(3);
+  };
+
+  // Step 3 — send OTP
+  const sendOtp = async () => {
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/api/auth/send-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: clean }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not send OTP'); setLoading(false); return; }
+      setSessionInfo(d.sessionInfo || '');
+      setOtpSent(true);
+      setStep(4);
+    } catch { setError('Network error. Try again.'); }
+    setLoading(false);
+  };
+
+  // Step 4 — verify OTP
+  const verifyOtp = async () => {
+    if (!otp || otp.length < 4) { setError('Enter the OTP'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/api/auth/verify-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionInfo, code: otp }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Invalid OTP'); setLoading(false); return; }
+      setStep(5);
+    } catch { setError('Network error. Try again.'); }
+    setLoading(false);
+  };
+
+  // Step 5 — set password + finalize
+  const completeSignup = async () => {
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (password !== passwordConfirm) { setError('Passwords do not match'); return; }
+    setLoading(true); setError('');
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    try {
+      const res = await fetch(`${API}/api/vendor/onboard`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: '+91' + clean,
+          email: email.trim() || null,
+          category,
+          city: city.trim(),
+          instagram: instagram.trim() || null,
+          access_code: code.trim().toUpperCase(),
+          password,
+        }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not create account'); setLoading(false); return; }
+      // Save session
+      localStorage.setItem('vendor_web_session', JSON.stringify({
+        vendorId: d.data.id,
+        vendorName: d.data.name,
+        category,
+        city: city.trim(),
+        tier: d.data.tier || codeData?.tier || 'essential',
+      }));
+      onComplete();
+    } catch { setError('Network error. Try again.'); setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: s.mutedColor, letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500, marginBottom: 8 }}>
+        Step {step} of 5
+      </div>
+
+      {step === 1 && (
+        <>
+          <div style={s.headline}>Your invite.</div>
+          <div style={s.subhead}>Enter the code you received from The Dream Wedding team.</div>
+          <label style={s.label}>Invite code</label>
+          <input type="text" value={code}
+            onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            onKeyDown={e => e.key === 'Enter' && !loading && validateCode()}
+            placeholder="ABCD1234" style={s.input} autoFocus />
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={validateCode} disabled={loading || !code.trim()} style={s.primaryBtn(!loading && !!code.trim())}>
+            {loading ? 'Verifying…' : 'Continue'}
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button onClick={onBack} style={s.secondaryBtn}>Back</button>
+          </div>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <div style={s.headline}>About your business.</div>
+          <div style={s.subhead}>Tell us the essentials — you can change any of this later.</div>
+
+          <label style={s.label}>Business name</label>
+          <input type="text" value={name} onChange={e => { setName(e.target.value); setError(''); }}
+            placeholder="e.g. Makeup by Swati Roy" style={s.input} autoFocus />
+
+          <label style={s.label}>Category</label>
+          <select value={category} onChange={e => { setCategory(e.target.value); setError(''); }} style={s.input}>
+            <option value="">Choose a category</option>
+            {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <label style={s.label}>City</label>
+          <input type="text" value={city} onChange={e => { setCity(e.target.value); setError(''); }}
+            placeholder="e.g. Delhi" style={s.input} />
+
+          <label style={s.label}>Email (optional)</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com" style={s.input} />
+
+          <label style={s.label}>Instagram (optional)</label>
+          <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)}
+            placeholder="@yourhandle" style={s.input} />
+
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={goToPhone} style={s.primaryBtn(true)}>Continue</button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button onClick={() => { setStep(1); setError(''); }} style={s.secondaryBtn}>Back</button>
+          </div>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <div style={s.headline}>Your phone number.</div>
+          <div style={s.subhead}>We'll send a one-time code to verify it's you. This will be your login.</div>
+          <label style={s.label}>Phone</label>
+          <PhoneInput value={phone} onChange={v => { setPhone(v); setError(''); }} styles={s} />
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={sendOtp} disabled={loading} style={s.primaryBtn(!loading)}>
+            {loading ? 'Sending…' : 'Send code'}
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button onClick={() => { setStep(2); setError(''); }} style={s.secondaryBtn}>Back</button>
+          </div>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          <div style={s.headline}>Enter the code.</div>
+          <div style={s.subhead}>We sent a 6-digit code to +91 {phone.replace(/\D/g, '').slice(-10)}.</div>
+          <label style={s.label}>6-digit code</label>
+          <input type="tel" value={otp} onChange={e => { setOtp(e.target.value); setError(''); }}
+            onKeyDown={e => e.key === 'Enter' && !loading && verifyOtp()}
+            placeholder="123456" style={s.input} autoFocus />
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={verifyOtp} disabled={loading} style={s.primaryBtn(!loading)}>
+            {loading ? 'Verifying…' : 'Continue'}
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button onClick={() => { setOtpSent(false); setOtp(''); setError(''); setStep(3); }} style={s.secondaryBtn}>
+              Didn't get it? Try again
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 5 && (
+        <>
+          <div style={s.headline}>Set a password.</div>
+          <div style={s.subhead}>You'll use this to sign in from any device. At least 8 characters.</div>
+
+          <label style={s.label}>Password</label>
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <input type={showPassword ? 'text' : 'password'} value={password}
+              onChange={e => { setPassword(e.target.value); setError(''); }}
+              placeholder="At least 8 characters" autoComplete="new-password"
+              style={{ ...s.input, paddingRight: 60, marginBottom: 0 }} />
+            <button type="button" onClick={() => setShowPassword(v => !v)}
+              style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: s.mutedColor, fontSize: 11, fontWeight: 500,
+              }}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <label style={s.label}>Confirm password</label>
+          <input type={showPassword ? 'text' : 'password'} value={passwordConfirm}
+            onChange={e => { setPasswordConfirm(e.target.value); setError(''); }}
+            placeholder="Type it again" autoComplete="new-password" style={s.input} />
+
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={completeSignup} disabled={loading} style={s.primaryBtn(!loading)}>
+            {loading ? 'Setting up…' : 'Complete signup'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// LOGIN — phone + password
+// ─────────────────────────────────────────────────────────────
+
+function LoginFlow({ onBack, onForgot, onComplete, isMobile }: {
+  onBack: () => void; onForgot: () => void; onComplete: () => void; isMobile: boolean;
+}) {
+  const s = useStyles(isMobile);
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
+    if (!password) { setError('Enter your password'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/api/vendor/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '+91' + clean, password }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
+      localStorage.setItem('vendor_web_session', JSON.stringify({
+        vendorId: d.data.id,
+        vendorName: d.data.name,
+        category: d.data.category,
+        city: d.data.city,
+        tier: d.data.tier,
+      }));
+      onComplete();
+    } catch { setError('Network error. Try again.'); setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div style={s.headline}>Welcome back.</div>
+      <div style={s.subhead}>Sign in with the phone you used to register.</div>
+
+      <label style={s.label}>Phone</label>
+      <PhoneInput value={phone} onChange={v => { setPhone(v); setError(''); }} styles={s} />
+
+      <label style={s.label}>Password</label>
+      <div style={{ position: 'relative', marginBottom: 12 }}>
+        <input type={showPassword ? 'text' : 'password'} value={password}
+          onChange={e => { setPassword(e.target.value); setError(''); }}
+          onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
+          placeholder="Your password" autoComplete="current-password"
+          style={{ ...s.input, paddingRight: 60, marginBottom: 0 }} />
+        <button type="button" onClick={() => setShowPassword(v => !v)}
+          style={{
+            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: s.mutedColor, fontSize: 11, fontWeight: 500,
+          }}>
+          {showPassword ? 'Hide' : 'Show'}
+        </button>
+      </div>
+
+      {error && <div style={s.error}>{error}</div>}
+      <button onClick={handleLogin} disabled={loading} style={s.primaryBtn(!loading)}>
+        {loading ? 'Signing in…' : 'Sign in'}
+      </button>
+
+      <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <button onClick={onForgot} style={s.secondaryBtn}>Forgot password?</button>
+        <button onClick={onBack} style={s.secondaryBtn}>Back</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FORGOT PASSWORD — phone → OTP → new password
+// ─────────────────────────────────────────────────────────────
+
+function ForgotFlow({ onBack, onDone, isMobile }: {
+  onBack: () => void; onDone: () => void; isMobile: boolean;
+}) {
+  const s = useStyles(isMobile);
+  const [step, setStep] = useState<'phone' | 'otp' | 'password' | 'done'>('phone');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [sessionInfo, setSessionInfo] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const sendOtp = async () => {
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
+    setLoading(true); setError('');
+    try {
+      await fetch(`${API}/api/vendor/forgot-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '+91' + clean }),
+      });
+      const res = await fetch(`${API}/api/auth/send-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: clean }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not send OTP'); setLoading(false); return; }
+      setSessionInfo(d.sessionInfo || '');
+      setStep('otp');
+    } catch { setError('Network error. Try again.'); }
+    setLoading(false);
+  };
+
+  const verifyOtp = async () => {
+    if (!otp || otp.length < 4) { setError('Enter the OTP'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/api/auth/verify-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionInfo, code: otp }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Invalid OTP'); setLoading(false); return; }
+      setStep('password');
+    } catch { setError('Network error. Try again.'); }
+    setLoading(false);
+  };
+
+  const resetPassword = async () => {
+    if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return; }
+    setLoading(true); setError('');
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    try {
+      const res = await fetch(`${API}/api/vendor/reset-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: '+91' + clean,
+          new_password: newPassword,
+          otp_verified: true,
+        }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not reset password'); setLoading(false); return; }
+      setStep('done');
+    } catch { setError('Network error. Try again.'); setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div style={s.headline}>Reset password.</div>
+
+      {step === 'phone' && (
+        <>
+          <div style={s.subhead}>Enter your phone number. We'll send you a code.</div>
+          <label style={s.label}>Phone</label>
+          <PhoneInput value={phone} onChange={v => { setPhone(v); setError(''); }} styles={s} />
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={sendOtp} disabled={loading} style={s.primaryBtn(!loading)}>
+            {loading ? 'Sending…' : 'Send code'}
+          </button>
+        </>
+      )}
+
+      {step === 'otp' && (
+        <>
+          <div style={s.subhead}>We sent a 6-digit code to +91 {phone.replace(/\D/g, '').slice(-10)}.</div>
+          <label style={s.label}>6-digit code</label>
+          <input type="tel" value={otp} onChange={e => { setOtp(e.target.value); setError(''); }}
+            placeholder="123456" style={s.input} autoFocus />
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={verifyOtp} disabled={loading} style={s.primaryBtn(!loading)}>
+            {loading ? 'Verifying…' : 'Verify'}
+          </button>
+        </>
+      )}
+
+      {step === 'password' && (
+        <>
+          <div style={s.subhead}>Set a new password. At least 8 characters.</div>
+          <label style={s.label}>New password</label>
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <input type={showPassword ? 'text' : 'password'} value={newPassword}
+              onChange={e => { setNewPassword(e.target.value); setError(''); }}
+              autoComplete="new-password"
+              style={{ ...s.input, paddingRight: 60, marginBottom: 0 }} />
+            <button type="button" onClick={() => setShowPassword(v => !v)}
+              style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: s.mutedColor, fontSize: 11, fontWeight: 500,
+              }}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <label style={s.label}>Confirm password</label>
+          <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
+            onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
+            autoComplete="new-password" style={s.input} />
+          {error && <div style={s.error}>{error}</div>}
+          <button onClick={resetPassword} disabled={loading} style={s.primaryBtn(!loading)}>
+            {loading ? 'Saving…' : 'Reset password'}
+          </button>
+        </>
+      )}
+
+      {step === 'done' && (
+        <>
+          <div style={s.subhead}>Password reset. You can sign in with your new password.</div>
+          <button onClick={onDone} style={s.primaryBtn(true)}>Back to sign in</button>
+        </>
+      )}
+
+      {step !== 'done' && (
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <button onClick={onBack} style={s.secondaryBtn}>Back</button>
+        </div>
+      )}
     </div>
   );
 }

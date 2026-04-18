@@ -2017,6 +2017,265 @@ app.get('/api/credentials/:vendorId', async (req, res) => {
   } catch (error) { res.json({ success: true, data: null }); }
 });
 
+// ══════════════════════════════════════════════════════════════
+// VENDOR OTP AUTH (Session 10 Turn 9A)
+// Phone + OTP + password flow. Mirrors couple-side auth.
+// Codes are admin-generated; vendor signup is code-gated.
+// ══════════════════════════════════════════════════════════════
+
+// Validate a vendor invite code (validate-only, no user creation)
+app.post('/api/vendor-codes/validate', async (req, res) => {
+  try {
+    const { code } = req.body || {};
+    if (!code) return res.status(400).json({ success: false, error: 'Code required' });
+    const { data: codeData, error: codeErr } = await supabase
+      .from('access_codes').select('*')
+      .eq('code', code.toUpperCase().trim())
+      .single();
+    if (codeErr || !codeData) return res.json({ success: false, error: 'Invalid code' });
+    // Accept vendor_permanent, vendor_demo, or any 'vendor' type
+    const isVendorCode = (codeData.type || '').includes('vendor');
+    if (!isVendorCode) return res.json({ success: false, error: 'This is not a vendor code' });
+    if (codeData.used && codeData.used_count >= 1 && !(codeData.type || '').includes('demo')) {
+      return res.json({ success: false, error: 'This invite has already been used' });
+    }
+    if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
+      return res.json({ success: false, error: 'Code expired' });
+    }
+    res.json({
+      success: true,
+      data: {
+        tier: codeData.tier || 'essential',
+        type: codeData.type,
+        note: codeData.note || null,
+      },
+    });
+  } catch (error) {
+    console.error('vendor-codes/validate error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Vendor onboard — after phone+OTP verified, finalises account with password
+app.post('/api/vendor/onboard', async (req, res) => {
+  try {
+    const {
+      name, phone, email, category, city, instagram,
+      access_code, password,
+    } = req.body || {};
+
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, error: 'Business name and phone required' });
+    }
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+    if (!access_code) {
+      return res.status(400).json({ success: false, error: 'Invite code required' });
+    }
+
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({ success: false, error: 'Invalid phone number' });
+    }
+    const fullPhone = '+91' + cleanPhone;
+
+    // Re-validate code atomically — protect against race conditions
+    const { data: codeRow } = await supabase
+      .from('access_codes').select('*')
+      .eq('code', access_code.toUpperCase().trim())
+      .maybeSingle();
+    if (!codeRow) return res.status(400).json({ success: false, error: 'Invalid invite code' });
+    const isVendorCode = (codeRow.type || '').includes('vendor');
+    if (!isVendorCode) return res.status(400).json({ success: false, error: 'This is not a vendor code' });
+    const isDemo = (codeRow.type || '').includes('demo');
+    if (codeRow.used && codeRow.used_count >= 1 && !isDemo) {
+      return res.status(400).json({ success: false, error: 'This invite has already been used' });
+    }
+    if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
+      return res.status(400).json({ success: false, error: 'Invite expired' });
+    }
+
+    const tier = codeRow.tier || 'essential';
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Upsert vendor row — match by phone
+    const { data: existing } = await supabase
+      .from('vendors').select('*').eq('phone', fullPhone).maybeSingle();
+
+    let vendorRow;
+    if (existing) {
+      const updates = {
+        name: name.trim(),
+        email: email?.trim() || existing.email || null,
+        category: category || existing.category || null,
+        city: city || existing.city || null,
+        instagram: instagram?.trim() || existing.instagram || null,
+        onboarded_otp: true,
+      };
+      // Only set password_hash if not already set (first-time), preserves existing passwords
+      if (!existing.password_hash) updates.password_hash = passwordHash;
+      const { data: updated, error: uErr } = await supabase
+        .from('vendors').update(updates).eq('id', existing.id).select().single();
+      if (uErr) throw uErr;
+      vendorRow = updated;
+    } else {
+      const { data: created, error: cErr } = await supabase
+        .from('vendors').insert([{
+          name: name.trim(),
+          phone: fullPhone,
+          email: email?.trim() || null,
+          category: category || null,
+          city: city || null,
+          instagram: instagram?.trim() || null,
+          password_hash: passwordHash,
+          onboarded_otp: true,
+        }]).select().single();
+      if (cErr) throw cErr;
+      vendorRow = created;
+    }
+
+    // Auto-create vendor_subscriptions row if missing (for tier tracking)
+    try {
+      const { data: sub } = await supabase
+        .from('vendor_subscriptions').select('id').eq('vendor_id', vendorRow.id).maybeSingle();
+      if (!sub) {
+        const trialEnd = new Date();
+        trialEnd.setMonth(trialEnd.getMonth() + 3);   // 3-month trial
+        await supabase.from('vendor_subscriptions').insert([{
+          vendor_id: vendorRow.id,
+          tier, status: 'active',
+          trial_ends_at: trialEnd.toISOString(),
+        }]);
+      }
+    } catch (e) {
+      console.warn('subscription create skipped:', e.message);
+    }
+
+    // Mark code consumed (unless demo)
+    if (!isDemo) {
+      await supabase.from('access_codes').update({
+        used: true,
+        used_count: (codeRow.used_count || 0) + 1,
+        redeemed_vendor_id: vendorRow.id,
+        redeemed_at: new Date().toISOString(),
+      }).eq('id', codeRow.id);
+    }
+
+    if (typeof logActivity === 'function') {
+      logActivity('vendor_onboarded', `${name} onboarded (${tier})`);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: vendorRow.id,
+        name: vendorRow.name,
+        phone: vendorRow.phone,
+        tier,
+      },
+    });
+  } catch (error) {
+    console.error('vendor/onboard error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Vendor login — phone + password
+app.post('/api/vendor/login', async (req, res) => {
+  try {
+    const { phone, password } = req.body || {};
+    if (!phone || !password) {
+      return res.status(400).json({ success: false, error: 'Phone and password required' });
+    }
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({ success: false, error: 'Invalid phone number' });
+    }
+    const fullPhone = '+91' + cleanPhone;
+
+    const { data: vendor } = await supabase
+      .from('vendors').select('*').eq('phone', fullPhone).maybeSingle();
+
+    if (!vendor || !vendor.password_hash) {
+      return res.status(401).json({ success: false, error: 'Invalid phone or password' });
+    }
+    const match = await bcrypt.compare(password, vendor.password_hash);
+    if (!match) return res.status(401).json({ success: false, error: 'Invalid phone or password' });
+
+    // Get tier
+    let tier = 'essential';
+    try {
+      const { data: sub } = await supabase
+        .from('vendor_subscriptions').select('tier, status')
+        .eq('vendor_id', vendor.id).maybeSingle();
+      if (sub?.tier) tier = sub.tier;
+    } catch (e) { /* fallback */ }
+
+    res.json({
+      success: true,
+      data: {
+        id: vendor.id,
+        name: vendor.name,
+        phone: vendor.phone,
+        email: vendor.email,
+        category: vendor.category,
+        city: vendor.city,
+        instagram: vendor.instagram,
+        tier,
+      },
+    });
+  } catch (error) {
+    console.error('vendor/login error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Vendor forgot password — check existence (no leak), frontend then sends OTP
+app.post('/api/vendor/forgot-password', async (req, res) => {
+  try {
+    const { phone } = req.body || {};
+    if (!phone) return res.status(400).json({ success: false, error: 'Phone required' });
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    const fullPhone = '+91' + cleanPhone;
+    const { data: vendor } = await supabase
+      .from('vendors').select('id').eq('phone', fullPhone).maybeSingle();
+    res.json({ success: true, data: { exists: !!vendor } });
+  } catch (error) {
+    console.error('vendor/forgot-password error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Vendor reset password — client has already verified OTP
+app.post('/api/vendor/reset-password', async (req, res) => {
+  try {
+    const { phone, new_password, otp_verified } = req.body || {};
+    if (!phone || !new_password) {
+      return res.status(400).json({ success: false, error: 'Phone and new password required' });
+    }
+    if (typeof new_password !== 'string' || new_password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+    if (!otp_verified) {
+      return res.status(400).json({ success: false, error: 'OTP verification required' });
+    }
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    const fullPhone = '+91' + cleanPhone;
+    const { data: vendor } = await supabase
+      .from('vendors').select('id').eq('phone', fullPhone).maybeSingle();
+    if (!vendor) return res.status(404).json({ success: false, error: 'Account not found' });
+    const passwordHash = await bcrypt.hash(new_password, 10);
+    const { error } = await supabase
+      .from('vendors').update({ password_hash: passwordHash }).eq('id', vendor.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('vendor/reset-password error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/access-codes/generate', async (req, res) => {
   try {
     const { type, created_by, note } = req.body;
