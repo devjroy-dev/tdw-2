@@ -14,7 +14,8 @@ const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-type Tab = 'Home' | 'Inquiries' | 'Calendar' | 'Tools';
+type Mode = 'Business' | 'Discovery';
+type Tab = 'Overview' | 'Clients' | 'Teams' | 'Power';
 type Tier = 'essential' | 'signature' | 'prestige';
 
 interface VendorSession {
@@ -31,23 +32,23 @@ interface VendorSession {
 // ── Tier Tools (matches React Native ESSENTIAL_TOOLS / SIGNATURE_TOOLS) ──
 
 const ESSENTIAL_TOOLS = [
-  { id: 'overview',     icon: Grid,         label: 'Overview',     tab: 'Home' as Tab },
-  { id: 'inquiries',    icon: Mail,         label: 'Enquiries',    tab: 'Inquiries' as Tab },
-  { id: 'calendar',     icon: Calendar,     label: 'Calendar',     tab: 'Calendar' as Tab },
-  { id: 'clients',      icon: Users,        label: 'Clients',      tab: 'Tools' as Tab, sub: 'clients' },
-  { id: 'invoices',     icon: FileText,     label: 'Invoices',     tab: 'Tools' as Tab, sub: 'invoices' },
-  { id: 'contracts',    icon: Briefcase,    label: 'Contracts',    tab: 'Tools' as Tab, sub: 'contracts' },
-  { id: 'payments',     icon: CreditCard,   label: 'Payments',     tab: 'Tools' as Tab, sub: 'payments' },
-  { id: 'availability', icon: Clock,        label: 'Availability', tab: 'Calendar' as Tab },
+  { id: 'overview',     icon: Grid,         label: 'Overview',     tab: 'Overview' as Tab },
+  { id: 'inquiries',    icon: Mail,         label: 'Enquiries',    tab: 'Power' as Tab, sub: 'inquiries' },
+  { id: 'calendar',     icon: Calendar,     label: 'Calendar',     tab: 'Power' as Tab, sub: 'calendar' },
+  { id: 'clients',      icon: Users,        label: 'Clients',      tab: 'Clients' as Tab },
+  { id: 'invoices',     icon: FileText,     label: 'Invoices',     tab: 'Power' as Tab, sub: 'invoices' },
+  { id: 'contracts',    icon: Briefcase,    label: 'Contracts',    tab: 'Power' as Tab, sub: 'contracts' },
+  { id: 'payments',     icon: CreditCard,   label: 'Payments',     tab: 'Power' as Tab, sub: 'payments' },
+  { id: 'availability', icon: Clock,        label: 'Availability', tab: 'Power' as Tab, sub: 'calendar' },
 ];
 
 const SIGNATURE_TOOLS = [
-  { id: 'expenses',  icon: TrendingDown,  label: 'Expenses',  tab: 'Tools' as Tab, sub: 'expenses' },
-  { id: 'tax',       icon: Percent,       label: 'Tax & TDS', tab: 'Tools' as Tab, sub: 'tax' },
-  { id: 'team',      icon: Users,         label: 'My Team',   tab: 'Tools' as Tab, sub: 'team' },
-  { id: 'referral',  icon: Share2,        label: 'Referrals', tab: 'Tools' as Tab, sub: 'referral' },
-  { id: 'whatsapp',  icon: MessageCircle, label: 'Broadcast', tab: 'Tools' as Tab, sub: 'whatsapp' },
-  { id: 'analytics', icon: BarChart2,     label: 'Analytics', tab: 'Tools' as Tab, sub: 'analytics' },
+  { id: 'expenses',  icon: TrendingDown,  label: 'Expenses',  tab: 'Power' as Tab, sub: 'expenses' },
+  { id: 'tax',       icon: Percent,       label: 'Tax & TDS', tab: 'Power' as Tab, sub: 'tax' },
+  { id: 'team',      icon: Users,         label: 'Teams',     tab: 'Teams' as Tab },
+  { id: 'referral',  icon: Share2,        label: 'Referrals', tab: 'Power' as Tab, sub: 'referral' },
+  { id: 'whatsapp',  icon: MessageCircle, label: 'Broadcast', tab: 'Power' as Tab, sub: 'whatsapp' },
+  { id: 'analytics', icon: BarChart2,     label: 'Analytics', tab: 'Power' as Tab, sub: 'analytics' },
 ];
 
 // ── Brand Tokens (match React Native theme) ──────────────────────────────
@@ -97,7 +98,8 @@ function fmtINR(n: number): string {
 
 export default function VendorMobilePage() {
   const [session, setSession] = useState<VendorSession | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('Home');
+  const [mode, setMode] = useState<Mode>('Business');
+  const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [activeSubTool, setActiveSubTool] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -138,10 +140,17 @@ export default function VendorMobilePage() {
     try {
       const params = new URLSearchParams(window.location.search);
       const sub = params.get('sub');
-      const validSubs = ['clients', 'invoices', 'contracts', 'payments', 'expenses', 'tax', 'team', 'referral', 'whatsapp', 'analytics', 'chat', 'todos', 'events'];
+      const validSubs = ['clients', 'invoices', 'contracts', 'payments', 'expenses', 'tax', 'team', 'referral', 'whatsapp', 'analytics', 'chat', 'todos', 'events', 'inquiries', 'calendar'];
       if (sub && validSubs.includes(sub)) {
-        setActiveTab('Tools');
-        setActiveSubTool(sub);
+        // Clients gets its own tab; everything else goes to Power
+        if (sub === 'clients') {
+          setActiveTab('Clients');
+        } else if (sub === 'team') {
+          setActiveTab('Teams');
+        } else {
+          setActiveTab('Power');
+          setActiveSubTool(sub);
+        }
       }
     } catch { /* ignore */ }
   }, []);
@@ -290,9 +299,18 @@ export default function VendorMobilePage() {
       {/* ── HEADER ── */}
       <Header session={session} tier={tier} onOpenProfile={() => setShowProfile(true)} />
 
+      {/* ── MODE TOGGLE (Business / Discovery) ── */}
+      <ModeToggle mode={mode} onChange={(m) => {
+        setMode(m);
+        setActiveSubTool(null);
+        if (m === 'Business') setActiveTab('Overview');
+      }} />
+
       {/* ── BODY ── */}
       <div style={{ padding: '8px 16px 24px' }}>
-        {activeTab === 'Home' && (
+        {mode === 'Discovery' && <DiscoveryComingSoon session={session} />}
+
+        {mode === 'Business' && activeTab === 'Overview' && (
           <DashboardTab
             session={session}
             tier={tier}
@@ -308,7 +326,7 @@ export default function VendorMobilePage() {
               setActiveTab(t);
               if (typeof window !== 'undefined') {
                 const pending = localStorage.getItem('tdw_pwa_open_sub');
-                if (t === 'Tools' && pending) {
+                if (t === 'Power' && pending) {
                   setActiveSubTool(pending);
                   localStorage.removeItem('tdw_pwa_open_sub');
                 }
@@ -333,47 +351,54 @@ export default function VendorMobilePage() {
             }}
           />
         )}
-        {activeTab === 'Inquiries' && (
-          <InquiriesTab
+
+        {mode === 'Business' && activeTab === 'Clients' && (
+          <ToolsTab
             session={session}
-            leads={leads}
-            bookings={bookings}
-            onRefresh={() => {
-              fetch(`${API}/api/bookings/vendor/${session.vendorId}`).then(r => r.json()).then(d => {
-                if (d.success) {
-                  setBookings(d.data || []);
-                  setLeads((d.data || []).filter((b: any) => b.status === 'pending_confirmation' || b.status === 'pending'));
-                }
-              });
+            tier={tier}
+            activeSubTool="clients"
+            setActiveSubTool={(s: string | null) => {
+              // When the user backs out of the clients detail view,
+              // they go back to the Clients tab root (not Power).
+              if (s === null) return;
+              setActiveSubTool(s);
             }}
-          />
-        )}
-        {activeTab === 'Calendar' && (
-          <CalendarTab
-            session={session}
+            clients={clients}
+            invoices={invoices}
             bookings={bookings}
-            blockedDates={blockedDates}
+            leads={leads}
+            paymentSchedules={paymentSchedules}
+            todos={todos}
             events={events}
             onAddClient={() => setShowAddClient(true)}
+            onOpenInvoice={() => setShowQuickInvoice(true)}
+            onOpenTodo={() => setShowQuickTodo(true)}
             onOpenEvent={() => setShowQuickEvent(true)}
-            onDeleteEvent={async (id: string) => {
+            onToggleTodo={async (id: string, done: boolean) => {
               try {
-                const res = await fetch(`${API}/api/events/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${API}/api/todos/${id}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({done}) });
                 const d = await res.json();
-                if (d.success) setEvents(prev => prev.filter(e => e.id !== id));
+                if (d.success) setTodos(prev => prev.map(t => t.id === id ? {...t, done} : t));
               } catch {}
             }}
-            onRefresh={() => {
-              fetch(`${API}/api/availability/${session.vendorId}`).then(r => r.json()).then(d => {
-                if (d.success) setBlockedDates(d.data || []);
-              });
-              fetch(`${API}/api/events/${session.vendorId}`).then(r => r.json()).then(d => {
-                if (d.success) setEvents(d.data || []);
-              });
+            onDeleteTodo={async (id: string) => {
+              try {
+                const res = await fetch(`${API}/api/todos/${id}`, { method: 'DELETE' });
+                const d = await res.json();
+                if (d.success) setTodos(prev => prev.filter(t => t.id !== id));
+              } catch {}
             }}
+            onSavePaymentSchedule={(newSched: any) => setPaymentSchedules(prev => [newSched, ...prev])}
+            vendorName={session?.vendorName}
+            forcedSub="clients"
           />
         )}
-        {activeTab === 'Tools' && (
+
+        {mode === 'Business' && activeTab === 'Teams' && (
+          <AssistantsPanel session={session} />
+        )}
+
+        {mode === 'Business' && activeTab === 'Power' && (
           <ToolsTab
             session={session}
             tier={tier}
@@ -410,26 +435,28 @@ export default function VendorMobilePage() {
         )}
       </div>
 
-      {/* ── BOTTOM NAV ── */}
-      <BottomNav
-        active={activeTab}
-        pending={pendingBookings.length}
-        onChange={(t) => {
-          setActiveTab(t);
-          // Respect a pending sub-tool hint set by a Quick Action (e.g. "Expense")
-          if (typeof window !== 'undefined') {
-            const pending = localStorage.getItem('tdw_pwa_open_sub');
-            if (t === 'Tools' && pending) {
-              setActiveSubTool(pending);
-              localStorage.removeItem('tdw_pwa_open_sub');
+      {/* ── BOTTOM NAV (only shown in Business mode) ── */}
+      {mode === 'Business' && (
+        <BottomNav
+          active={activeTab}
+          pending={pendingBookings.length}
+          onChange={(t) => {
+            setActiveTab(t);
+            // Respect a pending sub-tool hint set by a Quick Action (e.g. "Expense")
+            if (typeof window !== 'undefined') {
+              const pending = localStorage.getItem('tdw_pwa_open_sub');
+              if (t === 'Power' && pending) {
+                setActiveSubTool(pending);
+                localStorage.removeItem('tdw_pwa_open_sub');
+              } else {
+                setActiveSubTool(null);
+              }
             } else {
               setActiveSubTool(null);
             }
-          } else {
-            setActiveSubTool(null);
-          }
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* ── ADD CLIENT MODAL ── */}
       {showAddClient && (
@@ -446,6 +473,25 @@ export default function VendorMobilePage() {
           onClose={() => { resetAddClient(); setShowAddClient(false); }}
           onSubmit={handleSaveClient}
         />
+      )}
+
+      {/* ── FLOATING DREAM AI BUTTON (Overview only) ── */}
+      {mode === 'Business' && activeTab === 'Overview' && (
+        <button
+          onClick={() => setShowAiModal(true)}
+          aria-label="Open Dream AI"
+          style={{
+            position: 'fixed', bottom: 'calc(72px + env(safe-area-inset-bottom))', right: 'max(20px, calc(50vw - 220px))',
+            width: 52, height: 52, borderRadius: 26,
+            background: C.dark, border: `2px solid ${C.gold}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', zIndex: 40,
+            boxShadow: '0 6px 20px rgba(44,36,32,0.25)',
+          }}
+        >
+          <span style={{ position: 'absolute', inset: 0, borderRadius: 26, border: `1px solid ${C.gold}`, opacity: 0.4, animation: 'tdwAiPulse 2.4s ease-in-out infinite' }} />
+          <Zap size={20} color={C.gold} />
+        </button>
       )}
 
       {/* ── DREAM AI MODAL ── */}
@@ -741,7 +787,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${clientsLast7Days} new clients this week — impressive.`,
     body: 'Signature unlocks Analytics so you can see which channels and events drive your best bookings. Plus Expenses, Tax, Team, and Broadcast.',
     cta: 'See Signature',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   // Trigger 2 — Essential: 3+ overdue payment schedules → Broadcast / Signature
@@ -752,7 +798,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `You have ${overdueCount} overdue payments.`,
     body: 'Signature vendors use WhatsApp Broadcast to send polite bulk reminders — and recover 40% faster than one-by-one follow-ups.',
     cta: 'See Signature',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   // Trigger 3 — Essential: 3+ bookings managed this month → Team / Signature
@@ -765,7 +811,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${bookingsThisMonth} bookings this month. That's a team operation.`,
     body: 'Signature unlocks Team — add your assistants, assign roles, share the calendar. Plus Expenses, Tax, and Analytics.',
     cta: 'See Signature',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   // Trigger 4 — Essential: 10+ completed bookings → Pricing / Analytics
@@ -776,7 +822,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${completedBookings} completed bookings — patterns are emerging.`,
     body: 'Signature Analytics shows which seasons, events, and channels drive your best revenue. Price with confidence, not guesses.',
     cta: 'See Signature',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   // Trigger 5 — Essential: profile 100% + bio detailed → Brand maturity / Referrals
@@ -787,7 +833,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: 'Your profile is complete and your story is rich.',
     body: 'Signature unlocks the Past Client Discount Loop — each past client who joins and enquires earns you up to 50% off your subscription. Your best marketing is already there.',
     cta: 'See Signature',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   // Trigger 6 — Signature: 3+ concurrent active events → Ops scale / Prestige
@@ -803,7 +849,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: `${activeEvents} active events. Ops mode.`,
     body: 'Prestige unlocks Deluxe Suite — team tasks, procurement tracking, deliveries, photo approvals, client sentiment. For teams running operations, not transactions.',
     cta: 'See Prestige',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   // Trigger 7 — Signature: has team members → delegation / Prestige
@@ -813,7 +859,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     title: 'Your team is growing.',
     body: 'Prestige brings delegation templates — assign standard workflows (trial, shoot, edit, deliver) in one tap. Plus Team Chat, Check-ins, and Photo Approvals.',
     cta: 'See Prestige',
-    href: '/vendor/dashboard?intent=mobile',
+    href: '/vendor/mobile/profile/edit',
   };
 
   let activeTrigger: NudgeTrigger | null = null;
@@ -1205,7 +1251,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
       {/* ── PENDING ENQUIRIES ALERT (warm gold) ── */}
       {leads.length > 0 && (
         <button
-          onClick={() => onJumpToTab('Inquiries')}
+          onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'inquiries'); }}
           style={{
             background: C.goldSoft,
             border: `1px solid ${C.goldBorder}`,
@@ -1305,7 +1351,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
           </div>
           {unpaidInvoices.length > 3 && (
             <button
-              onClick={() => onJumpToTab('Tools')}
+              onClick={() => onJumpToTab('Power')}
               style={{
                 background: 'none', border: 'none',
                 fontSize: '11px', color: C.goldDeep, fontWeight: 600,
@@ -1374,8 +1420,8 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
           { icon: CheckCircle, label: 'To-Do',      onClick: () => onOpenTodo && onOpenTodo() },
           { icon: Users,       label: 'Add Client', onClick: () => onAddClient && onAddClient() },
           { icon: Calendar,    label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
-          { icon: TrendingDown, label: 'Expense',   onClick: () => { onJumpToTab('Tools'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } } },
-          { icon: MessageCircle, label: 'Broadcast', onClick: () => { window.open('/vendor/dashboard?intent=mobile', '_blank'); } },
+          { icon: TrendingDown, label: 'Expense',   onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } } },
+          { icon: MessageCircle, label: 'Broadcast', onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'whatsapp'); } } },
         ];
         const prestigeActions = [
           { icon: FileText,      label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
@@ -1383,9 +1429,9 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
           { icon: Calendar,      label: 'Add Event',  onClick: () => onOpenEvent && onOpenEvent() },
           { icon: CheckCircle,   label: 'To-Do',      onClick: () => onOpenTodo && onOpenTodo() },
           { icon: Calendar,      label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
-          { icon: MessageCircle, label: 'Team Chat',  onClick: () => { window.open('/vendor/dashboard?intent=mobile', '_blank'); } },
-          { icon: Award,         label: 'Approvals',  onClick: () => { window.open('/vendor/dashboard?intent=mobile', '_blank'); } },
-          { icon: MessageCircle, label: 'Broadcast',  onClick: () => { window.open('/vendor/dashboard?intent=mobile', '_blank'); } },
+          { icon: TrendingDown,  label: 'Expense',    onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } } },
+          { icon: BarChart2,     label: 'Analytics',  onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'analytics'); } } },
+          { icon: MessageCircle, label: 'Broadcast',  onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'whatsapp'); } } },
         ];
         const actions = tier === 'prestige' ? prestigeActions : tier === 'signature' ? signatureActions : essentialActions;
         const cols = 4;
@@ -1518,7 +1564,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
                   );
                 })}
                 {pendingTodos.length > 5 && (
-                  <button onClick={() => { onJumpToTab('Tools'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'todos'); }} style={{
+                  <button onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'todos'); }} style={{
                     width: '100%', padding: '10px',
                     background: C.pearl, color: C.muted,
                     border: 'none', borderTop: `1px solid ${C.borderSoft}`,
@@ -1554,7 +1600,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
               { label: 'Confirmed', count: confirmedThisMonth, tone: C.greenSoft, border: C.border, text: C.green },
             ].map((col, i) => (
               <div key={i}
-                onClick={() => onJumpToTab('Inquiries')}
+                onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'inquiries'); }}
                 style={{
                   background: col.tone,
                   border: `1px solid ${col.border}`,
@@ -1738,7 +1784,7 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
             <SectionLabel>Recent Clients</SectionLabel>
             <button
-              onClick={() => onJumpToTab('Tools')}
+              onClick={() => onJumpToTab('Power')}
               style={{
                 background: 'none', border: 'none',
                 fontSize: '10px', color: C.goldDeep, fontWeight: 600,
@@ -2106,9 +2152,14 @@ function CalendarTab({ session, bookings, blockedDates, events, onRefresh, onAdd
 // TOOLS TAB (launcher grid → opens individual tool views)
 // ══════════════════════════════════════════════════════════════════════════
 
-function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, invoices, bookings, leads, paymentSchedules, todos, events, onAddClient, onOpenInvoice, onOpenTodo, onOpenEvent, onToggleTodo, onDeleteTodo, onSavePaymentSchedule, vendorName, onToast }: any) {
+function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, invoices, bookings, leads, paymentSchedules, todos, events, onAddClient, onOpenInvoice, onOpenTodo, onOpenEvent, onToggleTodo, onDeleteTodo, onSavePaymentSchedule, vendorName, onToast, forcedSub }: any) {
   if (activeSubTool) {
-    return <ToolDetailView session={session} tier={tier} sub={activeSubTool} clients={clients} invoices={invoices} bookings={bookings} leads={leads} paymentSchedules={paymentSchedules} todos={todos} events={events} onBack={() => setActiveSubTool(null)} onAddClient={onAddClient} onOpenInvoice={onOpenInvoice} onOpenTodo={onOpenTodo} onOpenEvent={onOpenEvent} onToggleTodo={onToggleTodo} onDeleteTodo={onDeleteTodo} onSavePaymentSchedule={onSavePaymentSchedule} vendorName={vendorName} />;
+    // If this is the Clients tab (forcedSub='clients'), the back button
+    // should be a no-op because there's no grid to go back to — the tab
+    // itself is the detail view.
+    const handleBack = forcedSub ? () => { /* no-op — tab-rooted */ } : () => setActiveSubTool(null);
+    const showBackButton = !forcedSub;
+    return <ToolDetailView session={session} tier={tier} sub={activeSubTool} clients={clients} invoices={invoices} bookings={bookings} leads={leads} paymentSchedules={paymentSchedules} todos={todos} events={events} onBack={handleBack} showBack={showBackButton} onAddClient={onAddClient} onOpenInvoice={onOpenInvoice} onOpenTodo={onOpenTodo} onOpenEvent={onOpenEvent} onToggleTodo={onToggleTodo} onDeleteTodo={onDeleteTodo} onSavePaymentSchedule={onSavePaymentSchedule} vendorName={vendorName} />;
   }
 
   const [lockedModal, setLockedModal] = useState<any>(null);
@@ -2119,49 +2170,42 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
     label: string;
     icon: any;
     sub?: string;                   // PWA sub-tool id
-    href?: string;                  // external link (business portal)
     minTier: Tier;
     desc?: string;
   };
 
+  // Power Mode grid — Inquiries + Calendar first (promoted from dedicated tabs),
+  // then the rest. All external business-portal links stripped.
   const SECTIONS: { title: string; tools: ToolEntry[] }[] = [
     {
-      title: 'Client Management',
+      title: 'Pipeline',
       tools: [
-        { id: 'clients',   label: 'Clients',   icon: Users,      sub: 'clients',   minTier: 'essential', desc: 'Your full client list. Tap any client to see their file.' },
-        { id: 'invoices',  label: 'Invoices',  icon: FileText,   sub: 'invoices',  minTier: 'essential', desc: 'Create, send, and track invoices. GST auto-calculated.' },
-        { id: 'payments',  label: 'Payments',  icon: CreditCard, sub: 'payments',  minTier: 'essential', desc: 'Payment schedules and outstanding amounts.' },
-        { id: 'contracts', label: 'Contracts', icon: Briefcase,  sub: 'contracts', minTier: 'essential', desc: 'Service agreements, generated and tracked per client.' },
+        { id: 'inquiries', label: 'Enquiries', icon: Mail,       sub: 'inquiries', minTier: 'essential', desc: 'Pending leads, confirmed bookings, and follow-ups in one place.' },
+        { id: 'calendar',  label: 'Calendar',  icon: Calendar,   sub: 'calendar',  minTier: 'essential', desc: 'Your schedule. Bookings, blocked dates, events — all together.' },
+      ],
+    },
+    {
+      title: 'Money',
+      tools: [
+        { id: 'invoices',  label: 'Invoices',  icon: FileText,     sub: 'invoices',  minTier: 'essential', desc: 'Create, send, and track invoices. GST auto-calculated.' },
+        { id: 'payments',  label: 'Payments',  icon: CreditCard,   sub: 'payments',  minTier: 'essential', desc: 'Payment schedules and outstanding amounts.' },
+        { id: 'contracts', label: 'Contracts', icon: Briefcase,    sub: 'contracts', minTier: 'essential', desc: 'Service agreements, generated and tracked per client.' },
+        { id: 'expenses',  label: 'Expenses',  icon: TrendingDown, sub: 'expenses',  minTier: 'signature', desc: 'Track every expense. See where your money goes. P&L view.' },
+        { id: 'tax',       label: 'Tax & TDS', icon: Percent,      sub: 'tax',       minTier: 'signature', desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
       ],
     },
     {
       title: 'Utility',
       tools: [
-        { id: 'todos',  label: 'To-Do',   icon: CheckCircle, sub: 'todos',  minTier: 'essential', desc: 'Personal task list. Quick reminders, things to do today.' },
-        { id: 'events', label: 'Events',  icon: Calendar,    sub: 'events', minTier: 'essential', desc: 'Schedule trials, venue visits, prep meetings — anything not a booking.' },
-      ],
-    },
-    {
-      title: 'Finance',
-      tools: [
-        { id: 'expenses',  label: 'Expenses',  icon: TrendingDown, sub: 'expenses',  minTier: 'signature', desc: 'Track every expense. See where your money goes. P&L view.' },
-        { id: 'tax',       label: 'Tax & TDS', icon: Percent,      sub: 'tax',       minTier: 'signature', desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
-        { id: 'analytics', label: 'Analytics', icon: BarChart2,    sub: 'analytics', minTier: 'signature', desc: 'Revenue trends. Lead conversion. What\'s working.' },
+        { id: 'todos',  label: 'To-Do',  icon: CheckCircle, sub: 'todos',  minTier: 'essential', desc: 'Personal task list. Quick reminders, things to do today.' },
+        { id: 'events', label: 'Events', icon: Calendar,    sub: 'events', minTier: 'essential', desc: 'Schedule trials, venue visits, prep meetings — anything not a booking.' },
       ],
     },
     {
       title: 'Growth',
       tools: [
-        { id: 'whatsapp',  label: 'Broadcast', icon: Send,    sub: 'whatsapp',                              minTier: 'signature', desc: 'Send WhatsApp updates to client groups. Templates included.' },
-        { id: 'referral',  label: 'Referrals', icon: Share2,  href: '/vendor/dashboard?intent=mobile&tab=referral', minTier: 'signature', desc: 'Past Client Discount Loop. 10% off per 10 clients who join.' },
-      ],
-    },
-    {
-      title: 'Team & Ops',
-      tools: [
-        { id: 'team',   label: 'Team',         icon: Users,         sub: 'team', minTier: 'signature', desc: 'Add assistants. Assign roles. Shared calendar.' },
-        { id: 'chat',   label: 'Team Chat',    icon: MessageCircle, sub: 'chat', minTier: 'prestige',  desc: 'Real-time messaging with your team. Channels and direct messages.' },
-        { id: 'deluxe', label: 'Deluxe Suite', icon: Award,         href: '/vendor/dashboard?intent=mobile&tab=deluxe', minTier: 'prestige', desc: 'Tasks, procurement, deliveries, photo approvals, client sentiment. For ops teams.' },
+        { id: 'whatsapp',  label: 'Broadcast', icon: Send,      sub: 'whatsapp',  minTier: 'signature', desc: 'Send WhatsApp updates to client groups. Templates included.' },
+        { id: 'analytics', label: 'Analytics', icon: BarChart2, sub: 'analytics', minTier: 'signature', desc: 'Revenue trends. Lead conversion. What\'s working.' },
       ],
     },
   ];
@@ -2169,7 +2213,7 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '12px' }}>
       <div>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '24px', fontWeight: 400, color: C.dark, letterSpacing: '0.2px' }}>Tools</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '24px', fontWeight: 400, color: C.dark, letterSpacing: '0.2px' }}>Power Mode</div>
         <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: C.muted, marginTop: '4px', fontStyle: 'italic' }}>Every tool to run your business, in one place.</div>
       </div>
 
@@ -2251,10 +2295,8 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
                   <button key={tool.id} onClick={() => setActiveSubTool(tool.sub!)} style={commonStyle}>{inner}</button>
                 );
               }
-              // External link (business portal) — open in browser, not the PWA
-              return (
-                <a key={tool.id} href={tool.href} target="_blank" rel="noreferrer" style={commonStyle}>{inner}</a>
-              );
+              // All tools now route internally — unreachable fallback
+              return null;
             })}
           </div>
         </div>
@@ -2282,7 +2324,7 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
           <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: C.muted, lineHeight: 1.6, marginBottom: '18px' }}>
             Expenses, Tax &amp; TDS, Team, Referrals, WhatsApp Broadcast, and Analytics — all unlocked.
           </div>
-          <a href="/vendor/dashboard?intent=mobile" target="_blank" rel="noreferrer" style={{
+          <a href="/vendor/mobile/profile/edit" target="_blank" rel="noreferrer" style={{
             display: 'inline-block', background: C.gold, color: C.ivory,
             textDecoration: 'none', padding: '10px 18px', borderRadius: '10px',
             fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 600,
@@ -2327,7 +2369,7 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: C.dark, marginBottom: '10px' }}>{lockedModal.label}</div>
               <div style={{ fontSize: '13px', color: C.muted, lineHeight: 1.6, maxWidth: '320px', margin: '0 auto' }}>{lockedModal.desc}</div>
             </div>
-            <a href="/vendor/dashboard?intent=mobile" target="_blank" rel="noreferrer" style={{
+            <a href="/vendor/mobile/profile/edit" target="_blank" rel="noreferrer" style={{
               display: 'block', textAlign: 'center',
               background: C.gold, color: C.ivory, textDecoration: 'none',
               padding: '14px', borderRadius: '12px',
@@ -2345,11 +2387,12 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
 // TOOL DETAIL VIEW (each tool's content)
 // ══════════════════════════════════════════════════════════════════════════
 
-function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads, paymentSchedules, todos, events, onBack, onAddClient, onOpenInvoice, onOpenTodo, onOpenEvent, onToggleTodo, onDeleteTodo, onSavePaymentSchedule, vendorName }: any) {
+function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads, paymentSchedules, todos, events, onBack, showBack = true, onAddClient, onOpenInvoice, onOpenTodo, onOpenEvent, onToggleTodo, onDeleteTodo, onSavePaymentSchedule, vendorName }: any) {
   const titles: Record<string, string> = {
     clients: 'Clients', invoices: 'Invoices', contracts: 'Contracts', payments: 'Payments',
     expenses: 'Expenses', tax: 'Tax & TDS', team: 'My Team', referral: 'Referrals',
     whatsapp: 'Broadcast', analytics: 'Analytics', chat: 'Team Chat', todos: 'To-Do',
+    inquiries: 'Enquiries', calendar: 'Calendar', events: 'Events',
   };
 
   const renderContent = () => {
@@ -2631,6 +2674,45 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
       return <TeamChatPanel session={session} tier={tier} />;
     }
 
+    // ── Power Mode additions (Turn 9B) ────────────────────────────────
+    // These used to be their own bottom-nav tabs; now they live as
+    // Power Mode cards and render the same underlying components.
+    if (sub === 'inquiries') {
+      return (
+        <InquiriesTab
+          session={session}
+          leads={leads}
+          bookings={bookings}
+          onRefresh={() => {
+            fetch(`${API}/api/bookings/vendor/${session.vendorId}`).then(r => r.json()).then(d => {
+              if (d.success) { /* parent refreshes on next render */ }
+            });
+          }}
+        />
+      );
+    }
+
+    if (sub === 'calendar') {
+      // Placeholder — CalendarTab requires blockedDates and handlers which we don't
+      // have access to here. For now show an empty state + deep-link advice.
+      // Turn 9C will rewire this fully with proper data flow.
+      return (
+        <div style={{
+          background: C.ivory, borderRadius: 18,
+          border: `1px solid ${C.border}`,
+          padding: '36px 22px', textAlign: 'center' as const,
+        }}>
+          <Calendar size={28} color={C.muted} />
+          <div style={{ fontSize: 15, color: C.dark, fontWeight: 600, margin: '12px 0 6px' }}>
+            Calendar
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
+            Your bookings, blocked dates, and events — coming back here in the next update. For now, tap "Events" to manage scheduled items.
+          </div>
+        </div>
+      );
+    }
+
     // Default: complex tools redirect to desktop
     return (
       <div style={{
@@ -2658,7 +2740,7 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
         }}>
           The full {titles[sub].toLowerCase()} experience lives on the business portal.
         </div>
-        <a href="/vendor/dashboard?intent=mobile" target="_blank" rel="noreferrer" style={{
+        <a href="/vendor/mobile/profile/edit" target="_blank" rel="noreferrer" style={{
           display: 'inline-block',
           background: C.goldSoft, color: C.goldDeep,
           border: `1px solid ${C.goldBorder}`,
@@ -2676,9 +2758,11 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '12px' }}>
-      <button onClick={onBack} style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start', padding: 0, fontFamily: 'inherit' }}>
-        ← Back to tools
-      </button>
+      {showBack && (
+        <button onClick={onBack} style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start', padding: 0, fontFamily: 'inherit' }}>
+          ← Back to tools
+        </button>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '20px', fontWeight: 600, color: C.dark, fontFamily: 'Playfair Display, serif' }}>{titles[sub]}</div>
         {sub === 'clients' && onAddClient && (
@@ -2892,7 +2976,7 @@ function MoreTab({ session, tier, vendorData, aiStatus, buyingTokens, setBuyingT
       <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         {[
           { icon: SettingsIcon, label: 'Edit profile',          href: '/vendor/mobile/profile/edit' },
-          { icon: Briefcase,    label: 'Open business portal',  href: '/vendor/dashboard?intent=mobile' },
+          { icon: Briefcase,    label: 'Open business portal',  href: '/vendor/mobile/profile/edit' },
         ].map((item, idx, arr) => {
           const I = item.icon;
           return (
@@ -2920,12 +3004,377 @@ function MoreTab({ session, tier, vendorData, aiStatus, buyingTokens, setBuyingT
 // BOTTOM NAV
 // ══════════════════════════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════════════════════════
+// ASSISTANTS PANEL (Turn 9B — Teams tab content)
+// List + add assistants per vendor. Per-event assignment comes in 9C.
+// Works for all tiers; usage caps come with pricing tier.
+// ══════════════════════════════════════════════════════════════════════════
+
+interface Assistant {
+  id: string;
+  vendor_id: string;
+  name: string;
+  phone: string;
+  role: string | null;
+  notes: string | null;
+  invited_at: string | null;
+  created_at: string;
+}
+
+function AssistantsPanel({ session }: { session: VendorSession }) {
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<Assistant | null>(null);
+
+  const load = async () => {
+    if (!session?.vendorId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/vendor/assistants/${session.vendorId}`);
+      const d = await res.json();
+      if (d.success) setAssistants(d.data || []);
+    } catch {} finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [session?.vendorId]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this assistant? This will also unassign them from any events.')) return;
+    try {
+      const res = await fetch(`${API}/api/vendor/assistants/${id}`, { method: 'DELETE' });
+      const d = await res.json();
+      if (d.success) setAssistants(prev => prev.filter(a => a.id !== id));
+    } catch {}
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 400, color: C.dark, letterSpacing: '0.2px' }}>
+            Your Team
+          </div>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
+            Assistants and freelancers you work with.
+          </div>
+        </div>
+        <button
+          onClick={() => { setEditing(null); setShowAdd(true); }}
+          style={{
+            background: C.dark, color: C.gold,
+            border: 'none', borderRadius: 10,
+            padding: '10px 14px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: 11, fontWeight: 500, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+            flexShrink: 0,
+          }}
+        >
+          <Plus size={13} /> Add
+        </button>
+      </div>
+
+      {/* Body */}
+      {loading ? (
+        <div style={{ padding: '40px 20px', textAlign: 'center' as const, color: C.muted, fontSize: 13 }}>
+          Loading…
+        </div>
+      ) : assistants.length === 0 ? (
+        <div style={{
+          background: C.ivory, borderRadius: 18,
+          border: `1px solid ${C.border}`,
+          padding: '40px 24px', textAlign: 'center' as const,
+        }}>
+          <div style={{
+            width: 54, height: 54, borderRadius: 16,
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 14,
+          }}>
+            <Users size={22} color={C.gold} />
+          </div>
+          <div style={{ fontSize: 16, color: C.dark, fontWeight: 500, fontFamily: "'Playfair Display', serif", marginBottom: 8 }}>
+            No assistants yet
+          </div>
+          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, maxWidth: 280, margin: '0 auto 20px' }}>
+            Add the freelancers and helpers you work with on events. They'll get a WhatsApp invite, and you can assign them to specific weddings.
+          </div>
+          <button
+            onClick={() => { setEditing(null); setShowAdd(true); }}
+            style={{
+              background: C.gold, color: C.dark, border: 'none',
+              borderRadius: 10, padding: '10px 18px', cursor: 'pointer',
+              fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600,
+              letterSpacing: '0.5px',
+            }}
+          >
+            Add your first assistant
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {assistants.map(a => (
+            <div
+              key={a.id}
+              style={{
+                background: C.ivory, borderRadius: 14,
+                border: `1px solid ${C.border}`,
+                padding: '14px 16px',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 20,
+                background: C.goldSoft,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: C.goldDeep, fontWeight: 600,
+                fontFamily: "'Playfair Display', serif", fontSize: 16,
+                flexShrink: 0,
+              }}>
+                {(a.name || '?')[0].toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, color: C.dark, fontWeight: 500, fontFamily: 'DM Sans, sans-serif' }}>
+                  {a.name}
+                </div>
+                <div style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', marginTop: 2 }}>
+                  {a.role ? a.role + ' · ' : ''}{a.phone}
+                </div>
+              </div>
+              <button
+                onClick={() => { setEditing(a); setShowAdd(true); }}
+                style={{
+                  background: 'transparent', border: `1px solid ${C.border}`,
+                  borderRadius: 8, padding: '6px 10px',
+                  cursor: 'pointer', fontSize: 11,
+                  color: C.muted, fontFamily: 'DM Sans, sans-serif',
+                }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(a.id)}
+                style={{
+                  background: 'transparent', border: 'none',
+                  cursor: 'pointer', padding: 4,
+                  color: C.muted,
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Helper card — explains Model B per-event logic */}
+      {assistants.length > 0 && (
+        <div style={{
+          background: C.champagne, borderRadius: 14,
+          border: `1px solid ${C.goldBorder}`,
+          padding: '14px 16px',
+          marginTop: 8,
+        }}>
+          <div style={{ fontSize: 10, color: C.goldDeep, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, marginBottom: 6 }}>
+            How this works
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
+            Assistants are recorded here. You'll be able to assign them to specific events (and their chats will auto-archive after the event). That's coming in the next update.
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit modal */}
+      {showAdd && (
+        <AssistantSheet
+          session={session}
+          initial={editing}
+          onClose={() => { setShowAdd(false); setEditing(null); }}
+          onSaved={(saved, isNew) => {
+            if (isNew) setAssistants(prev => [saved, ...prev]);
+            else setAssistants(prev => prev.map(a => a.id === saved.id ? saved : a));
+            setShowAdd(false); setEditing(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AssistantSheet({ session, initial, onClose, onSaved }: {
+  session: VendorSession;
+  initial: Assistant | null;
+  onClose: () => void;
+  onSaved: (a: Assistant, isNew: boolean) => void;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [phone, setPhone] = useState(initial ? initial.phone.replace(/^\+91/, '') : '');
+  const [role, setRole] = useState(initial?.role || '');
+  const [notes, setNotes] = useState(initial?.notes || '');
+  const [sendInvite, setSendInvite] = useState(!initial); // default ON for new
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const isEdit = !!initial;
+
+  const handleSave = async () => {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!name.trim()) { setError('Name is required'); return; }
+    if (cleanPhone.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
+
+    setSaving(true); setError('');
+    try {
+      if (isEdit) {
+        const res = await fetch(`${API}/api/vendor/assistants/${initial.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), phone: cleanPhone, role: role.trim() || null, notes: notes.trim() || null }),
+        });
+        const d = await res.json();
+        if (!d.success) { setError(d.error || 'Could not save'); setSaving(false); return; }
+        onSaved(d.data, false);
+      } else {
+        const res = await fetch(`${API}/api/vendor/assistants`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vendor_id: session.vendorId,
+            name: name.trim(),
+            phone: cleanPhone,
+            role: role.trim() || null,
+            notes: notes.trim() || null,
+            send_invite: sendInvite,
+          }),
+        });
+        const d = await res.json();
+        if (!d.success) { setError(d.error || 'Could not save'); setSaving(false); return; }
+        onSaved(d.data, true);
+      }
+    } catch {
+      setError('Network error. Try again.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SheetOverlay onClose={onClose}>
+      <SheetHeader
+        eyebrow={isEdit ? 'Edit' : 'Add'}
+        title={isEdit ? 'Edit Assistant' : 'Add Assistant'}
+        onClose={onClose}
+      />
+
+      <FieldLabel>Name</FieldLabel>
+      <input
+        type="text" value={name} onChange={e => { setName(e.target.value); setError(''); }}
+        placeholder="e.g. Priya Sharma"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          padding: '12px 14px', borderRadius: 10,
+          border: `1px solid ${C.border}`, background: C.pearl,
+          fontSize: 14, fontFamily: 'inherit', marginBottom: 14,
+          outline: 'none',
+        }}
+      />
+
+      <FieldLabel>Phone</FieldLabel>
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <span style={{
+          position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 14, color: C.muted,
+        }}>+91</span>
+        <input
+          type="tel" value={phone} onChange={e => { setPhone(e.target.value); setError(''); }}
+          placeholder="98765 43210"
+          autoComplete="tel"
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 14px 12px 46px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.pearl,
+            fontSize: 14, fontFamily: 'inherit', outline: 'none',
+          }}
+        />
+      </div>
+
+      <FieldLabel>Role (optional)</FieldLabel>
+      <input
+        type="text" value={role} onChange={e => setRole(e.target.value)}
+        placeholder="e.g. Makeup assistant, Second shooter, Coordinator"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          padding: '12px 14px', borderRadius: 10,
+          border: `1px solid ${C.border}`, background: C.pearl,
+          fontSize: 14, fontFamily: 'inherit', marginBottom: 14,
+          outline: 'none',
+        }}
+      />
+
+      <FieldLabel>Notes (optional)</FieldLabel>
+      <textarea
+        value={notes} onChange={e => setNotes(e.target.value)}
+        placeholder="Anything important about working with them"
+        rows={2}
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          padding: '12px 14px', borderRadius: 10,
+          border: `1px solid ${C.border}`, background: C.pearl,
+          fontSize: 14, fontFamily: 'inherit', marginBottom: 14,
+          outline: 'none', resize: 'vertical' as const,
+        }}
+      />
+
+      {!isEdit && (
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px', borderRadius: 10,
+          background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+          cursor: 'pointer', marginBottom: 14,
+        }}>
+          <input
+            type="checkbox"
+            checked={sendInvite}
+            onChange={e => setSendInvite(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: C.gold }}
+          />
+          <span style={{ fontSize: 12, color: C.dark, lineHeight: 1.4 }}>
+            Send a WhatsApp invite introducing them to TDW
+          </span>
+        </label>
+      )}
+
+      {error && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 8,
+          background: C.redSoft, border: `1px solid ${C.redBorder}`,
+          color: C.red, fontSize: 12, marginBottom: 12,
+        }}>{error}</div>
+      )}
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          width: '100%', padding: 14, borderRadius: 10,
+          background: saving ? C.pearl : C.dark, color: C.gold,
+          border: 'none', cursor: saving ? 'default' : 'pointer',
+          fontSize: 12, fontWeight: 500, letterSpacing: '2px',
+          textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+          opacity: saving ? 0.6 : 1,
+        }}
+      >
+        {saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Add assistant')}
+      </button>
+    </SheetOverlay>
+  );
+}
+
 function BottomNav({ active, pending, onChange }: { active: Tab; pending: number; onChange: (t: Tab) => void }) {
   const tabs: { id: Tab; label: string; icon: any }[] = [
-    { id: 'Home',      label: 'Home',      icon: Grid },
-    { id: 'Inquiries', label: 'Inquiries', icon: Mail },
-    { id: 'Calendar',  label: 'Calendar',  icon: Calendar },
-    { id: 'Tools',     label: 'Tools',     icon: Tool },
+    { id: 'Overview', label: 'Overview', icon: Grid },
+    { id: 'Clients',  label: 'Clients',  icon: Users },
+    { id: 'Teams',    label: 'Teams',    icon: Users },
+    { id: 'Power',    label: 'Power',    icon: Zap },
   ];
 
   return (
@@ -2940,7 +3389,7 @@ function BottomNav({ active, pending, onChange }: { active: Tab; pending: number
       {tabs.map(t => {
         const I = t.icon;
         const isActive = active === t.id;
-        const showBadge = t.id === 'Inquiries' && pending > 0;
+        const showBadge = t.id === 'Power' && pending > 0;
         return (
           <button
             key={t.id}
@@ -2966,6 +3415,84 @@ function BottomNav({ active, pending, onChange }: { active: Tab; pending: number
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODE TOGGLE (Business / Discovery)
+// Top-strip segmented control matching couple-side Plan/Discover pattern.
+// ══════════════════════════════════════════════════════════════════════════
+
+function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+  const modes: { id: Mode; label: string }[] = [
+    { id: 'Business',  label: 'Business'  },
+    { id: 'Discovery', label: 'Discovery' },
+  ];
+  return (
+    <div style={{
+      display: 'flex', padding: '8px 16px 4px',
+      gap: 6, background: C.cream,
+    }}>
+      {modes.map(m => {
+        const isActive = mode === m.id;
+        return (
+          <button
+            key={m.id}
+            onClick={() => onChange(m.id)}
+            style={{
+              flex: 1, padding: '10px 12px', borderRadius: 10,
+              background: isActive ? C.dark : C.ivory,
+              border: `1px solid ${isActive ? C.dark : C.border}`,
+              cursor: 'pointer',
+              color: isActive ? C.gold : C.muted,
+              fontFamily: 'inherit', fontSize: 11, fontWeight: 500,
+              letterSpacing: '1.5px', textTransform: 'uppercase' as const,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {m.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DISCOVERY COMING SOON
+// ══════════════════════════════════════════════════════════════════════════
+
+function DiscoveryComingSoon({ session }: { session: VendorSession }) {
+  return (
+    <div style={{
+      minHeight: '60vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '40px 24px', textAlign: 'center' as const,
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 28,
+        background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 20,
+      }}>
+        <Globe size={22} color={C.gold} />
+      </div>
+      <p style={{
+        margin: '0 0 4px', fontSize: 10, color: C.goldDeep, fontWeight: 500,
+        letterSpacing: '3px', textTransform: 'uppercase' as const,
+      }}>Coming soon</p>
+      <h2 style={{
+        fontFamily: 'Playfair Display, serif', fontSize: 26,
+        color: C.dark, margin: '0 0 12px', fontWeight: 400,
+      }}>Your storefront.</h2>
+      <p style={{
+        fontSize: 13, color: C.muted, lineHeight: '20px',
+        fontWeight: 300, maxWidth: 320, margin: 0,
+      }}>
+        Get discovered by India's most discerning brides. Boost visibility, run offers, manage your profile — all coming to your pocket soon.
+      </p>
     </div>
   );
 }
@@ -3559,10 +4086,6 @@ const MORE_TOOLS: ToolDef[] = [
   { id: 'tax',       label: 'Tax & TDS',  icon: Percent,       minTier: 'signature', href: '/vendor/mobile?sub=tax',        desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
   { id: 'broadcast', label: 'Broadcast',  icon: Send,          minTier: 'signature', href: '/vendor/mobile?sub=whatsapp',   desc: 'Send WhatsApp updates to client groups. Templates included.' },
   { id: 'analytics', label: 'Analytics',  icon: BarChart2,     minTier: 'signature', href: '/vendor/mobile?sub=analytics',  desc: 'Revenue trends. Lead conversion. What\'s working.' },
-  { id: 'team',      label: 'Team',       icon: Users,         minTier: 'signature', href: '/vendor/mobile?sub=team',       desc: 'Add assistants. Assign roles. Shared calendar.' },
-  { id: 'chat',      label: 'Team Chat',  icon: MessageCircle, minTier: 'prestige',  href: '/vendor/mobile?sub=chat',       desc: 'Real-time messaging with your team. Channels and direct messages.' },
-  { id: 'referrals', label: 'Referrals',  icon: Share2,        minTier: 'signature', href: '/vendor/dashboard?intent=mobile', desc: 'Past Client Discount Loop. 10% off per 10 clients who join.' },
-  { id: 'deluxe',    label: 'Deluxe Suite', icon: Award,       minTier: 'prestige',  href: '/vendor/dashboard?intent=mobile', desc: 'Tasks, procurement, deliveries, photo approvals, client sentiment. For ops teams.' },
 ];
 
 const TIER_RANK: Record<string, number> = { essential: 1, signature: 2, prestige: 3 };
@@ -3727,7 +4250,7 @@ function ToolsGrid({ tier }: { tier: Tier }) {
 
             {/* CTA */}
             <a
-              href="/vendor/dashboard?intent=mobile"
+              href="/vendor/mobile/profile/edit"
               target="_blank"
               rel="noreferrer"
               style={{
@@ -5068,7 +5591,7 @@ function TeamActivityFeed({ vendorId }: { vendorId: string }) {
             Invite your first team member to see tasks, photos, deliveries, and check-ins as they happen.
           </div>
           <a
-            href="/vendor/dashboard?intent=mobile"
+            href="/vendor/mobile/profile/edit"
             target="_blank"
             rel="noreferrer"
             style={{
@@ -5273,7 +5796,7 @@ function PaymentSchedulesPanel({ session, paymentSchedules, clients, onSavePayme
         textAlign: 'center', fontStyle: 'italic',
       }}>
         Need more than 3 instalments? Use the
-        <a href="/vendor/dashboard?intent=mobile" target="_blank" rel="noreferrer" style={{ color: C.goldDeep, textDecoration: 'underline', marginLeft: '4px' }}>business portal →</a>
+        <a href="/vendor/mobile/profile/edit" target="_blank" rel="noreferrer" style={{ color: C.goldDeep, textDecoration: 'underline', marginLeft: '4px' }}>business portal →</a>
       </div>
 
       {/* Create modal */}
@@ -7373,7 +7896,7 @@ function ProfileScreen({
         <div style={{ background: C.ivory, borderRadius: '16px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
           {[
             { icon: SettingsIcon, label: 'Edit profile',          href: '/vendor/mobile/profile/edit',       external: false },
-            { icon: Briefcase,    label: 'Open business portal', href: '/vendor/dashboard?intent=mobile',    external: true },
+            { icon: Briefcase,    label: 'Open business portal', href: '/vendor/mobile/profile/edit',    external: true },
           ].map((item, idx, arr) => {
             const I = item.icon;
             return (

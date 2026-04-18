@@ -2276,6 +2276,179 @@ app.post('/api/vendor/reset-password', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════
+// VENDOR ASSISTANTS (Session 10 Turn 9B)
+// Per-event freelancer/assistant tracking for solo + mid-tier vendors.
+// Model B: each assistant assigned to specific events — not global.
+// ══════════════════════════════════════════════════════════════
+
+// List all assistants for a vendor
+app.get('/api/vendor/assistants/:vendorId', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { data, error } = await supabase
+      .from('vendor_assistants')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('assistants list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create a new assistant (record) + optionally fire WhatsApp invite
+app.post('/api/vendor/assistants', async (req, res) => {
+  try {
+    const { vendor_id, name, phone, role, notes, send_invite } = req.body || {};
+    if (!vendor_id || !name || !phone) {
+      return res.status(400).json({ success: false, error: 'vendor_id, name, and phone are required' });
+    }
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({ success: false, error: 'Invalid phone number' });
+    }
+    const fullPhone = '+91' + cleanPhone;
+
+    const { data: existing } = await supabase
+      .from('vendor_assistants').select('id')
+      .eq('vendor_id', vendor_id).eq('phone', fullPhone).maybeSingle();
+    if (existing) {
+      return res.json({ success: false, error: 'This assistant is already in your list' });
+    }
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('vendor_assistants').insert([{
+        vendor_id,
+        name: name.trim(),
+        phone: fullPhone,
+        role: (role || '').trim() || null,
+        notes: (notes || '').trim() || null,
+        invited_at: send_invite ? new Date().toISOString() : null,
+      }]).select().single();
+    if (insertErr) throw insertErr;
+
+    // Fire WhatsApp invite if requested (non-blocking)
+    if (send_invite) {
+      try {
+        const { data: vendor } = await supabase
+          .from('vendors').select('name').eq('id', vendor_id).maybeSingle();
+        const vendorName = vendor?.name || 'The Dream Wedding vendor';
+        const roleText = inserted.role ? ` as their ${inserted.role}` : '';
+        const msg = `Hi ${inserted.name}! ${vendorName} has added you${roleText} via The Dream Wedding. You'll receive updates about upcoming events you're assigned to. Welcome aboard! ✨`;
+        if (typeof sendWhatsApp === 'function') {
+          sendWhatsApp(fullPhone, msg).catch(e => console.error('assistant invite send failed:', e.message));
+        }
+      } catch (e) {
+        console.warn('assistant invite lookup failed:', e.message);
+      }
+    }
+
+    res.json({ success: true, data: inserted });
+  } catch (error) {
+    console.error('assistants create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update assistant
+app.patch('/api/vendor/assistants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, role, notes } = req.body || {};
+    const patch = {};
+    if (name !== undefined) patch.name = String(name).trim();
+    if (role !== undefined) patch.role = role ? String(role).trim() : null;
+    if (notes !== undefined) patch.notes = notes ? String(notes).trim() : null;
+    if (phone !== undefined) {
+      const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+      if (cleanPhone.length !== 10) return res.status(400).json({ success: false, error: 'Invalid phone number' });
+      patch.phone = '+91' + cleanPhone;
+    }
+    const { data, error } = await supabase
+      .from('vendor_assistants').update(patch).eq('id', id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('assistants update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete assistant (cascade removes their event assignments via FK)
+app.delete('/api/vendor/assistants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase.from('vendor_assistants').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('assistants delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Assign assistant to a specific event (Model B join)
+app.post('/api/vendor/assistants/:id/assign', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { event_id, vendor_id } = req.body || {};
+    if (!event_id || !vendor_id) {
+      return res.status(400).json({ success: false, error: 'event_id and vendor_id required' });
+    }
+    const { data, error } = await supabase
+      .from('vendor_assistant_assignments').insert([{
+        assistant_id: id,
+        event_id,
+        vendor_id,
+      }]).select().single();
+    if (error) {
+      // Ignore unique constraint violations (already assigned)
+      if (error.code === '23505') {
+        return res.json({ success: true, data: null, already_assigned: true });
+      }
+      throw error;
+    }
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('assistants assign error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Unassign from an event
+app.delete('/api/vendor/assistants/:id/assign/:eventId', async (req, res) => {
+  try {
+    const { id, eventId } = req.params;
+    const { error } = await supabase
+      .from('vendor_assistant_assignments').delete()
+      .eq('assistant_id', id).eq('event_id', eventId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('assistants unassign error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get all assignments for an assistant (which events she's working)
+app.get('/api/vendor/assistants/:id/assignments', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('vendor_assistant_assignments').select('*')
+      .eq('assistant_id', id)
+      .order('assigned_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('assistants assignments list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/access-codes/generate', async (req, res) => {
   try {
     const { type, created_by, note } = req.body;
