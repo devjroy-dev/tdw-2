@@ -6,6 +6,7 @@ import {
   Compass, CheckSquare, PieChart, Briefcase, Bell,
   Zap, ArrowRight, Sparkles, Phone, Eye, EyeOff,
   Plus, Trash2, Clock, AlertCircle, Check, Edit3, Circle,
+  Camera, Paperclip, Image as ImageIcon, Gift, Upload,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -13,6 +14,9 @@ import {
 // ─────────────────────────────────────────────────────────────
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
+
+const CLOUDINARY_CLOUD  = 'dccso5ljv';
+const CLOUDINARY_PRESET = 'dream_wedding_uploads';
 
 const C = {
   cream:      '#FAF6F0',
@@ -335,6 +339,100 @@ function formatDueDate(d: string | null): string {
 }
 
 // ─────────────────────────────────────────────────────────────
+// BUDGET / EXPENSE / SHAGUN TYPES
+// ─────────────────────────────────────────────────────────────
+
+interface CoupleBudget {
+  id: string;
+  couple_id: string;
+  total_budget: number;
+  event_envelopes: Record<string, number>;
+  updated_at: string;
+}
+
+interface Expense {
+  id: string;
+  couple_id: string;
+  event: string;
+  category: string;
+  description: string | null;
+  vendor_name: string | null;
+  planned_amount: number;
+  actual_amount: number;
+  shadow_amount: number;
+  payment_status: 'paid' | 'partial' | 'pending';
+  receipt_url: string | null;
+  receipt_uploaded_by: string | null;
+  receipt_uploaded_by_name: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+interface ShagunEntry {
+  id: string;
+  couple_id: string;
+  giver_name: string;
+  relation: string | null;
+  event: string | null;
+  amount: number;
+  gift_description: string | null;
+  return_gift_sent: boolean;
+  notes: string | null;
+  created_at: string;
+}
+
+const EXPENSE_CATEGORIES = [
+  'Venue', 'Catering', 'Decor', 'Photography', 'Videography',
+  'Outfits & Jewellery', 'MUA & Hair', 'Music & DJ',
+  'Transport', 'Invitations', 'Pandit & Ceremony',
+  'Gifts & Favours', 'Miscellaneous',
+];
+
+// Format INR currency — tight display (₹4.2L, ₹45K, ₹5.1Cr)
+function fmtINR(n: number): string {
+  if (!n || n === 0) return '₹0';
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(n % 10000000 === 0 ? 0 : 1)}Cr`;
+  if (n >= 100000)   return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`;
+  if (n >= 1000)     return `₹${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
+  return `₹${n.toFixed(0)}`;
+}
+
+// Full INR format for detail views (₹ 4,20,000)
+function fmtINRFull(n: number): string {
+  if (!n || n === 0) return '₹0';
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+// Compute committed (actual + shadow) per event
+function eventCommitted(expenses: Expense[], event: string): number {
+  return expenses
+    .filter(e => e.event === event)
+    .reduce((sum, e) => sum + (e.actual_amount || 0) + (e.shadow_amount || 0), 0);
+}
+
+// Compute committed across all events
+function totalCommitted(expenses: Expense[]): number {
+  return expenses.reduce((sum, e) => sum + (e.actual_amount || 0) + (e.shadow_amount || 0), 0);
+}
+
+// Overall health level for the pulse indicator
+type HealthLevel = 'green' | 'amber' | 'red' | 'unset';
+function getBudgetHealth(totalBudget: number, committed: number): HealthLevel {
+  if (!totalBudget || totalBudget === 0) return 'unset';
+  const pct = committed / totalBudget;
+  if (pct < 0.8)  return 'green';
+  if (pct < 0.95) return 'amber';
+  return 'red';
+}
+
+const HEALTH_COLORS: Record<HealthLevel, { bg: string; border: string; text: string; label: string }> = {
+  green:  { bg: '#EBF5EB', border: '#B8D9B8', text: '#2D6A2D', label: 'On track' },
+  amber:  { bg: '#FFF8E1', border: '#F0D88C', text: '#8B6914', label: 'Getting close' },
+  red:    { bg: '#FEEAEA', border: '#F0B8B8', text: '#A33636', label: 'Over budget' },
+  unset:  { bg: '#FBF8F2', border: '#EDE8E0', text: '#8C7B6E', label: 'Set your budget' },
+};
+
+// ─────────────────────────────────────────────────────────────
 // SHARED UI
 // ─────────────────────────────────────────────────────────────
 
@@ -423,6 +521,9 @@ function ErrorBanner({ msg }: { msg: string }) {
 
 function useCoupleData(session: CoupleSession | null) {
   const [tasks, setTasks] = useState<ChecklistTask[]>([]);
+  const [budget, setBudget] = useState<CoupleBudget | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [shagun, setShagun] = useState<ShagunEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeded, setSeeded] = useState(false);
 
@@ -432,6 +533,20 @@ function useCoupleData(session: CoupleSession | null) {
       const res = await fetch(`${API}/api/couple/checklist/${session.id}`);
       const d = await res.json();
       if (d.success) setTasks(d.data || []);
+    } catch {}
+  };
+
+  const refreshBudget = async () => {
+    if (!session?.id) return;
+    try {
+      const [bRes, eRes, sRes] = await Promise.all([
+        fetch(`${API}/api/couple/budget/${session.id}`).then(r => r.json()),
+        fetch(`${API}/api/couple/expenses/${session.id}`).then(r => r.json()),
+        fetch(`${API}/api/couple/shagun/${session.id}`).then(r => r.json()),
+      ]);
+      if (bRes.success) setBudget(bRes.data);
+      if (eRes.success) setExpenses(eRes.data || []);
+      if (sRes.success) setShagun(sRes.data || []);
     } catch {}
   };
 
@@ -446,12 +561,17 @@ function useCoupleData(session: CoupleSession | null) {
         const userD = await userRes.json();
         const alreadySeeded = !!userD?.data?.checklist_seeded;
 
-        // Load existing tasks
-        const res = await fetch(`${API}/api/couple/checklist/${session.id}`);
-        const d = await res.json();
-        const existing: ChecklistTask[] = d.success ? (d.data || []) : [];
+        // Parallel load: checklist, budget, expenses, shagun
+        const [checklistRes, budgetRes, expensesRes, shagunRes] = await Promise.all([
+          fetch(`${API}/api/couple/checklist/${session.id}`).then(r => r.json()),
+          fetch(`${API}/api/couple/budget/${session.id}`).then(r => r.json()),
+          fetch(`${API}/api/couple/expenses/${session.id}`).then(r => r.json()),
+          fetch(`${API}/api/couple/shagun/${session.id}`).then(r => r.json()),
+        ]);
 
-        // Seed if never seeded AND no existing tasks
+        const existing: ChecklistTask[] = checklistRes.success ? (checklistRes.data || []) : [];
+
+        // Seed checklist if needed
         if (!alreadySeeded && existing.length === 0 && session.events?.length && session.weddingDate) {
           const seeds = buildSeedTasks(session.events, session.weddingDate);
           if (seeds.length > 0) {
@@ -467,8 +587,13 @@ function useCoupleData(session: CoupleSession | null) {
         } else {
           if (mounted) { setTasks(existing); setSeeded(alreadySeeded); }
         }
+
+        // Budget/expenses/shagun
+        if (mounted && budgetRes.success)   setBudget(budgetRes.data);
+        if (mounted && expensesRes.success) setExpenses(expensesRes.data || []);
+        if (mounted && shagunRes.success)   setShagun(shagunRes.data || []);
       } catch (e) {
-        // Network failure — fall through silently, tool still renders
+        // Network failure — fall through silently
       }
       if (mounted) setLoading(false);
     })();
@@ -477,7 +602,6 @@ function useCoupleData(session: CoupleSession | null) {
   }, [session?.id]);
 
   const toggleComplete = async (id: string, nextValue: boolean) => {
-    // Optimistic update
     setTasks(prev => prev.map(t => t.id === id
       ? { ...t, is_complete: nextValue, completed_at: nextValue ? new Date().toISOString() : null }
       : t));
@@ -521,7 +645,103 @@ function useCoupleData(session: CoupleSession | null) {
     } catch {}
   };
 
-  return { tasks, loading, seeded, refreshTasks, toggleComplete, updateTask, deleteTask, addTask };
+  // ── Budget mutations ────────────────────────────────────────
+
+  const updateBudget = async (patch: { total_budget?: number; event_envelopes?: Record<string, number> }) => {
+    if (!session?.id) return;
+    // Optimistic
+    setBudget(prev => prev ? { ...prev, ...patch } : prev);
+    try {
+      const res = await fetch(`${API}/api/couple/budget/${session.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const d = await res.json();
+      if (d.success && d.data) setBudget(d.data);
+    } catch {}
+  };
+
+  // ── Expense mutations ───────────────────────────────────────
+
+  const addExpense = async (payload: Partial<Expense>) => {
+    if (!session?.id) return null;
+    try {
+      const res = await fetch(`${API}/api/couple/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, couple_id: session.id }),
+      });
+      const d = await res.json();
+      if (d.success && d.data) {
+        setExpenses(prev => [d.data, ...prev]);
+        return d.data as Expense;
+      }
+    } catch {}
+    return null;
+  };
+
+  const updateExpense = async (id: string, patch: Partial<Expense>) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...patch } as Expense : e));
+    try {
+      const res = await fetch(`${API}/api/couple/expenses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const d = await res.json();
+      if (d.success && d.data) {
+        setExpenses(prev => prev.map(e => e.id === id ? d.data : e));
+      }
+    } catch {}
+  };
+
+  const deleteExpense = async (id: string) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+    try {
+      await fetch(`${API}/api/couple/expenses/${id}`, { method: 'DELETE' });
+    } catch {}
+  };
+
+  // ── Shagun mutations ────────────────────────────────────────
+
+  const addShagun = async (payload: Partial<ShagunEntry>) => {
+    if (!session?.id) return;
+    try {
+      const res = await fetch(`${API}/api/couple/shagun`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, couple_id: session.id }),
+      });
+      const d = await res.json();
+      if (d.success && d.data) setShagun(prev => [d.data, ...prev]);
+    } catch {}
+  };
+
+  const updateShagun = async (id: string, patch: Partial<ShagunEntry>) => {
+    setShagun(prev => prev.map(s => s.id === id ? { ...s, ...patch } as ShagunEntry : s));
+    try {
+      await fetch(`${API}/api/couple/shagun/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+    } catch {}
+  };
+
+  const deleteShagun = async (id: string) => {
+    setShagun(prev => prev.filter(s => s.id !== id));
+    try {
+      await fetch(`${API}/api/couple/shagun/${id}`, { method: 'DELETE' });
+    } catch {}
+  };
+
+  return {
+    tasks, loading, seeded, refreshTasks, toggleComplete, updateTask, deleteTask, addTask,
+    budget, expenses, shagun, refreshBudget,
+    updateBudget, addExpense, updateExpense, deleteExpense,
+    addShagun, updateShagun, deleteShagun,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -719,17 +939,23 @@ function DiscoverTeaser({ session }: { session: CoupleSession | null }) {
 // HOME SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete }: {
+function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget, expenses }: {
   session: CoupleSession;
   onNavTo: (tab: MainTab, tool?: string) => void;
   tasks: ChecklistTask[];
   loading: boolean;
   onToggleComplete: (id: string, next: boolean) => void;
+  budget: CoupleBudget | null;
+  expenses: Expense[];
 }) {
   const days = daysToGo(session.weddingDate);
   const copy = getGreetingCopy(session.name?.split(' ')[0] || '', days);
   const todayTasks = getTodayTasks(tasks);
   const progress = getChecklistProgress(tasks);
+  const committed = totalCommitted(expenses);
+  const totalBudget = budget?.total_budget || 0;
+  const health = getBudgetHealth(totalBudget, committed);
+  const healthColor = HEALTH_COLORS[health];
 
   return (
     <div style={{ padding: '72px 24px 100px' }}>
@@ -883,10 +1109,35 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete }: {
         textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
       }}>At a glance</p>
       <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 24 }}>
+        {/* Budget tile — live */}
+        <button onClick={() => onNavTo('plan', 'budget')} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`,
+          padding: '14px 16px', cursor: 'pointer', textAlign: 'left' as const,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>Budget</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {totalBudget > 0
+                ? `${fmtINR(committed)} of ${fmtINR(totalBudget)} committed`
+                : 'Set your budget to track spending'}
+            </p>
+          </div>
+          {totalBudget > 0 && (
+            <span style={{
+              fontSize: 10, color: healthColor.text, fontWeight: 500,
+              letterSpacing: '0.5px', padding: '3px 8px', borderRadius: 10,
+              background: healthColor.bg, border: `1px solid ${healthColor.border}`,
+              fontFamily: 'DM Sans, sans-serif', marginLeft: 8, flexShrink: 0,
+            }}>{healthColor.label}</span>
+          )}
+          <ChevronRight size={14} color={C.mutedLight} style={{ marginLeft: 8, flexShrink: 0 }} />
+        </button>
+
+        {/* Guests + Vendors still placeholders until Turn 4/6 */}
         {[
-          { label: 'Budget',  sub: 'Set your budget to track spending',          tool: 'budget'  as const },
-          { label: 'Guests',  sub: 'Add guests to track confirmations',          tool: 'guests'  as const },
-          { label: 'Vendors', sub: 'Log your vendors to track confirmations',    tool: 'vendors' as const },
+          { label: 'Guests',  sub: 'Add guests to track confirmations',       tool: 'guests'  as const },
+          { label: 'Vendors', sub: 'Log your vendors to track confirmations', tool: 'vendors' as const },
         ].map(item => (
           <button key={item.tool} onClick={() => onNavTo('plan', item.tool)} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -960,14 +1211,24 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete }: {
 // MY WEDDING SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function MyWeddingScreen({ session, onToolOpen, tasks }: {
-  session: CoupleSession; onToolOpen: (id: string) => void; tasks: ChecklistTask[];
+function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses }: {
+  session: CoupleSession;
+  onToolOpen: (id: string) => void;
+  tasks: ChecklistTask[];
+  budget: CoupleBudget | null;
+  expenses: Expense[];
 }) {
   const days = daysToGo(session.weddingDate);
   const progress = getChecklistProgress(tasks);
+  const committed = totalCommitted(expenses);
+  const totalBudget = budget?.total_budget || 0;
+  const budgetHealth = getBudgetHealth(totalBudget, committed);
+
   const progressLabels: Record<string, string> = {
     checklist: progress.total > 0 ? `${progress.done} of ${progress.total} done` : 'Tasks across all your events',
-    budget:    'Envelopes, expenses, Payment Trail',
+    budget: totalBudget > 0
+      ? `${fmtINR(committed)} of ${fmtINR(totalBudget)} · ${HEALTH_COLORS[budgetHealth].label}`
+      : 'Envelopes, expenses, Payment Trail',
     guests:    "Who's coming to what",
     moodboard: 'Per-event inspiration boards',
     vendors:   'Booked, confirmed, paid',
@@ -1536,6 +1797,1370 @@ function TaskEditor({
 }
 
 // ─────────────────────────────────────────────────────────────
+// CLOUDINARY UPLOAD
+// Uploads a File to Cloudinary and returns the secure_url.
+// Returns null on failure — caller can handle gracefully.
+// ─────────────────────────────────────────────────────────────
+
+async function uploadReceipt(file: File): Promise<string | null> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST', body: formData,
+    });
+    const data = await res.json();
+    return data?.secure_url || null;
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// BUDGET TOOL
+// Three surfaces: Expenses tab, Shagun tab, Payment Trail view.
+// Payment Trail is a filtered view of Expenses (only those with
+// receipts attached). No separate data store.
+// ─────────────────────────────────────────────────────────────
+
+type BudgetSubTab = 'expenses' | 'shagun' | 'trail';
+
+function BudgetTool({
+  session, budget, expenses, shagun, loading,
+  onUpdateBudget, onAddExpense, onUpdateExpense, onDeleteExpense,
+  onAddShagun, onUpdateShagun, onDeleteShagun, onBack,
+}: {
+  session: CoupleSession;
+  budget: CoupleBudget | null;
+  expenses: Expense[];
+  shagun: ShagunEntry[];
+  loading: boolean;
+  onUpdateBudget: (patch: { total_budget?: number; event_envelopes?: Record<string, number> }) => Promise<void>;
+  onAddExpense: (payload: Partial<Expense>) => Promise<Expense | null>;
+  onUpdateExpense: (id: string, patch: Partial<Expense>) => Promise<void>;
+  onDeleteExpense: (id: string) => Promise<void>;
+  onAddShagun: (payload: Partial<ShagunEntry>) => Promise<void>;
+  onUpdateShagun: (id: string, patch: Partial<ShagunEntry>) => Promise<void>;
+  onDeleteShagun: (id: string) => Promise<void>;
+  onBack: () => void;
+}) {
+  const [subTab, setSubTab] = useState<BudgetSubTab>('expenses');
+  const [activeEvent, setActiveEvent] = useState<string>('All');
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [showAddShagun, setShowAddShagun] = useState(false);
+  const [editingShagun, setEditingShagun] = useState<ShagunEntry | null>(null);
+  const [showBudgetEditor, setShowBudgetEditor] = useState(false);
+  const [viewReceipt, setViewReceipt] = useState<Expense | null>(null);
+
+  const canEditExpenses = canEdit(session.coShareRole, 'budget');
+  const canSeeShagun    = canView(session.coShareRole, 'shagun');
+  const canSeeTrail     = canView(session.coShareRole, 'payment_trail');
+  const canEditTrail    = canEdit(session.coShareRole, 'payment_trail');
+
+  const totalBudget = budget?.total_budget || 0;
+  const envelopes   = budget?.event_envelopes || {};
+  const committed   = totalCommitted(expenses);
+  const health      = getBudgetHealth(totalBudget, committed);
+  const healthColor = HEALTH_COLORS[health];
+
+  // Expenses filter
+  const filteredExpenses = activeEvent === 'All'
+    ? expenses
+    : expenses.filter(e => e.event === activeEvent);
+
+  // Payment trail = expenses with receipts
+  const trailExpenses = expenses.filter(e => !!e.receipt_url);
+  const filteredTrail = activeEvent === 'All'
+    ? trailExpenses
+    : trailExpenses.filter(e => e.event === activeEvent);
+
+  // Build sub-tabs available to this role
+  const availableTabs: { id: BudgetSubTab; label: string; count?: number }[] = [
+    { id: 'expenses', label: 'Expenses', count: expenses.length },
+  ];
+  if (canSeeTrail)  availableTabs.push({ id: 'trail',   label: 'Payment Trail', count: trailExpenses.length });
+  if (canSeeShagun) availableTabs.push({ id: 'shagun',  label: 'Shagun',        count: shagun.length });
+
+  return (
+    <div style={{ padding: '0 0 120px' }}>
+
+      {/* Sticky header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '72px 20px 16px', background: C.cream,
+        position: 'sticky' as const, top: 0, zIndex: 30,
+        borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.ivory,
+            border: `1px solid ${C.border}`, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <ChevronRight size={16} color={C.dark} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <div>
+            <p style={{ margin: 0, fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>Budget</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {totalBudget > 0 ? `${fmtINR(committed)} of ${fmtINR(totalBudget)} committed` : 'Set your total budget to begin'}
+            </p>
+          </div>
+        </div>
+        {canEditExpenses && (
+          <button onClick={() => {
+            if (subTab === 'expenses' || subTab === 'trail') setShowAddExpense(true);
+            else if (subTab === 'shagun') setShowAddShagun(true);
+          }} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.dark,
+            border: 'none', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Plus size={16} color={C.gold} />
+          </button>
+        )}
+      </div>
+
+      {/* Health pulse bar */}
+      <div style={{ padding: '14px 20px 0' }}>
+        <button
+          onClick={() => canEditExpenses && setShowBudgetEditor(true)}
+          disabled={!canEditExpenses}
+          style={{
+            width: '100%', background: healthColor.bg,
+            border: `1px solid ${healthColor.border}`,
+            borderRadius: 12, padding: '12px 14px',
+            cursor: canEditExpenses ? 'pointer' : 'default',
+            textAlign: 'left' as const,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 11, color: healthColor.text, fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif' }}>
+              {healthColor.label}
+            </span>
+            {totalBudget > 0 && (
+              <span style={{ fontSize: 11, color: healthColor.text, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                {Math.round((committed / totalBudget) * 100)}%
+              </span>
+            )}
+          </div>
+          {/* Progress track */}
+          <div style={{ height: 6, background: C.ivory, borderRadius: 3, marginTop: 8, overflow: 'hidden' as const }}>
+            <div style={{
+              height: '100%',
+              width: totalBudget > 0 ? `${Math.min(100, (committed / totalBudget) * 100)}%` : '0%',
+              background: healthColor.text,
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+          {totalBudget === 0 && canEditExpenses && (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              Tap to set your total budget and event envelopes.
+            </p>
+          )}
+        </button>
+      </div>
+
+      {/* Sub tabs */}
+      <div style={{ display: 'flex', gap: 6, padding: '14px 20px 12px', overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any }}>
+        {availableTabs.map(t => {
+          const active = subTab === t.id;
+          return (
+            <button key={t.id} onClick={() => setSubTab(t.id)} style={{
+              padding: '7px 14px', borderRadius: 18, whiteSpace: 'nowrap' as const,
+              background: active ? C.dark : C.ivory,
+              border: `1px solid ${active ? C.dark : C.border}`,
+              color: active ? C.gold : C.muted,
+              fontSize: 12, fontWeight: active ? 500 : 400,
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', flexShrink: 0,
+            }}>
+              {t.label}{t.count !== undefined && t.count > 0 ? ` · ${t.count}` : ''}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Event filter (only for expenses + trail tabs) */}
+      {(subTab === 'expenses' || subTab === 'trail') && (
+        <div style={{ display: 'flex', gap: 6, padding: '0 20px 12px', overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any, borderBottom: `1px solid ${C.border}` }}>
+          {['All', ...session.events].map(ev => {
+            const active = activeEvent === ev;
+            return (
+              <button key={ev} onClick={() => setActiveEvent(ev)} style={{
+                padding: '5px 12px', borderRadius: 14, whiteSpace: 'nowrap' as const,
+                background: active ? C.goldSoft : 'transparent',
+                border: `1px solid ${active ? C.goldBorder : C.border}`,
+                color: active ? C.goldDeep : C.muted,
+                fontSize: 11, fontWeight: active ? 500 : 400,
+                fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', flexShrink: 0,
+              }}>{ev}</button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tab content */}
+      <div style={{ padding: '16px 20px' }}>
+
+        {/* EXPENSES TAB */}
+        {subTab === 'expenses' && (
+          <>
+            {loading ? (
+              <p style={{ fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', textAlign: 'center', padding: '32px 0' }}>
+                Loading…
+              </p>
+            ) : filteredExpenses.length === 0 ? (
+              <div style={{
+                background: C.ivory, border: `1px solid ${C.border}`,
+                borderRadius: 14, padding: '32px 20px', textAlign: 'center',
+              }}>
+                <PieChart size={28} color={C.goldBorder} style={{ marginBottom: 10 }} />
+                <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+                  {expenses.length === 0 ? 'No expenses yet.' : `No expenses for ${activeEvent}.`}
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px' }}>
+                  {canEditExpenses ? 'Tap + above to log your first one.' : 'Nothing tracked yet.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Event envelopes summary */}
+                {activeEvent === 'All' && session.events.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{
+                      fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: '2px',
+                      textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
+                    }}>By event</p>
+                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                      {session.events.map(ev => {
+                        const envAllocated = envelopes[ev] || 0;
+                        const envCommitted = eventCommitted(expenses, ev);
+                        const pct = envAllocated > 0 ? Math.min(100, (envCommitted / envAllocated) * 100) : 0;
+                        const over = envAllocated > 0 && envCommitted > envAllocated;
+                        return (
+                          <div key={ev} style={{
+                            background: C.ivory, border: `1px solid ${C.border}`,
+                            borderRadius: 10, padding: '10px 12px',
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>{ev}</span>
+                              <span style={{ fontSize: 12, color: over ? '#A33636' : C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: over ? 500 : 300 }}>
+                                {fmtINR(envCommitted)}{envAllocated > 0 ? ` / ${fmtINR(envAllocated)}` : ''}
+                              </span>
+                            </div>
+                            {envAllocated > 0 && (
+                              <div style={{ height: 3, background: C.cream, borderRadius: 1.5, marginTop: 6, overflow: 'hidden' as const }}>
+                                <div style={{
+                                  height: '100%', width: `${pct}%`,
+                                  background: over ? '#A33636' : C.gold,
+                                  transition: 'width 0.3s ease',
+                                }} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Expense list */}
+                <p style={{
+                  fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: '2px',
+                  textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
+                }}>All expenses</p>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+                  {filteredExpenses.map(exp => (
+                    <ExpenseRow
+                      key={exp.id}
+                      expense={exp}
+                      canEdit={canEditExpenses}
+                      onTap={() => setEditingExpense(exp)}
+                      onReceiptTap={() => exp.receipt_url ? setViewReceipt(exp) : setEditingExpense(exp)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* PAYMENT TRAIL TAB */}
+        {subTab === 'trail' && canSeeTrail && (
+          <>
+            {filteredTrail.length === 0 ? (
+              <div style={{
+                background: C.ivory, border: `1px solid ${C.border}`,
+                borderRadius: 14, padding: '32px 20px', textAlign: 'center',
+              }}>
+                <Paperclip size={28} color={C.goldBorder} style={{ marginBottom: 10 }} />
+                <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+                  No receipts yet.
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px' }}>
+                  Attach photos to your expenses and they'll show up here.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {filteredTrail.map(exp => (
+                  <button key={exp.id} onClick={() => setViewReceipt(exp)} style={{
+                    background: C.ivory, border: `1px solid ${C.border}`,
+                    borderRadius: 12, padding: 0, cursor: 'pointer',
+                    overflow: 'hidden' as const, textAlign: 'left' as const,
+                  }}>
+                    <div style={{
+                      width: '100%', aspectRatio: '1 / 1',
+                      backgroundImage: `url(${exp.receipt_url})`,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
+                      background: `${C.goldSoft} url(${exp.receipt_url}) center/cover no-repeat`,
+                    }} />
+                    <div style={{ padding: '8px 10px' }}>
+                      <p style={{ margin: 0, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                        {fmtINR(exp.actual_amount + exp.shadow_amount)}
+                      </p>
+                      <p style={{
+                        margin: '2px 0 0', fontSize: 10, color: C.muted,
+                        fontFamily: 'DM Sans, sans-serif', fontWeight: 300,
+                        overflow: 'hidden' as const, textOverflow: 'ellipsis' as const,
+                        whiteSpace: 'nowrap' as const,
+                      }}>
+                        {exp.vendor_name || exp.description || exp.category}
+                      </p>
+                      <p style={{
+                        margin: '2px 0 0', fontSize: 9, color: C.goldDeep,
+                        fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+                        letterSpacing: '0.5px', textTransform: 'uppercase' as const,
+                      }}>
+                        {exp.event}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* SHAGUN TAB */}
+        {subTab === 'shagun' && canSeeShagun && (
+          <>
+            {/* Shagun summary */}
+            {shagun.length > 0 && (
+              <div style={{
+                background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+              }}>
+                <p style={{
+                  margin: 0, fontSize: 11, color: C.goldDeep, fontWeight: 500,
+                  letterSpacing: '1px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+                }}>Total shagun received</p>
+                <p style={{
+                  margin: '4px 0 0', fontSize: 22, color: C.dark,
+                  fontFamily: 'Playfair Display, serif', fontWeight: 600,
+                }}>
+                  {fmtINRFull(shagun.reduce((sum, s) => sum + (s.amount || 0), 0))}
+                </p>
+                <p style={{
+                  margin: '4px 0 0', fontSize: 11, color: C.muted,
+                  fontFamily: 'DM Sans, sans-serif', fontWeight: 300,
+                }}>
+                  {shagun.length} {shagun.length === 1 ? 'entry' : 'entries'} · {shagun.filter(s => s.return_gift_sent).length} return gifts sent
+                </p>
+              </div>
+            )}
+
+            {shagun.length === 0 ? (
+              <div style={{
+                background: C.ivory, border: `1px solid ${C.border}`,
+                borderRadius: 14, padding: '32px 20px', textAlign: 'center',
+              }}>
+                <Gift size={28} color={C.goldBorder} style={{ marginBottom: 10 }} />
+                <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+                  No shagun tracked yet.
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px' }}>
+                  Log incoming cash envelopes and gifts so return-gift planning is painless later.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+                {shagun.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => canEditExpenses && setEditingShagun(s)}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
+                      background: C.ivory, border: `1px solid ${C.border}`,
+                      borderRadius: 12, padding: '12px 14px',
+                      cursor: canEditExpenses ? 'pointer' : 'default',
+                      textAlign: 'left' as const, width: '100%',
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 18,
+                      background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Gift size={15} color={C.gold} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                        <span style={{ fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const }}>
+                          {s.giver_name}
+                        </span>
+                        {s.amount > 0 && (
+                          <span style={{ fontSize: 13, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, flexShrink: 0 }}>
+                            {fmtINR(s.amount)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+                        {s.relation && (
+                          <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>{s.relation}</span>
+                        )}
+                        {s.event && (
+                          <>
+                            {s.relation && <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>}
+                            <span style={{ fontSize: 11, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '0.5px' }}>
+                              {s.event}
+                            </span>
+                          </>
+                        )}
+                        {s.gift_description && (
+                          <>
+                            <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+                            <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, fontStyle: 'italic' as const }}>
+                              {s.gift_description}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {s.return_gift_sent && (
+                        <p style={{ margin: '4px 0 0', fontSize: 10, color: '#2D6A2D', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                          ✓ Return gift sent
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Modals */}
+      {showAddExpense && (
+        <ExpenseEditor
+          session={session}
+          mode="add"
+          events={session.events}
+          defaultEvent={activeEvent === 'All' ? session.events[0] : activeEvent}
+          onClose={() => setShowAddExpense(false)}
+          onSave={async payload => {
+            await onAddExpense(payload);
+            setShowAddExpense(false);
+          }}
+        />
+      )}
+      {editingExpense && canEditExpenses && (
+        <ExpenseEditor
+          session={session}
+          mode="edit"
+          events={session.events}
+          expense={editingExpense}
+          defaultEvent={editingExpense.event}
+          onClose={() => setEditingExpense(null)}
+          onSave={async payload => {
+            await onUpdateExpense(editingExpense.id, payload);
+            setEditingExpense(null);
+          }}
+          onDelete={async () => {
+            await onDeleteExpense(editingExpense.id);
+            setEditingExpense(null);
+          }}
+        />
+      )}
+      {showAddShagun && (
+        <ShagunEditor
+          mode="add"
+          events={session.events}
+          onClose={() => setShowAddShagun(false)}
+          onSave={async payload => {
+            await onAddShagun(payload);
+            setShowAddShagun(false);
+          }}
+        />
+      )}
+      {editingShagun && canEditExpenses && (
+        <ShagunEditor
+          mode="edit"
+          events={session.events}
+          entry={editingShagun}
+          onClose={() => setEditingShagun(null)}
+          onSave={async payload => {
+            await onUpdateShagun(editingShagun.id, payload);
+            setEditingShagun(null);
+          }}
+          onDelete={async () => {
+            await onDeleteShagun(editingShagun.id);
+            setEditingShagun(null);
+          }}
+        />
+      )}
+      {showBudgetEditor && canEditExpenses && (
+        <BudgetEditor
+          budget={budget}
+          events={session.events}
+          expenses={expenses}
+          onClose={() => setShowBudgetEditor(false)}
+          onSave={async patch => {
+            await onUpdateBudget(patch);
+            setShowBudgetEditor(false);
+          }}
+        />
+      )}
+      {viewReceipt && (
+        <ReceiptViewer
+          expense={viewReceipt}
+          canEdit={canEditTrail}
+          onClose={() => setViewReceipt(null)}
+          onEdit={() => {
+            setEditingExpense(viewReceipt);
+            setViewReceipt(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Single expense row
+function ExpenseRow({ expense, canEdit: canEditRow, onTap, onReceiptTap }: {
+  expense: Expense; canEdit: boolean;
+  onTap: () => void; onReceiptTap: () => void;
+}) {
+  const amount = expense.actual_amount + expense.shadow_amount;
+  const statusColor: Record<string, string> = {
+    paid:    '#2D6A2D',
+    partial: '#8B6914',
+    pending: C.muted,
+  };
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'stretch', gap: 10,
+      background: C.ivory, border: `1px solid ${C.border}`,
+      borderRadius: 12, overflow: 'hidden' as const,
+    }}>
+      <button
+        onClick={canEditRow ? onTap : undefined}
+        style={{
+          flex: 1, minWidth: 0, background: 'none', border: 'none',
+          cursor: canEditRow ? 'pointer' : 'default',
+          padding: '12px 14px', textAlign: 'left' as const,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <span style={{
+            fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+            overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const,
+          }}>
+            {expense.description || expense.vendor_name || expense.category}
+          </span>
+          <span style={{ fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, flexShrink: 0 }}>
+            {fmtINR(amount)}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+          <span style={{
+            fontSize: 10, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif',
+            fontWeight: 500, letterSpacing: '0.5px',
+          }}>{expense.event.toUpperCase()}</span>
+          <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+          <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+            {expense.category}
+          </span>
+          <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+          <span style={{
+            fontSize: 11, color: statusColor[expense.payment_status] || C.muted,
+            fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+            textTransform: 'capitalize' as const,
+          }}>
+            {expense.payment_status}
+          </span>
+          {expense.shadow_amount > 0 && (
+            <>
+              <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+              <span style={{ fontSize: 11, color: '#8B6914', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                +{fmtINR(expense.shadow_amount)} shadow
+              </span>
+            </>
+          )}
+        </div>
+      </button>
+      <button
+        onClick={onReceiptTap}
+        style={{
+          width: 44, background: expense.receipt_url ? C.goldSoft : C.cream,
+          border: 'none', borderLeft: `1px solid ${C.border}`,
+          cursor: canEditRow || expense.receipt_url ? 'pointer' : 'default',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {expense.receipt_url
+          ? <ImageIcon size={16} color={C.gold} />
+          : <Paperclip size={15} color={C.mutedLight} />}
+      </button>
+    </div>
+  );
+}
+
+// Expense editor — covers add + edit, with receipt attachment
+function ExpenseEditor({
+  session, mode, events, expense, defaultEvent, onClose, onSave, onDelete,
+}: {
+  session: CoupleSession;
+  mode: 'add' | 'edit';
+  events: string[];
+  expense?: Expense;
+  defaultEvent: string;
+  onClose: () => void;
+  onSave: (payload: Partial<Expense>) => Promise<void>;
+  onDelete?: () => Promise<void>;
+}) {
+  const [description, setDescription] = useState(expense?.description || '');
+  const [vendorName, setVendorName]   = useState(expense?.vendor_name || '');
+  const [event, setEvent]             = useState(expense?.event || defaultEvent);
+  const [category, setCategory]       = useState(expense?.category || EXPENSE_CATEGORIES[0]);
+  const [actualAmount, setActualAmount] = useState(expense?.actual_amount ? String(expense.actual_amount) : '');
+  const [shadowAmount, setShadowAmount] = useState(expense?.shadow_amount ? String(expense.shadow_amount) : '');
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'partial' | 'pending'>(expense?.payment_status || 'pending');
+  const [notes, setNotes]             = useState(expense?.notes || '');
+  const [receiptUrl, setReceiptUrl]   = useState(expense?.receipt_url || '');
+  const [uploading, setUploading]     = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReceiptUpload = async (file: File) => {
+    setUploading(true); setUploadError('');
+    const url = await uploadReceipt(file);
+    if (url) {
+      setReceiptUrl(url);
+    } else {
+      setUploadError('Could not upload. Try again.');
+    }
+    setUploading(false);
+  };
+
+  const handleSave = async () => {
+    const actual = parseFloat(actualAmount) || 0;
+    const shadow = parseFloat(shadowAmount) || 0;
+    const payload: Partial<Expense> = {
+      event,
+      category,
+      description: description.trim() || null,
+      vendor_name: vendorName.trim() || null,
+      actual_amount: actual,
+      shadow_amount: shadow,
+      payment_status: paymentStatus,
+      notes: notes.trim() || null,
+    };
+    // Only set receipt fields if we have a URL or we're clearing
+    if (receiptUrl !== (expense?.receipt_url || '')) {
+      payload.receipt_url = receiptUrl || null;
+      if (receiptUrl && !expense?.receipt_url) {
+        payload.receipt_uploaded_by = session.id;
+        payload.receipt_uploaded_by_name = session.name;
+      } else if (!receiptUrl) {
+        payload.receipt_uploaded_by = null;
+        payload.receipt_uploaded_by_name = null;
+      }
+    }
+    await onSave(payload);
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '92vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <p style={{ margin: '0 0 16px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+          {mode === 'add' ? 'Add an expense' : 'Edit expense'}
+        </p>
+
+        {/* Amount — hero field */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Amount</label>
+        <div style={{ position: 'relative', marginBottom: 14 }}>
+          <span style={{
+            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 18, color: C.muted, fontFamily: 'Playfair Display, serif',
+          }}>₹</span>
+          <input
+            type="number" inputMode="decimal" value={actualAmount}
+            onChange={e => setActualAmount(e.target.value)}
+            placeholder="0"
+            style={{
+              width: '100%', boxSizing: 'border-box' as const,
+              padding: '14px 16px 14px 34px', borderRadius: 10,
+              border: `1px solid ${C.border}`, background: C.ivory,
+              fontFamily: 'Playfair Display, serif', fontSize: 20, color: C.dark, outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Shadow amount */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Shadow (tips, extras — optional)</label>
+        <div style={{ position: 'relative', marginBottom: 14 }}>
+          <span style={{
+            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 14, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          }}>₹</span>
+          <input
+            type="number" inputMode="decimal" value={shadowAmount}
+            onChange={e => setShadowAmount(e.target.value)}
+            placeholder="0"
+            style={{
+              width: '100%', boxSizing: 'border-box' as const,
+              padding: '10px 16px 10px 30px', borderRadius: 10,
+              border: `1px solid ${C.border}`, background: C.ivory,
+              fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: C.dark, outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Description */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>What's this for?</label>
+        <input
+          type="text" value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="e.g. Caterer advance"
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 16px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark,
+            outline: 'none', marginBottom: 14,
+          }}
+        />
+
+        {/* Vendor */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Vendor (optional)</label>
+        <input
+          type="text" value={vendorName}
+          onChange={e => setVendorName(e.target.value)}
+          placeholder="e.g. Madhu Caterers"
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 16px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark,
+            outline: 'none', marginBottom: 14,
+          }}
+        />
+
+        {/* Event chips */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Event</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          {events.map(ev => (
+            <button key={ev} onClick={() => setEvent(ev)} style={{
+              padding: '6px 12px', borderRadius: 16,
+              background: event === ev ? C.dark : C.ivory,
+              border: `1px solid ${event === ev ? C.dark : C.border}`,
+              color: event === ev ? C.gold : C.muted,
+              fontSize: 12, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}>{ev}</button>
+          ))}
+        </div>
+
+        {/* Category chips */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Category</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          {EXPENSE_CATEGORIES.map(cat => (
+            <button key={cat} onClick={() => setCategory(cat)} style={{
+              padding: '5px 11px', borderRadius: 14,
+              background: category === cat ? C.goldSoft : C.ivory,
+              border: `1px solid ${category === cat ? C.goldBorder : C.border}`,
+              color: category === cat ? C.goldDeep : C.muted,
+              fontSize: 11, fontWeight: category === cat ? 500 : 400,
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}>{cat}</button>
+          ))}
+        </div>
+
+        {/* Payment status */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Payment status</label>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {(['pending', 'partial', 'paid'] as const).map(s => (
+            <button key={s} onClick={() => setPaymentStatus(s)} style={{
+              flex: 1, padding: '10px 12px', borderRadius: 10,
+              background: paymentStatus === s ? C.dark : C.ivory,
+              border: `1px solid ${paymentStatus === s ? C.dark : C.border}`,
+              color: paymentStatus === s ? C.gold : C.muted,
+              fontSize: 13, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              textTransform: 'capitalize' as const,
+            }}>{s}</button>
+          ))}
+        </div>
+
+        {/* Receipt attachment */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Receipt (optional)</label>
+        <input
+          ref={fileInputRef}
+          type="file" accept="image/*" capture="environment"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleReceiptUpload(file);
+          }}
+        />
+        {receiptUrl ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            borderRadius: 10, padding: 10, marginBottom: 14,
+          }}>
+            <img src={receiptUrl} alt="Receipt" style={{
+              width: 48, height: 48, objectFit: 'cover' as const, borderRadius: 6,
+            }} />
+            <span style={{ flex: 1, fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>
+              Receipt attached
+            </span>
+            <button onClick={() => setReceiptUrl('')} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 6,
+            }}>
+              <X size={14} color={C.muted} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{
+              width: '100%', background: C.ivory, border: `1px dashed ${C.goldBorder}`,
+              borderRadius: 10, padding: '14px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              marginBottom: 14,
+            }}
+          >
+            <Camera size={16} color={C.gold} />
+            <span style={{ fontSize: 13, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              {uploading ? 'Uploading…' : 'Take photo or attach receipt'}
+            </span>
+          </button>
+        )}
+        {uploadError && <ErrorBanner msg={uploadError} />}
+
+        {/* Notes */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Notes (optional)</label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="Anything you want to remember about this…"
+          rows={2}
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '10px 14px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+            outline: 'none', marginBottom: 18, resize: 'vertical' as const,
+          }}
+        />
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {mode === 'edit' && onDelete && (
+            <button onClick={() => onDelete()} style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: '#FEF2F2', border: '1px solid #FECACA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}>
+              <Trash2 size={16} color="#B91C1C" />
+            </button>
+          )}
+          <div style={{ flex: 1 }}>
+            <GhostButton label="Cancel" onTap={onClose} />
+          </div>
+          <button onClick={handleSave} style={{
+            padding: '12px 24px', borderRadius: 12,
+            background: C.dark, border: 'none', cursor: 'pointer',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+          }}>
+            {mode === 'add' ? 'Add' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Shagun editor
+function ShagunEditor({ mode, events, entry, onClose, onSave, onDelete }: {
+  mode: 'add' | 'edit';
+  events: string[];
+  entry?: ShagunEntry;
+  onClose: () => void;
+  onSave: (payload: Partial<ShagunEntry>) => Promise<void>;
+  onDelete?: () => Promise<void>;
+}) {
+  const [giverName, setGiverName]       = useState(entry?.giver_name || '');
+  const [relation, setRelation]         = useState(entry?.relation || '');
+  const [event, setEvent]               = useState(entry?.event || '');
+  const [amount, setAmount]             = useState(entry?.amount ? String(entry.amount) : '');
+  const [giftDescription, setGiftDescription] = useState(entry?.gift_description || '');
+  const [returnGiftSent, setReturnGiftSent]   = useState(!!entry?.return_gift_sent);
+  const [notes, setNotes]               = useState(entry?.notes || '');
+
+  const handleSave = async () => {
+    if (!giverName.trim()) return;
+    await onSave({
+      giver_name: giverName.trim(),
+      relation: relation.trim() || null,
+      event: event || null,
+      amount: parseFloat(amount) || 0,
+      gift_description: giftDescription.trim() || null,
+      return_gift_sent: returnGiftSent,
+      notes: notes.trim() || null,
+    });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '90vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <p style={{ margin: '0 0 16px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+          {mode === 'add' ? 'Add shagun' : 'Edit shagun'}
+        </p>
+
+        <InputField label="Who gave it" value={giverName} onChange={setGiverName} placeholder="e.g. Sharma Uncle" />
+        <InputField label="Relation (optional)" value={relation} onChange={setRelation} placeholder="e.g. Mama, college friend" />
+
+        {/* Amount */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Amount (optional)</label>
+        <div style={{ position: 'relative', marginBottom: 14 }}>
+          <span style={{
+            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 16, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          }}>₹</span>
+          <input
+            type="number" inputMode="decimal" value={amount}
+            onChange={e => setAmount(e.target.value)}
+            placeholder="0"
+            style={{
+              width: '100%', boxSizing: 'border-box' as const,
+              padding: '12px 16px 12px 32px', borderRadius: 10,
+              border: `1px solid ${C.border}`, background: C.ivory,
+              fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark, outline: 'none',
+            }}
+          />
+        </div>
+
+        <InputField label="Gift description (optional)" value={giftDescription} onChange={setGiftDescription} placeholder="e.g. Silver diya set" />
+
+        {/* Event chips */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Event (optional)</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          <button onClick={() => setEvent('')} style={{
+            padding: '6px 12px', borderRadius: 16,
+            background: event === '' ? C.dark : C.ivory,
+            border: `1px solid ${event === '' ? C.dark : C.border}`,
+            color: event === '' ? C.gold : C.muted,
+            fontSize: 12, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+          }}>None</button>
+          {events.map(ev => (
+            <button key={ev} onClick={() => setEvent(ev)} style={{
+              padding: '6px 12px', borderRadius: 16,
+              background: event === ev ? C.dark : C.ivory,
+              border: `1px solid ${event === ev ? C.dark : C.border}`,
+              color: event === ev ? C.gold : C.muted,
+              fontSize: 12, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}>{ev}</button>
+          ))}
+        </div>
+
+        {/* Return gift toggle */}
+        <button
+          onClick={() => setReturnGiftSent(v => !v)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            background: returnGiftSent ? C.goldSoft : C.ivory,
+            border: `1px solid ${returnGiftSent ? C.goldBorder : C.border}`,
+            borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+            textAlign: 'left' as const, marginBottom: 14,
+          }}
+        >
+          <div style={{
+            width: 20, height: 20, borderRadius: 10, flexShrink: 0,
+            background: returnGiftSent ? C.gold : C.cream,
+            border: `1.5px solid ${C.goldBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {returnGiftSent && <Check size={12} color={C.cream} />}
+          </div>
+          <span style={{ fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>
+            Return gift sent
+          </span>
+        </button>
+
+        {/* Notes */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Notes (optional)</label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          rows={2}
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '10px 14px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+            outline: 'none', marginBottom: 18, resize: 'vertical' as const,
+          }}
+        />
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {mode === 'edit' && onDelete && (
+            <button onClick={() => onDelete()} style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: '#FEF2F2', border: '1px solid #FECACA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}>
+              <Trash2 size={16} color="#B91C1C" />
+            </button>
+          )}
+          <div style={{ flex: 1 }}>
+            <GhostButton label="Cancel" onTap={onClose} />
+          </div>
+          <button onClick={handleSave} disabled={!giverName.trim()} style={{
+            padding: '12px 24px', borderRadius: 12,
+            background: C.dark, border: 'none',
+            cursor: giverName.trim() ? 'pointer' : 'default',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+            opacity: giverName.trim() ? 1 : 0.4,
+          }}>
+            {mode === 'add' ? 'Add' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Budget setup modal — set total budget + event envelopes
+function BudgetEditor({ budget, events, expenses, onClose, onSave }: {
+  budget: CoupleBudget | null;
+  events: string[];
+  expenses: Expense[];
+  onClose: () => void;
+  onSave: (patch: { total_budget?: number; event_envelopes?: Record<string, number> }) => Promise<void>;
+}) {
+  const [total, setTotal] = useState(budget?.total_budget ? String(budget.total_budget) : '');
+  const [envs, setEnvs]   = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const ev of events) {
+      const v = budget?.event_envelopes?.[ev];
+      init[ev] = v ? String(v) : '';
+    }
+    return init;
+  });
+
+  const envSum = Object.values(envs).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  const totalNum = parseFloat(total) || 0;
+
+  const handleSave = async () => {
+    const envelopes: Record<string, number> = {};
+    for (const ev of events) {
+      const v = parseFloat(envs[ev] || '');
+      if (v > 0) envelopes[ev] = v;
+    }
+    await onSave({
+      total_budget: totalNum,
+      event_envelopes: envelopes,
+    });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '92vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <p style={{ margin: '0 0 4px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+          Your budget
+        </p>
+        <p style={{ margin: '0 0 18px', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+          Set your total budget and split it across events. You can edit any time.
+        </p>
+
+        {/* Total */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Total budget</label>
+        <div style={{ position: 'relative', marginBottom: 18 }}>
+          <span style={{
+            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 20, color: C.muted, fontFamily: 'Playfair Display, serif',
+          }}>₹</span>
+          <input
+            type="number" inputMode="decimal" value={total}
+            onChange={e => setTotal(e.target.value)}
+            placeholder="e.g. 1500000"
+            style={{
+              width: '100%', boxSizing: 'border-box' as const,
+              padding: '14px 16px 14px 36px', borderRadius: 10,
+              border: `1px solid ${C.goldBorder}`, background: C.goldSoft,
+              fontFamily: 'Playfair Display, serif', fontSize: 22, color: C.dark,
+              outline: 'none', fontWeight: 600,
+            }}
+          />
+        </div>
+
+        {/* Per-event envelopes */}
+        <p style={{
+          fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: '2px',
+          textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
+        }}>Per-event envelopes</p>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, marginBottom: 14 }}>
+          {events.map(ev => (
+            <div key={ev} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: C.ivory, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: '10px 12px',
+            }}>
+              <span style={{ flex: 1, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>{ev}</span>
+              <div style={{ position: 'relative', width: 140 }}>
+                <span style={{
+                  position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+                }}>₹</span>
+                <input
+                  type="number" inputMode="decimal"
+                  value={envs[ev] || ''}
+                  onChange={e => setEnvs(prev => ({ ...prev, [ev]: e.target.value }))}
+                  placeholder="0"
+                  style={{
+                    width: '100%', boxSizing: 'border-box' as const,
+                    padding: '8px 10px 8px 24px', borderRadius: 8,
+                    border: `1px solid ${C.border}`, background: C.cream,
+                    fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+                    outline: 'none', textAlign: 'right' as const,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Envelope vs total reconciliation */}
+        {totalNum > 0 && envSum > 0 && (
+          <div style={{
+            background: envSum > totalNum ? '#FEEAEA' : C.pearl,
+            border: `1px solid ${envSum > totalNum ? '#F0B8B8' : C.border}`,
+            borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+          }}>
+            <p style={{
+              margin: 0, fontSize: 12,
+              color: envSum > totalNum ? '#A33636' : C.muted,
+              fontFamily: 'DM Sans, sans-serif',
+            }}>
+              Envelopes total {fmtINR(envSum)} {envSum > totalNum ? '— over your budget by ' : 'of '}
+              <strong>{fmtINR(envSum > totalNum ? envSum - totalNum : totalNum)}</strong>
+            </p>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <GhostButton label="Cancel" onTap={onClose} />
+          </div>
+          <button onClick={handleSave} style={{
+            padding: '12px 24px', borderRadius: 12,
+            background: C.dark, border: 'none', cursor: 'pointer',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+          }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Receipt full-image viewer
+function ReceiptViewer({ expense, canEdit, onClose, onEdit }: {
+  expense: Expense;
+  canEdit: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  if (!expense.receipt_url) return null;
+  const amount = expense.actual_amount + expense.shadow_amount;
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.92)',
+        zIndex: 250, display: 'flex', flexDirection: 'column' as const,
+      }}
+      onClick={onClose}
+    >
+      {/* Header */}
+      <div style={{
+        padding: 'max(16px, env(safe-area-inset-top)) 20px 12px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <button onClick={onClose} style={{
+          width: 36, height: 36, borderRadius: 18,
+          background: 'rgba(255,255,255,0.15)', border: 'none',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <X size={16} color={C.cream} />
+        </button>
+        {canEdit && (
+          <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{
+            padding: '8px 14px', borderRadius: 18,
+            background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer',
+            fontSize: 12, color: C.cream, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+          }}>
+            Edit
+          </button>
+        )}
+      </div>
+
+      {/* Image */}
+      <div onClick={e => e.stopPropagation()} style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px',
+      }}>
+        <img
+          src={expense.receipt_url}
+          alt="Receipt"
+          style={{
+            maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' as const,
+            borderRadius: 8,
+          }}
+        />
+      </div>
+
+      {/* Info footer */}
+      <div onClick={e => e.stopPropagation()} style={{
+        padding: '16px 20px max(20px, env(safe-area-inset-bottom))',
+        background: 'rgba(44,36,32,0.9)', color: C.cream,
+      }}>
+        <p style={{ margin: 0, fontSize: 20, color: C.gold, fontFamily: 'Playfair Display, serif', fontWeight: 600 }}>
+          {fmtINRFull(amount)}
+        </p>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: C.cream, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+          {expense.description || expense.vendor_name || expense.category}
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+          <span style={{ fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '0.5px' }}>
+            {expense.event.toUpperCase()}
+          </span>
+          <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+          <span style={{ fontSize: 11, color: C.cream, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, opacity: 0.8 }}>
+            {expense.category}
+          </span>
+          {expense.receipt_uploaded_by_name && (
+            <>
+              <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+              <span style={{ fontSize: 11, color: C.cream, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, opacity: 0.7 }}>
+                Uploaded by {expense.receipt_uploaded_by_name}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // CIRCLE SCREEN
 // ─────────────────────────────────────────────────────────────
 
@@ -2076,7 +3701,24 @@ export default function CoupleApp() {
                 onBack={() => setActiveTool(null)}
               />
             )}
-            {activeTool && activeTool !== 'checklist' && (
+            {activeTool === 'budget' && (
+              <BudgetTool
+                session={session}
+                budget={checklist.budget}
+                expenses={checklist.expenses}
+                shagun={checklist.shagun}
+                loading={checklist.loading}
+                onUpdateBudget={checklist.updateBudget}
+                onAddExpense={checklist.addExpense}
+                onUpdateExpense={checklist.updateExpense}
+                onDeleteExpense={checklist.deleteExpense}
+                onAddShagun={checklist.addShagun}
+                onUpdateShagun={checklist.updateShagun}
+                onDeleteShagun={checklist.deleteShagun}
+                onBack={() => setActiveTool(null)}
+              />
+            )}
+            {activeTool && activeTool !== 'checklist' && activeTool !== 'budget' && (
               <ToolPlaceholder toolId={activeTool} session={session} onBack={() => setActiveTool(null)} />
             )}
             {!activeTool && activeTab === 'home' && (
@@ -2086,6 +3728,8 @@ export default function CoupleApp() {
                 tasks={checklist.tasks}
                 loading={checklist.loading}
                 onToggleComplete={checklist.toggleComplete}
+                budget={checklist.budget}
+                expenses={checklist.expenses}
               />
             )}
             {!activeTool && activeTab === 'plan' && (
@@ -2093,6 +3737,8 @@ export default function CoupleApp() {
                 session={session}
                 onToolOpen={id => setActiveTool(id)}
                 tasks={checklist.tasks}
+                budget={checklist.budget}
+                expenses={checklist.expenses}
               />
             )}
             {!activeTool && activeTab === 'circle' && (

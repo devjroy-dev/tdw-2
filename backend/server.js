@@ -4568,6 +4568,211 @@ app.delete('/api/couple/checklist/:taskId', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════
+// COUPLE V2 — Budget + Payment Trail + Shagun (Session 10 Turn 3)
+// Payment Trail is NOT a separate store — receipts live on each
+// expense row and are surfaced as a filtered view.
+// ══════════════════════════════════════════════════════════════
+
+// Get budget envelopes (auto-creates on first access)
+app.get('/api/couple/budget/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    const { data: existing } = await supabase
+      .from('couple_budget').select('*').eq('couple_id', coupleId).maybeSingle();
+    if (existing) return res.json({ success: true, data: existing });
+    // Create default row
+    const { data: created, error: cErr } = await supabase
+      .from('couple_budget')
+      .insert([{ couple_id: coupleId, total_budget: 0, event_envelopes: {} }])
+      .select().single();
+    if (cErr) throw cErr;
+    res.json({ success: true, data: created });
+  } catch (error) {
+    console.error('budget get error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update budget envelopes (total_budget + event_envelopes JSONB)
+app.patch('/api/couple/budget/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    const { total_budget, event_envelopes } = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    if (total_budget !== undefined) updates.total_budget = total_budget;
+    if (event_envelopes !== undefined) updates.event_envelopes = event_envelopes;
+    const { data, error } = await supabase
+      .from('couple_budget')
+      .update(updates)
+      .eq('couple_id', coupleId)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('budget update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// List expenses
+app.get('/api/couple/expenses/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    const { data, error } = await supabase
+      .from('couple_expenses')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('expenses list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create expense
+app.post('/api/couple/expenses', async (req, res) => {
+  try {
+    const {
+      couple_id, event, category, description, vendor_name,
+      planned_amount, actual_amount, shadow_amount,
+      payment_status, receipt_url, receipt_uploaded_by, receipt_uploaded_by_name, notes,
+    } = req.body || {};
+    if (!couple_id || !event || !category) {
+      return res.status(400).json({ success: false, error: 'couple_id, event, category required' });
+    }
+    const { data, error } = await supabase
+      .from('couple_expenses')
+      .insert([{
+        couple_id, event, category,
+        description: description || null,
+        vendor_name: vendor_name || null,
+        planned_amount: planned_amount || 0,
+        actual_amount: actual_amount || 0,
+        shadow_amount: shadow_amount || 0,
+        payment_status: payment_status || 'pending',
+        receipt_url: receipt_url || null,
+        receipt_uploaded_by: receipt_uploaded_by || null,
+        receipt_uploaded_by_name: receipt_uploaded_by_name || null,
+        notes: notes || null,
+      }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('expense create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update expense
+app.patch('/api/couple/expenses/:expenseId', async (req, res) => {
+  try {
+    const { expenseId } = req.params;
+    const updates = { ...(req.body || {}), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('couple_expenses')
+      .update(updates)
+      .eq('id', expenseId)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('expense update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete expense
+app.delete('/api/couple/expenses/:expenseId', async (req, res) => {
+  try {
+    const { expenseId } = req.params;
+    const { error } = await supabase
+      .from('couple_expenses').delete().eq('id', expenseId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('expense delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Shagun — list
+app.get('/api/couple/shagun/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    const { data, error } = await supabase
+      .from('couple_shagun')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('shagun list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Shagun — create
+app.post('/api/couple/shagun', async (req, res) => {
+  try {
+    const { couple_id, giver_name, relation, event, amount, gift_description, return_gift_sent, notes } = req.body || {};
+    if (!couple_id || !giver_name) {
+      return res.status(400).json({ success: false, error: 'couple_id and giver_name required' });
+    }
+    const { data, error } = await supabase
+      .from('couple_shagun')
+      .insert([{
+        couple_id, giver_name,
+        relation: relation || null,
+        event: event || null,
+        amount: amount || 0,
+        gift_description: gift_description || null,
+        return_gift_sent: !!return_gift_sent,
+        notes: notes || null,
+      }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('shagun create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Shagun — update
+app.patch('/api/couple/shagun/:shagunId', async (req, res) => {
+  try {
+    const { shagunId } = req.params;
+    const { data, error } = await supabase
+      .from('couple_shagun')
+      .update(req.body || {})
+      .eq('id', shagunId)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('shagun update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Shagun — delete
+app.delete('/api/couple/shagun/:shagunId', async (req, res) => {
+  try {
+    const { shagunId } = req.params;
+    const { error } = await supabase.from('couple_shagun').delete().eq('id', shagunId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('shagun delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ── Co-Planner System ──
 
 // Generate co-planner invite link
