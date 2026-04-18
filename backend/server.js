@@ -4773,6 +4773,101 @@ app.delete('/api/couple/shagun/:shagunId', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════
+// COUPLE V2 — Guest Ledger (Session 10 Turn 4)
+// Rich guests with Head-of-Family grouping + per-event RSVP.
+// ══════════════════════════════════════════════════════════════
+
+// List all guests for a couple
+app.get('/api/couple/guests/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    const { data, error } = await supabase
+      .from('couple_guests')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('guests list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create a guest
+app.post('/api/couple/guests', async (req, res) => {
+  try {
+    const {
+      couple_id, name, side, relation, phone, email,
+      household_count, is_household_head, household_head_id,
+      dietary, dietary_notes, event_invites, notes,
+      added_by, added_by_name,
+    } = req.body || {};
+    if (!couple_id || !name) {
+      return res.status(400).json({ success: false, error: 'couple_id and name required' });
+    }
+    const { data, error } = await supabase
+      .from('couple_guests')
+      .insert([{
+        couple_id,
+        name: name.trim(),
+        side: side || 'bride',
+        relation: relation || null,
+        phone: phone || null,
+        email: email || null,
+        household_count: household_count || 1,
+        is_household_head: !!is_household_head,
+        household_head_id: household_head_id || null,
+        dietary: dietary || null,
+        dietary_notes: dietary_notes || null,
+        event_invites: event_invites || {},
+        notes: notes || null,
+        added_by: added_by || null,
+        added_by_name: added_by_name || null,
+      }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('guests create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update a guest
+app.patch('/api/couple/guests/:guestId', async (req, res) => {
+  try {
+    const { guestId } = req.params;
+    const updates = { ...(req.body || {}), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('couple_guests')
+      .update(updates)
+      .eq('id', guestId)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('guests update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete a guest
+app.delete('/api/couple/guests/:guestId', async (req, res) => {
+  try {
+    const { guestId } = req.params;
+    // Un-link any household members first (set their household_head_id to null)
+    await supabase.from('couple_guests').update({ household_head_id: null }).eq('household_head_id', guestId);
+    const { error } = await supabase.from('couple_guests').delete().eq('id', guestId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('guests delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ── Co-Planner System ──
 
 // Generate co-planner invite link

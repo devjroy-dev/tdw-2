@@ -433,6 +433,104 @@ const HEALTH_COLORS: Record<HealthLevel, { bg: string; border: string; text: str
 };
 
 // ─────────────────────────────────────────────────────────────
+// GUEST LEDGER TYPES + HELPERS
+// ─────────────────────────────────────────────────────────────
+
+type GuestSide = 'bride' | 'groom';
+type Dietary = 'veg' | 'non-veg' | 'jain' | 'allergy' | null;
+type RSVPStatus = 'pending' | 'confirmed' | 'declined';
+
+interface EventInvite {
+  invited: boolean;
+  rsvp: RSVPStatus;
+}
+
+interface Guest {
+  id: string;
+  couple_id: string;
+  name: string;
+  side: GuestSide;
+  relation: string | null;
+  phone: string | null;
+  email: string | null;
+  household_count: number;
+  is_household_head: boolean;
+  household_head_id: string | null;
+  dietary: Dietary;
+  dietary_notes: string | null;
+  event_invites: Record<string, EventInvite>;
+  notes: string | null;
+  nudge_sent_at: string | null;
+  added_by: string | null;
+  added_by_name: string | null;
+  created_at: string;
+}
+
+const DIETARY_LABELS: Record<string, string> = {
+  'veg':     'Veg',
+  'non-veg': 'Non-veg',
+  'jain':    'Jain',
+  'allergy': 'Allergy',
+};
+
+// Headcount for a given event — counts household_count for each invited guest
+// who is a head or has no head (standalone). Non-head members are skipped so
+// families aren't double-counted.
+function eventHeadcount(guests: Guest[], event: string, filter?: 'confirmed' | 'pending' | 'declined' | 'invited'): number {
+  let count = 0;
+  for (const g of guests) {
+    // Skip non-head members of households — they're counted in their head's household_count
+    if (g.household_head_id && !g.is_household_head) continue;
+    const invite = g.event_invites?.[event];
+    if (!invite?.invited) continue;
+    if (filter === 'confirmed' && invite.rsvp !== 'confirmed') continue;
+    if (filter === 'pending'   && invite.rsvp !== 'pending')   continue;
+    if (filter === 'declined'  && invite.rsvp !== 'declined')  continue;
+    count += (g.household_count || 1);
+  }
+  return count;
+}
+
+// Total headcount across all events (= confirmed on ANY event)
+function totalConfirmed(guests: Guest[], events: string[]): number {
+  let count = 0;
+  for (const g of guests) {
+    if (g.household_head_id && !g.is_household_head) continue;
+    const anyConfirmed = events.some(ev => g.event_invites?.[ev]?.rsvp === 'confirmed');
+    if (anyConfirmed) count += (g.household_count || 1);
+  }
+  return count;
+}
+
+// Pending nudges — guests with at least one pending RSVP on an invited event
+function pendingNudgeCount(guests: Guest[]): number {
+  return guests.filter(g => {
+    if (g.household_head_id && !g.is_household_head) return false;
+    return Object.values(g.event_invites || {}).some(inv => inv.invited && inv.rsvp === 'pending');
+  }).length;
+}
+
+// Total guests (heads + standalone, counting household sizes)
+function totalGuestCount(guests: Guest[]): { headcount: number; households: number } {
+  let headcount = 0;
+  let households = 0;
+  for (const g of guests) {
+    if (g.household_head_id && !g.is_household_head) continue;
+    headcount += (g.household_count || 1);
+    households += 1;
+  }
+  return { headcount, households };
+}
+
+function buildWhatsAppNudge(bride: string, groom: string, guest: Guest, events: string[], weddingDate: string): string {
+  const pendingEvents = events.filter(ev => guest.event_invites?.[ev]?.invited && guest.event_invites?.[ev]?.rsvp === 'pending');
+  const evList = pendingEvents.length > 0 ? pendingEvents.join(', ') : 'our wedding';
+  const dateStr = weddingDate ? new Date(weddingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const coupleStr = groom ? `${bride} and ${groom}` : bride;
+  return `Hi ${guest.name}! 💛 Just a gentle reminder — ${coupleStr} would love to have you at ${evList}${dateStr ? ` on ${dateStr}` : ''}. Could you let us know if you'll be able to join? 🙏`;
+}
+
+// ─────────────────────────────────────────────────────────────
 // SHARED UI
 // ─────────────────────────────────────────────────────────────
 
@@ -524,6 +622,7 @@ function useCoupleData(session: CoupleSession | null) {
   const [budget, setBudget] = useState<CoupleBudget | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [shagun, setShagun] = useState<ShagunEntry[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeded, setSeeded] = useState(false);
 
@@ -561,12 +660,13 @@ function useCoupleData(session: CoupleSession | null) {
         const userD = await userRes.json();
         const alreadySeeded = !!userD?.data?.checklist_seeded;
 
-        // Parallel load: checklist, budget, expenses, shagun
-        const [checklistRes, budgetRes, expensesRes, shagunRes] = await Promise.all([
+        // Parallel load: checklist, budget, expenses, shagun, guests
+        const [checklistRes, budgetRes, expensesRes, shagunRes, guestsRes] = await Promise.all([
           fetch(`${API}/api/couple/checklist/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/budget/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/expenses/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/shagun/${session.id}`).then(r => r.json()),
+          fetch(`${API}/api/couple/guests/${session.id}`).then(r => r.json()),
         ]);
 
         const existing: ChecklistTask[] = checklistRes.success ? (checklistRes.data || []) : [];
@@ -592,6 +692,7 @@ function useCoupleData(session: CoupleSession | null) {
         if (mounted && budgetRes.success)   setBudget(budgetRes.data);
         if (mounted && expensesRes.success) setExpenses(expensesRes.data || []);
         if (mounted && shagunRes.success)   setShagun(shagunRes.data || []);
+        if (mounted && guestsRes.success)   setGuests(guestsRes.data || []);
       } catch (e) {
         // Network failure — fall through silently
       }
@@ -736,11 +837,59 @@ function useCoupleData(session: CoupleSession | null) {
     } catch {}
   };
 
+  // ── Guest mutations ─────────────────────────────────────────
+
+  const addGuest = async (payload: Partial<Guest>) => {
+    if (!session?.id) return null;
+    try {
+      const res = await fetch(`${API}/api/couple/guests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          couple_id: session.id,
+          added_by: session.id,
+          added_by_name: session.name,
+        }),
+      });
+      const d = await res.json();
+      if (d.success && d.data) {
+        setGuests(prev => [...prev, d.data]);
+        return d.data as Guest;
+      }
+    } catch {}
+    return null;
+  };
+
+  const updateGuest = async (id: string, patch: Partial<Guest>) => {
+    setGuests(prev => prev.map(g => g.id === id ? { ...g, ...patch } as Guest : g));
+    try {
+      const res = await fetch(`${API}/api/couple/guests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const d = await res.json();
+      if (d.success && d.data) setGuests(prev => prev.map(g => g.id === id ? d.data : g));
+    } catch {}
+  };
+
+  const deleteGuest = async (id: string) => {
+    // Un-link any household members client-side (backend does same)
+    setGuests(prev => prev
+      .filter(g => g.id !== id)
+      .map(g => g.household_head_id === id ? { ...g, household_head_id: null } : g));
+    try {
+      await fetch(`${API}/api/couple/guests/${id}`, { method: 'DELETE' });
+    } catch {}
+  };
+
   return {
     tasks, loading, seeded, refreshTasks, toggleComplete, updateTask, deleteTask, addTask,
     budget, expenses, shagun, refreshBudget,
     updateBudget, addExpense, updateExpense, deleteExpense,
     addShagun, updateShagun, deleteShagun,
+    guests, addGuest, updateGuest, deleteGuest,
   };
 }
 
@@ -939,7 +1088,7 @@ function DiscoverTeaser({ session }: { session: CoupleSession | null }) {
 // HOME SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget, expenses }: {
+function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget, expenses, guests }: {
   session: CoupleSession;
   onNavTo: (tab: MainTab, tool?: string) => void;
   tasks: ChecklistTask[];
@@ -947,6 +1096,7 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
   onToggleComplete: (id: string, next: boolean) => void;
   budget: CoupleBudget | null;
   expenses: Expense[];
+  guests: Guest[];
 }) {
   const days = daysToGo(session.weddingDate);
   const copy = getGreetingCopy(session.name?.split(' ')[0] || '', days);
@@ -956,6 +1106,9 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
   const totalBudget = budget?.total_budget || 0;
   const health = getBudgetHealth(totalBudget, committed);
   const healthColor = HEALTH_COLORS[health];
+  const guestTotal = totalGuestCount(guests);
+  const guestConfirmed = totalConfirmed(guests, session.events);
+  const guestPending = pendingNudgeCount(guests);
 
   return (
     <div style={{ padding: '72px 24px 100px' }}>
@@ -1134,23 +1287,37 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
           <ChevronRight size={14} color={C.mutedLight} style={{ marginLeft: 8, flexShrink: 0 }} />
         </button>
 
-        {/* Guests + Vendors still placeholders until Turn 4/6 */}
-        {[
-          { label: 'Guests',  sub: 'Add guests to track confirmations',       tool: 'guests'  as const },
-          { label: 'Vendors', sub: 'Log your vendors to track confirmations', tool: 'vendors' as const },
-        ].map(item => (
-          <button key={item.tool} onClick={() => onNavTo('plan', item.tool)} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`,
-            padding: '14px 16px', cursor: 'pointer', textAlign: 'left' as const,
-          }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>{item.label}</p>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>{item.sub}</p>
-            </div>
-            <ChevronRight size={14} color={C.mutedLight} />
-          </button>
-        ))}
+        {/* Guests tile — live */}
+        <button onClick={() => onNavTo('plan', 'guests')} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`,
+          padding: '14px 16px', cursor: 'pointer', textAlign: 'left' as const,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>Guests</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {guestTotal.headcount > 0
+                ? `${guestTotal.headcount} guests · ${guestConfirmed} confirmed${guestPending > 0 ? ` · ${guestPending} pending` : ''}`
+                : 'Add guests to track confirmations'}
+            </p>
+          </div>
+          <ChevronRight size={14} color={C.mutedLight} style={{ flexShrink: 0 }} />
+        </button>
+
+        {/* Vendors tile — still placeholder until Turn 6 */}
+        <button onClick={() => onNavTo('plan', 'vendors')} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`,
+          padding: '14px 16px', cursor: 'pointer', textAlign: 'left' as const,
+        }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>Vendors</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              Log your vendors to track confirmations
+            </p>
+          </div>
+          <ChevronRight size={14} color={C.mutedLight} />
+        </button>
       </div>
 
       {/* Events ribbon */}
@@ -1211,25 +1378,30 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
 // MY WEDDING SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses }: {
+function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses, guests }: {
   session: CoupleSession;
   onToolOpen: (id: string) => void;
   tasks: ChecklistTask[];
   budget: CoupleBudget | null;
   expenses: Expense[];
+  guests: Guest[];
 }) {
   const days = daysToGo(session.weddingDate);
   const progress = getChecklistProgress(tasks);
   const committed = totalCommitted(expenses);
   const totalBudget = budget?.total_budget || 0;
   const budgetHealth = getBudgetHealth(totalBudget, committed);
+  const guestTotal = totalGuestCount(guests);
+  const guestConfirmed = totalConfirmed(guests, session.events);
 
   const progressLabels: Record<string, string> = {
     checklist: progress.total > 0 ? `${progress.done} of ${progress.total} done` : 'Tasks across all your events',
     budget: totalBudget > 0
       ? `${fmtINR(committed)} of ${fmtINR(totalBudget)} · ${HEALTH_COLORS[budgetHealth].label}`
       : 'Envelopes, expenses, Payment Trail',
-    guests:    "Who's coming to what",
+    guests: guestTotal.headcount > 0
+      ? `${guestTotal.headcount} guests · ${guestConfirmed} confirmed`
+      : "Who's coming to what",
     moodboard: 'Per-event inspiration boards',
     vendors:   'Booked, confirmed, paid',
   };
@@ -3161,6 +3333,666 @@ function ReceiptViewer({ expense, canEdit, onClose, onEdit }: {
 }
 
 // ─────────────────────────────────────────────────────────────
+// GUEST LEDGER TOOL
+// Sticky header with headcount. Filter chips for side + RSVP.
+// Per-event invite matrix inside the editor.
+// Multi-level household management: one person RSVPs for many.
+// ─────────────────────────────────────────────────────────────
+
+type GuestFilter = 'all' | 'bride' | 'groom' | 'pending' | 'confirmed' | 'declined';
+
+function GuestTool({
+  session, guests, loading,
+  onAdd, onUpdate, onDelete, onBack,
+}: {
+  session: CoupleSession;
+  guests: Guest[];
+  loading: boolean;
+  onAdd: (payload: Partial<Guest>) => Promise<Guest | null>;
+  onUpdate: (id: string, patch: Partial<Guest>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onBack: () => void;
+}) {
+  const [filter, setFilter] = useState<GuestFilter>('all');
+  const [activeEvent, setActiveEvent] = useState<string>('All');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+
+  const canEditTool = canEdit(session.coShareRole, 'guests');
+
+  const total = totalGuestCount(guests);
+  const pendingNudges = pendingNudgeCount(guests);
+  const confirmed = totalConfirmed(guests, session.events);
+
+  // Filter logic
+  const filteredGuests = guests.filter(g => {
+    // Never show non-head household members in the main list
+    if (g.household_head_id && !g.is_household_head) return false;
+
+    // Event filter
+    if (activeEvent !== 'All') {
+      const invite = g.event_invites?.[activeEvent];
+      if (!invite?.invited) return false;
+    }
+
+    // Status filter
+    if (filter === 'bride') return g.side === 'bride';
+    if (filter === 'groom') return g.side === 'groom';
+    if (filter === 'pending' || filter === 'confirmed' || filter === 'declined') {
+      const invites = Object.values(g.event_invites || {});
+      if (invites.length === 0) return filter === 'pending';
+      if (filter === 'pending')   return invites.some(i => i.invited && i.rsvp === 'pending');
+      if (filter === 'confirmed') return invites.some(i => i.invited && i.rsvp === 'confirmed');
+      if (filter === 'declined')  return invites.some(i => i.invited && i.rsvp === 'declined');
+    }
+    return true;
+  });
+
+  return (
+    <div style={{ padding: '0 0 120px' }}>
+
+      {/* Sticky header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '72px 20px 16px', background: C.cream,
+        position: 'sticky' as const, top: 0, zIndex: 30,
+        borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.ivory,
+            border: `1px solid ${C.border}`, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <ChevronRight size={16} color={C.dark} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <div>
+            <p style={{ margin: 0, fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              Guest Ledger
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {total.headcount > 0
+                ? `${total.headcount} guests · ${confirmed} confirmed · ${pendingNudges} pending`
+                : 'Your people, all in one place'}
+            </p>
+          </div>
+        </div>
+        {canEditTool && (
+          <button onClick={() => setShowAdd(true)} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.dark,
+            border: 'none', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Plus size={16} color={C.gold} />
+          </button>
+        )}
+      </div>
+
+      {/* Per-event headcount summary (only if guests exist) */}
+      {guests.length > 0 && session.events.length > 0 && (
+        <div style={{
+          display: 'flex', gap: 8, padding: '14px 20px',
+          overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any,
+        }}>
+          {session.events.map(ev => {
+            const confirmedCount = eventHeadcount(guests, ev, 'confirmed');
+            const invitedCount   = eventHeadcount(guests, ev, 'invited');
+            return (
+              <div key={ev} style={{
+                flexShrink: 0, background: C.ivory, border: `1px solid ${C.border}`,
+                borderRadius: 12, padding: '10px 14px', minWidth: 96,
+              }}>
+                <p style={{
+                  margin: 0, fontSize: 9, color: C.goldDeep, fontWeight: 500,
+                  letterSpacing: '0.5px', textTransform: 'uppercase' as const,
+                  fontFamily: 'DM Sans, sans-serif',
+                }}>{ev}</p>
+                <p style={{
+                  margin: '4px 0 0', fontSize: 20, color: C.dark,
+                  fontFamily: 'Playfair Display, serif', fontWeight: 600, lineHeight: '22px',
+                }}>{confirmedCount}</p>
+                <p style={{
+                  margin: '2px 0 0', fontSize: 10, color: C.muted,
+                  fontFamily: 'DM Sans, sans-serif', fontWeight: 300,
+                }}>of {invitedCount} invited</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Filter chips */}
+      <div style={{
+        display: 'flex', gap: 6, padding: '0 20px 12px',
+        overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any,
+      }}>
+        {([
+          ['all',       'All'],
+          ['bride',     "Bride's side"],
+          ['groom',     "Groom's side"],
+          ['pending',   'Pending'],
+          ['confirmed', 'Confirmed'],
+          ['declined',  'Declined'],
+        ] as [GuestFilter, string][]).map(([f, label]) => (
+          <button key={f} onClick={() => setFilter(f)} style={{
+            padding: '6px 14px', borderRadius: 18, whiteSpace: 'nowrap' as const,
+            background: filter === f ? C.dark : C.ivory,
+            border: `1px solid ${filter === f ? C.dark : C.border}`,
+            color: filter === f ? C.gold : C.muted,
+            fontSize: 12, fontWeight: filter === f ? 500 : 400,
+            fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', flexShrink: 0,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Event filter */}
+      {guests.length > 0 && (
+        <div style={{
+          display: 'flex', gap: 6, padding: '0 20px 12px',
+          overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any,
+          borderBottom: `1px solid ${C.border}`,
+        }}>
+          {['All', ...session.events].map(ev => {
+            const active = activeEvent === ev;
+            return (
+              <button key={ev} onClick={() => setActiveEvent(ev)} style={{
+                padding: '5px 12px', borderRadius: 14, whiteSpace: 'nowrap' as const,
+                background: active ? C.goldSoft : 'transparent',
+                border: `1px solid ${active ? C.goldBorder : C.border}`,
+                color: active ? C.goldDeep : C.muted,
+                fontSize: 11, fontWeight: active ? 500 : 400,
+                fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', flexShrink: 0,
+              }}>{ev}</button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Guest list */}
+      <div style={{ padding: '16px 20px' }}>
+        {loading ? (
+          <p style={{ fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', textAlign: 'center', padding: '32px 0' }}>
+            Loading…
+          </p>
+        ) : guests.length === 0 ? (
+          <div style={{
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 14, padding: '32px 20px', textAlign: 'center',
+          }}>
+            <Users size={28} color={C.goldBorder} style={{ marginBottom: 10 }} />
+            <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              No guests yet.
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px' }}>
+              {canEditTool
+                ? 'Start with the people you\u2019re most excited to have there.'
+                : 'Nothing tracked yet.'}
+            </p>
+          </div>
+        ) : filteredGuests.length === 0 ? (
+          <div style={{
+            background: C.pearl, border: `1px solid ${C.border}`,
+            borderRadius: 12, padding: '20px', textAlign: 'center',
+          }}>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              No matches for this filter.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            {filteredGuests.map(g => (
+              <GuestRow
+                key={g.id}
+                guest={g}
+                events={session.events}
+                canEdit={canEditTool}
+                onTap={() => setEditingGuest(g)}
+                onNudge={async () => {
+                  const msg = buildWhatsAppNudge(session.name, session.partnerName, g, session.events, session.weddingDate);
+                  const phone = (g.phone || '').replace(/\D/g, '');
+                  if (!phone) return;
+                  await onUpdate(g.id, { nudge_sent_at: new Date().toISOString() });
+                  window.open(`https://wa.me/${phone.length > 10 ? phone : '91' + phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      {showAdd && (
+        <GuestEditor
+          mode="add"
+          events={session.events}
+          onClose={() => setShowAdd(false)}
+          onSave={async payload => {
+            await onAdd(payload);
+            setShowAdd(false);
+          }}
+        />
+      )}
+      {editingGuest && canEditTool && (
+        <GuestEditor
+          mode="edit"
+          events={session.events}
+          guest={editingGuest}
+          onClose={() => setEditingGuest(null)}
+          onSave={async payload => {
+            await onUpdate(editingGuest.id, payload);
+            setEditingGuest(null);
+          }}
+          onDelete={async () => {
+            await onDelete(editingGuest.id);
+            setEditingGuest(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Single guest row
+function GuestRow({ guest, events, canEdit: canEditRow, onTap, onNudge }: {
+  guest: Guest; events: string[]; canEdit: boolean;
+  onTap: () => void; onNudge: () => void;
+}) {
+  const invites = guest.event_invites || {};
+  const invitedEvents = events.filter(ev => invites[ev]?.invited);
+  const pendingCount = invitedEvents.filter(ev => invites[ev]?.rsvp === 'pending').length;
+  const confirmedCount = invitedEvents.filter(ev => invites[ev]?.rsvp === 'confirmed').length;
+  const declinedCount = invitedEvents.filter(ev => invites[ev]?.rsvp === 'declined').length;
+
+  const sideColor = guest.side === 'bride' ? '#B8629E' : '#5A8CA8';
+  const hasPhone = !!(guest.phone && guest.phone.replace(/\D/g, '').length >= 10);
+  const canNudge = hasPhone && pendingCount > 0 && canEditRow;
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'stretch', gap: 0,
+      background: C.ivory, border: `1px solid ${C.border}`,
+      borderRadius: 12, overflow: 'hidden' as const,
+    }}>
+      <button
+        onClick={canEditRow ? onTap : undefined}
+        style={{
+          flex: 1, minWidth: 0, background: 'none', border: 'none',
+          cursor: canEditRow ? 'pointer' : 'default',
+          padding: '12px 14px', textAlign: 'left' as const,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <span style={{
+            fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+            overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const,
+          }}>
+            {guest.name}
+          </span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+            {guest.household_count > 1 && (
+              <span style={{
+                fontSize: 10, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 500, background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                borderRadius: 8, padding: '1px 5px',
+              }}>
+                +{guest.household_count - 1}
+              </span>
+            )}
+            <span style={{
+              width: 6, height: 6, borderRadius: 3, background: sideColor, display: 'inline-block' as const,
+            }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+          {guest.relation && (
+            <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {guest.relation}
+            </span>
+          )}
+          {guest.dietary && (
+            <>
+              {guest.relation && <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>}
+              <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                {DIETARY_LABELS[guest.dietary] || ''}
+              </span>
+            </>
+          )}
+          {invitedEvents.length > 0 && (
+            <>
+              {(guest.relation || guest.dietary) && <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>}
+              <span style={{ fontSize: 11, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                {invitedEvents.length} event{invitedEvents.length !== 1 ? 's' : ''}
+              </span>
+            </>
+          )}
+        </div>
+        {/* RSVP mini-summary */}
+        {invitedEvents.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+            {confirmedCount > 0 && (
+              <span style={{
+                fontSize: 10, color: '#2D6A2D', fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+              }}>
+                ✓ {confirmedCount}
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <span style={{
+                fontSize: 10, color: '#8B6914', fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+              }}>
+                ⋯ {pendingCount} pending
+              </span>
+            )}
+            {declinedCount > 0 && (
+              <span style={{
+                fontSize: 10, color: '#A33636', fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+              }}>
+                ✗ {declinedCount}
+              </span>
+            )}
+          </div>
+        )}
+      </button>
+      {canNudge && (
+        <button
+          onClick={onNudge}
+          style={{
+            width: 44, background: C.goldSoft,
+            border: 'none', borderLeft: `1px solid ${C.border}`,
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Phone size={15} color={C.gold} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Guest add/edit modal
+function GuestEditor({ mode, events, guest, onClose, onSave, onDelete }: {
+  mode: 'add' | 'edit';
+  events: string[];
+  guest?: Guest;
+  onClose: () => void;
+  onSave: (payload: Partial<Guest>) => Promise<void>;
+  onDelete?: () => Promise<void>;
+}) {
+  const [name, setName]         = useState(guest?.name || '');
+  const [side, setSide]         = useState<GuestSide>(guest?.side || 'bride');
+  const [relation, setRelation] = useState(guest?.relation || '');
+  const [phone, setPhone]       = useState(guest?.phone || '');
+  const [householdCount, setHouseholdCount] = useState(guest?.household_count || 1);
+  const [dietary, setDietary]   = useState<Dietary>(guest?.dietary || null);
+  const [dietaryNotes, setDietaryNotes] = useState(guest?.dietary_notes || '');
+  const [notes, setNotes]       = useState(guest?.notes || '');
+
+  // event_invites state — initialised per event
+  const [invites, setInvites] = useState<Record<string, EventInvite>>(() => {
+    const init: Record<string, EventInvite> = {};
+    for (const ev of events) {
+      const existing = guest?.event_invites?.[ev];
+      init[ev] = existing || { invited: true, rsvp: 'pending' };
+    }
+    return init;
+  });
+
+  const setInviteForEvent = (ev: string, patch: Partial<EventInvite>) => {
+    setInvites(prev => ({ ...prev, [ev]: { ...prev[ev], ...patch } }));
+  };
+
+  const inviteAllEvents = () => {
+    const next: Record<string, EventInvite> = {};
+    for (const ev of events) next[ev] = { invited: true, rsvp: invites[ev]?.rsvp || 'pending' };
+    setInvites(next);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    await onSave({
+      name: name.trim(),
+      side,
+      relation: relation.trim() || null,
+      phone: phone.trim() || null,
+      household_count: householdCount,
+      is_household_head: householdCount > 1,
+      dietary: dietary || null,
+      dietary_notes: dietaryNotes.trim() || null,
+      event_invites: invites,
+      notes: notes.trim() || null,
+    });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '92vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <p style={{ margin: '0 0 16px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+          {mode === 'add' ? 'Add a guest' : 'Edit guest'}
+        </p>
+
+        {/* Name */}
+        <InputField label="Name" value={name} onChange={setName} placeholder="e.g. Sharma Mama" />
+
+        {/* Side toggle */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Side</label>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {(['bride', 'groom'] as GuestSide[]).map(s => (
+            <button key={s} onClick={() => setSide(s)} style={{
+              flex: 1, padding: '10px 12px', borderRadius: 10,
+              background: side === s ? C.dark : C.ivory,
+              border: `1px solid ${side === s ? C.dark : C.border}`,
+              color: side === s ? C.gold : C.muted,
+              fontSize: 13, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              textTransform: 'capitalize' as const,
+            }}>{s}'s side</button>
+          ))}
+        </div>
+
+        <InputField label="Relation (optional)" value={relation} onChange={setRelation} placeholder="e.g. Mama, College friend" />
+        <InputField label="Phone (for WhatsApp nudge)" value={phone} onChange={setPhone} type="tel" placeholder="+91 98765 43210" />
+
+        {/* Household count */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Household size (incl. this person)</label>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 10, padding: '10px 14px', marginBottom: 14,
+        }}>
+          <button
+            onClick={() => setHouseholdCount(Math.max(1, householdCount - 1))}
+            style={{
+              width: 32, height: 32, borderRadius: 16,
+              background: C.cream, border: `1px solid ${C.border}`, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: C.dark, fontSize: 16, fontFamily: 'DM Sans, sans-serif',
+            }}
+          >−</button>
+          <div style={{ flex: 1, textAlign: 'center' as const }}>
+            <p style={{ margin: 0, fontSize: 20, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 600 }}>
+              {householdCount}
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {householdCount === 1 ? 'Just this person' : `Including ${householdCount - 1} other${householdCount > 2 ? 's' : ''}`}
+            </p>
+          </div>
+          <button
+            onClick={() => setHouseholdCount(householdCount + 1)}
+            style={{
+              width: 32, height: 32, borderRadius: 16,
+              background: C.dark, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: C.gold, fontSize: 16, fontFamily: 'DM Sans, sans-serif',
+            }}
+          >+</button>
+        </div>
+
+        {/* Dietary */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Dietary preference (optional)</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          {(['veg', 'non-veg', 'jain', 'allergy'] as const).map(d => (
+            <button key={d} onClick={() => setDietary(dietary === d ? null : d)} style={{
+              padding: '6px 12px', borderRadius: 16,
+              background: dietary === d ? C.goldSoft : C.ivory,
+              border: `1px solid ${dietary === d ? C.goldBorder : C.border}`,
+              color: dietary === d ? C.goldDeep : C.muted,
+              fontSize: 12, fontWeight: dietary === d ? 500 : 400,
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}>{DIETARY_LABELS[d]}</button>
+          ))}
+        </div>
+        {dietary === 'allergy' && (
+          <InputField label="Allergy details" value={dietaryNotes} onChange={setDietaryNotes} placeholder="e.g. Nuts, dairy" />
+        )}
+
+        {/* Event invites matrix */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8,
+        }}>
+          <label style={{
+            fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+            fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const,
+          }}>Events + RSVP</label>
+          <button onClick={inviteAllEvents} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: C.gold, fontSize: 11, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+            padding: '2px 0',
+          }}>Invite to all</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 14 }}>
+          {events.map(ev => {
+            const inv = invites[ev] || { invited: false, rsvp: 'pending' as RSVPStatus };
+            return (
+              <div key={ev} style={{
+                background: C.ivory, border: `1px solid ${C.border}`,
+                borderRadius: 10, padding: '10px 12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: inv.invited ? 8 : 0 }}>
+                  <button
+                    onClick={() => setInviteForEvent(ev, { invited: !inv.invited })}
+                    style={{
+                      width: 22, height: 22, borderRadius: 11,
+                      background: inv.invited ? C.gold : C.cream,
+                      border: `1.5px solid ${C.goldBorder}`,
+                      cursor: 'pointer', padding: 0, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    {inv.invited && <Check size={12} color={C.cream} />}
+                  </button>
+                  <span style={{ flex: 1, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>
+                    {ev}
+                  </span>
+                </div>
+                {inv.invited && (
+                  <div style={{ display: 'flex', gap: 4, paddingLeft: 32 }}>
+                    {(['pending', 'confirmed', 'declined'] as RSVPStatus[]).map(s => {
+                      const active = inv.rsvp === s;
+                      const colors = {
+                        pending:   { active: '#8B6914', bg: '#FFF8E1' },
+                        confirmed: { active: '#2D6A2D', bg: '#EBF5EB' },
+                        declined:  { active: '#A33636', bg: '#FEEAEA' },
+                      }[s];
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setInviteForEvent(ev, { rsvp: s })}
+                          style={{
+                            flex: 1, padding: '5px 8px', borderRadius: 8,
+                            background: active ? colors.bg : C.cream,
+                            border: `1px solid ${active ? colors.active : C.border}`,
+                            color: active ? colors.active : C.muted,
+                            fontSize: 11, fontWeight: active ? 500 : 400,
+                            fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+                            textTransform: 'capitalize' as const,
+                          }}
+                        >{s}</button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Notes */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Notes (optional)</label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="e.g. Must sit near AC, needs wheelchair, don't seat near Taya-ji"
+          rows={2}
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '10px 14px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+            outline: 'none', marginBottom: 18, resize: 'vertical' as const,
+          }}
+        />
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {mode === 'edit' && onDelete && (
+            <button onClick={() => onDelete()} style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: '#FEF2F2', border: '1px solid #FECACA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}>
+              <Trash2 size={16} color="#B91C1C" />
+            </button>
+          )}
+          <div style={{ flex: 1 }}>
+            <GhostButton label="Cancel" onTap={onClose} />
+          </div>
+          <button onClick={handleSave} disabled={!name.trim()} style={{
+            padding: '12px 24px', borderRadius: 12,
+            background: C.dark, border: 'none',
+            cursor: name.trim() ? 'pointer' : 'default',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+            opacity: name.trim() ? 1 : 0.4,
+          }}>
+            {mode === 'add' ? 'Add' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // CIRCLE SCREEN
 // ─────────────────────────────────────────────────────────────
 
@@ -3718,7 +4550,18 @@ export default function CoupleApp() {
                 onBack={() => setActiveTool(null)}
               />
             )}
-            {activeTool && activeTool !== 'checklist' && activeTool !== 'budget' && (
+            {activeTool === 'guests' && (
+              <GuestTool
+                session={session}
+                guests={checklist.guests}
+                loading={checklist.loading}
+                onAdd={checklist.addGuest}
+                onUpdate={checklist.updateGuest}
+                onDelete={checklist.deleteGuest}
+                onBack={() => setActiveTool(null)}
+              />
+            )}
+            {activeTool && activeTool !== 'checklist' && activeTool !== 'budget' && activeTool !== 'guests' && (
               <ToolPlaceholder toolId={activeTool} session={session} onBack={() => setActiveTool(null)} />
             )}
             {!activeTool && activeTab === 'home' && (
@@ -3730,6 +4573,7 @@ export default function CoupleApp() {
                 onToggleComplete={checklist.toggleComplete}
                 budget={checklist.budget}
                 expenses={checklist.expenses}
+                guests={checklist.guests}
               />
             )}
             {!activeTool && activeTab === 'plan' && (
@@ -3739,6 +4583,7 @@ export default function CoupleApp() {
                 tasks={checklist.tasks}
                 budget={checklist.budget}
                 expenses={checklist.expenses}
+                guests={checklist.guests}
               />
             )}
             {!activeTool && activeTab === 'circle' && (
