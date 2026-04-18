@@ -9889,9 +9889,9 @@ function CouplePaiFloatingButton({ session }: { session: CoupleSession }) {
         try { localStorage.setItem(storageKey, JSON.stringify(snapped)); } catch {}
       }
     } else {
-      if (!paiStatus) return;
-      if (paiStatus.enabled) setShowSheet(true);
-      else setShowRequest(true);
+      // Optimistic open — tolerate null paiStatus (loading state handled in render)
+      if (paiStatus && !paiStatus.enabled) setShowRequest(true);
+      else setShowSheet(true);
     }
     setLivePos(null);
     if (btnRef.current) btnRef.current.releasePointerCapture(e.pointerId);
@@ -9941,19 +9941,33 @@ function CouplePaiFloatingButton({ session }: { session: CoupleSession }) {
         )}
       </button>
 
-      {showSheet && paiStatus?.enabled && (
-        <CouplePaiSheet
-          userId={userId}
-          status={paiStatus}
-          onClose={() => setShowSheet(false)}
-          onSaved={() => {
-            fetch(`${API}/api/pai/status?user_type=couple&user_id=${userId}`)
-              .then(r => r.json()).then(d => { if (d.success) setPaiStatus(d); }).catch(() => {});
-          }}
-        />
+      {showSheet && (
+        paiStatus === null ? (
+          <CouplePaiLoadingSheet onClose={() => setShowSheet(false)} />
+        ) : paiStatus.enabled ? (
+          <CouplePaiSheet
+            userId={userId}
+            status={paiStatus}
+            onClose={() => setShowSheet(false)}
+            onSaved={() => {
+              fetch(`${API}/api/pai/status?user_type=couple&user_id=${userId}`)
+                .then(r => r.json()).then(d => { if (d.success) setPaiStatus(d); }).catch(() => {});
+            }}
+          />
+        ) : (
+          <CouplePaiRequestSheet
+            userId={userId}
+            hasPending={!!paiStatus.pending_request}
+            onClose={() => setShowSheet(false)}
+            onSubmitted={() => {
+              fetch(`${API}/api/pai/status?user_type=couple&user_id=${userId}`)
+                .then(r => r.json()).then(d => { if (d.success) setPaiStatus(d); }).catch(() => {});
+            }}
+          />
+        )
       )}
 
-      {showRequest && !paiStatus?.enabled && (
+      {showRequest && paiStatus && !paiStatus.enabled && (
         <CouplePaiRequestSheet
           userId={userId}
           hasPending={!!paiStatus?.pending_request}
@@ -10013,6 +10027,20 @@ function CouplePaiHeader({ eyebrow, title, onClose }: { eyebrow: string; title: 
         color: C.muted, padding: 4, fontFamily: 'inherit',
       }}>✕</button>
     </div>
+  );
+}
+
+function CouplePaiLoadingSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <CouplePaiOverlay onClose={onClose}>
+      <CouplePaiHeader eyebrow="PAi · Beta" title="Checking access…" onClose={onClose} />
+      <div style={{
+        padding: 24, textAlign: 'center' as const,
+        fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+      }}>
+        One moment.
+      </div>
+    </CouplePaiOverlay>
   );
 }
 

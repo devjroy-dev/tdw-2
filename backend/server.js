@@ -1313,9 +1313,15 @@ app.post('/api/expenses', async (req, res) => {
     const now = new Date();
     const year = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
     const financial_year = `FY ${year}-${String(year + 1).slice(-2)}`;
+    const allowed = [
+      'vendor_id', 'amount', 'category', 'description', 'expense_date',
+      'payment_method', 'notes', 'client_id', 'client_name', 'receipt_url',
+    ];
+    const payload = { financial_year };
+    for (const k of allowed) if (req.body[k] !== undefined) payload[k] = req.body[k];
     const { data, error } = await supabase
       .from('vendor_expenses')
-      .insert([{ ...req.body, financial_year }])
+      .insert([payload])
       .select()
       .single();
     if (error) throw error;

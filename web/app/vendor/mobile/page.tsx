@@ -7,11 +7,29 @@ import {
   Share2, BarChart2, Package, Gift, Globe, Award, ChevronRight, ChevronDown,
   LogOut, Settings as SettingsIcon, Lock, Briefcase, MapPin, Zap,
   CheckCircle, AlertCircle, X, Search, Mail, MoreHorizontal,
-  Minus, Edit2, DollarSign, Tag, Trash2,
+  Minus, Edit2, DollarSign, Tag, Trash2, Camera, Upload,
 } from 'react-feather';
 import { Sparkles } from 'lucide-react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
+const CLOUDINARY_CLOUD = 'dccso5ljv';
+const CLOUDINARY_PRESET = 'dream_wedding_uploads';
+
+// Upload a File to Cloudinary, returns secure_url or null on failure.
+async function uploadToCloudinary(file: File): Promise<string | null> {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST', body: fd,
+    });
+    const data = await res.json();
+    return data?.secure_url || null;
+  } catch {
+    return null;
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -4297,9 +4315,13 @@ function FloatingAssistant({ kind, userType, userId, onDreamAiClick }: {
       onDreamAiClick && onDreamAiClick();
       return;
     }
-    if (!paiStatus) return;
-    if (paiStatus.enabled) setShowPaiSheet(true);
-    else setShowRequestSheet(true);
+    // Optimistic open: if paiStatus not yet loaded, show the PaiSheet which handles loading state.
+    // If loaded and not enabled, show the request-access flow.
+    if (paiStatus && !paiStatus.enabled) {
+      setShowRequestSheet(true);
+    } else {
+      setShowPaiSheet(true);
+    }
   };
 
   const bg = C.dark;
@@ -4361,21 +4383,36 @@ function FloatingAssistant({ kind, userType, userId, onDreamAiClick }: {
         )}
       </button>
 
-      {showPaiSheet && paiStatus?.enabled && (
-        <PaiSheet
-          userType={userType}
-          userId={userId}
-          status={paiStatus}
-          onClose={() => setShowPaiSheet(false)}
-          onSaved={() => {
-            // Refresh status to update daily counter
-            fetch(`${API}/api/pai/status?user_type=${userType}&user_id=${userId}`)
-              .then(r => r.json()).then(d => { if (d.success) setPaiStatus(d); }).catch(() => {});
-          }}
-        />
+      {showPaiSheet && (
+        paiStatus === null ? (
+          <PaiLoadingSheet onClose={() => setShowPaiSheet(false)} />
+        ) : paiStatus.enabled ? (
+          <PaiSheet
+            userType={userType}
+            userId={userId}
+            status={paiStatus}
+            onClose={() => setShowPaiSheet(false)}
+            onSaved={() => {
+              fetch(`${API}/api/pai/status?user_type=${userType}&user_id=${userId}`)
+                .then(r => r.json()).then(d => { if (d.success) setPaiStatus(d); }).catch(() => {});
+            }}
+          />
+        ) : (
+          // Loaded but not enabled — redirect to request flow
+          <PaiRequestSheet
+            userType={userType}
+            userId={userId}
+            hasPending={!!paiStatus.pending_request}
+            onClose={() => setShowPaiSheet(false)}
+            onSubmitted={() => {
+              fetch(`${API}/api/pai/status?user_type=${userType}&user_id=${userId}`)
+                .then(r => r.json()).then(d => { if (d.success) setPaiStatus(d); }).catch(() => {});
+            }}
+          />
+        )
       )}
 
-      {showRequestSheet && !paiStatus?.enabled && (
+      {showRequestSheet && paiStatus && !paiStatus.enabled && (
         <PaiRequestSheet
           userType={userType}
           userId={userId}
@@ -4392,6 +4429,21 @@ function FloatingAssistant({ kind, userType, userId, onDreamAiClick }: {
 }
 
 // ── PAi input sheet + preview flow
+// Loading bridge — shows while paiStatus fetch is in flight, keeps tap responsive.
+function PaiLoadingSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <SheetOverlay onClose={onClose}>
+      <SheetHeader eyebrow="PAi · Beta" title="Checking access…" onClose={onClose} />
+      <div style={{
+        padding: 24, textAlign: 'center' as const,
+        fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+      }}>
+        One moment.
+      </div>
+    </SheetOverlay>
+  );
+}
+
 function PaiSheet({ userType, userId, status, onClose, onSaved }: {
   userType: 'vendor' | 'couple';
   userId: string;
@@ -7708,17 +7760,21 @@ function TodoPanel({ todos, onOpenTodo, onToggleTodo, onDeleteTodo }: any) {
 
 function ExpensesPanel({ session, tier, clients }: any) {
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showProfitInfo, setShowProfitInfo] = useState(false);
   const [filter, setFilter] = useState<'month' | 'ytd' | 'all'>('month');
 
   useEffect(() => {
     if (!session?.vendorId) { setLoading(false); return; }
-    fetch(`${API}/api/expenses/${session.vendorId}`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setExpenses(d.data || []); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch(`${API}/api/expenses/${session.vendorId}`).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(`${API}/api/invoices/${session.vendorId}`).then(r => r.json()).catch(() => ({ data: [] })),
+    ]).then(([ex, inv]) => {
+      if (ex.success) setExpenses(ex.data || []);
+      if (inv.success) setInvoices(inv.data || []);
+    }).finally(() => setLoading(false));
   }, [session?.vendorId]);
 
   // ── Computed ──────────────────────────────────────────────────────────
@@ -7769,6 +7825,52 @@ function ExpensesPanel({ session, tier, clients }: any) {
     } catch { /* ignore */ }
   };
 
+  // ── Per-client profit computation ──────────────────────────────────
+  // Formula: Paid invoices for client − tagged expenses for client = profit
+  // Unpaid invoices shown separately as "Expected"
+  const clientProfits = (() => {
+    const map: Record<string, {
+      clientId: string | null;
+      name: string;
+      paidInvoiced: number;
+      unpaidInvoiced: number;
+      expensesLinked: number;
+      profit: number;
+      expectedProfit: number;
+    }> = {};
+
+    for (const inv of invoices) {
+      const key = inv.client_id || `name:${(inv.client_name || 'Unknown').toLowerCase()}`;
+      if (!map[key]) {
+        map[key] = {
+          clientId: inv.client_id || null,
+          name: inv.client_name || 'Unknown',
+          paidInvoiced: 0,
+          unpaidInvoiced: 0,
+          expensesLinked: 0,
+          profit: 0,
+          expectedProfit: 0,
+        };
+      }
+      const amt = parseInt(inv.amount) || 0;
+      if (inv.status === 'paid') map[key].paidInvoiced += amt;
+      else map[key].unpaidInvoiced += amt;
+    }
+    for (const e of expenses) {
+      const key = e.client_id || (e.client_name ? `name:${e.client_name.toLowerCase()}` : null);
+      if (!key || !map[key]) continue;
+      map[key].expensesLinked += parseInt(e.amount) || 0;
+    }
+    for (const k of Object.keys(map)) {
+      const m = map[k];
+      m.profit = m.paidInvoiced - m.expensesLinked;
+      m.expectedProfit = (m.paidInvoiced + m.unpaidInvoiced) - m.expensesLinked;
+    }
+    return Object.values(map)
+      .filter(m => m.paidInvoiced > 0 || m.expensesLinked > 0)
+      .sort((a, b) => b.profit - a.profit);
+  })();
+
   if (loading) {
     return <div style={{ padding: '40px', textAlign: 'center', color: C.muted, fontSize: '13px' }}>Loading expenses…</div>;
   }
@@ -7800,6 +7902,103 @@ function ExpensesPanel({ session, tier, clients }: any) {
           </div>
         </div>
       </div>
+
+      {/* ── Per-client profit ── */}
+      {clientProfits.length > 0 && (
+        <div style={{
+          background: C.ivory, border: `1px solid ${C.goldBorder}`,
+          borderRadius: 16, padding: 18, marginBottom: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 9, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.goldDeep, fontWeight: 600 }}>
+                Profit per Wedding
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: C.dark, marginTop: 2 }}>
+                What you've actually made
+              </div>
+            </div>
+            <button
+              onClick={() => setShowProfitInfo(!showProfitInfo)}
+              style={{
+                background: C.pearl, border: `1px solid ${C.border}`,
+                borderRadius: 14, padding: '4px 10px',
+                fontSize: 10, color: C.muted, cursor: 'pointer',
+                fontFamily: 'DM Sans, sans-serif',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              <AlertCircle size={10} /> How is this calculated?
+            </button>
+          </div>
+
+          {showProfitInfo && (
+            <div style={{
+              background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+              borderRadius: 10, padding: '12px 14px', marginBottom: 14,
+              fontSize: 11, color: C.dark, lineHeight: 1.6,
+            }}>
+              <strong style={{ color: C.goldDeep }}>Formula:</strong> Profit = Paid Invoices − Tagged Expenses.
+              <br /><br />
+              Only invoices marked <strong>paid</strong> count toward profit.
+              Expenses must be <strong>tagged to the client</strong> (via the "Link to client" field when adding an expense) to be deducted.
+              <br /><br />
+              <strong>"Expected"</strong> adds your unpaid invoices, showing what the total profit will be once they're paid.
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            {clientProfits.slice(0, 6).map((m, i) => {
+              const profit = m.profit;
+              const isProfitable = profit > 0;
+              const isLoss = profit < 0;
+              const color = isProfitable ? '#2E7D32' : isLoss ? '#C65757' : C.muted;
+              return (
+                <div key={i} style={{
+                  padding: '12px 14px', background: C.pearl,
+                  border: `1px solid ${C.border}`, borderRadius: 12,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 16,
+                    background: C.goldSoft, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 600, color: C.goldDeep,
+                    fontFamily: "'Playfair Display', serif",
+                    flexShrink: 0,
+                  }}>{m.name[0]?.toUpperCase() || '?'}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: C.dark, fontWeight: 500, overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const }}>
+                      {m.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                      ₹{fmtINR(m.paidInvoiced)} paid − ₹{fmtINR(m.expensesLinked)} costs
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' as const }}>
+                    <div style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontSize: 16, color, fontWeight: 500,
+                    }}>
+                      {isLoss ? '−' : ''}₹{fmtINR(Math.abs(profit))}
+                    </div>
+                    {m.unpaidInvoiced > 0 && (
+                      <div style={{ fontSize: 9, color: C.muted, fontStyle: 'italic' as const, marginTop: 2 }}>
+                        +₹{fmtINR(m.unpaidInvoiced)} expected
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {clientProfits.length > 6 && (
+              <div style={{ fontSize: 10, color: C.muted, textAlign: 'center' as const, paddingTop: 4 }}>
+                Showing top 6 of {clientProfits.length} clients
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Add Expense CTA ── */}
       <button
@@ -7962,12 +8161,49 @@ function AddExpenseSheet({ vendorId, clients, onClose, onSaved }: {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Travel');
-  const [clientId, setClientId] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  const selectedClient = clients.find(c => c.id === clientId);
-  const canSave = amount && parseInt(amount) > 0 && description.trim() && !submitting;
+  const matches = clientName.trim().length >= 2 && !selectedClient
+    ? clients.filter((c: any) => c.name?.toLowerCase().includes(clientName.trim().toLowerCase())).slice(0, 5)
+    : [];
+
+  const canSave = amount && parseInt(amount) > 0 && description.trim() && !submitting && !uploading;
+
+  const pickClient = (c: any) => {
+    setSelectedClient(c);
+    setClientName(c.name || '');
+    setShowSuggestions(false);
+  };
+  const clearClient = () => {
+    setSelectedClient(null);
+    setClientName('');
+  };
+
+  const onFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const url = await uploadToCloudinary(file);
+      if (url) setReceiptUrl(url);
+      else setError('Upload failed. Try again.');
+    } catch {
+      setError('Upload failed. Check your connection.');
+    } finally {
+      setUploading(false);
+      // Reset input so same file can be picked again
+      if (e.target) e.target.value = '';
+    }
+  };
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -7982,7 +8218,9 @@ function AddExpenseSheet({ vendorId, clients, onClose, onSaved }: {
           description: description.trim(),
           amount: parseInt(amount),
           category,
-          client_name: selectedClient?.name || '',
+          client_id: selectedClient?.id || null,
+          client_name: selectedClient?.name || (clientName.trim() || null),
+          receipt_url: receiptUrl || null,
           expense_date: new Date().toLocaleDateString('en-IN'),
         }),
       });
@@ -8122,34 +8360,168 @@ function AddExpenseSheet({ vendorId, clients, onClose, onSaved }: {
           </div>
         </div>
 
-        {/* Client (optional) */}
-        {clients.length > 0 && (
-          <label style={{ display: 'block', marginBottom: '18px' }}>
-            <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '6px' }}>Link to client <span style={{ textTransform: 'none', letterSpacing: 0, fontStyle: 'italic', color: C.light }}>(optional)</span></div>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              style={{
-                width: '100%', background: C.ivory,
-                border: `1px solid ${C.border}`, borderRadius: '12px',
-                padding: '13px 14px',
-                fontSize: '14px', color: clientId ? C.dark : C.muted,
-                fontFamily: 'DM Sans, sans-serif',
-                outline: 'none', boxSizing: 'border-box',
-                appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C7B6E' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 14px center',
-                paddingRight: '36px',
+        {/* Client — autocomplete */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '6px' }}>
+            Link to client <span style={{ textTransform: 'none', letterSpacing: 0, fontStyle: 'italic', color: C.light }}>(optional)</span>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={clientName}
+              onChange={(e) => {
+                setClientName(e.target.value);
+                if (selectedClient && e.target.value !== selectedClient.name) setSelectedClient(null);
+                setShowSuggestions(true);
               }}
-            >
-              <option value="">No client</option>
-              {clients.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name || 'Client'}</option>
-              ))}
-            </select>
-          </label>
-        )}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              placeholder="Start typing client name…"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                background: C.ivory,
+                border: `1px solid ${selectedClient ? C.goldBorder : C.border}`,
+                borderRadius: '12px',
+                padding: '13px 14px',
+                fontSize: '14px', color: C.dark,
+                fontFamily: 'DM Sans, sans-serif',
+                outline: 'none',
+              }}
+            />
+            {selectedClient && (
+              <button
+                onClick={clearClient}
+                style={{
+                  position: 'absolute', top: 10, right: 10,
+                  background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                  borderRadius: 12, padding: '4px 10px',
+                  fontSize: 10, color: C.goldDeep,
+                  cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+                }}
+              >✓ From list</button>
+            )}
+            {showSuggestions && matches.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0,
+                marginTop: 4, background: C.ivory,
+                border: `1px solid ${C.border}`, borderRadius: 10,
+                boxShadow: '0 6px 18px rgba(44,36,32,0.1)',
+                maxHeight: 200, overflowY: 'auto', zIndex: 10,
+              }}>
+                {matches.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => pickClient(c)}
+                    style={{
+                      width: '100%', padding: '10px 14px',
+                      background: 'transparent', border: 'none',
+                      borderBottom: `1px solid ${C.borderSoft}`,
+                      textAlign: 'left', cursor: 'pointer',
+                      fontFamily: 'inherit', display: 'flex',
+                      alignItems: 'center', gap: 10,
+                    }}
+                  >
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 15,
+                      background: C.goldSoft, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 600, color: C.goldDeep,
+                      fontFamily: "'Playfair Display', serif",
+                    }}>{(c.name || '?')[0].toUpperCase()}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: C.dark, fontWeight: 500 }}>{c.name}</div>
+                      <div style={{ fontSize: 10, color: C.muted }}>
+                        {c.event_type || 'Client'}{c.phone ? ` · ${c.phone}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {selectedClient && (
+            <div style={{ fontSize: 10, color: C.muted, marginTop: 6, fontStyle: 'italic' }}>
+              This expense will count against {selectedClient.name}'s profit calculation.
+            </div>
+          )}
+        </div>
+
+        {/* Receipt upload */}
+        <div style={{ marginBottom: '18px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '1.5px', textTransform: 'uppercase', color: C.muted, fontWeight: 500, marginBottom: '6px' }}>
+            Receipt <span style={{ textTransform: 'none', letterSpacing: 0, fontStyle: 'italic', color: C.light }}>(optional)</span>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onFilePick}
+            style={{ display: 'none' }}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onFilePick}
+            style={{ display: 'none' }}
+          />
+          {receiptUrl ? (
+            <div style={{
+              position: 'relative', borderRadius: 12, overflow: 'hidden',
+              border: `1px solid ${C.goldBorder}`, background: C.pearl,
+            }}>
+              <img
+                src={receiptUrl}
+                alt="Receipt"
+                style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }}
+              />
+              <button
+                onClick={() => setReceiptUrl(null)}
+                style={{
+                  position: 'absolute', top: 8, right: 8,
+                  width: 28, height: 28, borderRadius: 14,
+                  background: 'rgba(44,36,32,0.75)', color: '#fff',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : uploading ? (
+            <div style={{
+              padding: '20px 14px', borderRadius: 12, textAlign: 'center',
+              background: C.pearl, border: `1px dashed ${C.goldBorder}`,
+              fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+            }}>Uploading…</div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                style={{
+                  flex: 1, padding: '13px 14px', borderRadius: 12,
+                  background: C.pearl, border: `1px dashed ${C.goldBorder}`,
+                  color: C.goldDeep, cursor: 'pointer',
+                  fontSize: 11, fontWeight: 500, letterSpacing: '1.2px',
+                  textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              ><Camera size={14} /> Camera</button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  flex: 1, padding: '13px 14px', borderRadius: 12,
+                  background: C.pearl, border: `1px dashed ${C.goldBorder}`,
+                  color: C.goldDeep, cursor: 'pointer',
+                  fontSize: 11, fontWeight: 500, letterSpacing: '1.2px',
+                  textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              ><Upload size={14} /> Gallery</button>
+            </div>
+          )}
+        </div>
 
         {error && (
           <div style={{
