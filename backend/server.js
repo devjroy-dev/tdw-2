@@ -5050,6 +5050,102 @@ app.delete('/api/couple/moodboard/:pinId', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════
+// COUPLE V2 — My Vendors (Session 10 Turn 6)
+// Money lives in couple_expenses (vendor_name match). We never
+// store vendor totals directly — they're aggregated on read.
+// ══════════════════════════════════════════════════════════════
+
+// List all vendors for a couple
+app.get('/api/couple/vendors/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    const { data, error } = await supabase
+      .from('couple_vendors')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('vendors list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create a vendor
+app.post('/api/couple/vendors', async (req, res) => {
+  try {
+    const {
+      couple_id, name, category, phone, email, website,
+      events, status, quoted_total, balance_due_date,
+      contract_url, contract_uploaded_by, contract_uploaded_by_name,
+      booked_slot, notes, added_by, added_by_name,
+    } = req.body || {};
+    if (!couple_id || !name) {
+      return res.status(400).json({ success: false, error: 'couple_id and name required' });
+    }
+    const { data, error } = await supabase
+      .from('couple_vendors')
+      .insert([{
+        couple_id,
+        name: name.trim(),
+        category: category || null,
+        phone: phone || null,
+        email: email || null,
+        website: website || null,
+        events: events || [],
+        status: status || 'enquired',
+        quoted_total: quoted_total || 0,
+        balance_due_date: balance_due_date || null,
+        contract_url: contract_url || null,
+        contract_uploaded_by: contract_uploaded_by || null,
+        contract_uploaded_by_name: contract_uploaded_by_name || null,
+        booked_slot: booked_slot || null,
+        notes: notes || null,
+        added_by: added_by || null,
+        added_by_name: added_by_name || null,
+      }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('vendors create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update a vendor
+app.patch('/api/couple/vendors/:vendorId', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const updates = { ...(req.body || {}), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('couple_vendors')
+      .update(updates)
+      .eq('id', vendorId)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('vendors update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete a vendor
+app.delete('/api/couple/vendors/:vendorId', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { error } = await supabase.from('couple_vendors').delete().eq('id', vendorId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('vendors delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ── Co-Planner System ──
 
 // Generate co-planner invite link

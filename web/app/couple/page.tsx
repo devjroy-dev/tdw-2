@@ -571,6 +571,90 @@ function suggestionCount(pins: MoodboardPin[]): number {
 }
 
 // ─────────────────────────────────────────────────────────────
+// VENDOR TYPES + HELPERS
+// ─────────────────────────────────────────────────────────────
+
+type VendorStatus = 'enquired' | 'quoted' | 'booked' | 'confirmed' | 'completed';
+
+interface Vendor {
+  id: string;
+  couple_id: string;
+  name: string;
+  category: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  events: string[];
+  status: VendorStatus;
+  quoted_total: number;
+  balance_due_date: string | null;
+  contract_url: string | null;
+  contract_uploaded_by: string | null;
+  contract_uploaded_by_name: string | null;
+  booked_slot: string | null;
+  notes: string | null;
+  added_by: string | null;
+  added_by_name: string | null;
+  created_at: string;
+}
+
+const VENDOR_STATUSES: { id: VendorStatus; label: string; color: string; bg: string; border: string }[] = [
+  { id: 'enquired',  label: 'Enquired',  color: '#8C7B6E', bg: '#FBF8F2', border: '#EDE8E0' },
+  { id: 'quoted',    label: 'Quoted',    color: '#8B6914', bg: '#FFF8E1', border: '#F0D88C' },
+  { id: 'booked',    label: 'Booked',    color: '#A8742C', bg: '#FBEEDD', border: '#E4C896' },
+  { id: 'confirmed', label: 'Confirmed', color: '#2D6A2D', bg: '#EBF5EB', border: '#B8D9B8' },
+  { id: 'completed', label: 'Completed', color: '#2C2420', bg: '#EDE8E0', border: '#C9BCA8' },
+];
+
+function statusStyle(s: VendorStatus) {
+  return VENDOR_STATUSES.find(v => v.id === s) || VENDOR_STATUSES[0];
+}
+
+// Expenses linked to a vendor by name (case-insensitive match)
+function expensesForVendor(expenses: Expense[], vendorName: string): Expense[] {
+  const target = vendorName.trim().toLowerCase();
+  if (!target) return [];
+  return expenses.filter(e => (e.vendor_name || '').trim().toLowerCase() === target);
+}
+
+function vendorPaidTotal(expenses: Expense[], vendorName: string): number {
+  return expensesForVendor(expenses, vendorName)
+    .reduce((sum, e) => sum + (e.actual_amount || 0) + (e.shadow_amount || 0), 0);
+}
+
+function vendorBalanceDue(vendor: Vendor, expenses: Expense[]): number {
+  if (!vendor.quoted_total) return 0;
+  const paid = vendorPaidTotal(expenses, vendor.name);
+  return Math.max(0, vendor.quoted_total - paid);
+}
+
+// Conflict detection — two vendors booked for the same slot
+function findConflicts(vendors: Vendor[]): Record<string, Vendor[]> {
+  const byEventSlot: Record<string, Vendor[]> = {};
+  for (const v of vendors) {
+    if (!v.booked_slot) continue;
+    if (v.status !== 'booked' && v.status !== 'confirmed') continue;
+    const key = v.booked_slot;
+    if (!byEventSlot[key]) byEventSlot[key] = [];
+    byEventSlot[key].push(v);
+  }
+  // Only return slots with 2+ vendors
+  const conflicts: Record<string, Vendor[]> = {};
+  for (const [slot, vs] of Object.entries(byEventSlot)) {
+    if (vs.length >= 2) conflicts[slot] = vs;
+  }
+  return conflicts;
+}
+
+function vendorStatusCounts(vendors: Vendor[]): Record<VendorStatus, number> {
+  const counts: Record<VendorStatus, number> = {
+    enquired: 0, quoted: 0, booked: 0, confirmed: 0, completed: 0,
+  };
+  for (const v of vendors) counts[v.status] = (counts[v.status] || 0) + 1;
+  return counts;
+}
+
+// ─────────────────────────────────────────────────────────────
 // SHARED UI
 // ─────────────────────────────────────────────────────────────
 
@@ -664,6 +748,7 @@ function useCoupleData(session: CoupleSession | null) {
   const [shagun, setShagun] = useState<ShagunEntry[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [pins, setPins] = useState<MoodboardPin[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeded, setSeeded] = useState(false);
 
@@ -701,14 +786,15 @@ function useCoupleData(session: CoupleSession | null) {
         const userD = await userRes.json();
         const alreadySeeded = !!userD?.data?.checklist_seeded;
 
-        // Parallel load: checklist, budget, expenses, shagun, guests, moodboard
-        const [checklistRes, budgetRes, expensesRes, shagunRes, guestsRes, pinsRes] = await Promise.all([
+        // Parallel load: checklist, budget, expenses, shagun, guests, moodboard, vendors
+        const [checklistRes, budgetRes, expensesRes, shagunRes, guestsRes, pinsRes, vendorsRes] = await Promise.all([
           fetch(`${API}/api/couple/checklist/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/budget/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/expenses/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/shagun/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/guests/${session.id}`).then(r => r.json()),
           fetch(`${API}/api/couple/moodboard/${session.id}`).then(r => r.json()),
+          fetch(`${API}/api/couple/vendors/${session.id}`).then(r => r.json()),
         ]);
 
         const existing: ChecklistTask[] = checklistRes.success ? (checklistRes.data || []) : [];
@@ -730,12 +816,13 @@ function useCoupleData(session: CoupleSession | null) {
           if (mounted) { setTasks(existing); setSeeded(alreadySeeded); }
         }
 
-        // Budget/expenses/shagun/guests/moodboard
+        // Budget/expenses/shagun/guests/moodboard/vendors
         if (mounted && budgetRes.success)   setBudget(budgetRes.data);
         if (mounted && expensesRes.success) setExpenses(expensesRes.data || []);
         if (mounted && shagunRes.success)   setShagun(shagunRes.data || []);
         if (mounted && guestsRes.success)   setGuests(guestsRes.data || []);
         if (mounted && pinsRes.success)     setPins(pinsRes.data || []);
+        if (mounted && vendorsRes.success)  setVendors(vendorsRes.data || []);
       } catch (e) {
         // Network failure — fall through silently
       }
@@ -982,6 +1069,50 @@ function useCoupleData(session: CoupleSession | null) {
     } catch {}
   };
 
+  // ── Vendor mutations ────────────────────────────────────────
+
+  const addVendor = async (payload: Partial<Vendor>) => {
+    if (!session?.id) return null;
+    try {
+      const res = await fetch(`${API}/api/couple/vendors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          couple_id: session.id,
+          added_by: session.id,
+          added_by_name: session.name,
+        }),
+      });
+      const d = await res.json();
+      if (d.success && d.data) {
+        setVendors(prev => [d.data, ...prev]);
+        return d.data as Vendor;
+      }
+    } catch {}
+    return null;
+  };
+
+  const updateVendor = async (id: string, patch: Partial<Vendor>) => {
+    setVendors(prev => prev.map(v => v.id === id ? { ...v, ...patch } as Vendor : v));
+    try {
+      const res = await fetch(`${API}/api/couple/vendors/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const d = await res.json();
+      if (d.success && d.data) setVendors(prev => prev.map(v => v.id === id ? d.data : v));
+    } catch {}
+  };
+
+  const deleteVendor = async (id: string) => {
+    setVendors(prev => prev.filter(v => v.id !== id));
+    try {
+      await fetch(`${API}/api/couple/vendors/${id}`, { method: 'DELETE' });
+    } catch {}
+  };
+
   return {
     tasks, loading, seeded, refreshTasks, toggleComplete, updateTask, deleteTask, addTask,
     budget, expenses, shagun, refreshBudget,
@@ -989,6 +1120,7 @@ function useCoupleData(session: CoupleSession | null) {
     addShagun, updateShagun, deleteShagun,
     guests, addGuest, updateGuest, deleteGuest,
     pins, fetchOGPreview, addPin, updatePin, deletePin,
+    vendors, addVendor, updateVendor, deleteVendor,
   };
 }
 
@@ -1187,7 +1319,7 @@ function DiscoverTeaser({ session }: { session: CoupleSession | null }) {
 // HOME SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget, expenses, guests }: {
+function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget, expenses, guests, vendors }: {
   session: CoupleSession;
   onNavTo: (tab: MainTab, tool?: string) => void;
   tasks: ChecklistTask[];
@@ -1196,6 +1328,7 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
   budget: CoupleBudget | null;
   expenses: Expense[];
   guests: Guest[];
+  vendors: Vendor[];
 }) {
   const days = daysToGo(session.weddingDate);
   const copy = getGreetingCopy(session.name?.split(' ')[0] || '', days);
@@ -1208,6 +1341,8 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
   const guestTotal = totalGuestCount(guests);
   const guestConfirmed = totalConfirmed(guests, session.events);
   const guestPending = pendingNudgeCount(guests);
+  const vStatus = vendorStatusCounts(vendors);
+  const vendorsBooked = vStatus.booked + vStatus.confirmed + vStatus.completed;
 
   return (
     <div style={{ padding: '72px 24px 100px' }}>
@@ -1403,19 +1538,21 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
           <ChevronRight size={14} color={C.mutedLight} style={{ flexShrink: 0 }} />
         </button>
 
-        {/* Vendors tile — still placeholder until Turn 6 */}
+        {/* Vendors tile — live */}
         <button onClick={() => onNavTo('plan', 'vendors')} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`,
           padding: '14px 16px', cursor: 'pointer', textAlign: 'left' as const,
         }}>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif' }}>Vendors</p>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
-              Log your vendors to track confirmations
+              {vendors.length > 0
+                ? `${vendors.length} vendor${vendors.length !== 1 ? 's' : ''}${vendorsBooked > 0 ? ` · ${vendorsBooked} booked` : ''}`
+                : 'Log your vendors to track confirmations'}
             </p>
           </div>
-          <ChevronRight size={14} color={C.mutedLight} />
+          <ChevronRight size={14} color={C.mutedLight} style={{ flexShrink: 0 }} />
         </button>
       </div>
 
@@ -1477,7 +1614,7 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
 // MY WEDDING SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses, guests, pins }: {
+function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses, guests, pins, vendors }: {
   session: CoupleSession;
   onToolOpen: (id: string) => void;
   tasks: ChecklistTask[];
@@ -1485,6 +1622,7 @@ function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses, guests,
   expenses: Expense[];
   guests: Guest[];
   pins: MoodboardPin[];
+  vendors: Vendor[];
 }) {
   const days = daysToGo(session.weddingDate);
   const progress = getChecklistProgress(tasks);
@@ -1495,6 +1633,8 @@ function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses, guests,
   const guestConfirmed = totalConfirmed(guests, session.events);
   const nonSuggestionPins = pins.filter(p => !p.is_suggestion);
   const pinSuggestions = pins.filter(p => p.is_suggestion).length;
+  const vStatus = vendorStatusCounts(vendors);
+  const vendorsBooked = vStatus.booked + vStatus.confirmed + vStatus.completed;
 
   const progressLabels: Record<string, string> = {
     checklist: progress.total > 0 ? `${progress.done} of ${progress.total} done` : 'Tasks across all your events',
@@ -1507,7 +1647,9 @@ function MyWeddingScreen({ session, onToolOpen, tasks, budget, expenses, guests,
     moodboard: nonSuggestionPins.length > 0
       ? `${nonSuggestionPins.length} pin${nonSuggestionPins.length !== 1 ? 's' : ''}${pinSuggestions > 0 ? ` · ${pinSuggestions} suggestion${pinSuggestions !== 1 ? 's' : ''}` : ''}`
       : 'Per-event inspiration boards',
-    vendors:   'Booked, confirmed, paid',
+    vendors: vendors.length > 0
+      ? `${vendors.length} vendor${vendors.length !== 1 ? 's' : ''}${vendorsBooked > 0 ? ` · ${vendorsBooked} booked` : ''}`
+      : 'Booked, confirmed, paid',
   };
   return (
     <div style={{ padding: '72px 24px 100px' }}>
@@ -5533,6 +5675,937 @@ function SuggestionsModal({ suggestions, onApprove, onReject, onClose }: {
 }
 
 // ─────────────────────────────────────────────────────────────
+// MY VENDORS TOOL
+// Status pipeline at top, list below, detail sheet on tap.
+// Payments are EXPENSES — vendor page queries them, never stores.
+// ─────────────────────────────────────────────────────────────
+
+function VendorTool({
+  session, vendors, expenses, loading,
+  onAdd, onUpdate, onDelete,
+  onAddExpense, onUpdateExpense, onDeleteExpense,
+  onBack,
+}: {
+  session: CoupleSession;
+  vendors: Vendor[];
+  expenses: Expense[];
+  loading: boolean;
+  onAdd: (payload: Partial<Vendor>) => Promise<Vendor | null>;
+  onUpdate: (id: string, patch: Partial<Vendor>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onAddExpense: (payload: Partial<Expense>) => Promise<Expense | null>;
+  onUpdateExpense: (id: string, patch: Partial<Expense>) => Promise<void>;
+  onDeleteExpense: (id: string) => Promise<void>;
+  onBack: () => void;
+}) {
+  const [statusFilter, setStatusFilter] = useState<VendorStatus | 'all'>('all');
+  const [showAdd, setShowAdd] = useState(false);
+  const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
+
+  const canEditTool = canEdit(session.coShareRole, 'vendors');
+  const canSeeMoney = canView(session.coShareRole, 'vendor_money');
+
+  const statusCounts = vendorStatusCounts(vendors);
+  const conflicts = findConflicts(vendors);
+
+  const filtered = vendors.filter(v => statusFilter === 'all' || v.status === statusFilter);
+
+  // Total quoted across all booked+confirmed vendors
+  const totalQuoted = vendors
+    .filter(v => v.status === 'booked' || v.status === 'confirmed' || v.status === 'completed')
+    .reduce((sum, v) => sum + (v.quoted_total || 0), 0);
+
+  return (
+    <div style={{ padding: '0 0 120px' }}>
+
+      {/* Sticky header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '72px 20px 16px', background: C.cream,
+        position: 'sticky' as const, top: 0, zIndex: 30,
+        borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.ivory,
+            border: `1px solid ${C.border}`, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <ChevronRight size={16} color={C.dark} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <div>
+            <p style={{ margin: 0, fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              My Vendors
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {vendors.length === 0
+                ? 'Track your vendor journey, from enquiry to done'
+                : canSeeMoney && totalQuoted > 0
+                  ? `${vendors.length} vendor${vendors.length !== 1 ? 's' : ''} · ${fmtINR(totalQuoted)} committed`
+                  : `${vendors.length} vendor${vendors.length !== 1 ? 's' : ''}`}
+            </p>
+          </div>
+        </div>
+        {canEditTool && (
+          <button onClick={() => setShowAdd(true)} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.dark,
+            border: 'none', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Plus size={16} color={C.gold} />
+          </button>
+        )}
+      </div>
+
+      {/* Status pipeline */}
+      {vendors.length > 0 && (
+        <div style={{
+          display: 'flex', gap: 8, padding: '14px 20px',
+          overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any,
+        }}>
+          {VENDOR_STATUSES.map(s => {
+            const count = statusCounts[s.id];
+            const active = statusFilter === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setStatusFilter(active ? 'all' : s.id)}
+                style={{
+                  flexShrink: 0,
+                  background: active ? s.bg : C.ivory,
+                  border: `1px solid ${active ? s.border : C.border}`,
+                  borderRadius: 12, padding: '10px 14px', minWidth: 96,
+                  cursor: 'pointer', textAlign: 'left' as const,
+                }}
+              >
+                <p style={{
+                  margin: 0, fontSize: 9, color: active ? s.color : C.muted,
+                  fontWeight: 500, letterSpacing: '1px',
+                  textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+                }}>{s.label}</p>
+                <p style={{
+                  margin: '4px 0 0', fontSize: 20,
+                  color: active ? s.color : C.dark,
+                  fontFamily: 'Playfair Display, serif', fontWeight: 600, lineHeight: '22px',
+                }}>{count}</p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Conflict alert */}
+      {Object.keys(conflicts).length > 0 && (
+        <div style={{ padding: '0 20px 12px' }}>
+          <div style={{
+            background: '#FEEAEA', border: '1px solid #F0B8B8',
+            borderRadius: 10, padding: '10px 14px',
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+          }}>
+            <AlertCircle size={16} color="#A33636" style={{ marginTop: 1, flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#A33636', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                Double-booking detected
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#A33636', fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '16px' }}>
+                {Object.entries(conflicts).map(([slot, vs]) =>
+                  `${vs.map(v => v.name).join(' and ')} both booked for ${slot}`
+                ).join(' · ')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      <div style={{ padding: '16px 20px' }}>
+        {loading ? (
+          <p style={{ fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', textAlign: 'center', padding: '32px 0' }}>
+            Loading…
+          </p>
+        ) : vendors.length === 0 ? (
+          <div style={{
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 14, padding: '32px 20px', textAlign: 'center',
+          }}>
+            <Briefcase size={28} color={C.goldBorder} style={{ marginBottom: 10 }} />
+            <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              No vendors tracked yet.
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px' }}>
+              {canEditTool
+                ? 'Add your caterer, photographer, decorator — we\u2019ll track the rest.'
+                : 'Nothing tracked yet.'}
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{
+            background: C.pearl, border: `1px solid ${C.border}`,
+            borderRadius: 12, padding: '20px', textAlign: 'center',
+          }}>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              No vendors in this stage.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            {filtered.map(v => (
+              <VendorRow
+                key={v.id}
+                vendor={v}
+                expenses={expenses}
+                canSeeMoney={canSeeMoney}
+                onTap={() => setViewingVendor(v)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add modal */}
+      {showAdd && (
+        <VendorEditor
+          mode="add"
+          session={session}
+          events={session.events}
+          onClose={() => setShowAdd(false)}
+          onSave={async payload => {
+            await onAdd(payload);
+            setShowAdd(false);
+          }}
+        />
+      )}
+
+      {/* Detail sheet */}
+      {viewingVendor && (
+        <VendorDetailSheet
+          session={session}
+          vendor={viewingVendor}
+          expenses={expensesForVendor(expenses, viewingVendor.name)}
+          canEdit={canEditTool}
+          canSeeMoney={canSeeMoney}
+          onClose={() => setViewingVendor(null)}
+          onUpdate={async (patch) => {
+            await onUpdate(viewingVendor.id, patch);
+            setViewingVendor({ ...viewingVendor, ...patch } as Vendor);
+          }}
+          onDelete={async () => {
+            await onDelete(viewingVendor.id);
+            setViewingVendor(null);
+          }}
+          onAddExpense={async (payload) => {
+            // Auto-fill vendor_name so it links
+            await onAddExpense({ ...payload, vendor_name: viewingVendor.name });
+          }}
+          onUpdateExpense={onUpdateExpense}
+          onDeleteExpense={onDeleteExpense}
+        />
+      )}
+    </div>
+  );
+}
+
+// Single vendor row
+function VendorRow({ vendor, expenses, canSeeMoney, onTap }: {
+  vendor: Vendor; expenses: Expense[]; canSeeMoney: boolean; onTap: () => void;
+}) {
+  const style = statusStyle(vendor.status);
+  const paid = canSeeMoney ? vendorPaidTotal(expenses, vendor.name) : 0;
+  const balanceDue = canSeeMoney ? vendorBalanceDue(vendor, expenses) : 0;
+
+  return (
+    <button
+      onClick={onTap}
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 12,
+        background: C.ivory, border: `1px solid ${C.border}`,
+        borderRadius: 12, padding: '12px 14px',
+        cursor: 'pointer', textAlign: 'left' as const, width: '100%',
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <span style={{
+            fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+            overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const,
+          }}>
+            {vendor.name}
+          </span>
+          <span style={{
+            fontSize: 9, color: style.color, background: style.bg,
+            border: `1px solid ${style.border}`, borderRadius: 8,
+            padding: '2px 7px', fontFamily: 'DM Sans, sans-serif',
+            fontWeight: 500, letterSpacing: '0.5px', flexShrink: 0,
+            textTransform: 'uppercase' as const,
+          }}>
+            {style.label}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+          {vendor.category && (
+            <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {vendor.category}
+            </span>
+          )}
+          {vendor.events.length > 0 && (
+            <>
+              {vendor.category && <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>}
+              <span style={{ fontSize: 11, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '0.3px' }}>
+                {vendor.events.join(', ')}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Money line */}
+        {canSeeMoney && vendor.quoted_total > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' as const }}>
+            <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              Quoted <strong style={{ color: C.dark, fontWeight: 500 }}>{fmtINR(vendor.quoted_total)}</strong>
+            </span>
+            <span style={{ fontSize: 11, color: '#2D6A2D', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              Paid {fmtINR(paid)}
+            </span>
+            {balanceDue > 0 && (
+              <span style={{ fontSize: 11, color: '#A33636', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                Due {fmtINR(balanceDue)}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// Vendor add/edit modal
+function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete }: {
+  mode: 'add' | 'edit';
+  session: CoupleSession;
+  events: string[];
+  vendor?: Vendor;
+  onClose: () => void;
+  onSave: (payload: Partial<Vendor>) => Promise<void>;
+  onDelete?: () => Promise<void>;
+}) {
+  const [name, setName] = useState(vendor?.name || '');
+  const [category, setCategory] = useState(vendor?.category || EXPENSE_CATEGORIES[0]);
+  const [phone, setPhone] = useState(vendor?.phone || '');
+  const [email, setEmail] = useState(vendor?.email || '');
+  const [website, setWebsite] = useState(vendor?.website || '');
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(vendor?.events || []);
+  const [status, setStatus] = useState<VendorStatus>(vendor?.status || 'enquired');
+  const [quotedTotal, setQuotedTotal] = useState(vendor?.quoted_total ? String(vendor.quoted_total) : '');
+  const [balanceDueDate, setBalanceDueDate] = useState(vendor?.balance_due_date || '');
+  const [bookedSlot, setBookedSlot] = useState(vendor?.booked_slot || '');
+  const [contractUrl, setContractUrl] = useState(vendor?.contract_url || '');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [notes, setNotes] = useState(vendor?.notes || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const canSeeMoney = canView(session.coShareRole, 'vendor_money');
+
+  const toggleEvent = (ev: string) => {
+    setSelectedEvents(prev => prev.includes(ev) ? prev.filter(e => e !== ev) : [...prev, ev]);
+  };
+
+  const handleContractUpload = async (file: File) => {
+    setUploading(true); setUploadError('');
+    const url = await uploadReceipt(file);
+    if (url) setContractUrl(url);
+    else setUploadError('Could not upload. Try again.');
+    setUploading(false);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    const payload: Partial<Vendor> = {
+      name: name.trim(),
+      category: category || null,
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      website: website.trim() || null,
+      events: selectedEvents,
+      status,
+      quoted_total: parseFloat(quotedTotal) || 0,
+      balance_due_date: balanceDueDate || null,
+      booked_slot: bookedSlot.trim() || null,
+      notes: notes.trim() || null,
+    };
+    if (contractUrl !== (vendor?.contract_url || '')) {
+      payload.contract_url = contractUrl || null;
+      if (contractUrl && !vendor?.contract_url) {
+        payload.contract_uploaded_by = session.id;
+        payload.contract_uploaded_by_name = session.name;
+      } else if (!contractUrl) {
+        payload.contract_uploaded_by = null;
+        payload.contract_uploaded_by_name = null;
+      }
+    }
+    await onSave(payload);
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '92vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <p style={{ margin: '0 0 16px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+          {mode === 'add' ? 'Add a vendor' : 'Edit vendor'}
+        </p>
+
+        <InputField label="Vendor name" value={name} onChange={setName} placeholder="e.g. Madhu Caterers" />
+
+        {/* Category */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Category</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          {EXPENSE_CATEGORIES.map(cat => (
+            <button key={cat} onClick={() => setCategory(cat)} style={{
+              padding: '5px 11px', borderRadius: 14,
+              background: category === cat ? C.goldSoft : C.ivory,
+              border: `1px solid ${category === cat ? C.goldBorder : C.border}`,
+              color: category === cat ? C.goldDeep : C.muted,
+              fontSize: 11, fontWeight: category === cat ? 500 : 400,
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}>{cat}</button>
+          ))}
+        </div>
+
+        <InputField label="Phone (optional)" value={phone} onChange={setPhone} type="tel" placeholder="+91 98765 43210" />
+        <InputField label="Email (optional)" value={email} onChange={setEmail} placeholder="hello@madhucaterers.com" />
+        <InputField label="Website or Instagram (optional)" value={website} onChange={setWebsite} placeholder="@madhucaterers" />
+
+        {/* Events served */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Events they serve</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          {events.map(ev => {
+            const on = selectedEvents.includes(ev);
+            return (
+              <button key={ev} onClick={() => toggleEvent(ev)} style={{
+                padding: '6px 12px', borderRadius: 16,
+                background: on ? C.dark : C.ivory,
+                border: `1px solid ${on ? C.dark : C.border}`,
+                color: on ? C.gold : C.muted,
+                fontSize: 12, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              }}>{ev}</button>
+            );
+          })}
+        </div>
+
+        {/* Status */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Stage</label>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' as const }}>
+          {VENDOR_STATUSES.map(s => (
+            <button key={s.id} onClick={() => setStatus(s.id)} style={{
+              flex: 1, minWidth: 80, padding: '8px 6px', borderRadius: 10,
+              background: status === s.id ? s.bg : C.ivory,
+              border: `1px solid ${status === s.id ? s.border : C.border}`,
+              color: status === s.id ? s.color : C.muted,
+              fontSize: 11, fontFamily: 'DM Sans, sans-serif',
+              fontWeight: status === s.id ? 500 : 400, cursor: 'pointer',
+            }}>{s.label}</button>
+          ))}
+        </div>
+
+        {/* Money — only for Owner/Core Duo */}
+        {canSeeMoney && (
+          <>
+            <label style={{
+              display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+              fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+            }}>Quoted total (optional)</label>
+            <div style={{ position: 'relative', marginBottom: 14 }}>
+              <span style={{
+                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 16, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+              }}>₹</span>
+              <input
+                type="number" inputMode="decimal" value={quotedTotal}
+                onChange={e => setQuotedTotal(e.target.value)}
+                placeholder="0"
+                style={{
+                  width: '100%', boxSizing: 'border-box' as const,
+                  padding: '12px 16px 12px 32px', borderRadius: 10,
+                  border: `1px solid ${C.border}`, background: C.ivory,
+                  fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark, outline: 'none',
+                }}
+              />
+            </div>
+
+            <label style={{
+              display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+              fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+            }}>Next payment due (optional)</label>
+            <input
+              type="date" value={balanceDueDate}
+              onChange={e => setBalanceDueDate(e.target.value)}
+              style={{
+                width: '100%', boxSizing: 'border-box' as const,
+                padding: '12px 16px', borderRadius: 10,
+                border: `1px solid ${C.border}`, background: C.ivory,
+                fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark,
+                outline: 'none', marginBottom: 14,
+              }}
+            />
+          </>
+        )}
+
+        {/* Booked slot — for conflict detection */}
+        <InputField
+          label="Booked time slot (optional)"
+          value={bookedSlot}
+          onChange={setBookedSlot}
+          placeholder="e.g. 2026-11-15 7pm"
+        />
+
+        {/* Contract upload */}
+        {canSeeMoney && (
+          <>
+            <label style={{
+              display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+              fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+            }}>Contract / quote (optional)</label>
+            <input
+              ref={fileInputRef}
+              type="file" accept="image/*,application/pdf"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) handleContractUpload(file);
+              }}
+            />
+            {contractUrl ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                borderRadius: 10, padding: 10, marginBottom: 14,
+              }}>
+                <Paperclip size={14} color={C.gold} />
+                <a
+                  href={contractUrl} target="_blank" rel="noreferrer"
+                  style={{
+                    flex: 1, fontSize: 12, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: 500, textDecoration: 'none',
+                  }}
+                >View contract</a>
+                <button onClick={() => setContractUrl('')} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 6,
+                }}>
+                  <X size={14} color={C.muted} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                  width: '100%', background: C.ivory, border: `1px dashed ${C.goldBorder}`,
+                  borderRadius: 10, padding: '12px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                <Upload size={14} color={C.gold} />
+                <span style={{ fontSize: 12, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                  {uploading ? 'Uploading…' : 'Upload contract / quote PDF or photo'}
+                </span>
+              </button>
+            )}
+            {uploadError && <ErrorBanner msg={uploadError} />}
+          </>
+        )}
+
+        {/* Notes */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Notes (optional)</label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          rows={2}
+          placeholder="Anything you want to remember"
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '10px 14px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+            outline: 'none', marginBottom: 18, resize: 'vertical' as const,
+          }}
+        />
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {mode === 'edit' && onDelete && (
+            <button onClick={() => onDelete()} style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: '#FEF2F2', border: '1px solid #FECACA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}>
+              <Trash2 size={16} color="#B91C1C" />
+            </button>
+          )}
+          <div style={{ flex: 1 }}>
+            <GhostButton label="Cancel" onTap={onClose} />
+          </div>
+          <button onClick={handleSave} disabled={!name.trim()} style={{
+            padding: '12px 24px', borderRadius: 12,
+            background: C.dark, border: 'none',
+            cursor: name.trim() ? 'pointer' : 'default',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+            opacity: name.trim() ? 1 : 0.4,
+          }}>
+            {mode === 'add' ? 'Add' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Vendor detail sheet — shows vendor + their linked expenses + quick payment log
+function VendorDetailSheet({
+  session, vendor, expenses, canEdit: canEditVendor, canSeeMoney,
+  onClose, onUpdate, onDelete,
+  onAddExpense, onUpdateExpense, onDeleteExpense,
+}: {
+  session: CoupleSession;
+  vendor: Vendor;
+  expenses: Expense[];
+  canEdit: boolean;
+  canSeeMoney: boolean;
+  onClose: () => void;
+  onUpdate: (patch: Partial<Vendor>) => Promise<void>;
+  onDelete: () => Promise<void>;
+  onAddExpense: (payload: Partial<Expense>) => Promise<void>;
+  onUpdateExpense: (id: string, patch: Partial<Expense>) => Promise<void>;
+  onDeleteExpense: (id: string) => Promise<void>;
+}) {
+  const [showEdit, setShowEdit] = useState(false);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  const style = statusStyle(vendor.status);
+  const paid = vendorPaidTotal(expenses, vendor.name);
+  const balanceDue = vendorBalanceDue(vendor, expenses);
+  const hasPhone = !!(vendor.phone && vendor.phone.replace(/\D/g, '').length >= 10);
+
+  const whatsAppOpen = () => {
+    if (!hasPhone) return;
+    const phone = (vendor.phone || '').replace(/\D/g, '');
+    const msg = `Hi ${vendor.name} team,`;
+    window.open(`https://wa.me/${phone.length > 10 ? phone : '91' + phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '92vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 20, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              {vendor.name}
+            </p>
+            <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' as const }}>
+              {vendor.category && (
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                  {vendor.category}
+                </span>
+              )}
+              <span style={{
+                fontSize: 9, color: style.color, background: style.bg,
+                border: `1px solid ${style.border}`, borderRadius: 8,
+                padding: '2px 7px', fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 500, letterSpacing: '0.5px',
+                textTransform: 'uppercase' as const,
+              }}>
+                {style.label}
+              </span>
+            </div>
+          </div>
+          {canEditVendor && (
+            <button onClick={() => setShowEdit(true)} style={{
+              width: 36, height: 36, borderRadius: 18, background: C.ivory,
+              border: `1px solid ${C.border}`, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Edit3 size={14} color={C.dark} />
+            </button>
+          )}
+        </div>
+
+        {/* Quick actions */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' as const }}>
+          {hasPhone && (
+            <button onClick={whatsAppOpen} style={{
+              flex: 1, minWidth: 120, padding: '10px 12px', borderRadius: 10,
+              background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              <Phone size={13} color={C.gold} />
+              <span style={{ fontSize: 12, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>WhatsApp</span>
+            </button>
+          )}
+          {vendor.website && (
+            <a
+              href={vendor.website.startsWith('http') ? vendor.website : `https://${vendor.website.replace(/^@/, 'instagram.com/')}`}
+              target="_blank" rel="noreferrer"
+              style={{
+                flex: 1, minWidth: 120, padding: '10px 12px', borderRadius: 10,
+                background: C.ivory, border: `1px solid ${C.border}`,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                textDecoration: 'none',
+              }}
+            >
+              <ExternalLink size={13} color={C.muted} />
+              <span style={{ fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Web</span>
+            </a>
+          )}
+        </div>
+
+        {/* Money summary — Owner/Core Duo only */}
+        {canSeeMoney && vendor.quoted_total > 0 && (
+          <div style={{
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            borderRadius: 12, padding: '14px 16px', marginBottom: 18,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 11, color: C.goldDeep, fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif' }}>
+                Quoted
+              </span>
+              <span style={{ fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 600 }}>
+                {fmtINRFull(vendor.quoted_total)}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <span style={{ fontSize: 12, color: '#2D6A2D', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                Paid {fmtINRFull(paid)}
+              </span>
+              {balanceDue > 0 && (
+                <span style={{ fontSize: 12, color: '#A33636', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                  Due {fmtINRFull(balanceDue)}
+                </span>
+              )}
+            </div>
+            {vendor.balance_due_date && balanceDue > 0 && (
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                Next payment by {formatDueDate(vendor.balance_due_date)}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Contract link */}
+        {canSeeMoney && vendor.contract_url && (
+          <a
+            href={vendor.contract_url} target="_blank" rel="noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: C.ivory, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: '12px 14px', marginBottom: 18,
+              textDecoration: 'none',
+            }}
+          >
+            <Paperclip size={14} color={C.gold} />
+            <span style={{ flex: 1, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              View contract
+            </span>
+            {vendor.contract_uploaded_by_name && (
+              <span style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                by {vendor.contract_uploaded_by_name}
+              </span>
+            )}
+          </a>
+        )}
+
+        {/* Payment history — from expenses */}
+        {canSeeMoney && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+              <p style={{
+                margin: 0, fontSize: 10, color: C.muted, fontWeight: 500,
+                letterSpacing: '2px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+              }}>Payments</p>
+              {canEditVendor && (
+                <button onClick={() => setShowAddPayment(true)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: C.gold, fontSize: 12, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+                  padding: 0,
+                }}>+ Log payment</button>
+              )}
+            </div>
+            {expenses.length === 0 ? (
+              <div style={{
+                background: C.pearl, border: `1px solid ${C.border}`,
+                borderRadius: 10, padding: '14px 16px', marginBottom: 18, textAlign: 'center' as const,
+              }}>
+                <p style={{ margin: 0, fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                  No payments logged yet.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6, marginBottom: 18 }}>
+                {expenses.map(exp => {
+                  const amt = exp.actual_amount + exp.shadow_amount;
+                  return (
+                    <button key={exp.id} onClick={() => setEditingExpense(exp)} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8,
+                      background: C.ivory, border: `1px solid ${C.border}`,
+                      borderRadius: 10, padding: '10px 14px',
+                      cursor: 'pointer', textAlign: 'left' as const,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          margin: 0, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+                          overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const,
+                        }}>
+                          {exp.description || exp.category}
+                        </p>
+                        <p style={{
+                          margin: '2px 0 0', fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300,
+                        }}>
+                          {exp.event} · {exp.payment_status}
+                          {exp.receipt_url && ' · receipt attached'}
+                        </p>
+                      </div>
+                      <span style={{ fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, flexShrink: 0 }}>
+                        {fmtINR(amt)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Notes */}
+        {vendor.notes && (
+          <>
+            <p style={{
+              margin: '0 0 10px', fontSize: 10, color: C.muted, fontWeight: 500,
+              letterSpacing: '2px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+            }}>Notes</p>
+            <div style={{
+              background: C.ivory, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: '12px 14px', marginBottom: 18,
+            }}>
+              <p style={{ margin: 0, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px', fontWeight: 300 }}>
+                {vendor.notes}
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Close */}
+        <GhostButton label="Close" onTap={onClose} />
+
+        {/* Nested edit modal */}
+        {showEdit && (
+          <VendorEditor
+            mode="edit"
+            session={session}
+            events={session.events}
+            vendor={vendor}
+            onClose={() => setShowEdit(false)}
+            onSave={async payload => {
+              await onUpdate(payload);
+              setShowEdit(false);
+            }}
+            onDelete={async () => {
+              await onDelete();
+              setShowEdit(false);
+            }}
+          />
+        )}
+
+        {/* Log payment — uses ExpenseEditor with vendor_name pre-filled */}
+        {showAddPayment && (
+          <ExpenseEditor
+            session={session}
+            mode="add"
+            events={session.events}
+            defaultEvent={vendor.events[0] || session.events[0]}
+            onClose={() => setShowAddPayment(false)}
+            onSave={async payload => {
+              await onAddExpense({
+                ...payload,
+                vendor_name: vendor.name,
+                category: payload.category || vendor.category || 'Miscellaneous',
+              });
+              setShowAddPayment(false);
+            }}
+          />
+        )}
+
+        {/* Edit payment */}
+        {editingExpense && (
+          <ExpenseEditor
+            session={session}
+            mode="edit"
+            events={session.events}
+            expense={editingExpense}
+            defaultEvent={editingExpense.event}
+            onClose={() => setEditingExpense(null)}
+            onSave={async payload => {
+              await onUpdateExpense(editingExpense.id, payload);
+              setEditingExpense(null);
+            }}
+            onDelete={async () => {
+              await onDeleteExpense(editingExpense.id);
+              setEditingExpense(null);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // CIRCLE SCREEN
 // ─────────────────────────────────────────────────────────────
 
@@ -6113,7 +7186,22 @@ export default function CoupleApp() {
                 onBack={() => setActiveTool(null)}
               />
             )}
-            {activeTool && activeTool !== 'checklist' && activeTool !== 'budget' && activeTool !== 'guests' && activeTool !== 'moodboard' && (
+            {activeTool === 'vendors' && (
+              <VendorTool
+                session={session}
+                vendors={checklist.vendors}
+                expenses={checklist.expenses}
+                loading={checklist.loading}
+                onAdd={checklist.addVendor}
+                onUpdate={checklist.updateVendor}
+                onDelete={checklist.deleteVendor}
+                onAddExpense={checklist.addExpense}
+                onUpdateExpense={checklist.updateExpense}
+                onDeleteExpense={checklist.deleteExpense}
+                onBack={() => setActiveTool(null)}
+              />
+            )}
+            {activeTool && activeTool !== 'checklist' && activeTool !== 'budget' && activeTool !== 'guests' && activeTool !== 'moodboard' && activeTool !== 'vendors' && (
               <ToolPlaceholder toolId={activeTool} session={session} onBack={() => setActiveTool(null)} />
             )}
             {!activeTool && activeTab === 'home' && (
@@ -6126,6 +7214,7 @@ export default function CoupleApp() {
                 budget={checklist.budget}
                 expenses={checklist.expenses}
                 guests={checklist.guests}
+                vendors={checklist.vendors}
               />
             )}
             {!activeTool && activeTab === 'plan' && (
@@ -6137,6 +7226,7 @@ export default function CoupleApp() {
                 expenses={checklist.expenses}
                 guests={checklist.guests}
                 pins={checklist.pins}
+                vendors={checklist.vendors}
               />
             )}
             {!activeTool && activeTab === 'circle' && (
