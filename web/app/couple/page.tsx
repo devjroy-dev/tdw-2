@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Home, BookOpen, Users, Heart, ChevronRight, X,
   Compass, CheckSquare, PieChart, Briefcase, Bell,
@@ -7714,6 +7714,537 @@ function TemplateEditor({ template, newContext, onClose, onSave, onDelete }: {
 }
 
 // ─────────────────────────────────────────────────────────────
+// DREAMAI ACTION SHEET
+// Bottom sheet with example prompts + "start fresh" option.
+// First-time users see Twilio sandbox opt-in copy.
+// ─────────────────────────────────────────────────────────────
+
+function DreamAiSheet({ session, onClose }: {
+  session: CoupleSession;
+  onClose: () => void;
+}) {
+  const TWILIO_NUMBER = '14155238886';
+  const SANDBOX_JOIN_CODE = 'join acres-eventually';
+
+  const prompts = [
+    {
+      icon: '💐',
+      label: 'Find me a Mehendi artist',
+      body: "Hi DreamAi! I'm looking for a Mehendi artist for my wedding. Can you suggest some top-rated ones?",
+    },
+    {
+      icon: '💰',
+      label: "How's my budget looking?",
+      body: "Hi DreamAi! Can you tell me how my wedding budget is tracking and where I'm overspending?",
+    },
+    {
+      icon: '💌',
+      label: 'Draft a thank-you note',
+      body: "Hi DreamAi! Can you help me draft a warm thank-you note to send to my aunt who's been helping with wedding plans?",
+    },
+    {
+      icon: '✨',
+      label: 'Suggest mandap decor ideas',
+      body: "Hi DreamAi! I need creative mandap decor ideas. My wedding is a traditional Indian ceremony — any suggestions?",
+    },
+  ];
+
+  const openPrompt = (body: string) => {
+    window.open(`https://wa.me/${TWILIO_NUMBER}?text=${encodeURIComponent(body)}`, '_blank');
+    onClose();
+  };
+
+  const openFresh = () => {
+    window.open(`https://wa.me/${TWILIO_NUMBER}`, '_blank');
+    onClose();
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 220, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '85vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 16,
+            background: C.dark, border: `1px solid ${C.goldBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Zap size={14} color={C.gold} />
+          </div>
+          <p style={{ margin: 0, fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+            DreamAi
+          </p>
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '18px' }}>
+          Your wedding planning assistant, right inside WhatsApp. Pick a starting point or start fresh.
+        </p>
+
+        <p style={{
+          margin: '0 0 8px', fontSize: 10, color: C.muted, fontWeight: 500,
+          letterSpacing: '2px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+        }}>Quick starts</p>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 16 }}>
+          {prompts.map((p, i) => (
+            <button key={i} onClick={() => openPrompt(p.body)} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: C.ivory, border: `1px solid ${C.border}`,
+              borderRadius: 12, padding: '12px 14px',
+              cursor: 'pointer', textAlign: 'left' as const, width: '100%',
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, flexShrink: 0,
+              }}>
+                <span>{p.icon}</span>
+              </div>
+              <span style={{
+                flex: 1, fontSize: 13, color: C.dark,
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+              }}>{p.label}</span>
+              <ChevronRight size={14} color={C.mutedLight} />
+            </button>
+          ))}
+        </div>
+
+        <button onClick={openFresh} style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          background: C.dark, border: 'none',
+          borderRadius: 12, padding: '14px', cursor: 'pointer',
+          color: C.gold, fontFamily: 'DM Sans, sans-serif',
+          fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+          textTransform: 'uppercase' as const, marginBottom: 12,
+        }}>
+          <Phone size={13} color={C.gold} />
+          Start fresh in WhatsApp
+        </button>
+
+        {/* First-time opt-in footer */}
+        <div style={{
+          background: C.pearl, border: `1px solid ${C.border}`,
+          borderRadius: 10, padding: '10px 14px',
+        }}>
+          <p style={{
+            margin: 0, fontSize: 10, color: C.muted, fontWeight: 500,
+            letterSpacing: '1px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+          }}>First time?</p>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '16px' }}>
+            Send <span style={{ fontWeight: 500, color: C.dark }}>{SANDBOX_JOIN_CODE}</span> to <span style={{ fontWeight: 500, color: C.dark }}>+1 {TWILIO_NUMBER.slice(0, 3)}-{TWILIO_NUMBER.slice(3, 6)}-{TWILIO_NUMBER.slice(6)}</span> from WhatsApp to connect.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FEEDBACK SHEET
+// ─────────────────────────────────────────────────────────────
+
+function FeedbackSheet({ session, onSubmit, onClose, activeTab }: {
+  session: CoupleSession;
+  onSubmit: (payload: { rating: string; message: string; screen: string }) => Promise<boolean>;
+  onClose: () => void;
+  activeTab: string;
+}) {
+  const [rating, setRating] = useState<'great' | 'ok' | 'bad' | null>(null);
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!rating && !message.trim()) return;
+    setSubmitting(true);
+    const ok = await onSubmit({
+      rating: rating || '',
+      message: message.trim(),
+      screen: activeTab,
+    });
+    setSubmitting(false);
+    if (ok) {
+      setSubmitted(true);
+      setTimeout(onClose, 1500);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 220, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '85vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        {submitted ? (
+          <div style={{ textAlign: 'center' as const, padding: '30px 10px' }}>
+            <Sparkles size={28} color={C.gold} style={{ marginBottom: 10 }} />
+            <p style={{ margin: '0 0 4px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              Thank you, {session.name?.split(' ')[0] || 'love'}.
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              Every bit of feedback makes this better.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p style={{ margin: '0 0 4px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              How's this feeling?
+            </p>
+            <p style={{ margin: '0 0 18px', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '18px' }}>
+              You're one of the first to use TDW. Tell us what's working, what's not, anything at all.
+            </p>
+
+            {/* Rating */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, justifyContent: 'center' }}>
+              {([
+                ['great', '😍', 'Love it'],
+                ['ok',    '🙂', 'It\'s okay'],
+                ['bad',   '😕', 'Not great'],
+              ] as const).map(([val, emoji, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setRating(val)}
+                  style={{
+                    flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center',
+                    background: rating === val ? C.goldSoft : C.ivory,
+                    border: `1px solid ${rating === val ? C.goldBorder : C.border}`,
+                    borderRadius: 12, padding: '12px 8px',
+                    cursor: 'pointer', gap: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 24 }}>{emoji}</span>
+                  <span style={{
+                    fontSize: 11, color: rating === val ? C.goldDeep : C.muted,
+                    fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+                  }}>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <label style={{
+              display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+              fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+            }}>Anything else?</label>
+            <textarea
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder="Something you loved, something broken, something missing..."
+              rows={3}
+              style={{
+                width: '100%', boxSizing: 'border-box' as const,
+                padding: '10px 14px', borderRadius: 10,
+                border: `1px solid ${C.border}`, background: C.ivory,
+                fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+                outline: 'none', marginBottom: 14, resize: 'vertical' as const, lineHeight: '18px',
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <GhostButton label="Cancel" onTap={onClose} />
+              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || (!rating && !message.trim())}
+                style={{
+                  padding: '12px 24px', borderRadius: 12,
+                  background: C.dark, border: 'none',
+                  cursor: (rating || message.trim()) && !submitting ? 'pointer' : 'default',
+                  color: C.gold, fontFamily: 'DM Sans, sans-serif',
+                  fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+                  textTransform: 'uppercase' as const,
+                  opacity: (rating || message.trim()) && !submitting ? 1 : 0.4,
+                }}
+              >
+                {submitting ? '…' : 'Send'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FOUNDING BRIDE INTRO
+// ─────────────────────────────────────────────────────────────
+
+function FoundingBrideIntro({ name, onDismiss }: {
+  name: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.6)',
+        zIndex: 260, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          background: C.cream, borderRadius: 20,
+          padding: 28, maxWidth: 400, width: '100%',
+          border: `1px solid ${C.goldBorder}`,
+          boxShadow: '0 24px 64px rgba(44,36,32,0.25)',
+          textAlign: 'center' as const,
+        }}
+      >
+        <div style={{
+          width: 56, height: 56, borderRadius: 28,
+          background: C.dark, border: `2px solid ${C.goldBorder}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px',
+        }}>
+          <Sparkles size={24} color={C.gold} />
+        </div>
+        <p style={{
+          margin: '0 0 6px', fontSize: 12, color: C.goldDeep, fontWeight: 500,
+          letterSpacing: '3px', textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+        }}>Welcome, Founding Bride</p>
+        <p style={{
+          margin: '0 0 12px', fontSize: 22, color: C.dark,
+          fontFamily: 'Playfair Display, serif', lineHeight: '28px',
+        }}>
+          {name?.split(' ')[0] || 'You\'re'}, you're one of our first.
+        </p>
+        <p style={{
+          margin: '0 0 20px', fontSize: 13, color: C.muted,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '20px',
+        }}>
+          You get lifetime Platinum — every tool, every feature, at no charge. Ever.
+          <br /><br />
+          In exchange, tell us what works and what doesn't. Tap the beta button anytime.
+        </p>
+        <button
+          onClick={onDismiss}
+          style={{
+            width: '100%', padding: '14px', borderRadius: 12,
+            background: C.dark, border: 'none', cursor: 'pointer',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 12, fontWeight: 400, letterSpacing: '2px',
+            textTransform: 'uppercase' as const,
+          }}
+        >
+          Let's plan
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ERROR BOUNDARY
+// Prevents a crash in one tool from blanking the whole app.
+// ─────────────────────────────────────────────────────────────
+
+class ToolErrorBoundary extends React.Component<
+  { children: React.ReactNode; onReset: () => void },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; onReset: () => void }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error) {
+    console.error('Tool error:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '120px 20px' }}>
+          <div style={{
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 14, padding: '28px 20px', textAlign: 'center' as const,
+          }}>
+            <AlertCircle size={28} color={'#A33636'} style={{ marginBottom: 10 }} />
+            <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              Something went wrong.
+            </p>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '18px' }}>
+              Your data is safe. Head back and try again.
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                this.props.onReset();
+              }}
+              style={{
+                padding: '12px 24px', borderRadius: 12,
+                background: C.dark, border: 'none', cursor: 'pointer',
+                color: C.gold, fontFamily: 'DM Sans, sans-serif',
+                fontSize: 12, fontWeight: 400, letterSpacing: '1.5px',
+                textTransform: 'uppercase' as const,
+              }}
+            >
+              Back to home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// PWA INSTALL PROMPT
+// Android/Chrome: intercepts beforeinstallprompt event.
+// iOS Safari: shows manual add-to-home-screen instructions.
+// Shows once after 3+ visits; dismiss persists.
+// ─────────────────────────────────────────────────────────────
+
+function InstallPrompt() {
+  const [visible, setVisible] = useState(false);
+  const [platform, setPlatform] = useState<'android' | 'ios' | 'other'>('other');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    // Already installed — running in standalone mode
+    const isStandalone =
+      (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches) ||
+      (typeof navigator !== 'undefined' && (navigator as any).standalone === true);
+    if (isStandalone) return;
+
+    // Previously dismissed
+    const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem('tdw_install_dismissed');
+    if (dismissed) return;
+
+    // Visit counter — only show on 3rd+ session
+    let visits = 1;
+    try {
+      const existing = parseInt(localStorage.getItem('tdw_visit_count') || '0', 10);
+      visits = existing + 1;
+      localStorage.setItem('tdw_visit_count', String(visits));
+    } catch {}
+
+    if (visits < 3) return;
+
+    // Platform detection
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const isAndroid = /Android/.test(ua);
+
+    if (isIOS) {
+      setPlatform('ios');
+      setVisible(true);
+    } else if (isAndroid) {
+      setPlatform('android');
+      const handler = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setVisible(true);
+      };
+      window.addEventListener('beforeinstallprompt', handler);
+      return () => window.removeEventListener('beforeinstallprompt', handler);
+    }
+  }, []);
+
+  const dismiss = () => {
+    try { localStorage.setItem('tdw_install_dismissed', '1'); } catch {}
+    setVisible(false);
+  };
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch {}
+      setDeferredPrompt(null);
+    }
+    dismiss();
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 'calc(max(8px, env(safe-area-inset-bottom)) + 72px)',
+      left: 16, right: 16,
+      maxWidth: 448, margin: '0 auto',
+      background: C.cream, border: `1px solid ${C.goldBorder}`,
+      borderRadius: 14, padding: '14px 16px',
+      boxShadow: '0 8px 24px rgba(44,36,32,0.18)',
+      zIndex: 55,
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Smartphone size={16} color={C.gold} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          margin: 0, fontSize: 13, color: C.dark,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+        }}>
+          Add to your home screen
+        </p>
+        <p style={{
+          margin: '2px 0 0', fontSize: 11, color: C.muted,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '15px',
+        }}>
+          {platform === 'ios'
+            ? 'Tap the share icon in Safari, then "Add to Home Screen".'
+            : 'Install TDW for quick access and offline use.'}
+        </p>
+        {platform === 'android' && (
+          <button onClick={handleInstall} style={{
+            marginTop: 8, padding: '6px 14px', borderRadius: 10,
+            background: C.dark, border: 'none', cursor: 'pointer',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 11, fontWeight: 500, letterSpacing: '1px',
+            textTransform: 'uppercase' as const,
+          }}>Install</button>
+        )}
+      </div>
+      <button onClick={dismiss} style={{
+        background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <X size={14} color={C.muted} />
+      </button>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
 // PROFILE OVERLAY
 // ─────────────────────────────────────────────────────────────
 
@@ -8104,6 +8635,8 @@ export default function CoupleApp() {
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showDreamAi, setShowDreamAi] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [prefillCode, setPrefillCode] = useState<string | null>(null);
 
   // Shared data hook — declared here so all children render against the
@@ -8171,78 +8704,82 @@ export default function CoupleApp() {
 
         {appMode === 'plan' && (
           <>
-            {activeTool === 'checklist' && (
-              <ChecklistTool
-                session={session}
-                tasks={checklist.tasks}
-                loading={checklist.loading}
-                onToggleComplete={checklist.toggleComplete}
-                onUpdate={checklist.updateTask}
-                onDelete={checklist.deleteTask}
-                onAdd={checklist.addTask}
-                onBack={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool === 'budget' && (
-              <BudgetTool
-                session={session}
-                budget={checklist.budget}
-                expenses={checklist.expenses}
-                shagun={checklist.shagun}
-                loading={checklist.loading}
-                onUpdateBudget={checklist.updateBudget}
-                onAddExpense={checklist.addExpense}
-                onUpdateExpense={checklist.updateExpense}
-                onDeleteExpense={checklist.deleteExpense}
-                onAddShagun={checklist.addShagun}
-                onUpdateShagun={checklist.updateShagun}
-                onDeleteShagun={checklist.deleteShagun}
-                onBack={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool === 'guests' && (
-              <GuestTool
-                session={session}
-                guests={checklist.guests}
-                loading={checklist.loading}
-                templates={checklist.waTemplates}
-                onAdd={checklist.addGuest}
-                onUpdate={checklist.updateGuest}
-                onDelete={checklist.deleteGuest}
-                onBack={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool === 'moodboard' && (
-              <MoodboardTool
-                session={session}
-                pins={checklist.pins}
-                loading={checklist.loading}
-                templates={checklist.waTemplates}
-                onFetchPreview={checklist.fetchOGPreview}
-                onAdd={checklist.addPin}
-                onUpdate={checklist.updatePin}
-                onDelete={checklist.deletePin}
-                onBack={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool === 'vendors' && (
-              <VendorTool
-                session={session}
-                vendors={checklist.vendors}
-                expenses={checklist.expenses}
-                loading={checklist.loading}
-                templates={checklist.waTemplates}
-                onAdd={checklist.addVendor}
-                onUpdate={checklist.updateVendor}
-                onDelete={checklist.deleteVendor}
-                onAddExpense={checklist.addExpense}
-                onUpdateExpense={checklist.updateExpense}
-                onDeleteExpense={checklist.deleteExpense}
-                onBack={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool && activeTool !== 'checklist' && activeTool !== 'budget' && activeTool !== 'guests' && activeTool !== 'moodboard' && activeTool !== 'vendors' && (
-              <ToolPlaceholder toolId={activeTool} session={session} onBack={() => setActiveTool(null)} />
+            {activeTool && (
+              <ToolErrorBoundary onReset={() => setActiveTool(null)}>
+                {activeTool === 'checklist' && (
+                  <ChecklistTool
+                    session={session}
+                    tasks={checklist.tasks}
+                    loading={checklist.loading}
+                    onToggleComplete={checklist.toggleComplete}
+                    onUpdate={checklist.updateTask}
+                    onDelete={checklist.deleteTask}
+                    onAdd={checklist.addTask}
+                    onBack={() => setActiveTool(null)}
+                  />
+                )}
+                {activeTool === 'budget' && (
+                  <BudgetTool
+                    session={session}
+                    budget={checklist.budget}
+                    expenses={checklist.expenses}
+                    shagun={checklist.shagun}
+                    loading={checklist.loading}
+                    onUpdateBudget={checklist.updateBudget}
+                    onAddExpense={checklist.addExpense}
+                    onUpdateExpense={checklist.updateExpense}
+                    onDeleteExpense={checklist.deleteExpense}
+                    onAddShagun={checklist.addShagun}
+                    onUpdateShagun={checklist.updateShagun}
+                    onDeleteShagun={checklist.deleteShagun}
+                    onBack={() => setActiveTool(null)}
+                  />
+                )}
+                {activeTool === 'guests' && (
+                  <GuestTool
+                    session={session}
+                    guests={checklist.guests}
+                    loading={checklist.loading}
+                    templates={checklist.waTemplates}
+                    onAdd={checklist.addGuest}
+                    onUpdate={checklist.updateGuest}
+                    onDelete={checklist.deleteGuest}
+                    onBack={() => setActiveTool(null)}
+                  />
+                )}
+                {activeTool === 'moodboard' && (
+                  <MoodboardTool
+                    session={session}
+                    pins={checklist.pins}
+                    loading={checklist.loading}
+                    templates={checklist.waTemplates}
+                    onFetchPreview={checklist.fetchOGPreview}
+                    onAdd={checklist.addPin}
+                    onUpdate={checklist.updatePin}
+                    onDelete={checklist.deletePin}
+                    onBack={() => setActiveTool(null)}
+                  />
+                )}
+                {activeTool === 'vendors' && (
+                  <VendorTool
+                    session={session}
+                    vendors={checklist.vendors}
+                    expenses={checklist.expenses}
+                    loading={checklist.loading}
+                    templates={checklist.waTemplates}
+                    onAdd={checklist.addVendor}
+                    onUpdate={checklist.updateVendor}
+                    onDelete={checklist.deleteVendor}
+                    onAddExpense={checklist.addExpense}
+                    onUpdateExpense={checklist.updateExpense}
+                    onDeleteExpense={checklist.deleteExpense}
+                    onBack={() => setActiveTool(null)}
+                  />
+                )}
+                {activeTool !== 'checklist' && activeTool !== 'budget' && activeTool !== 'guests' && activeTool !== 'moodboard' && activeTool !== 'vendors' && (
+                  <ToolPlaceholder toolId={activeTool} session={session} onBack={() => setActiveTool(null)} />
+                )}
+              </ToolErrorBoundary>
             )}
             {!activeTool && activeTab === 'home' && (
               <HomeScreen
@@ -8300,9 +8837,8 @@ export default function CoupleApp() {
 
         {/* DreamAi FAB */}
         {appMode === 'plan' && !activeTool && (
-          <a
-            href="https://wa.me/14155238886?text=Hi%20DreamAi%2C%20I%20need%20help%20with%20my%20wedding%20planning"
-            target="_blank" rel="noreferrer"
+          <button
+            onClick={() => setShowDreamAi(true)}
             style={{
               position: 'fixed',
               bottom: 'calc(max(8px, env(safe-area-inset-bottom)) + 64px)',
@@ -8310,12 +8846,57 @@ export default function CoupleApp() {
               background: C.dark, border: `1px solid ${C.goldBorder}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 4px 16px rgba(44,36,32,0.18)',
-              textDecoration: 'none', zIndex: 45,
+              cursor: 'pointer', zIndex: 45, padding: 0,
             }}
           >
             <Zap size={20} color={C.gold} />
-          </a>
+          </button>
         )}
+
+        {showDreamAi && (
+          <DreamAiSheet
+            session={session}
+            onClose={() => setShowDreamAi(false)}
+          />
+        )}
+
+        {/* Feedback button — floating, only in Plan mode, not inside tools */}
+        {appMode === 'plan' && !activeTool && (
+          <button
+            onClick={() => setShowFeedback(true)}
+            style={{
+              position: 'fixed',
+              bottom: 'calc(max(8px, env(safe-area-inset-bottom)) + 64px)',
+              left: 20, padding: '6px 12px', borderRadius: 16,
+              background: C.ivory, border: `1px solid ${C.goldBorder}`,
+              cursor: 'pointer', zIndex: 45,
+              fontSize: 11, color: C.goldDeep,
+              fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+              letterSpacing: '0.5px',
+              boxShadow: '0 2px 8px rgba(44,36,32,0.08)',
+            }}
+          >
+            Beta · feedback
+          </button>
+        )}
+
+        {showFeedback && (
+          <FeedbackSheet
+            session={session}
+            onSubmit={checklist.submitFeedback}
+            onClose={() => setShowFeedback(false)}
+            activeTab={activeTab}
+          />
+        )}
+
+        {checklist.showFoundingIntro && (
+          <FoundingBrideIntro
+            name={session.name}
+            onDismiss={checklist.dismissFoundingIntro}
+          />
+        )}
+
+        {!activeTool && <InstallPrompt />}
 
         {showProfile && (
           <ProfileOverlay

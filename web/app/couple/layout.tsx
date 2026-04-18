@@ -2,6 +2,17 @@ import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: "The Dream Wedding",
+  description: "Your digital maid of honour — plan your wedding together",
+  manifest: "/couple-manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "TDW",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -9,7 +20,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#FAF6F0",
+  themeColor: "#2C2420",
 };
 
 export default function CoupleLayout({ children }: { children: React.ReactNode }) {

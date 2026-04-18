@@ -1,0 +1,25 @@
+{
+  "name": "The Dream Wedding",
+  "short_name": "TDW",
+  "description": "Your digital maid of honour — plan your wedding together",
+  "start_url": "/couple",
+  "scope": "/couple",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF6EE",
+  "theme_color": "#2C2420",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
