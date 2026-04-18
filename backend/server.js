@@ -786,9 +786,82 @@ app.post('/api/invoices', async (req, res) => {
 // Update invoice status
 app.patch('/api/invoices/:id', async (req, res) => {
   try {
+    const allowed = [
+      'status', 'paid_date', 'amount', 'description', 'due_date',
+      'client_name', 'client_phone', 'client_email', 'gst_enabled',
+      'gst_amount', 'total_amount', 'notes',
+    ];
+    const patch = {};
+    for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
     const { data, error } = await supabase
       .from('vendor_invoices')
-      .update(req.body)
+      .update(patch)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Mark invoice as paid + optionally log TDS in one call (Turn 9H)
+app.post('/api/invoices/:id/mark-paid', async (req, res) => {
+  try {
+    const { tds_deducted, tds_rate, tds_amount } = req.body || {};
+    // Update invoice
+    const { data: inv, error: invErr } = await supabase
+      .from('vendor_invoices')
+      .update({ status: 'paid', paid_date: new Date().toISOString().slice(0, 10) })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (invErr) throw invErr;
+
+    let tdsEntry = null;
+    if (tds_deducted && inv) {
+      const gross = parseInt(inv.amount) || 0;
+      const rate = parseFloat(tds_rate) || 10;
+      const amount = tds_amount !== undefined ? parseInt(tds_amount) : Math.round((gross * rate) / 100);
+      const net = gross - amount;
+      const now = new Date();
+      const year = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const financial_year = `FY ${year}-${String(year + 1).slice(-2)}`;
+      const { data: tds, error: tdsErr } = await supabase
+        .from('vendor_tds_ledger')
+        .insert([{
+          vendor_id: inv.vendor_id,
+          transaction_type: 'invoice',
+          reference_id: inv.id,
+          reference_type: 'invoice',
+          invoice_id: inv.id,
+          gross_amount: gross,
+          tds_rate: rate,
+          tds_amount: amount,
+          net_amount: net,
+          tds_deducted_by: inv.client_name || null,
+          tds_deposited: false,
+          financial_year,
+        }])
+        .select()
+        .single();
+      if (!tdsErr) tdsEntry = tds;
+    }
+
+    res.json({ success: true, data: inv, tds: tdsEntry });
+  } catch (error) {
+    console.error('mark-paid error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Mark invoice as unpaid (revert)
+app.post('/api/invoices/:id/mark-unpaid', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_invoices')
+      .update({ status: 'unpaid', paid_date: null })
       .eq('id', req.params.id)
       .select()
       .single();
@@ -1624,6 +1697,29 @@ app.post('/api/payment-schedules', async (req, res) => {
       .select()
       .single();
     if (error) throw error;
+
+    // Auto-create calendar events for each instalment with a due_date (Turn 9H)
+    if (data && Array.isArray(data.instalments)) {
+      const calendarEvents = [];
+      for (const inst of data.instalments) {
+        if (inst.due_date && inst.amount) {
+          calendarEvents.push({
+            vendor_id: data.vendor_id,
+            title: `${inst.label || 'Payment'} due: ${data.client_name || 'Client'}`,
+            event_date: inst.due_date,
+            event_type: 'Payment',
+            amount: parseInt(inst.amount) || 0,
+            notes: `₹${(parseInt(inst.amount) || 0).toLocaleString('en-IN')} from ${data.client_name || 'client'}`,
+            source_type: 'payment_schedule',
+            source_id: data.id,
+          });
+        }
+      }
+      if (calendarEvents.length > 0) {
+        await supabase.from('vendor_calendar_events').insert(calendarEvents);
+      }
+    }
+
     res.json({ success: true, data });
   } catch (error) {
     console.error('payment-schedules create error:', error.message);

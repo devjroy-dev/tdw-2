@@ -131,6 +131,7 @@ export default function VendorMobilePage() {
   const [blockedDates, setBlockedDates] = useState<any[]>([]);
   const [paymentSchedules, setPaymentSchedules] = useState<any[]>([]);
   const [todos, setTodos] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -255,7 +256,7 @@ export default function VendorMobilePage() {
 
     const loadAll = async () => {
       try {
-        const [bRes, iRes, cRes, blockRes, schedRes, vRes, aiRes, tRes, eRes] = await Promise.all([
+        const [bRes, iRes, cRes, blockRes, schedRes, vRes, aiRes, tRes, eRes, remRes] = await Promise.all([
           fetch(`${API}/api/bookings/vendor/${vId}`).then(r => r.json()).catch(() => ({})),
           fetch(`${API}/api/invoices/${vId}`).then(r => r.json()).catch(() => ({})),
           fetch(`${API}/api/vendor-clients/${vId}`).then(r => r.json()).catch(() => ({})),
@@ -265,6 +266,7 @@ export default function VendorMobilePage() {
           fetch(`${API}/api/ai-tokens/status/${vId}`).then(r => r.json()).catch(() => ({})),
           fetch(`${API}/api/todos/${vId}`).then(r => r.json()).catch(() => ({})),
           fetch(`${API}/api/events/${vId}`).then(r => r.json()).catch(() => ({})),
+          fetch(`${API}/api/reminders/${vId}`).then(r => r.json()).catch(() => ({})),
         ]);
         if (bRes.success) setBookings(bRes.data || []);
         if (iRes.success) setInvoices(iRes.data || []);
@@ -275,6 +277,7 @@ export default function VendorMobilePage() {
         if (aiRes.success) setAiStatus(aiRes.data || aiRes);
         if (tRes.success) setTodos(tRes.data || []);
         if (eRes.success) setEvents(eRes.data || []);
+        if (remRes.success) setReminders(remRes.data || []);
         // Leads = bookings with pending_confirmation status
         if (bRes.success) setLeads((bRes.data || []).filter((b: any) => b.status === 'pending_confirmation' || b.status === 'pending'));
       } catch (e) {
@@ -342,6 +345,7 @@ export default function VendorMobilePage() {
             leads={leads}
             paymentSchedules={paymentSchedules}
             todos={todos}
+            reminders={reminders}
             events={events}
             loading={loading}
             onJumpToTab={(t: Tab) => {
@@ -710,7 +714,7 @@ function Header({ session, tier, mode, onModeChange, onOpenProfile }: {
 // DASHBOARD TAB (mirrors React Native Overview)
 // ══════════════════════════════════════════════════════════════════════════
 
-function DashboardTab({ session, tier, bookings, invoices, clients, leads, paymentSchedules, todos, events, loading, onJumpToTab, vendorData, onOpenAiModal, checklistDismissed, onDismissChecklist, onAddClient, onOpenInvoice, onOpenBlockDate, onOpenReminder, onOpenTodo, onOpenEvent, onToggleTodo }: any) {
+function DashboardTab({ session, tier, bookings, invoices, clients, leads, paymentSchedules, todos, reminders, events, loading, onJumpToTab, vendorData, onOpenAiModal, checklistDismissed, onDismissChecklist, onAddClient, onOpenInvoice, onOpenBlockDate, onOpenReminder, onOpenTodo, onOpenEvent, onToggleTodo }: any) {
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const todayBookings = bookings.filter((b: any) => {
     if (!b.event_date) return false;
@@ -950,11 +954,12 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '8px' }}>
 
-      {/* ── NEEDS ATTENTION HUB (Turn 9D) — sits at the very top ── */}
+      {/* ── NEEDS ATTENTION HUB (Turn 9D + 9H reminders) — sits at the very top ── */}
       <NeedsAttentionCard
         paymentSchedules={paymentSchedules}
         invoices={invoices}
         todos={todos}
+        reminders={reminders}
         bookings={bookings}
         onJumpToTab={onJumpToTab}
       />
@@ -2236,6 +2241,13 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
       ],
     },
     {
+      title: 'Daily',
+      tools: [
+        { id: 'todos',  label: 'To-Do',  icon: CheckCircle, sub: 'todos',  minTier: 'essential', desc: 'Personal task list. Quick reminders, things to do today.' },
+        { id: 'events', label: 'Events', icon: Calendar,    sub: 'events', minTier: 'essential', desc: 'Schedule trials, venue visits, prep meetings — anything not a booking.' },
+      ],
+    },
+    {
       title: 'Money',
       tools: [
         { id: 'invoices',  label: 'Invoices',  icon: FileText,     sub: 'invoices',  minTier: 'essential', desc: 'Create, send, and track invoices. GST auto-calculated.' },
@@ -2243,13 +2255,6 @@ function ToolsTab({ session, tier, activeSubTool, setActiveSubTool, clients, inv
         { id: 'contracts', label: 'Contracts', icon: Briefcase,    sub: 'contracts', minTier: 'essential', desc: 'Service agreements, generated and tracked per client.' },
         { id: 'expenses',  label: 'Expense Tracker',  icon: Package, sub: 'expenses',  minTier: 'signature', desc: 'Track every expense, tag to clients, see what you profited after costs.' },
         { id: 'tax',       label: 'Tax & TDS', icon: Percent,      sub: 'tax',       minTier: 'signature', desc: 'GST invoices. Quarterly TDS summary. CA-ready exports.' },
-      ],
-    },
-    {
-      title: 'Utility',
-      tools: [
-        { id: 'todos',  label: 'To-Do',  icon: CheckCircle, sub: 'todos',  minTier: 'essential', desc: 'Personal task list. Quick reminders, things to do today.' },
-        { id: 'events', label: 'Events', icon: Calendar,    sub: 'events', minTier: 'essential', desc: 'Schedule trials, venue visits, prep meetings — anything not a booking.' },
       ],
     },
     {
@@ -2446,6 +2451,18 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
     inquiries: 'Enquiries', calendar: 'Calendar', events: 'Events',
   };
 
+  // Invoice action sheet state (Turn 9H)
+  const [activeInvoice, setActiveInvoice] = useState<any>(null);
+  const [invoicesLocal, setInvoicesLocal] = useState<any[]>(invoices || []);
+  useEffect(() => { setInvoicesLocal(invoices || []); }, [invoices]);
+
+  const handleInvoiceUpdate = (updated: any) => {
+    setInvoicesLocal(prev => prev.map((i: any) => i.id === updated.id ? { ...i, ...updated } : i));
+  };
+  const handleInvoiceDelete = (id: string) => {
+    setInvoicesLocal(prev => prev.filter((i: any) => i.id !== id));
+  };
+
   const renderContent = () => {
     if (sub === 'clients') {
       return clients.length === 0 ? (
@@ -2488,9 +2505,9 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
     }
 
     if (sub === 'invoices') {
-      const total = invoices.reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
-      const paid = invoices.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
-      const unpaidCount = invoices.filter((i: any) => i.status !== 'paid').length;
+      const total = invoicesLocal.reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+      const paid = invoicesLocal.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + (parseInt(i.amount) || 0), 0);
+      const unpaidCount = invoicesLocal.filter((i: any) => i.status !== 'paid').length;
       return (
         <>
           <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '16px', marginBottom: '12px' }}>
@@ -2551,20 +2568,28 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {invoices.slice(0, 20).map((inv: any) => {
+              {invoicesLocal.slice(0, 20).map((inv: any) => {
                 const waMsg = `Hi ${inv.client_name || 'there'}, sharing your invoice from ${vendorName || 'our studio'} — ${inv.invoice_number || 'Invoice'} for ₹${fmtINR(parseInt(inv.amount) || 0)}${inv.status === 'paid' ? ' (paid)' : ''}. Please let me know if you have any questions.`;
                 const waUrl = inv.client_phone
                   ? `https://wa.me/91${(inv.client_phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`
                   : null;
                 return (
-                  <div key={inv.id} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.border}`, padding: '14px' }}>
+                  <button
+                    key={inv.id}
+                    onClick={() => setActiveInvoice(inv)}
+                    style={{
+                      background: C.card, borderRadius: '12px', border: `1px solid ${C.border}`,
+                      padding: '14px', textAlign: 'left' as const, cursor: 'pointer',
+                      fontFamily: 'inherit', width: '100%',
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>{inv.client_name || 'Client'}</div>
                         <div style={{ fontSize: '11px', color: C.muted }}>{inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                           <span style={{ fontSize: '15px', fontWeight: 600, color: C.dark }}>₹{fmtINR(parseInt(inv.amount) || 0)}</span>
-                          <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '50px', background: inv.status === 'paid' ? `${C.green}15` : C.goldSoft, color: inv.status === 'paid' ? C.green : C.goldDeep, border: `1px solid ${inv.status === 'paid' ? `${C.green}40` : C.goldBorder}` }}>{inv.status || 'unpaid'}</span>
+                          <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' as const, padding: '2px 8px', borderRadius: '50px', background: inv.status === 'paid' ? `${C.green}15` : C.goldSoft, color: inv.status === 'paid' ? C.green : C.goldDeep, border: `1px solid ${inv.status === 'paid' ? `${C.green}40` : C.goldBorder}` }}>{inv.status || 'unpaid'}</span>
                         </div>
                       </div>
                       {waUrl && (
@@ -2587,7 +2612,7 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
                         </a>
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -2816,7 +2841,384 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
         )}
       </div>
       {renderContent()}
+
+      {/* ── Invoice Action Sheet (Turn 9H) ── */}
+      {activeInvoice && (
+        <InvoiceActionSheet
+          invoice={activeInvoice}
+          vendorName={vendorName}
+          onClose={() => setActiveInvoice(null)}
+          onUpdated={(upd: any) => {
+            handleInvoiceUpdate(upd);
+            setActiveInvoice(null);
+          }}
+          onDeleted={(id: string) => {
+            handleInvoiceDelete(id);
+            setActiveInvoice(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INVOICE ACTION SHEET (Turn 9H)
+// Tappable invoice opens this. Actions: Mark Paid/Unpaid, Share WhatsApp, Delete.
+// Mark Paid on ≥ ₹30,000 triggers TDS prompt.
+// ══════════════════════════════════════════════════════════════════════════
+
+function InvoiceActionSheet({ invoice, vendorName, onClose, onUpdated, onDeleted }: {
+  invoice: any;
+  vendorName: string;
+  onClose: () => void;
+  onUpdated: (inv: any) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState('');
+  const [showTds, setShowTds] = useState(false);
+  const amt = parseInt(invoice.amount) || 0;
+  const isPaid = invoice.status === 'paid';
+  const TDS_THRESHOLD = 30000;
+
+  const handleMarkPaid = async (opts?: { tds_deducted?: boolean; tds_rate?: number; tds_amount?: number }) => {
+    setWorking(true); setError('');
+    try {
+      const r = await fetch(`${API}/api/invoices/${invoice.id}/mark-paid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(opts || {}),
+      });
+      const d = await r.json();
+      if (d.success) onUpdated(d.data);
+      else setError(d.error || 'Could not update.');
+    } catch { setError('Network error.'); } finally { setWorking(false); }
+  };
+
+  const handleMarkUnpaid = async () => {
+    if (!confirm('Mark as unpaid? Any TDS record will remain but can be edited in Tax & TDS.')) return;
+    setWorking(true); setError('');
+    try {
+      const r = await fetch(`${API}/api/invoices/${invoice.id}/mark-unpaid`, { method: 'POST' });
+      const d = await r.json();
+      if (d.success) onUpdated(d.data);
+      else setError(d.error || 'Could not update.');
+    } catch { setError('Network error.'); } finally { setWorking(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this invoice? This cannot be undone.')) return;
+    setWorking(true); setError('');
+    try {
+      const r = await fetch(`${API}/api/invoices/${invoice.id}`, { method: 'DELETE' });
+      const d = await r.json();
+      if (d.success) onDeleted(invoice.id);
+      else setError(d.error || 'Could not delete.');
+    } catch { setError('Network error.'); } finally { setWorking(false); }
+  };
+
+  const waMsg = `Hi ${invoice.client_name || 'there'}, sharing your invoice from ${vendorName || 'our studio'} — ${invoice.invoice_number || 'Invoice'} for ₹${fmtINR(amt)}${isPaid ? ' (paid)' : ''}.`;
+  const waUrl = invoice.client_phone
+    ? `https://wa.me/91${(invoice.client_phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`
+    : `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+
+  // If TDS prompt is open, render it instead
+  if (showTds) {
+    return (
+      <TdsPromptSheet
+        invoice={invoice}
+        onClose={() => setShowTds(false)}
+        onConfirm={(opts) => {
+          setShowTds(false);
+          handleMarkPaid(opts);
+        }}
+        onSkip={() => {
+          setShowTds(false);
+          handleMarkPaid({ tds_deducted: false });
+        }}
+      />
+    );
+  }
+
+  return (
+    <SheetOverlay onClose={onClose}>
+      <SheetHeader
+        eyebrow={invoice.invoice_number || 'Invoice'}
+        title={invoice.client_name || 'Client'}
+        onClose={onClose}
+      />
+
+      <div style={{
+        background: C.pearl, border: `1px solid ${C.border}`,
+        borderRadius: 12, padding: '14px 16px', marginBottom: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: C.dark }}>
+            ₹{fmtINR(amt)}
+          </div>
+          <span style={{
+            fontSize: 9, fontWeight: 600, letterSpacing: '0.8px',
+            textTransform: 'uppercase' as const,
+            padding: '3px 10px', borderRadius: 50,
+            background: isPaid ? `${C.green}15` : C.goldSoft,
+            color: isPaid ? C.green : C.goldDeep,
+            border: `1px solid ${isPaid ? `${C.green}40` : C.goldBorder}`,
+          }}>{invoice.status || 'unpaid'}</span>
+        </div>
+        {invoice.description && (
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{invoice.description}</div>
+        )}
+        <div style={{ fontSize: 11, color: C.light, marginTop: 6 }}>
+          Issued: {invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+          {invoice.paid_date ? ` · Paid: ${new Date(invoice.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+        </div>
+      </div>
+
+      {error && (
+        <div style={{
+          background: C.redSoft, border: `1px solid ${C.redBorder}`,
+          borderRadius: 8, padding: '10px 12px',
+          fontSize: 11, color: C.red, marginBottom: 12,
+        }}>{error}</div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 10 }}>
+        {!isPaid ? (
+          <button
+            onClick={() => {
+              if (amt >= TDS_THRESHOLD) setShowTds(true);
+              else handleMarkPaid({ tds_deducted: false });
+            }}
+            disabled={working}
+            style={{
+              padding: 14, borderRadius: 12,
+              background: working ? C.pearl : C.dark, color: C.gold,
+              border: 'none', cursor: working ? 'default' : 'pointer',
+              fontSize: 12, fontWeight: 600, letterSpacing: '1.5px',
+              textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            <CheckCircle size={14} /> {working ? 'Updating…' : 'Mark as Paid'}
+          </button>
+        ) : (
+          <button
+            onClick={handleMarkUnpaid}
+            disabled={working}
+            style={{
+              padding: 14, borderRadius: 12,
+              background: 'transparent', color: C.muted,
+              border: `1px solid ${C.border}`, cursor: working ? 'default' : 'pointer',
+              fontSize: 12, fontWeight: 500, letterSpacing: '1.5px',
+              textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            {working ? 'Updating…' : 'Mark as Unpaid'}
+          </button>
+        )}
+
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            padding: 14, borderRadius: 12,
+            background: '#25D366', color: '#fff',
+            textDecoration: 'none', textAlign: 'center' as const,
+            fontSize: 12, fontWeight: 600, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          <Send size={14} /> Share on WhatsApp
+        </a>
+
+        <button
+          onClick={handleDelete}
+          disabled={working}
+          style={{
+            padding: 12, borderRadius: 12,
+            background: 'transparent', color: '#C65757',
+            border: `1px solid ${C.redBorder}`, cursor: working ? 'default' : 'pointer',
+            fontSize: 11, fontWeight: 500, letterSpacing: '1.2px',
+            textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          <Trash2 size={13} /> Delete Invoice
+        </button>
+      </div>
+    </SheetOverlay>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TDS PROMPT SHEET (Turn 9H)
+// Asks vendor whether TDS was deducted on a ≥ ₹30K invoice being marked paid.
+// Rate chips: 10% (default), 2%, Custom. TDS amount is editable too.
+// ══════════════════════════════════════════════════════════════════════════
+
+function TdsPromptSheet({ invoice, onClose, onConfirm, onSkip }: {
+  invoice: any;
+  onClose: () => void;
+  onConfirm: (opts: { tds_deducted: true; tds_rate: number; tds_amount: number }) => void;
+  onSkip: () => void;
+}) {
+  const amt = parseInt(invoice.amount) || 0;
+  const [rateMode, setRateMode] = useState<'10' | '2' | 'custom'>('10');
+  const [customRate, setCustomRate] = useState('');
+  const rate = rateMode === '10' ? 10 : rateMode === '2' ? 2 : (parseFloat(customRate) || 0);
+  const autoTds = Math.round((amt * rate) / 100);
+  const [tdsAmount, setTdsAmount] = useState<string>(String(autoTds));
+
+  // Keep TDS amount in sync when rate changes
+  useEffect(() => {
+    setTdsAmount(String(autoTds));
+  }, [rateMode, autoTds]);
+
+  const net = amt - (parseInt(tdsAmount) || 0);
+
+  const handleConfirm = () => {
+    const finalRate = rate || 0;
+    const finalAmount = parseInt(tdsAmount) || 0;
+    onConfirm({ tds_deducted: true, tds_rate: finalRate, tds_amount: finalAmount });
+  };
+
+  return (
+    <SheetOverlay onClose={onClose}>
+      <SheetHeader
+        eyebrow="TDS Deduction"
+        title="Was TDS deducted?"
+        onClose={onClose}
+      />
+
+      <div style={{
+        background: C.champagne, border: `1px solid ${C.goldBorder}`,
+        borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+        fontSize: 12, color: C.dark, lineHeight: 1.6,
+      }}>
+        This ₹{fmtINR(amt)} invoice is large enough that the client may have deducted TDS.
+        If they did, log it here so your Tax & TDS ledger stays accurate.
+      </div>
+
+      {/* Rate chips */}
+      <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.muted, fontWeight: 500, marginBottom: 8 }}>
+        TDS Rate
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        {[
+          { v: '10' as const, label: '10%', hint: 'Default (194J)' },
+          { v: '2' as const, label: '2%', hint: '194C' },
+          { v: 'custom' as const, label: 'Custom', hint: '' },
+        ].map(opt => (
+          <button
+            key={opt.v}
+            onClick={() => setRateMode(opt.v)}
+            style={{
+              flex: 1, padding: '10px 8px', borderRadius: 10,
+              background: rateMode === opt.v ? C.goldSoft : C.pearl,
+              border: `1px solid ${rateMode === opt.v ? C.gold : C.border}`,
+              cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+              display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 2,
+            }}
+          >
+            <span style={{
+              fontSize: 13, fontWeight: rateMode === opt.v ? 600 : 500,
+              color: rateMode === opt.v ? C.goldDeep : C.dark,
+            }}>{opt.label}</span>
+            {opt.hint && (
+              <span style={{ fontSize: 9, color: C.muted }}>{opt.hint}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {rateMode === 'custom' && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.muted, fontWeight: 500, marginBottom: 6 }}>Custom Rate</div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 10, padding: '10px 12px',
+          }}>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={customRate}
+              onChange={e => setCustomRate(e.target.value.replace(/[^0-9.]/g, ''))}
+              placeholder="e.g. 5"
+              style={{
+                flex: 1, background: 'transparent', border: 'none',
+                fontSize: 15, color: C.dark, outline: 'none',
+                fontFamily: "'Playfair Display', serif",
+              }}
+              autoFocus
+            />
+            <span style={{ color: C.muted, fontSize: 13 }}>%</span>
+          </div>
+        </div>
+      )}
+
+      {/* TDS amount — editable */}
+      <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.muted, fontWeight: 500, marginBottom: 6 }}>
+        TDS Amount (editable)
+      </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: C.ivory, border: `1px solid ${C.border}`,
+        borderRadius: 10, padding: '10px 12px', marginBottom: 8,
+      }}>
+        <span style={{ color: C.goldDeep, fontFamily: "'Playfair Display', serif", fontSize: 16 }}>₹</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={tdsAmount ? parseInt(tdsAmount).toLocaleString('en-IN') : ''}
+          onChange={e => setTdsAmount(e.target.value.replace(/[^0-9]/g, ''))}
+          style={{
+            flex: 1, background: 'transparent', border: 'none',
+            fontSize: 16, color: C.dark, outline: 'none',
+            fontFamily: "'Playfair Display', serif",
+          }}
+        />
+      </div>
+
+      <div style={{
+        background: C.pearl, borderRadius: 10, padding: '10px 12px',
+        marginBottom: 18, fontSize: 11, color: C.muted, lineHeight: 1.6,
+      }}>
+        Gross: <strong style={{ color: C.dark }}>₹{fmtINR(amt)}</strong>
+        {' · '}TDS: <strong style={{ color: '#C65757' }}>−₹{fmtINR(parseInt(tdsAmount) || 0)}</strong>
+        {' · '}Net Received: <strong style={{ color: C.green }}>₹{fmtINR(net)}</strong>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={onSkip}
+          style={{
+            flex: 1, padding: 13, borderRadius: 12,
+            background: 'transparent', color: C.muted,
+            border: `1px solid ${C.border}`, cursor: 'pointer',
+            fontSize: 11, fontWeight: 500, letterSpacing: '1.3px',
+            textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          No TDS
+        </button>
+        <button
+          onClick={handleConfirm}
+          style={{
+            flex: 2, padding: 14, borderRadius: 12,
+            background: C.dark, color: C.gold,
+            border: 'none', cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          Save TDS & Mark Paid
+        </button>
+      </div>
+    </SheetOverlay>
   );
 }
 
@@ -3072,10 +3474,11 @@ interface AttentionItem {
   targetSub?: string;
 }
 
-function NeedsAttentionCard({ paymentSchedules, invoices, todos, bookings, onJumpToTab }: {
+function NeedsAttentionCard({ paymentSchedules, invoices, todos, reminders, bookings, onJumpToTab }: {
   paymentSchedules: any[];
   invoices: any[];
   todos: any[];
+  reminders?: any[];
   bookings: any[];
   onJumpToTab?: (t: Tab) => void;
 }) {
@@ -3180,6 +3583,35 @@ function NeedsAttentionCard({ paymentSchedules, invoices, todos, bookings, onJum
         id: `todo-${todo.id}`,
         label: todo.title || 'Task',
         sub: 'Due today',
+        severity: 'today',
+        kind: 'todo',
+        target: 'Power',
+        targetSub: 'todos',
+      });
+    }
+  }
+
+  // ── Reminders — past due and not done (Turn 9H)
+  for (const r of (reminders || [])) {
+    if (r.done) continue;
+    if (!r.remind_date) continue;
+    const rd = new Date(r.remind_date);
+    const rdIso = new Date(rd.getFullYear(), rd.getMonth(), rd.getDate());
+    if (rdIso < today0) {
+      items.push({
+        id: `rem-${r.id}`,
+        label: r.title || 'Reminder',
+        sub: `Past due · ${rd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
+        severity: 'overdue',
+        kind: 'todo', // reuse todo icon/styling
+        target: 'Power',
+        targetSub: 'todos',
+      });
+    } else if (rdIso.getTime() === today0.getTime()) {
+      items.push({
+        id: `rem-${r.id}`,
+        label: r.title || 'Reminder',
+        sub: `Reminder today${r.remind_time ? ` · ${r.remind_time}` : ''}`,
         severity: 'today',
         kind: 'todo',
         target: 'Power',
