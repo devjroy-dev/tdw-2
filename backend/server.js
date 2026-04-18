@@ -4446,6 +4446,128 @@ app.post('/api/couple/waitlist', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════
+// COUPLE V2 — Checklist Tool (Session 10 Turn 2)
+// ══════════════════════════════════════════════════════════════
+
+// List all checklist tasks for a couple.
+app.get('/api/couple/checklist/:coupleId', async (req, res) => {
+  try {
+    const { coupleId } = req.params;
+    if (!coupleId) return res.status(400).json({ success: false, error: 'coupleId required' });
+    const { data, error } = await supabase
+      .from('couple_checklist')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('checklist list error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create a single task (custom or seeded).
+app.post('/api/couple/checklist', async (req, res) => {
+  try {
+    const {
+      couple_id, event, text, priority, assigned_to, due_date,
+      is_custom, seeded_from_template,
+    } = req.body || {};
+    if (!couple_id || !event || !text) {
+      return res.status(400).json({ success: false, error: 'couple_id, event, and text required' });
+    }
+    const { data, error } = await supabase
+      .from('couple_checklist')
+      .insert([{
+        couple_id,
+        event,
+        text,
+        priority: priority || 'normal',
+        assigned_to: assigned_to || null,
+        due_date: due_date || null,
+        is_custom: is_custom !== undefined ? !!is_custom : true,
+        seeded_from_template: !!seeded_from_template,
+      }])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('checklist create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Bulk create tasks — used for initial template seeding on first load.
+app.post('/api/couple/checklist/bulk', async (req, res) => {
+  try {
+    const { couple_id, tasks } = req.body || {};
+    if (!couple_id || !Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({ success: false, error: 'couple_id and tasks array required' });
+    }
+    const rows = tasks.map(t => ({
+      couple_id,
+      event: t.event,
+      text: t.text,
+      priority: t.priority || 'normal',
+      due_date: t.due_date || null,
+      is_custom: false,
+      seeded_from_template: true,
+    }));
+    const { data, error } = await supabase
+      .from('couple_checklist')
+      .insert(rows)
+      .select();
+    if (error) throw error;
+
+    // Mark user as seeded so we never duplicate templates
+    await supabase.from('users').update({ checklist_seeded: true }).eq('id', couple_id);
+
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('checklist bulk create error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update a single task (toggle complete, edit text, reassign, etc.)
+app.patch('/api/couple/checklist/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const updates = { ...(req.body || {}) };
+    // Auto-stamp completed_at when flipping is_complete
+    if (updates.is_complete === true) updates.completed_at = new Date().toISOString();
+    if (updates.is_complete === false) updates.completed_at = null;
+    const { data, error } = await supabase
+      .from('couple_checklist')
+      .update(updates)
+      .eq('id', taskId)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('checklist update error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete a task.
+app.delete('/api/couple/checklist/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { error } = await supabase
+      .from('couple_checklist')
+      .delete()
+      .eq('id', taskId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('checklist delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ── Co-Planner System ──
 
 // Generate co-planner invite link

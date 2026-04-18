@@ -5,6 +5,7 @@ import {
   Home, BookOpen, Users, Heart, ChevronRight, X,
   Compass, CheckSquare, PieChart, Briefcase, Bell,
   Zap, ArrowRight, Sparkles, Phone, Eye, EyeOff,
+  Plus, Trash2, Clock, AlertCircle, Check, Edit3, Circle,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -181,6 +182,159 @@ const TOOLS = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+// CHECKLIST TEMPLATES — Indian wedding specific
+// Each task: { event, daysBefore (due N days before wedding), text, priority }
+// Filtered at seed time by the events the bride has selected.
+// Tasks with daysBefore > days-to-go are dropped (past due irrelevance).
+// ─────────────────────────────────────────────────────────────
+
+interface TaskTemplate {
+  event: string;
+  daysBefore: number;
+  text: string;
+  priority: 'urgent' | 'normal';
+}
+
+const CHECKLIST_TEMPLATES: TaskTemplate[] = [
+  // ── Reception ─────────────────────────────────────────────
+  { event: 'Reception', daysBefore: 180, text: 'Finalise venue and confirm booking date',                     priority: 'urgent' },
+  { event: 'Reception', daysBefore: 150, text: 'Book photographer and videographer',                          priority: 'urgent' },
+  { event: 'Reception', daysBefore: 120, text: 'Shortlist caterers and finalise menu',                        priority: 'urgent' },
+  { event: 'Reception', daysBefore: 120, text: 'Book decorator and discuss themes',                           priority: 'normal' },
+  { event: 'Reception', daysBefore: 90,  text: 'Finalise bridal outfit and begin fittings',                   priority: 'urgent' },
+  { event: 'Reception', daysBefore: 90,  text: 'Send out invitations (physical and WhatsApp)',                priority: 'urgent' },
+  { event: 'Reception', daysBefore: 60,  text: 'Book DJ and confirm song list',                               priority: 'normal' },
+  { event: 'Reception', daysBefore: 45,  text: 'Confirm MUA booking and trial date',                          priority: 'urgent' },
+  { event: 'Reception', daysBefore: 30,  text: 'Arrange transport for out-of-station guests',                 priority: 'normal' },
+  { event: 'Reception', daysBefore: 21,  text: 'Finalise guest headcount with caterer',                       priority: 'urgent' },
+  { event: 'Reception', daysBefore: 14,  text: 'Brief MC on run of show and announcements',                   priority: 'normal' },
+  { event: 'Reception', daysBefore: 10,  text: 'Confirm photographer arrival time and shot list',             priority: 'urgent' },
+  { event: 'Reception', daysBefore: 7,   text: 'Confirm DJ playlist and no-play list',                        priority: 'urgent' },
+  { event: 'Reception', daysBefore: 5,   text: 'Arrange welcome drinks station',                              priority: 'normal' },
+  { event: 'Reception', daysBefore: 3,   text: 'Confirm venue setup time with decorator',                     priority: 'urgent' },
+  { event: 'Reception', daysBefore: 2,   text: 'Pack outfit, accessories, and emergency kit',                 priority: 'urgent' },
+
+  // ── Sangeet ───────────────────────────────────────────────
+  { event: 'Sangeet',   daysBefore: 120, text: 'Book venue or confirm home setup for Sangeet',                priority: 'urgent' },
+  { event: 'Sangeet',   daysBefore: 90,  text: 'Plan dance choreographies and book choreographer',            priority: 'normal' },
+  { event: 'Sangeet',   daysBefore: 75,  text: 'Finalise outfits for Sangeet (bride, groom, family)',         priority: 'normal' },
+  { event: 'Sangeet',   daysBefore: 45,  text: 'Book DJ and confirm song requests for performances',          priority: 'urgent' },
+  { event: 'Sangeet',   daysBefore: 30,  text: 'Plan games and ice-breakers for the evening',                 priority: 'normal' },
+  { event: 'Sangeet',   daysBefore: 21,  text: 'Confirm decorator and lighting setup',                        priority: 'normal' },
+  { event: 'Sangeet',   daysBefore: 14,  text: 'Begin Sangeet dance rehearsals',                              priority: 'urgent' },
+  { event: 'Sangeet',   daysBefore: 7,   text: 'Final rehearsal with all performers',                         priority: 'urgent' },
+  { event: 'Sangeet',   daysBefore: 3,   text: 'Check sound system and stage setup',                          priority: 'urgent' },
+
+  // ── Mehendi ───────────────────────────────────────────────
+  { event: 'Mehendi',   daysBefore: 90,  text: 'Book mehendi artist and confirm design references',           priority: 'urgent' },
+  { event: 'Mehendi',   daysBefore: 60,  text: 'Finalise mehendi outfit and jewellery',                       priority: 'normal' },
+  { event: 'Mehendi',   daysBefore: 45,  text: 'Confirm mehendi venue or home arrangement',                   priority: 'normal' },
+  { event: 'Mehendi',   daysBefore: 30,  text: 'Plan seating and comfort setup for guests',                   priority: 'normal' },
+  { event: 'Mehendi',   daysBefore: 21,  text: 'Order snacks, drinks, and refreshments for guests',           priority: 'normal' },
+  { event: 'Mehendi',   daysBefore: 14,  text: 'Brief photographer on key moments to capture',                priority: 'normal' },
+  { event: 'Mehendi',   daysBefore: 7,   text: 'Do a trial mehendi to test the colour',                       priority: 'urgent' },
+  { event: 'Mehendi',   daysBefore: 3,   text: 'Confirm mehendi artist arrival time',                         priority: 'urgent' },
+
+  // ── Haldi ─────────────────────────────────────────────────
+  { event: 'Haldi',     daysBefore: 60,  text: 'Plan Haldi venue or home setup',                              priority: 'normal' },
+  { event: 'Haldi',     daysBefore: 45,  text: 'Finalise Haldi outfit (yellow/pastel)',                       priority: 'normal' },
+  { event: 'Haldi',     daysBefore: 30,  text: 'Arrange Haldi paste ingredients with family',                 priority: 'normal' },
+  { event: 'Haldi',     daysBefore: 21,  text: 'Plan flower arrangements and decor',                          priority: 'normal' },
+  { event: 'Haldi',     daysBefore: 14,  text: 'Arrange towels and change of clothes',                        priority: 'normal' },
+  { event: 'Haldi',     daysBefore: 7,   text: 'Confirm photographer and coverage plan',                      priority: 'urgent' },
+  { event: 'Haldi',     daysBefore: 3,   text: 'Arrange seating for elders during ceremony',                  priority: 'normal' },
+
+  // ── Baraat ────────────────────────────────────────────────
+  { event: 'Baraat',    daysBefore: 75,  text: 'Plan baraat route and timing',                                priority: 'normal' },
+  { event: 'Baraat',    daysBefore: 45,  text: 'Book baraat band, dhol, or DJ setup',                         priority: 'urgent' },
+  { event: 'Baraat',    daysBefore: 30,  text: 'Arrange transport (horse, car, or procession vehicles)',      priority: 'urgent' },
+  { event: 'Baraat',    daysBefore: 21,  text: 'Confirm baraat start location and route clearance',           priority: 'normal' },
+  { event: 'Baraat',    daysBefore: 14,  text: 'Plan welcome ceremony at the venue',                          priority: 'normal' },
+  { event: 'Baraat',    daysBefore: 7,   text: 'Confirm groom\u2019s outfit, sehra, and accessories',         priority: 'urgent' },
+  { event: 'Baraat',    daysBefore: 3,   text: 'Coordinate baraat arrival time with venue',                   priority: 'urgent' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// TASK HELPERS
+// ─────────────────────────────────────────────────────────────
+
+interface ChecklistTask {
+  id: string;
+  couple_id: string;
+  event: string;
+  text: string;
+  is_complete: boolean;
+  priority: 'urgent' | 'normal';
+  assigned_to: string | null;
+  due_date: string | null;
+  is_custom: boolean;
+  seeded_from_template: boolean;
+  created_at: string;
+  completed_at: string | null;
+}
+
+// Build template seed tasks for the couple — filters by their events +
+// drops tasks whose due date is already in the past.
+function buildSeedTasks(events: string[], weddingDate: string) {
+  const wedding = new Date(weddingDate);
+  const now = new Date();
+  const daysRemaining = Math.ceil((wedding.getTime() - now.getTime()) / 86400000);
+  const seeds: Array<{ event: string; text: string; priority: string; due_date: string }> = [];
+  for (const tpl of CHECKLIST_TEMPLATES) {
+    if (!events.includes(tpl.event)) continue;
+    if (tpl.daysBefore > daysRemaining + 7) continue; // drop way-past-due
+    const due = new Date(wedding);
+    due.setDate(due.getDate() - tpl.daysBefore);
+    seeds.push({
+      event: tpl.event,
+      text: tpl.text,
+      priority: tpl.priority,
+      due_date: due.toISOString().slice(0, 10),
+    });
+  }
+  return seeds;
+}
+
+// Sort: urgent first, then by due_date asc (nulls last), then by created_at asc
+function sortTasks(tasks: ChecklistTask[]): ChecklistTask[] {
+  return [...tasks].sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority === 'urgent' ? -1 : 1;
+    const ad = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+    const bd = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+    if (ad !== bd) return ad - bd;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
+}
+
+// Top 3 tasks for the Home "Today" card
+function getTodayTasks(tasks: ChecklistTask[]): ChecklistTask[] {
+  const incomplete = tasks.filter(t => !t.is_complete);
+  return sortTasks(incomplete).slice(0, 3);
+}
+
+// Progress summary per event — used on My Wedding tile
+function getChecklistProgress(tasks: ChecklistTask[]): { done: number; total: number } {
+  return {
+    done: tasks.filter(t => t.is_complete).length,
+    total: tasks.length,
+  };
+}
+
+function formatDueDate(d: string | null): string {
+  if (!d) return '';
+  const date = new Date(d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  const diff = Math.round((date.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff < 0) return `${Math.abs(diff)}d overdue`;
+  if (diff < 7) return `In ${diff}d`;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+// ─────────────────────────────────────────────────────────────
 // SHARED UI
 // ─────────────────────────────────────────────────────────────
 
@@ -257,6 +411,117 @@ function ErrorBanner({ msg }: { msg: string }) {
       <p style={{ margin: 0, fontSize: 13, color: '#B91C1C', fontFamily: 'DM Sans, sans-serif' }}>{msg}</p>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SHARED DATA HOOK
+// Single source of truth for checklist tasks across Home, My
+// Wedding grid, and the Checklist tool. Future turns will add
+// budget, guests, vendors, moodboard to this same hook so all
+// screens stay in sync without refetching.
+// ─────────────────────────────────────────────────────────────
+
+function useCoupleData(session: CoupleSession | null) {
+  const [tasks, setTasks] = useState<ChecklistTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [seeded, setSeeded] = useState(false);
+
+  const refreshTasks = async () => {
+    if (!session?.id) return;
+    try {
+      const res = await fetch(`${API}/api/couple/checklist/${session.id}`);
+      const d = await res.json();
+      if (d.success) setTasks(d.data || []);
+    } catch {}
+  };
+
+  // Initial load + one-time template seed if bride has never seeded.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!session?.id) { setLoading(false); return; }
+      try {
+        // Check whether user has already been seeded
+        const userRes = await fetch(`${API}/api/users/${session.id}`);
+        const userD = await userRes.json();
+        const alreadySeeded = !!userD?.data?.checklist_seeded;
+
+        // Load existing tasks
+        const res = await fetch(`${API}/api/couple/checklist/${session.id}`);
+        const d = await res.json();
+        const existing: ChecklistTask[] = d.success ? (d.data || []) : [];
+
+        // Seed if never seeded AND no existing tasks
+        if (!alreadySeeded && existing.length === 0 && session.events?.length && session.weddingDate) {
+          const seeds = buildSeedTasks(session.events, session.weddingDate);
+          if (seeds.length > 0) {
+            const bulkRes = await fetch(`${API}/api/couple/checklist/bulk`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ couple_id: session.id, tasks: seeds }),
+            });
+            const bulkD = await bulkRes.json();
+            if (mounted && bulkD.success) setTasks(bulkD.data || []);
+          }
+          if (mounted) setSeeded(true);
+        } else {
+          if (mounted) { setTasks(existing); setSeeded(alreadySeeded); }
+        }
+      } catch (e) {
+        // Network failure — fall through silently, tool still renders
+      }
+      if (mounted) setLoading(false);
+    })();
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
+
+  const toggleComplete = async (id: string, nextValue: boolean) => {
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === id
+      ? { ...t, is_complete: nextValue, completed_at: nextValue ? new Date().toISOString() : null }
+      : t));
+    try {
+      await fetch(`${API}/api/couple/checklist/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_complete: nextValue }),
+      });
+    } catch {}
+  };
+
+  const updateTask = async (id: string, patch: Partial<ChecklistTask>) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...patch } as ChecklistTask : t));
+    try {
+      await fetch(`${API}/api/couple/checklist/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+    } catch {}
+  };
+
+  const deleteTask = async (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    try {
+      await fetch(`${API}/api/couple/checklist/${id}`, { method: 'DELETE' });
+    } catch {}
+  };
+
+  const addTask = async (payload: { event: string; text: string; priority: 'urgent' | 'normal'; due_date: string | null }) => {
+    if (!session?.id) return;
+    try {
+      const res = await fetch(`${API}/api/couple/checklist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, couple_id: session.id, is_custom: true }),
+      });
+      const d = await res.json();
+      if (d.success && d.data) setTasks(prev => [...prev, d.data]);
+    } catch {}
+  };
+
+  return { tasks, loading, seeded, refreshTasks, toggleComplete, updateTask, deleteTask, addTask };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -454,11 +719,17 @@ function DiscoverTeaser({ session }: { session: CoupleSession | null }) {
 // HOME SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function HomeScreen({ session, onNavTo }: {
-  session: CoupleSession; onNavTo: (tab: MainTab, tool?: string) => void;
+function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete }: {
+  session: CoupleSession;
+  onNavTo: (tab: MainTab, tool?: string) => void;
+  tasks: ChecklistTask[];
+  loading: boolean;
+  onToggleComplete: (id: string, next: boolean) => void;
 }) {
   const days = daysToGo(session.weddingDate);
   const copy = getGreetingCopy(session.name?.split(' ')[0] || '', days);
+  const todayTasks = getTodayTasks(tasks);
+  const progress = getChecklistProgress(tasks);
 
   return (
     <div style={{ padding: '72px 24px 100px' }}>
@@ -499,31 +770,112 @@ function HomeScreen({ session, onNavTo }: {
         </span>
       </div>
 
-      {/* Today tasks placeholder */}
+      {/* Today */}
       <p style={{
         fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: '3px',
         textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
       }}>Today</p>
-      <div style={{
-        background: C.ivory, borderRadius: 14, border: `1px solid ${C.border}`,
-        padding: '16px 18px', marginBottom: 24,
-      }}>
-        <p style={{
-          margin: 0, fontSize: 14, color: C.muted,
-          fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '22px',
+
+      {loading ? (
+        <div style={{
+          background: C.ivory, borderRadius: 14, border: `1px solid ${C.border}`,
+          padding: '16px 18px', marginBottom: 24,
         }}>
-          Set up your checklist and we'll show your top tasks for today here.
-        </p>
-        <button onClick={() => onNavTo('plan', 'checklist')} style={{
-          marginTop: 12, display: 'flex', alignItems: 'center', gap: 4,
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          <p style={{ margin: 0, fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+            Loading your checklist…
+          </p>
+        </div>
+      ) : todayTasks.length === 0 && progress.total === 0 ? (
+        <div style={{
+          background: C.ivory, borderRadius: 14, border: `1px solid ${C.border}`,
+          padding: '16px 18px', marginBottom: 24,
         }}>
-          <span style={{ fontSize: 12, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
-            Start checklist
-          </span>
-          <ArrowRight size={12} color={C.gold} />
-        </button>
-      </div>
+          <p style={{ margin: 0, fontSize: 14, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '22px' }}>
+            Open your checklist to get started.
+          </p>
+          <button onClick={() => onNavTo('plan', 'checklist')} style={{
+            marginTop: 12, display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          }}>
+            <span style={{ fontSize: 12, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              Start checklist
+            </span>
+            <ArrowRight size={12} color={C.gold} />
+          </button>
+        </div>
+      ) : todayTasks.length === 0 ? (
+        <div style={{
+          background: C.goldSoft, borderRadius: 14, border: `1px solid ${C.goldBorder}`,
+          padding: '16px 18px', marginBottom: 24,
+        }}>
+          <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 400 }}>
+            You're ahead of it today, {session.name?.split(' ')[0] || 'love'}.
+          </p>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+            Nothing urgent. Enjoy that.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 24 }}>
+          {todayTasks.map(t => (
+            <div key={t.id} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+              background: C.ivory, borderRadius: 12,
+              border: `1px solid ${t.priority === 'urgent' ? C.goldBorder : C.border}`,
+              padding: '12px 14px',
+            }}>
+              <button
+                onClick={() => onToggleComplete(t.id, !t.is_complete)}
+                style={{
+                  width: 22, height: 22, borderRadius: 11, flexShrink: 0,
+                  background: C.cream, border: `1.5px solid ${C.goldBorder}`,
+                  cursor: 'pointer', padding: 0, marginTop: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {t.is_complete && <Check size={12} color={C.gold} />}
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+                  lineHeight: '20px', wordBreak: 'break-word' as const,
+                }}>{t.text}</p>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+                  <span style={{
+                    fontSize: 10, color: C.goldDeep, fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: 500, letterSpacing: '0.5px',
+                  }}>{t.event.toUpperCase()}</span>
+                  {t.due_date && (
+                    <>
+                      <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+                      <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                        {formatDueDate(t.due_date)}
+                      </span>
+                    </>
+                  )}
+                  {t.priority === 'urgent' && (
+                    <>
+                      <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
+                      <span style={{ fontSize: 11, color: '#C2410C', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                        Urgent
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          <button onClick={() => onNavTo('plan', 'checklist')} style={{
+            alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+          }}>
+            <span style={{ fontSize: 12, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              View full checklist
+            </span>
+            <ArrowRight size={12} color={C.gold} />
+          </button>
+        </div>
+      )}
 
       {/* Pulse strip */}
       <p style={{
@@ -608,10 +960,18 @@ function HomeScreen({ session, onNavTo }: {
 // MY WEDDING SCREEN
 // ─────────────────────────────────────────────────────────────
 
-function MyWeddingScreen({ session, onToolOpen }: {
-  session: CoupleSession; onToolOpen: (id: string) => void;
+function MyWeddingScreen({ session, onToolOpen, tasks }: {
+  session: CoupleSession; onToolOpen: (id: string) => void; tasks: ChecklistTask[];
 }) {
   const days = daysToGo(session.weddingDate);
+  const progress = getChecklistProgress(tasks);
+  const progressLabels: Record<string, string> = {
+    checklist: progress.total > 0 ? `${progress.done} of ${progress.total} done` : 'Tasks across all your events',
+    budget:    'Envelopes, expenses, Payment Trail',
+    guests:    "Who's coming to what",
+    moodboard: 'Per-event inspiration boards',
+    vendors:   'Booked, confirmed, paid',
+  };
   return (
     <div style={{ padding: '72px 24px 100px' }}>
       <h1 style={{
@@ -649,7 +1009,7 @@ function MyWeddingScreen({ session, onToolOpen }: {
                 fontFamily: 'Playfair Display, serif', fontWeight: 400,
               }}>{t.label}</p>
               <p style={{ margin: 0, fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
-                {t.tagline}
+                {progressLabels[t.tool] || t.tagline}
               </p>
             </div>
             {!canEdit(session.coShareRole, t.tool) && canView(session.coShareRole, t.tool) && (
@@ -727,6 +1087,449 @@ function ToolPlaceholder({ toolId, session, onBack }: {
           fontFamily: 'DM Sans, sans-serif', fontSize: 14,
           color: C.muted, fontWeight: 300, lineHeight: '22px', margin: 0,
         }}>{msg.body}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHECKLIST TOOL
+// ─────────────────────────────────────────────────────────────
+
+function ChecklistTool({
+  session, tasks, loading, onToggleComplete, onUpdate, onDelete, onAdd, onBack,
+}: {
+  session: CoupleSession;
+  tasks: ChecklistTask[];
+  loading: boolean;
+  onToggleComplete: (id: string, next: boolean) => void;
+  onUpdate: (id: string, patch: Partial<ChecklistTask>) => void;
+  onDelete: (id: string) => void;
+  onAdd: (payload: { event: string; text: string; priority: 'urgent' | 'normal'; due_date: string | null }) => void;
+  onBack: () => void;
+}) {
+  const [activeEvent, setActiveEvent] = useState<string>('All');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingTask, setEditingTask] = useState<ChecklistTask | null>(null);
+  const canEditTool = canEdit(session.coShareRole, 'checklist');
+
+  const eventTabs = ['All', ...session.events];
+  const filtered = activeEvent === 'All' ? tasks : tasks.filter(t => t.event === activeEvent);
+  const sorted = sortTasks(filtered);
+  const incomplete = sorted.filter(t => !t.is_complete);
+  const complete = sorted.filter(t => t.is_complete);
+
+  // Group by event when "All" is selected
+  const grouped: Record<string, ChecklistTask[]> = {};
+  if (activeEvent === 'All') {
+    for (const t of incomplete) {
+      if (!grouped[t.event]) grouped[t.event] = [];
+      grouped[t.event].push(t);
+    }
+  }
+
+  return (
+    <div style={{ padding: '0 0 120px' }}>
+
+      {/* Back header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '72px 20px 16px', background: C.cream,
+        position: 'sticky' as const, top: 0, zIndex: 30,
+        borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.ivory,
+            border: `1px solid ${C.border}`, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <ChevronRight size={16} color={C.dark} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <div>
+            <p style={{ margin: 0, fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>Checklist</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              {tasks.filter(t => t.is_complete).length} of {tasks.length} done
+            </p>
+          </div>
+        </div>
+        {canEditTool && (
+          <button onClick={() => setShowAdd(true)} style={{
+            width: 36, height: 36, borderRadius: 18, background: C.dark,
+            border: 'none', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Plus size={16} color={C.gold} />
+          </button>
+        )}
+      </div>
+
+      {/* Event filter chips */}
+      <div style={{
+        display: 'flex', gap: 8, padding: '12px 20px',
+        overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as any,
+        background: C.cream, borderBottom: `1px solid ${C.border}`,
+      }}>
+        {eventTabs.map(ev => {
+          const active = ev === activeEvent;
+          const eventTasks = ev === 'All' ? tasks : tasks.filter(t => t.event === ev);
+          const pendingCount = eventTasks.filter(t => !t.is_complete).length;
+          return (
+            <button key={ev} onClick={() => setActiveEvent(ev)} style={{
+              padding: '6px 14px', borderRadius: 18, whiteSpace: 'nowrap' as const,
+              background: active ? C.dark : C.ivory,
+              border: `1px solid ${active ? C.dark : C.border}`,
+              color: active ? C.gold : C.muted,
+              fontSize: 12, fontWeight: active ? 500 : 400,
+              fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              flexShrink: 0,
+            }}>
+              {ev}{pendingCount > 0 && ` · ${pendingCount}`}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Task list */}
+      <div style={{ padding: '16px 20px' }}>
+
+        {loading ? (
+          <p style={{ fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', textAlign: 'center', padding: '32px 0' }}>
+            Loading your checklist…
+          </p>
+        ) : tasks.length === 0 ? (
+          <div style={{
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 14, padding: '32px 20px', textAlign: 'center',
+          }}>
+            <CheckSquare size={28} color={C.goldBorder} style={{ marginBottom: 10 }} />
+            <p style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              No tasks yet.
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif', lineHeight: '20px' }}>
+              {canEditTool ? 'Tap + above to add your first task.' : 'Your checklist is empty.'}
+            </p>
+          </div>
+        ) : incomplete.length === 0 && complete.length > 0 ? (
+          <div style={{
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 20,
+          }}>
+            <Sparkles size={24} color={C.gold} style={{ marginBottom: 8 }} />
+            <p style={{ margin: '0 0 4px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
+              Everything done.
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: C.muted, fontWeight: 300, fontFamily: 'DM Sans, sans-serif' }}>
+              {activeEvent === 'All' ? 'Across all your events.' : `For ${activeEvent}.`}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Grouped by event when All */}
+        {activeEvent === 'All' && Object.keys(grouped).map(ev => (
+          <div key={ev} style={{ marginBottom: 24 }}>
+            <p style={{
+              fontSize: 10, color: C.goldDeep, fontWeight: 500, letterSpacing: '2px',
+              textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
+            }}>{ev}</p>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+              {grouped[ev].map(t => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  canEdit={canEditTool}
+                  onToggleComplete={() => onToggleComplete(t.id, !t.is_complete)}
+                  onEdit={() => setEditingTask(t)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Flat list when specific event selected */}
+        {activeEvent !== 'All' && incomplete.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 24 }}>
+            {incomplete.map(t => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                canEdit={canEditTool}
+                onToggleComplete={() => onToggleComplete(t.id, !t.is_complete)}
+                onEdit={() => setEditingTask(t)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Completed collapsed section */}
+        {complete.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <p style={{
+              fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: '2px',
+              textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif', margin: '0 0 10px',
+            }}>Done · {complete.length}</p>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+              {complete.map(t => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  canEdit={canEditTool}
+                  onToggleComplete={() => onToggleComplete(t.id, !t.is_complete)}
+                  onEdit={() => setEditingTask(t)}
+                  compact
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add task modal */}
+      {showAdd && (
+        <TaskEditor
+          mode="add"
+          events={session.events}
+          defaultEvent={activeEvent === 'All' ? session.events[0] : activeEvent}
+          onClose={() => setShowAdd(false)}
+          onSave={payload => { onAdd(payload); setShowAdd(false); }}
+        />
+      )}
+
+      {/* Edit task modal */}
+      {editingTask && canEditTool && (
+        <TaskEditor
+          mode="edit"
+          events={session.events}
+          task={editingTask}
+          defaultEvent={editingTask.event}
+          onClose={() => setEditingTask(null)}
+          onSave={payload => { onUpdate(editingTask.id, payload); setEditingTask(null); }}
+          onDelete={() => { onDelete(editingTask.id); setEditingTask(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function TaskRow({ task, canEdit: canEditRow, onToggleComplete, onEdit, compact }: {
+  task: ChecklistTask; canEdit: boolean;
+  onToggleComplete: () => void; onEdit: () => void; compact?: boolean;
+}) {
+  const isUrgent = task.priority === 'urgent' && !task.is_complete;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+      background: task.is_complete ? C.pearl : C.ivory,
+      borderRadius: 12,
+      border: `1px solid ${isUrgent ? C.goldBorder : C.border}`,
+      padding: compact ? '10px 12px' : '12px 14px',
+      opacity: task.is_complete ? 0.7 : 1,
+    }}>
+      <button
+        onClick={onToggleComplete}
+        disabled={!canEditRow}
+        style={{
+          width: 22, height: 22, borderRadius: 11, flexShrink: 0,
+          background: task.is_complete ? C.gold : C.cream,
+          border: `1.5px solid ${C.goldBorder}`,
+          cursor: canEditRow ? 'pointer' : 'default', padding: 0, marginTop: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        {task.is_complete && <Check size={12} color={C.cream} />}
+      </button>
+      <button
+        onClick={canEditRow ? onEdit : undefined}
+        style={{
+          flex: 1, minWidth: 0, background: 'none', border: 'none',
+          cursor: canEditRow ? 'pointer' : 'default', padding: 0, textAlign: 'left' as const,
+        }}
+      >
+        <p style={{
+          margin: 0, fontSize: compact ? 13 : 14, color: C.dark,
+          fontFamily: 'DM Sans, sans-serif',
+          lineHeight: compact ? '18px' : '20px',
+          textDecoration: task.is_complete ? 'line-through' : 'none',
+          wordBreak: 'break-word' as const,
+        }}>{task.text}</p>
+        {!compact && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' as const }}>
+            {task.due_date && (
+              <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+                {formatDueDate(task.due_date)}
+              </span>
+            )}
+            {isUrgent && (
+              <>
+                {task.due_date && <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>}
+                <span style={{ fontSize: 11, color: '#C2410C', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+                  Urgent
+                </span>
+              </>
+            )}
+          </div>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// Shared add/edit modal
+function TaskEditor({
+  mode, events, task, defaultEvent, onClose, onSave, onDelete,
+}: {
+  mode: 'add' | 'edit';
+  events: string[];
+  task?: ChecklistTask;
+  defaultEvent: string;
+  onClose: () => void;
+  onSave: (payload: { event: string; text: string; priority: 'urgent' | 'normal'; due_date: string | null }) => void;
+  onDelete?: () => void;
+}) {
+  const [text, setText] = useState(task?.text || '');
+  const [event, setEvent] = useState(task?.event || defaultEvent);
+  const [priority, setPriority] = useState<'urgent' | 'normal'>(task?.priority || 'normal');
+  const [dueDate, setDueDate] = useState(task?.due_date || '');
+
+  const handleSave = () => {
+    if (!text.trim()) return;
+    onSave({
+      event,
+      text: text.trim(),
+      priority,
+      due_date: dueDate || null,
+    });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(44,36,32,0.5)',
+        zIndex: 200, display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.cream, borderRadius: '20px 20px 0 0',
+          padding: '20px 20px max(20px, env(safe-area-inset-bottom))',
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          boxSizing: 'border-box' as const, maxHeight: '85vh',
+          overflowY: 'auto' as const,
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+
+        <p style={{
+          margin: '0 0 16px', fontSize: 18, color: C.dark,
+          fontFamily: 'Playfair Display, serif',
+        }}>
+          {mode === 'add' ? 'Add a task' : 'Edit task'}
+        </p>
+
+        {/* Text */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+          letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Task</label>
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="What needs to happen?"
+          rows={2}
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 16px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark,
+            outline: 'none', marginBottom: 14, resize: 'vertical' as const,
+          }}
+        />
+
+        {/* Event */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+          letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Event</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          {events.map(ev => (
+            <button key={ev} onClick={() => setEvent(ev)} style={{
+              padding: '6px 12px', borderRadius: 16,
+              background: event === ev ? C.dark : C.ivory,
+              border: `1px solid ${event === ev ? C.dark : C.border}`,
+              color: event === ev ? C.gold : C.muted,
+              fontSize: 12, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            }}>{ev}</button>
+          ))}
+        </div>
+
+        {/* Priority */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+          letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Priority</label>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {(['normal', 'urgent'] as const).map(p => (
+            <button key={p} onClick={() => setPriority(p)} style={{
+              flex: 1, padding: '10px 12px', borderRadius: 10,
+              background: priority === p ? C.dark : C.ivory,
+              border: `1px solid ${priority === p ? C.dark : C.border}`,
+              color: priority === p ? C.gold : C.muted,
+              fontSize: 13, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+              textTransform: 'capitalize' as const,
+            }}>{p}</button>
+          ))}
+        </div>
+
+        {/* Due date */}
+        <label style={{
+          display: 'block', fontSize: 11, color: C.muted,
+          fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+          letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+        }}>Due date (optional)</label>
+        <input
+          type="date" value={dueDate}
+          onChange={e => setDueDate(e.target.value)}
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 16px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: C.dark,
+            outline: 'none', marginBottom: 18,
+          }}
+        />
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {mode === 'edit' && onDelete && (
+            <button onClick={onDelete} style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: '#FEF2F2', border: '1px solid #FECACA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}>
+              <Trash2 size={16} color="#B91C1C" />
+            </button>
+          )}
+          <div style={{ flex: 1 }}>
+            <GhostButton label="Cancel" onTap={onClose} />
+          </div>
+          <button onClick={handleSave} disabled={!text.trim()} style={{
+            padding: '12px 24px', borderRadius: 12,
+            background: C.dark, border: 'none',
+            cursor: text.trim() ? 'pointer' : 'default',
+            color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13, fontWeight: 400, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const,
+            opacity: text.trim() ? 1 : 0.4,
+          }}>
+            {mode === 'add' ? 'Add' : 'Save'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1196,6 +1999,11 @@ export default function CoupleApp() {
   const [showProfile, setShowProfile] = useState(false);
   const [prefillCode, setPrefillCode] = useState<string | null>(null);
 
+  // Shared data hook — declared here so all children render against the
+  // same tasks state. Hook is called on every render regardless of
+  // whether session exists (hook-order discipline).
+  const checklist = useCoupleData(session);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -1256,14 +2064,36 @@ export default function CoupleApp() {
 
         {appMode === 'plan' && (
           <>
-            {activeTool && (
+            {activeTool === 'checklist' && (
+              <ChecklistTool
+                session={session}
+                tasks={checklist.tasks}
+                loading={checklist.loading}
+                onToggleComplete={checklist.toggleComplete}
+                onUpdate={checklist.updateTask}
+                onDelete={checklist.deleteTask}
+                onAdd={checklist.addTask}
+                onBack={() => setActiveTool(null)}
+              />
+            )}
+            {activeTool && activeTool !== 'checklist' && (
               <ToolPlaceholder toolId={activeTool} session={session} onBack={() => setActiveTool(null)} />
             )}
             {!activeTool && activeTab === 'home' && (
-              <HomeScreen session={session} onNavTo={navTo} />
+              <HomeScreen
+                session={session}
+                onNavTo={navTo}
+                tasks={checklist.tasks}
+                loading={checklist.loading}
+                onToggleComplete={checklist.toggleComplete}
+              />
             )}
             {!activeTool && activeTab === 'plan' && (
-              <MyWeddingScreen session={session} onToolOpen={id => setActiveTool(id)} />
+              <MyWeddingScreen
+                session={session}
+                onToolOpen={id => setActiveTool(id)}
+                tasks={checklist.tasks}
+              />
             )}
             {!activeTool && activeTab === 'circle' && (
               <CircleScreen session={session} />
