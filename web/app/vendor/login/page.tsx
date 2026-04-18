@@ -24,10 +24,10 @@ const C = {
   redBorder: '#F0CFCF',
 };
 
-type Mode = 'entry' | 'signup' | 'login' | 'forgot';
+type Mode = 'signup' | 'login' | 'forgot';
 
 export default function VendorLoginPage() {
-  const [mode, setMode] = useState<Mode>('entry');
+  const [mode, setMode] = useState<Mode>('login');
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [prefillCode, setPrefillCode] = useState<string | null>(null);
@@ -166,9 +166,8 @@ export default function VendorLoginPage() {
         )}
 
         <div style={{ width: '100%', maxWidth: 380 }}>
-          {mode === 'entry' && <EntryScreen onSignup={() => setMode('signup')} onLogin={() => setMode('login')} />}
-          {mode === 'signup' && <SignupFlow onBack={() => setMode('entry')} onComplete={goToVendorHome} prefillCode={prefillCode} />}
-          {mode === 'login' && <LoginFlow onBack={() => setMode('entry')} onForgot={() => setMode('forgot')} onComplete={goToVendorHome} />}
+          {mode === 'login' && <LoginFlow onSignup={() => setMode('signup')} onForgot={() => setMode('forgot')} onComplete={goToVendorHome} />}
+          {mode === 'signup' && <SignupFlow onBack={() => setMode('login')} onComplete={goToVendorHome} prefillCode={prefillCode} />}
           {mode === 'forgot' && <ForgotFlow onBack={() => setMode('login')} onDone={() => setMode('login')} />}
         </div>
       </div>
@@ -514,26 +513,6 @@ function Divider() {
   );
 }
 
-function EntryScreen({ onSignup, onLogin }: {
-  onSignup: () => void;
-  onLogin: () => void;
-}) {
-  return (
-    <div>
-      <Headline>Welcome.</Headline>
-      <Subhead>
-        Built for vendors who'd rather run their business than manage their business.
-      </Subhead>
-
-      <PrimaryButton onClick={onSignup}>New here — Sign up</PrimaryButton>
-
-      <Divider />
-
-      <SecondaryButton onClick={onLogin}>Sign in to your account</SecondaryButton>
-    </div>
-  );
-}
-
 const VENDOR_CATEGORIES = [
   'Photography', 'Videography', 'Makeup Artist', 'Mehendi Artist',
   'Venue', 'Catering', 'Decoration', 'Wedding Planner',
@@ -836,8 +815,8 @@ function CategorySelect({ value, onChange }: { value: string; onChange: (v: stri
   );
 }
 
-function LoginFlow({ onBack, onForgot, onComplete }: {
-  onBack: () => void;
+function LoginFlow({ onSignup, onForgot, onComplete }: {
+  onSignup: () => void;
   onForgot: () => void;
   onComplete: () => void;
 }) {
@@ -918,10 +897,36 @@ function LoginFlow({ onBack, onForgot, onComplete }: {
         Sign in
       </PrimaryButton>
 
-      <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <TextLink onClick={onBack}>Back</TextLink>
+      <div style={{ textAlign: 'center', margin: '14px 0 20px' }}>
         <TextLink onClick={onForgot}>Forgot password?</TextLink>
       </div>
+
+      {/* Divider — "New here?" */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 20px',
+      }}>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+        <span style={{
+          fontSize: 10, color: C.light, fontWeight: 500,
+          letterSpacing: '2px', textTransform: 'uppercase',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>New here?</span>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+      </div>
+
+      <button
+        onClick={onSignup}
+        style={{
+          width: '100%', padding: '14px', borderRadius: 12,
+          background: C.ivory, border: `1px solid ${C.goldBorder}`,
+          cursor: 'pointer',
+          color: C.goldDeep, fontFamily: "'DM Sans', sans-serif",
+          fontSize: 12, fontWeight: 500, letterSpacing: '1.5px',
+          textTransform: 'uppercase',
+        }}
+      >
+        Sign up with invite code
+      </button>
     </div>
   );
 }

@@ -804,24 +804,11 @@ function VendorRouter({
   };
 
   if (authMode === 'login') {
-    return (
-      <div style={{ animation: 'tdwFadeUp 0.5s ease forwards', textAlign: 'center' }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '12px', letterSpacing: '0.5px' }}>
-          Welcome back
-        </div>
-        <div style={{ fontSize: '12px', color: '#8C7B6E', marginBottom: '28px', fontFamily: "'DM Sans', sans-serif", fontWeight: 300, lineHeight: '18px' }}>
-          Sign in to your vendor account.
-        </div>
-        <button
-          onClick={() => { window.location.href = '/vendor/login'; }}
-          style={{
-            width: '100%', padding: '15px', background: '#2C2420', color: '#C9A84C',
-            fontSize: '9px', fontWeight: 400, letterSpacing: '3px', textTransform: 'uppercase',
-            fontFamily: "'DM Sans', sans-serif", border: 'none', cursor: 'pointer',
-          }}
-        >Continue</button>
-      </div>
-    );
+    // No intermediary screen — go straight to /vendor/login
+    if (typeof window !== 'undefined') {
+      window.location.href = '/vendor/login';
+    }
+    return null;
   }
 
   if (showCodeInput) {
