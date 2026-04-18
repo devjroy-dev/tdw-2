@@ -1009,9 +1009,9 @@ function GhostButton({ label, onTap }: { label: string; onTap: () => void }) {
   );
 }
 
-function InputField({ label, value, onChange, type = 'text', placeholder = '' }: {
+function InputField({ label, value, onChange, type = 'text', placeholder = '', required }: {
   label: string; value: string; onChange: (v: string) => void;
-  type?: string; placeholder?: string;
+  type?: string; placeholder?: string; required?: boolean;
 }) {
   const [showPw, setShowPw] = useState(false);
   const isPw = type === 'password';
@@ -1021,7 +1021,7 @@ function InputField({ label, value, onChange, type = 'text', placeholder = '' }:
         display: 'block', fontSize: 11, color: C.muted,
         fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
         letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-      }}>{label}</label>
+      }}>{label}{required && <span style={{ color: '#C65757', marginLeft: 4 }}>*</span>}</label>
       <div style={{ position: 'relative' }}>
         <input
           type={isPw && !showPw ? 'password' : isPw ? 'text' : type}
@@ -2552,7 +2552,7 @@ function TaskEditor({
           display: 'block', fontSize: 11, color: C.muted,
           fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
           letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Task</label>
+        }}>Task<span style={{ color: '#C65757', marginLeft: 4 }}>*</span></label>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
@@ -2609,7 +2609,7 @@ function TaskEditor({
           display: 'block', fontSize: 11, color: C.muted,
           fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
           letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Due date (optional)</label>
+        }}>Due date</label>
         <input
           type="date" value={dueDate}
           onChange={e => setDueDate(e.target.value)}
@@ -3089,7 +3089,7 @@ function BudgetTool({
                         {s.gift_description && (
                           <>
                             <span style={{ fontSize: 10, color: C.mutedLight }}>·</span>
-                            <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, fontStyle: 'italic' as const }}>
+                            <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
                               {s.gift_description}
                             </span>
                           </>
@@ -3368,7 +3368,7 @@ function ExpenseEditor({
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Amount</label>
+        }}>Amount<span style={{ color: '#C65757', marginLeft: 4 }}>*</span></label>
         <div style={{ position: 'relative', marginBottom: 14 }}>
           <span style={{
             position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
@@ -3414,7 +3414,7 @@ function ExpenseEditor({
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>What's this for?</label>
+        }}>What's this for?<span style={{ color: '#C65757', marginLeft: 4 }}>*</span></label>
         <input
           type="text" value={description}
           onChange={e => setDescription(e.target.value)}
@@ -3432,7 +3432,7 @@ function ExpenseEditor({
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Vendor (optional)</label>
+        }}>Vendor</label>
         <input
           type="text" value={vendorName}
           onChange={e => setVendorName(e.target.value)}
@@ -3503,7 +3503,7 @@ function ExpenseEditor({
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Receipt (optional)</label>
+        }}>Receipt</label>
         <input
           ref={fileInputRef}
           type="file" accept="image/*" capture="environment"
@@ -3554,7 +3554,7 @@ function ExpenseEditor({
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Notes (optional)</label>
+        }}>Notes</label>
         <textarea
           value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Anything you want to remember about this…"
@@ -3653,13 +3653,13 @@ function ShagunEditor({ mode, events, entry, onClose, onSave, onDelete }: {
         </p>
 
         <InputField label="Who gave it" value={giverName} onChange={setGiverName} placeholder="e.g. Sharma Uncle" />
-        <InputField label="Relation (optional)" value={relation} onChange={setRelation} placeholder="e.g. Mama, college friend" />
+        <InputField label="Relation" value={relation} onChange={setRelation} placeholder="e.g. Mama, college friend" />
 
         {/* Amount */}
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Amount (optional)</label>
+        }}>Amount<span style={{ color: '#C65757', marginLeft: 4 }}>*</span></label>
         <div style={{ position: 'relative', marginBottom: 14 }}>
           <span style={{
             position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
@@ -3678,13 +3678,13 @@ function ShagunEditor({ mode, events, entry, onClose, onSave, onDelete }: {
           />
         </div>
 
-        <InputField label="Gift description (optional)" value={giftDescription} onChange={setGiftDescription} placeholder="e.g. Silver diya set" />
+        <InputField label="Gift description" value={giftDescription} onChange={setGiftDescription} placeholder="e.g. Silver diya set" />
 
         {/* Event chips */}
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Event (optional)</label>
+        }}>Event</label>
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
           <button onClick={() => setEvent('')} style={{
             padding: '6px 12px', borderRadius: 16,
@@ -3732,7 +3732,7 @@ function ShagunEditor({ mode, events, entry, onClose, onSave, onDelete }: {
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Notes (optional)</label>
+        }}>Notes</label>
         <textarea
           value={notes} onChange={e => setNotes(e.target.value)}
           rows={2}
@@ -4607,7 +4607,7 @@ function GuestEditor({ mode, events, guest, onClose, onSave, onDelete }: {
         </p>
 
         {/* Name */}
-        <InputField label="Name" value={name} onChange={setName} placeholder="e.g. Sharma Mama" />
+        <InputField label="Name" value={name} onChange={setName} placeholder="e.g. Sharma Mama" required />
 
         {/* Side toggle */}
         <label style={{
@@ -4627,7 +4627,7 @@ function GuestEditor({ mode, events, guest, onClose, onSave, onDelete }: {
           ))}
         </div>
 
-        <InputField label="Relation (optional)" value={relation} onChange={setRelation} placeholder="e.g. Mama, College friend" />
+        <InputField label="Relation" value={relation} onChange={setRelation} placeholder="e.g. Mama, College friend" />
         <InputField label="Phone (for WhatsApp nudge)" value={phone} onChange={setPhone} type="tel" placeholder="+91 98765 43210" />
 
         {/* Household count */}
@@ -4672,7 +4672,7 @@ function GuestEditor({ mode, events, guest, onClose, onSave, onDelete }: {
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Dietary preference (optional)</label>
+        }}>Dietary preference</label>
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
           {(['veg', 'non-veg', 'jain', 'allergy'] as const).map(d => (
             <button key={d} onClick={() => setDietary(dietary === d ? null : d)} style={{
@@ -4764,7 +4764,7 @@ function GuestEditor({ mode, events, guest, onClose, onSave, onDelete }: {
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Notes (optional)</label>
+        }}>Notes</label>
         <textarea
           value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="e.g. Must sit near AC, needs wheelchair, don't seat near Taya-ji"
@@ -5874,7 +5874,7 @@ function PinEditor({ mode, isSuggestion, events, defaultEvent, onFetchPreview, o
                 <label style={{
                   display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
                   fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-                }}>Note (optional)</label>
+                }}>Note</label>
                 <textarea
                   value={note} onChange={e => setNote(e.target.value)}
                   placeholder="What do you love about this?"
@@ -5968,7 +5968,7 @@ function PinEditor({ mode, isSuggestion, events, defaultEvent, onFetchPreview, o
                   </div>
                 )}
                 {fetchError && (
-                  <p style={{ margin: '0 0 12px', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontStyle: 'italic' as const }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>
                     {fetchError}
                   </p>
                 )}
@@ -5976,7 +5976,7 @@ function PinEditor({ mode, isSuggestion, events, defaultEvent, onFetchPreview, o
                 <label style={{
                   display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
                   fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-                }}>Note (optional)</label>
+                }}>Note</label>
                 <textarea
                   value={note} onChange={e => setNote(e.target.value)}
                   placeholder="Your thoughts on this?"
@@ -6723,7 +6723,7 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
           {mode === 'add' ? 'Add a vendor' : 'Edit vendor'}
         </p>
 
-        <InputField label="Vendor name" value={name} onChange={setName} placeholder="e.g. Madhu Caterers" />
+        <InputField label="Vendor name" value={name} onChange={setName} placeholder="e.g. Madhu Caterers" required />
 
         {/* Category */}
         <label style={{
@@ -6743,9 +6743,9 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
           ))}
         </div>
 
-        <InputField label="Phone (optional)" value={phone} onChange={setPhone} type="tel" placeholder="+91 98765 43210" />
-        <InputField label="Email (optional)" value={email} onChange={setEmail} placeholder="hello@madhucaterers.com" />
-        <InputField label="Website or Instagram (optional)" value={website} onChange={setWebsite} placeholder="@madhucaterers" />
+        <InputField label="Phone" value={phone} onChange={setPhone} type="tel" placeholder="+91 98765 43210" />
+        <InputField label="Email" value={email} onChange={setEmail} placeholder="hello@madhucaterers.com" />
+        <InputField label="Website or Instagram" value={website} onChange={setWebsite} placeholder="@madhucaterers" />
 
         {/* Events served */}
         <label style={{
@@ -6791,7 +6791,7 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
             <label style={{
               display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
               fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-            }}>Quoted total (optional)</label>
+            }}>Quoted total</label>
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <span style={{
                 position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
@@ -6813,7 +6813,7 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
             <label style={{
               display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
               fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-            }}>Next payment due (optional)</label>
+            }}>Next payment due</label>
             <input
               type="date" value={balanceDueDate}
               onChange={e => setBalanceDueDate(e.target.value)}
@@ -6830,7 +6830,7 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
 
         {/* Booked slot — for conflict detection */}
         <InputField
-          label="Booked time slot (optional)"
+          label="Booked time slot"
           value={bookedSlot}
           onChange={setBookedSlot}
           placeholder="e.g. 2026-11-15 7pm"
@@ -6842,7 +6842,7 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
             <label style={{
               display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
               fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-            }}>Contract / quote (optional)</label>
+            }}>Contract / quote</label>
             <input
               ref={fileInputRef}
               type="file" accept="image/*,application/pdf"
@@ -6897,7 +6897,7 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
         <label style={{
           display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-        }}>Notes (optional)</label>
+        }}>Notes</label>
         <textarea
           value={notes} onChange={e => setNotes(e.target.value)}
           rows={2}
@@ -9083,7 +9083,7 @@ function AccessWaitlistForm({ onBack }: { onBack: () => void }) {
       <label style={{
         display: 'block', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif',
         fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-      }}>Wedding date (optional)</label>
+      }}>Wedding date</label>
       <input
         type="date"
         value={weddingDate}
@@ -9098,7 +9098,7 @@ function AccessWaitlistForm({ onBack }: { onBack: () => void }) {
       />
 
       <InputField
-        label="How did you hear about us? (optional)"
+        label="How did you hear about us?"
         value={referralSource}
         onChange={setReferralSource}
         placeholder="Instagram, a friend, etc."
@@ -10329,7 +10329,7 @@ function CouplePaiRequestSheet({ userId, hasPending, onClose, onSubmitted }: {
           <div style={{
             fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: '1px',
             textTransform: 'uppercase' as const, marginBottom: 6,
-          }}>Why you'd like PAi (optional)</div>
+          }}>Why you'd like PAi</div>
           <textarea
             value={reason}
             onChange={e => setReason(e.target.value)}
