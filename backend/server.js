@@ -1519,9 +1519,15 @@ app.get('/api/todos/:vendorId', async (req, res) => {
 
 app.post('/api/todos', async (req, res) => {
   try {
+    const allowed = [
+      'vendor_id', 'title', 'due_date', 'notes', 'done',
+      'assigned_to', 'client_id', 'client_name',
+    ];
+    const payload = {};
+    for (const k of allowed) if (req.body[k] !== undefined) payload[k] = req.body[k];
     const { data, error } = await supabase
       .from('vendor_todos')
-      .insert([req.body])
+      .insert([payload])
       .select().single();
     if (error) throw error;
     res.json({ success: true, data });
@@ -1532,9 +1538,15 @@ app.post('/api/todos', async (req, res) => {
 
 app.patch('/api/todos/:id', async (req, res) => {
   try {
+    const allowed = [
+      'title', 'due_date', 'notes', 'done',
+      'assigned_to', 'client_id', 'client_name',
+    ];
+    const patch = {};
+    for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
     const { data, error } = await supabase
       .from('vendor_todos')
-      .update(req.body)
+      .update(patch)
       .eq('id', req.params.id)
       .select().single();
     if (error) throw error;
@@ -1763,9 +1775,15 @@ app.get('/api/team/:vendorId', async (req, res) => {
 
 app.post('/api/team', async (req, res) => {
   try {
+    const allowed = [
+      'vendor_id', 'name', 'phone', 'email', 'role',
+      'rate', 'rate_unit', 'active', 'status', 'notes', 'permissions',
+    ];
+    const payload = { active: true };
+    for (const k of allowed) if (req.body[k] !== undefined) payload[k] = req.body[k];
     const { data, error } = await supabase
       .from('vendor_team_members')
-      .insert([req.body])
+      .insert([payload])
       .select()
       .single();
     if (error) throw error;
@@ -1777,9 +1795,15 @@ app.post('/api/team', async (req, res) => {
 
 app.patch('/api/team/:id', async (req, res) => {
   try {
+    const allowed = [
+      'name', 'phone', 'email', 'role',
+      'rate', 'rate_unit', 'active', 'status', 'notes', 'permissions',
+    ];
+    const patch = {};
+    for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
     const { data, error } = await supabase
       .from('vendor_team_members')
-      .update(req.body)
+      .update(patch)
       .eq('id', req.params.id)
       .select()
       .single();
@@ -1798,6 +1822,113 @@ app.delete('/api/team/:id', async (req, res) => {
       .eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================
+// TEAM PAYMENTS (Turn 9I)
+// Track what vendor owes each team member per event/task.
+// ==================
+
+app.get('/api/team-payments/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_team_payments')
+      .select('*')
+      .eq('vendor_id', req.params.vendorId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/team-payments', async (req, res) => {
+  try {
+    const allowed = [
+      'vendor_id', 'team_member_id', 'amount', 'label',
+      'booking_id', 'task_id', 'status', 'paid_date', 'notes',
+    ];
+    const payload = {};
+    for (const k of allowed) if (req.body[k] !== undefined) payload[k] = req.body[k];
+    const { data, error } = await supabase
+      .from('vendor_team_payments')
+      .insert([payload])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/team-payments/:id', async (req, res) => {
+  try {
+    const allowed = ['amount', 'label', 'status', 'paid_date', 'notes'];
+    const patch = {};
+    for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
+    if (patch.status === 'paid' && !patch.paid_date) {
+      patch.paid_date = new Date().toISOString().slice(0, 10);
+    }
+    const { data, error } = await supabase
+      .from('vendor_team_payments')
+      .update(patch)
+      .eq('id', req.params.id)
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/team-payments/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('vendor_team_payments')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================
+// TEAM BROADCASTS (Turn 9I)
+// Log of announcements sent to team (via WhatsApp external).
+// ==================
+
+app.get('/api/team-broadcasts/:vendorId', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_team_broadcasts')
+      .select('*')
+      .eq('vendor_id', req.params.vendorId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/team-broadcasts', async (req, res) => {
+  try {
+    const allowed = ['vendor_id', 'message', 'recipient_ids', 'recipient_count', 'template_key'];
+    const payload = {};
+    for (const k of allowed) if (req.body[k] !== undefined) payload[k] = req.body[k];
+    const { data, error } = await supabase
+      .from('vendor_team_broadcasts')
+      .insert([payload])
+      .select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

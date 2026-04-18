@@ -421,7 +421,13 @@ export default function VendorMobilePage() {
         )}
 
         {mode === 'Business' && activeTab === 'Teams' && (
-          <AssistantsPanel session={session} />
+          <TeamPanel
+            session={session}
+            vendorName={session.vendorName}
+            bookings={bookings}
+            todos={todos}
+            clients={clients}
+          />
         )}
 
         {mode === 'Business' && activeTab === 'Power' && (
@@ -2743,7 +2749,7 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
     }
 
     if (sub === 'team') {
-      return <TeamPanel session={session} tier={tier} />;
+      return <LegacyTeamPanel session={session} tier={tier} />;
     }
 
     if (sub === 'chat') {
@@ -4261,6 +4267,1222 @@ interface Assistant {
   invited_at: string | null;
   created_at: string;
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// TEAM PANEL (Turn 9I) — landing grid with 6 cards + full-screen sub-panels
+// ══════════════════════════════════════════════════════════════════════════
+
+type TeamCard = 'landing' | 'roster' | 'assignments' | 'tasks' | 'bookings' | 'payments' | 'broadcast';
+
+function TeamPanel({ session, vendorName, bookings, todos, clients }: {
+  session: VendorSession;
+  vendorName: string;
+  bookings: any[];
+  todos: any[];
+  clients: any[];
+}) {
+  const [active, setActive] = useState<TeamCard>('landing');
+  const [members, setMembers] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+
+  const loadMembers = () => {
+    if (!session?.vendorId) return;
+    fetch(`${API}/api/team/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setMembers(d.data || []); })
+      .catch(() => {})
+      .finally(() => setLoadingMembers(false));
+  };
+
+  const loadPayments = () => {
+    if (!session?.vendorId) return;
+    fetch(`${API}/api/team-payments/${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setPayments(d.data || []); })
+      .catch(() => {});
+  };
+
+  useEffect(() => { loadMembers(); loadPayments(); }, [session?.vendorId]);
+
+  // Derived metrics for landing card badges
+  const activeMemberCount = members.filter(m => m.active !== false && m.status !== 'inactive').length;
+  const pendingPaymentsAmount = payments
+    .filter(p => p.status !== 'paid')
+    .reduce((s, p) => s + (parseInt(p.amount) || 0), 0);
+  const assignedTasksCount = todos.filter(t => {
+    const a = t.assigned_to;
+    return Array.isArray(a) && a.length > 0 && !t.done;
+  }).length;
+
+  // ── Sub-panel routing
+  if (active === 'roster') {
+    return <MyTeamPanel
+      session={session}
+      members={members}
+      onBack={() => setActive('landing')}
+      onChanged={loadMembers}
+    />;
+  }
+  if (active === 'tasks') {
+    return <TeamTasksPanel
+      session={session}
+      members={members}
+      todos={todos}
+      clients={clients}
+      vendorName={vendorName}
+      onBack={() => setActive('landing')}
+    />;
+  }
+  if (active === 'assignments') {
+    return <TeamAssignmentsPanel
+      members={members}
+      todos={todos}
+      bookings={bookings}
+      onBack={() => setActive('landing')}
+    />;
+  }
+  if (active === 'bookings') {
+    return <TeamBookingsPanel
+      session={session}
+      members={members}
+      bookings={bookings}
+      onBack={() => setActive('landing')}
+    />;
+  }
+  if (active === 'payments') {
+    return <TeamPaymentsPanel
+      session={session}
+      members={members}
+      payments={payments}
+      onBack={() => setActive('landing')}
+      onChanged={loadPayments}
+    />;
+  }
+  if (active === 'broadcast') {
+    return <TeamBroadcastPanel
+      session={session}
+      members={members}
+      vendorName={vendorName}
+      onBack={() => setActive('landing')}
+    />;
+  }
+
+  // ── Landing — 2x3 grid
+  const cards: {
+    id: TeamCard; label: string; desc: string;
+    icon: any; count?: string | number; accent: 'gold' | 'neutral';
+  }[] = [
+    { id: 'roster',      label: 'My Team',     desc: 'Your crew, contacts, rates',  icon: Users,       count: loadingMembers ? '…' : activeMemberCount, accent: 'gold' },
+    { id: 'assignments', label: 'Assignments', desc: 'Who is working what, when',   icon: Calendar,    count: '', accent: 'neutral' },
+    { id: 'tasks',       label: 'Tasks',       desc: 'Delegate with accountability', icon: CheckCircle, count: assignedTasksCount || '', accent: 'neutral' },
+    { id: 'bookings',    label: 'Bookings',    desc: 'Assign crew to weddings',      icon: Award,       count: '', accent: 'neutral' },
+    { id: 'payments',    label: 'Payments',    desc: 'What you owe your team',       icon: CreditCard,  count: pendingPaymentsAmount ? `₹${fmtINR(pendingPaymentsAmount)}` : '', accent: pendingPaymentsAmount > 0 ? 'gold' : 'neutral' },
+    { id: 'broadcast',   label: 'Broadcast',   desc: 'Announce on WhatsApp',         icon: Send,        count: '', accent: 'neutral' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
+      <div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 400, color: C.dark, letterSpacing: '0.2px' }}>
+          Team
+        </div>
+        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
+          Your crew, assignments, and what you owe them.
+        </div>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 10,
+      }}>
+        {cards.map(card => {
+          const Icon = card.icon;
+          const isGold = card.accent === 'gold';
+          return (
+            <button
+              key={card.id}
+              onClick={() => setActive(card.id)}
+              style={{
+                background: C.ivory,
+                border: `1px solid ${isGold ? C.goldBorder : C.border}`,
+                borderRadius: 14,
+                padding: '16px 14px',
+                textAlign: 'left' as const,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                flexDirection: 'column' as const,
+                gap: 8,
+                minHeight: 120,
+                position: 'relative' as const,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{
+                width: 34, height: 34, borderRadius: 10,
+                background: isGold ? C.goldSoft : C.pearl,
+                border: `1px solid ${isGold ? C.goldBorder : C.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Icon size={16} color={isGold ? C.goldDeep : C.dark} />
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 16, color: C.dark, fontWeight: 500,
+                  letterSpacing: '0.2px',
+                }}>{card.label}</div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>
+                  {card.desc}
+                </div>
+              </div>
+              {card.count !== '' && card.count !== undefined && (
+                <div style={{
+                  position: 'absolute' as const, top: 14, right: 14,
+                  background: isGold ? C.goldDeep : C.dark, color: isGold ? '#fff' : C.gold,
+                  fontSize: 10, fontWeight: 600, letterSpacing: '0.5px',
+                  padding: '3px 8px', borderRadius: 50,
+                  fontFamily: 'DM Sans, sans-serif',
+                }}>
+                  {card.count}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{
+        marginTop: 8, padding: '10px 12px',
+        background: C.pearl, borderRadius: 10,
+        fontSize: 10, color: C.muted, lineHeight: 1.5,
+        fontStyle: 'italic' as const,
+      }}>
+        Tip: Each card is a full workflow. Tap one to open it; tap back to return here.
+      </div>
+    </div>
+  );
+}
+
+// ── Common back-button header
+function SubPanelHeader({ title, onBack, rightAction }: {
+  title: string;
+  onBack: () => void;
+  rightAction?: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingTop: 6 }}>
+      <button
+        onClick={onBack}
+        aria-label="Back"
+        style={{
+          background: C.pearl, border: `1px solid ${C.border}`,
+          borderRadius: 10, padding: '8px 10px',
+          cursor: 'pointer', display: 'flex', alignItems: 'center',
+        }}
+      >
+        <ChevronRight size={14} color={C.dark} style={{ transform: 'rotate(180deg)' }} />
+      </button>
+      <div style={{
+        flex: 1, fontFamily: "'Playfair Display', serif",
+        fontSize: 20, color: C.dark, fontWeight: 400,
+      }}>{title}</div>
+      {rightAction}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MY TEAM — roster CRUD with inline WhatsApp button
+// ══════════════════════════════════════════════════════════════════════════
+
+function MyTeamPanel({ session, members, onBack, onChanged }: {
+  session: VendorSession;
+  members: any[];
+  onBack: () => void;
+  onChanged: () => void;
+}) {
+  const [showSheet, setShowSheet] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this team member? They will no longer appear in your roster.')) return;
+    try {
+      await fetch(`${API}/api/team/${id}`, { method: 'DELETE' });
+      onChanged();
+    } catch {}
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 8 }}>
+      <SubPanelHeader
+        title="My Team"
+        onBack={onBack}
+        rightAction={
+          <button
+            onClick={() => { setEditing(null); setShowSheet(true); }}
+            style={{
+              background: C.dark, color: C.gold, border: 'none',
+              borderRadius: 10, padding: '8px 12px',
+              display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+              fontSize: 11, fontWeight: 500, letterSpacing: '1px',
+              textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            <Plus size={12} /> Add
+          </button>
+        }
+      />
+
+      {members.length === 0 ? (
+        <div style={{ padding: '40px 20px', textAlign: 'center' as const, background: C.ivory, borderRadius: 14, border: `1px solid ${C.border}` }}>
+          <Users size={32} color={C.light} style={{ marginBottom: 12 }} />
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: C.dark, marginBottom: 6 }}>
+            No team members yet
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, maxWidth: 260, margin: '0 auto' }}>
+            Add your assistants, editors, 2nd shooters, freelancers — anyone on your crew.
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+          {members.map(m => {
+            const isActive = m.active !== false && m.status !== 'inactive';
+            const waPhone = (m.phone || '').replace(/\D/g, '');
+            const waUrl = waPhone ? `https://wa.me/91${waPhone}` : null;
+            return (
+              <div
+                key={m.id}
+                style={{
+                  background: C.ivory, borderRadius: 12,
+                  border: `1px solid ${C.border}`, padding: '12px 14px',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  opacity: isActive ? 1 : 0.6,
+                }}
+              >
+                <div style={{
+                  width: 38, height: 38, borderRadius: 19,
+                  background: C.goldSoft, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, fontWeight: 600, color: C.goldDeep,
+                  fontFamily: "'Playfair Display', serif",
+                  flexShrink: 0,
+                }}>{(m.name || '?')[0].toUpperCase()}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, color: C.dark, fontWeight: 500 }}>
+                    {m.name}
+                    {!isActive && <span style={{ fontSize: 9, color: C.muted, marginLeft: 6, fontStyle: 'italic' as const }}>inactive</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    {m.role || 'Team member'}
+                    {m.rate ? ` · ₹${fmtINR(parseInt(m.rate))}/${m.rate_unit === 'per_day' ? 'day' : 'event'}` : ''}
+                  </div>
+                </div>
+                {waUrl && (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`WhatsApp ${m.name}`}
+                    style={{
+                      width: 34, height: 34, borderRadius: 17,
+                      background: '#25D366',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, textDecoration: 'none',
+                    }}
+                  >
+                    <MessageCircle size={14} color="#fff" />
+                  </a>
+                )}
+                <button
+                  onClick={() => { setEditing(m); setShowSheet(true); }}
+                  aria-label="Edit"
+                  style={{
+                    background: 'transparent', border: `1px solid ${C.border}`,
+                    borderRadius: 8, padding: 6, cursor: 'pointer',
+                  }}
+                >
+                  <Edit2 size={12} color={C.muted} />
+                </button>
+                <button
+                  onClick={() => handleDelete(m.id)}
+                  aria-label="Delete"
+                  style={{
+                    background: 'transparent', border: `1px solid ${C.redBorder}`,
+                    borderRadius: 8, padding: 6, cursor: 'pointer',
+                  }}
+                >
+                  <Trash2 size={12} color="#C65757" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showSheet && (
+        <AddTeamMemberSheet
+          vendorId={session.vendorId}
+          initial={editing}
+          onClose={() => { setShowSheet(false); setEditing(null); }}
+          onSaved={() => {
+            setShowSheet(false); setEditing(null);
+            onChanged();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddTeamMemberSheet({ vendorId, initial, onClose, onSaved }: {
+  vendorId: string;
+  initial: any;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [phone, setPhone] = useState(initial?.phone || '');
+  const [role, setRole] = useState(initial?.role || '');
+  const [rate, setRate] = useState(initial?.rate ? String(initial.rate) : '');
+  const [rateUnit, setRateUnit] = useState<'per_event' | 'per_day'>(initial?.rate_unit === 'per_day' ? 'per_day' : 'per_event');
+  const [email, setEmail] = useState(initial?.email || '');
+  const [active, setActive] = useState<boolean>(initial ? (initial.active !== false && initial.status !== 'inactive') : true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const canSave = name.trim() && phone.trim().length >= 10 && !submitting;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setError(''); setSubmitting(true);
+    try {
+      const payload = {
+        vendor_id: vendorId,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || null,
+        role: role.trim() || null,
+        rate: rate ? parseInt(rate) : null,
+        rate_unit: rateUnit,
+        active,
+        status: active ? 'active' : 'inactive',
+      };
+      const url = initial ? `${API}/api/team/${initial.id}` : `${API}/api/team`;
+      const method = initial ? 'PATCH' : 'POST';
+      const r = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json();
+      if (d.success) onSaved();
+      else setError(d.error || 'Could not save.');
+    } catch { setError('Network error.'); } finally { setSubmitting(false); }
+  };
+
+  return (
+    <SheetOverlay onClose={onClose}>
+      <SheetHeader
+        eyebrow={initial ? 'Edit' : 'Add'}
+        title={initial ? initial.name : 'New team member'}
+        onClose={onClose}
+      />
+
+      <FieldLabel>Name *</FieldLabel>
+      <input
+        type="text" value={name} onChange={e => setName(e.target.value)}
+        placeholder="e.g. Vivek Sharma"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+          outline: 'none', marginBottom: 12,
+        }}
+      />
+
+      <FieldLabel>Phone *</FieldLabel>
+      <input
+        type="tel" value={phone} inputMode="numeric"
+        onChange={e => setPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+        placeholder="10-digit mobile"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+          outline: 'none', marginBottom: 12,
+        }}
+      />
+
+      <FieldLabel>Role</FieldLabel>
+      <input
+        type="text" value={role} onChange={e => setRole(e.target.value)}
+        placeholder="e.g. 2nd shooter, Editor, Assistant"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+          outline: 'none', marginBottom: 12,
+        }}
+      />
+
+      <FieldLabel>Rate</FieldLabel>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '10px 12px',
+        }}>
+          <span style={{ color: C.goldDeep, fontFamily: "'Playfair Display', serif", fontSize: 16 }}>₹</span>
+          <input
+            type="text" inputMode="numeric"
+            value={rate ? parseInt(rate).toLocaleString('en-IN') : ''}
+            onChange={e => setRate(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="5000"
+            style={{
+              flex: 1, background: 'transparent', border: 'none',
+              fontSize: 15, color: C.dark, outline: 'none',
+              fontFamily: "'Playfair Display', serif",
+            }}
+          />
+        </div>
+        <select
+          value={rateUnit}
+          onChange={e => setRateUnit(e.target.value as any)}
+          style={{
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 12, padding: '10px 12px',
+            fontSize: 12, color: C.dark,
+            fontFamily: 'DM Sans, sans-serif', outline: 'none',
+          }}
+        >
+          <option value="per_event">per event</option>
+          <option value="per_day">per day</option>
+        </select>
+      </div>
+
+      <FieldLabel>Email</FieldLabel>
+      <input
+        type="email" value={email} onChange={e => setEmail(e.target.value)}
+        placeholder="their@email.com"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+          outline: 'none', marginBottom: 12,
+        }}
+      />
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: C.pearl, borderRadius: 12, padding: '12px 14px', marginBottom: 16,
+      }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: C.dark }}>Active</div>
+          <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+            Inactive members are hidden from assignments.
+          </div>
+        </div>
+        <button
+          onClick={() => setActive(!active)}
+          style={{
+            width: 40, height: 22, borderRadius: 11,
+            background: active ? C.gold : C.border,
+            border: 'none', cursor: 'pointer', padding: 0,
+            position: 'relative' as const, transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{
+            position: 'absolute' as const, top: 2, left: active ? 20 : 2,
+            width: 18, height: 18, borderRadius: 9, background: '#fff',
+            transition: 'all 0.2s ease',
+          }} />
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          background: C.redSoft, border: `1px solid ${C.redBorder}`,
+          borderRadius: 8, padding: '10px 12px',
+          fontSize: 11, color: C.red, marginBottom: 12,
+        }}>{error}</div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={onClose} disabled={submitting}
+          style={{
+            flex: 1, padding: 13, borderRadius: 12,
+            background: 'transparent', color: C.muted,
+            border: `1px solid ${C.border}`, cursor: 'pointer',
+            fontSize: 11, fontWeight: 500, letterSpacing: '1.5px',
+            textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+          }}
+        >Cancel</button>
+        <button
+          onClick={handleSave} disabled={!canSave}
+          style={{
+            flex: 2, padding: 14, borderRadius: 12,
+            background: canSave ? C.dark : C.border,
+            color: canSave ? C.gold : C.light,
+            border: 'none', cursor: canSave ? 'pointer' : 'not-allowed',
+            fontSize: 11, fontWeight: 600, letterSpacing: '1.8px',
+            textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+          }}
+        >{submitting ? 'Saving…' : initial ? 'Update' : 'Add to Team'}</button>
+      </div>
+    </SheetOverlay>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TASKS / ASSIGNMENTS / BOOKINGS / PAYMENTS / BROADCAST
+// Remaining panels share a simpler list-view pattern.
+// ══════════════════════════════════════════════════════════════════════════
+
+function TeamTasksPanel({ session, members, todos, clients, vendorName, onBack }: any) {
+  const assigned = todos.filter((t: any) => Array.isArray(t.assigned_to) && t.assigned_to.length > 0);
+  const unassigned = todos.filter((t: any) => !Array.isArray(t.assigned_to) || t.assigned_to.length === 0);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 8 }}>
+      <SubPanelHeader title="Team Tasks" onBack={onBack} />
+
+      <div style={{
+        padding: '14px 16px', background: C.pearl, borderRadius: 12,
+        border: `1px solid ${C.border}`, fontSize: 12, color: C.muted, lineHeight: 1.55,
+      }}>
+        Tasks with team assignees — for delegation and accountability. Assign a task from the To-Do tool in Power Mode to add it here.
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.goldDeep, fontWeight: 600, marginBottom: 10 }}>
+          Assigned ({assigned.length})
+        </div>
+        {assigned.length === 0 ? (
+          <div style={{ padding: 20, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 12, color: C.muted, textAlign: 'center' as const }}>
+            No tasks assigned yet.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            {assigned.map((t: any) => {
+              const assigneeNames = (t.assigned_to || []).map((id: string) => {
+                const m = members.find((mem: any) => mem.id === id);
+                return m?.name || '—';
+              }).join(', ');
+              return (
+                <div key={t.id} style={{ padding: 12, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 13, color: C.dark, fontWeight: 500 }}>{t.title}</div>
+                  <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
+                    {assigneeNames}
+                    {t.client_name ? ` · ${t.client_name}` : ''}
+                    {t.due_date ? ` · Due ${new Date(t.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {unassigned.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.muted, fontWeight: 600, marginBottom: 10, marginTop: 8 }}>
+            Unassigned ({unassigned.length})
+          </div>
+          <div style={{ padding: '10px 14px', background: C.pearl, borderRadius: 10, fontSize: 11, color: C.muted, lineHeight: 1.55 }}>
+            {unassigned.length} task{unassigned.length === 1 ? '' : 's'} in your To-Do list without a team assignee. Edit them in Power Mode → To-Do to delegate.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamAssignmentsPanel({ members, todos, bookings, onBack }: any) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 8 }}>
+      <SubPanelHeader title="Assignments" onBack={onBack} />
+
+      {members.length === 0 ? (
+        <div style={{ padding: 30, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`, textAlign: 'center' as const }}>
+          <div style={{ fontSize: 13, color: C.muted }}>Add team members first to see their assignments.</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+          {members.filter((m: any) => m.active !== false && m.status !== 'inactive').map((m: any) => {
+            const memTasks = todos.filter((t: any) => Array.isArray(t.assigned_to) && t.assigned_to.includes(m.id) && !t.done);
+            const memBookings = bookings.filter((b: any) => Array.isArray(b.assigned_to) && b.assigned_to.includes(m.id));
+            return (
+              <div key={m.id} style={{ padding: 14, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 16,
+                    background: C.goldSoft, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 600, color: C.goldDeep, fontFamily: "'Playfair Display', serif",
+                  }}>{(m.name || '?')[0].toUpperCase()}</div>
+                  <div>
+                    <div style={{ fontSize: 14, color: C.dark, fontWeight: 500 }}>{m.name}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>{m.role || 'Team member'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, fontSize: 11, color: C.muted }}>
+                  <span><strong style={{ color: C.dark }}>{memTasks.length}</strong> open task{memTasks.length === 1 ? '' : 's'}</span>
+                  <span><strong style={{ color: C.dark }}>{memBookings.length}</strong> booking{memBookings.length === 1 ? '' : 's'}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamBookingsPanel({ session, members, bookings, onBack }: any) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 8 }}>
+      <SubPanelHeader title="Bookings" onBack={onBack} />
+
+      <div style={{
+        padding: '14px 16px', background: C.pearl, borderRadius: 12,
+        border: `1px solid ${C.border}`, fontSize: 12, color: C.muted, lineHeight: 1.55,
+      }}>
+        Assign team members to upcoming weddings. Tap any booking to pick who's on the crew that day.
+      </div>
+
+      {bookings.length === 0 ? (
+        <div style={{ padding: 30, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`, textAlign: 'center' as const, fontSize: 13, color: C.muted }}>
+          No bookings to assign.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+          {bookings.slice(0, 20).map((b: any) => {
+            const assignedIds = Array.isArray(b.assigned_to) ? b.assigned_to : [];
+            const assignees = assignedIds.map((id: string) => members.find((m: any) => m.id === id)?.name).filter(Boolean);
+            return (
+              <div key={b.id} style={{ padding: 12, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 13, color: C.dark, fontWeight: 500 }}>
+                  {b.client_name || b.users?.name || 'Booking'}
+                </div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                  {b.event_date ? new Date(b.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No date'}
+                  {b.event_type ? ` · ${b.event_type}` : ''}
+                </div>
+                <div style={{ fontSize: 11, color: assignees.length ? C.goldDeep : C.light, marginTop: 6, fontStyle: assignees.length ? 'normal' as const : 'italic' as const }}>
+                  {assignees.length ? `Crew: ${assignees.join(', ')}` : 'No crew assigned yet'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ padding: '10px 12px', background: C.goldSoft, border: `1px solid ${C.goldBorder}`, borderRadius: 10, fontSize: 10, color: C.goldDeep, lineHeight: 1.5 }}>
+        <strong>Coming soon:</strong> Tap a booking to assign crew members directly.
+      </div>
+    </div>
+  );
+}
+
+function TeamPaymentsPanel({ session, members, payments, onBack, onChanged }: any) {
+  const [showSheet, setShowSheet] = useState(false);
+
+  const pending = payments.filter((p: any) => p.status !== 'paid');
+  const paid = payments.filter((p: any) => p.status === 'paid');
+  const totalOwed = pending.reduce((s: number, p: any) => s + (parseInt(p.amount) || 0), 0);
+
+  const memberName = (id: string) => members.find((m: any) => m.id === id)?.name || 'Unknown';
+
+  const handleMarkPaid = async (p: any) => {
+    try {
+      await fetch(`${API}/api/team-payments/${p.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'paid' }),
+      });
+      onChanged();
+    } catch {}
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this payment record?')) return;
+    try {
+      await fetch(`${API}/api/team-payments/${id}`, { method: 'DELETE' });
+      onChanged();
+    } catch {}
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 8 }}>
+      <SubPanelHeader
+        title="Team Payments"
+        onBack={onBack}
+        rightAction={
+          <button
+            onClick={() => setShowSheet(true)}
+            style={{
+              background: C.dark, color: C.gold, border: 'none',
+              borderRadius: 10, padding: '8px 12px',
+              display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+              fontSize: 11, fontWeight: 500, letterSpacing: '1px',
+              textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            <Plus size={12} /> Log
+          </button>
+        }
+      />
+
+      <div style={{
+        background: C.ivory, borderRadius: 14,
+        border: `1px solid ${pending.length > 0 ? C.goldBorder : C.border}`,
+        padding: 18,
+      }}>
+        <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.goldDeep, fontWeight: 600 }}>
+          Pending Dues
+        </div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, color: C.dark, marginTop: 4 }}>
+          ₹{fmtINR(totalOwed)}
+        </div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+          Across {pending.length} record{pending.length === 1 ? '' : 's'} · {new Set(pending.map((p: any) => p.team_member_id)).size} member{new Set(pending.map((p: any) => p.team_member_id)).size === 1 ? '' : 's'}
+        </div>
+      </div>
+
+      {pending.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.muted, fontWeight: 600, marginBottom: 8 }}>
+            Pending ({pending.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            {pending.map((p: any) => (
+              <div key={p.id} style={{ padding: 12, background: C.ivory, borderRadius: 12, border: `1px solid ${C.goldBorder}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: C.dark, fontWeight: 500 }}>{memberName(p.team_member_id)}</div>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                      {p.label || 'Payment'}
+                      {p.notes ? ` · ${p.notes}` : ''}
+                    </div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: C.dark, marginTop: 4 }}>
+                      ₹{fmtINR(parseInt(p.amount) || 0)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                    <button
+                      onClick={() => handleMarkPaid(p)}
+                      style={{
+                        background: C.dark, color: C.gold, border: 'none',
+                        borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
+                        fontSize: 10, fontWeight: 500, letterSpacing: '1px',
+                        textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+                      }}
+                    >Mark Paid</button>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      aria-label="Delete"
+                      style={{
+                        background: 'transparent', border: `1px solid ${C.redBorder}`,
+                        borderRadius: 8, padding: 6, cursor: 'pointer',
+                      }}
+                    >
+                      <Trash2 size={11} color="#C65757" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {paid.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: C.muted, fontWeight: 600, marginBottom: 8, marginTop: 8 }}>
+            Paid ({paid.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+            {paid.slice(0, 20).map((p: any) => (
+              <div key={p.id} style={{ padding: '10px 12px', background: C.pearl, borderRadius: 10, border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 12, color: C.dark }}>{memberName(p.team_member_id)}</div>
+                  <div style={{ fontSize: 10, color: C.muted }}>{p.label}{p.paid_date ? ` · ${new Date(p.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}</div>
+                </div>
+                <div style={{ fontSize: 13, color: C.green, fontWeight: 500 }}>₹{fmtINR(parseInt(p.amount) || 0)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showSheet && (
+        <TeamPaymentSheet
+          vendorId={session.vendorId}
+          members={members}
+          onClose={() => setShowSheet(false)}
+          onSaved={() => { setShowSheet(false); onChanged(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function TeamPaymentSheet({ vendorId, members, onClose, onSaved }: any) {
+  const [memberId, setMemberId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [label, setLabel] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const activeMembers = members.filter((m: any) => m.active !== false && m.status !== 'inactive');
+  const canSave = memberId && amount && parseInt(amount) > 0 && !submitting;
+
+  const save = async () => {
+    if (!canSave) return;
+    setSubmitting(true); setError('');
+    try {
+      const r = await fetch(`${API}/api/team-payments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: vendorId,
+          team_member_id: memberId,
+          amount: parseInt(amount),
+          label: label.trim() || 'Payment',
+          notes: notes.trim() || null,
+          status: 'pending',
+        }),
+      });
+      const d = await r.json();
+      if (d.success) onSaved();
+      else setError(d.error || 'Could not save.');
+    } catch { setError('Network error.'); } finally { setSubmitting(false); }
+  };
+
+  return (
+    <SheetOverlay onClose={onClose}>
+      <SheetHeader eyebrow="New" title="Log payment owed" onClose={onClose} />
+
+      <FieldLabel>Team member *</FieldLabel>
+      <select
+        value={memberId}
+        onChange={e => setMemberId(e.target.value)}
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: memberId ? C.dark : C.muted,
+          fontFamily: 'DM Sans, sans-serif', outline: 'none',
+          marginBottom: 12, appearance: 'none' as const,
+        }}
+      >
+        <option value="">Select someone…</option>
+        {activeMembers.map((m: any) => (
+          <option key={m.id} value={m.id}>{m.name}{m.role ? ` · ${m.role}` : ''}</option>
+        ))}
+      </select>
+
+      <FieldLabel>Amount *</FieldLabel>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: C.ivory, border: `1px solid ${C.border}`,
+        borderRadius: 12, padding: '10px 14px', marginBottom: 12,
+      }}>
+        <span style={{ color: C.goldDeep, fontFamily: "'Playfair Display', serif", fontSize: 18 }}>₹</span>
+        <input
+          type="text" inputMode="numeric"
+          value={amount ? parseInt(amount).toLocaleString('en-IN') : ''}
+          onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
+          placeholder="e.g. 5000"
+          style={{
+            flex: 1, background: 'transparent', border: 'none',
+            fontSize: 17, color: C.dark, outline: 'none',
+            fontFamily: "'Playfair Display', serif",
+          }}
+        />
+      </div>
+
+      <FieldLabel>What for</FieldLabel>
+      <input
+        type="text" value={label}
+        onChange={e => setLabel(e.target.value)}
+        placeholder="e.g. Sharma wedding, 2nd shoot"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+          outline: 'none', marginBottom: 12,
+        }}
+      />
+
+      <FieldLabel>Notes</FieldLabel>
+      <input
+        type="text" value={notes}
+        onChange={e => setNotes(e.target.value)}
+        placeholder="Anything else to remember"
+        style={{
+          width: '100%', boxSizing: 'border-box' as const,
+          background: C.ivory, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: '13px 14px',
+          fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+          outline: 'none', marginBottom: 16,
+        }}
+      />
+
+      {error && (
+        <div style={{ background: C.redSoft, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: '10px 12px', fontSize: 11, color: C.red, marginBottom: 12 }}>{error}</div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={onClose} style={{
+          flex: 1, padding: 13, borderRadius: 12,
+          background: 'transparent', color: C.muted,
+          border: `1px solid ${C.border}`, cursor: 'pointer',
+          fontSize: 11, fontWeight: 500, letterSpacing: '1.5px',
+          textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+        }}>Cancel</button>
+        <button onClick={save} disabled={!canSave} style={{
+          flex: 2, padding: 14, borderRadius: 12,
+          background: canSave ? C.dark : C.border,
+          color: canSave ? C.gold : C.light,
+          border: 'none', cursor: canSave ? 'pointer' : 'not-allowed',
+          fontSize: 11, fontWeight: 600, letterSpacing: '1.8px',
+          textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+        }}>{submitting ? 'Saving…' : 'Log Payment'}</button>
+      </div>
+    </SheetOverlay>
+  );
+}
+
+function TeamBroadcastPanel({ session, members, vendorName, onBack }: any) {
+  const [message, setMessage] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [templateKey, setTemplateKey] = useState<string>('');
+  const activeMembers = members.filter((m: any) => m.active !== false && m.status !== 'inactive');
+
+  const TEMPLATES: { key: string; label: string; text: (vn: string) => string }[] = [
+    { key: 'pre_event', label: 'Pre-event briefing', text: vn => `Hi team,\n\nJust a quick reminder for tomorrow's event:\n• Arrival time: ___\n• Venue: ___\n• Dress code: ___\n\nKindly reach 30 mins early. Any questions, message me.\n\n${vn}` },
+    { key: 'post_event', label: 'Post-event thanks', text: vn => `Thanks team for today's work! It went really well. Payment for this event will be processed by ___.\n\nAppreciate all of you.\n\n${vn}` },
+    { key: 'monthly', label: 'Monthly update', text: vn => `Hi team,\n\nQuick update on this month:\n• Events done: ___\n• Events coming up: ___\n• Anything else: ___\n\nKeep up the great work.\n\n${vn}` },
+    { key: 'blank', label: 'Blank message', text: _ => '' },
+  ];
+
+  const applyTemplate = (key: string) => {
+    setTemplateKey(key);
+    const tpl = TEMPLATES.find(t => t.key === key);
+    if (tpl) setMessage(tpl.text(vendorName || 'The Studio'));
+  };
+
+  const toggleMember = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const selectAll = () => setSelectedIds(activeMembers.map((m: any) => m.id));
+
+  const recipients = activeMembers.filter((m: any) => selectedIds.includes(m.id));
+
+  const sendWhatsAppIndividual = async (m: any) => {
+    const phone = (m.phone || '').replace(/\D/g, '');
+    if (!phone) { alert(`${m.name} has no phone on file.`); return; }
+    const url = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+    // Log the broadcast after first send
+    try {
+      await fetch(`${API}/api/team-broadcasts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: session.vendorId,
+          message,
+          recipient_ids: selectedIds,
+          recipient_count: selectedIds.length,
+          template_key: templateKey || null,
+        }),
+      });
+    } catch {}
+  };
+
+  const sendWhatsAppGroup = async () => {
+    // No phones — WhatsApp group picker opens with pre-filled message
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+    try {
+      await fetch(`${API}/api/team-broadcasts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: session.vendorId,
+          message,
+          recipient_ids: selectedIds,
+          recipient_count: selectedIds.length,
+          template_key: templateKey || null,
+        }),
+      });
+    } catch {}
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 8 }}>
+      <SubPanelHeader title="Broadcast to Team" onBack={onBack} />
+
+      <div style={{
+        padding: '14px 16px', background: C.pearl, borderRadius: 12,
+        border: `1px solid ${C.border}`, fontSize: 12, color: C.muted, lineHeight: 1.55,
+      }}>
+        Send an announcement to your team via WhatsApp. Pick a template, customize, then send as a group or individual messages.
+      </div>
+
+      {/* Templates */}
+      <div>
+        <FieldLabel>Pick a template</FieldLabel>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
+          {TEMPLATES.map(tpl => (
+            <button
+              key={tpl.key}
+              onClick={() => applyTemplate(tpl.key)}
+              style={{
+                background: templateKey === tpl.key ? C.goldSoft : C.ivory,
+                color: templateKey === tpl.key ? C.goldDeep : C.muted,
+                border: `1px solid ${templateKey === tpl.key ? C.gold : C.border}`,
+                borderRadius: 50, padding: '7px 12px',
+                fontSize: 11, fontWeight: templateKey === tpl.key ? 600 : 500,
+                cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+              }}
+            >{tpl.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message */}
+      <div>
+        <FieldLabel>Message *</FieldLabel>
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          rows={7}
+          placeholder="Type your announcement…"
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            background: C.ivory, border: `1px solid ${C.border}`,
+            borderRadius: 12, padding: '12px 14px',
+            fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+            outline: 'none', resize: 'vertical' as const, lineHeight: 1.55,
+          }}
+        />
+      </div>
+
+      {/* Recipients */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <FieldLabel>Recipients ({selectedIds.length}/{activeMembers.length})</FieldLabel>
+          <button
+            onClick={selectAll}
+            style={{
+              background: 'transparent', border: 'none',
+              color: C.goldDeep, cursor: 'pointer',
+              fontSize: 11, fontWeight: 500, fontFamily: 'DM Sans, sans-serif',
+              padding: 0,
+            }}
+          >Select all</button>
+        </div>
+        {activeMembers.length === 0 ? (
+          <div style={{ padding: 20, background: C.pearl, borderRadius: 10, fontSize: 12, color: C.muted, textAlign: 'center' as const }}>
+            No active team members. Add some in My Team first.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+            {activeMembers.map((m: any) => {
+              const checked = selectedIds.includes(m.id);
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => toggleMember(m.id)}
+                  style={{
+                    padding: '10px 12px', background: checked ? C.goldSoft : C.ivory,
+                    border: `1px solid ${checked ? C.gold : C.border}`,
+                    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    textAlign: 'left' as const,
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 4,
+                    background: checked ? C.dark : 'transparent',
+                    border: `1.5px solid ${checked ? C.dark : C.muted}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    {checked && <CheckCircle size={11} color={C.gold} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: C.dark, fontWeight: 500 }}>{m.name}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>{m.phone || 'No phone'}{m.role ? ` · ${m.role}` : ''}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Send actions */}
+      {message.trim() && selectedIds.length > 0 && (
+        <div style={{
+          background: C.champagne, border: `1px solid ${C.goldBorder}`,
+          borderRadius: 12, padding: 14,
+        }}>
+          <div style={{ fontSize: 11, color: C.goldDeep, fontWeight: 500, letterSpacing: '1.2px', textTransform: 'uppercase' as const, marginBottom: 10 }}>
+            Choose how to send
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            <button
+              onClick={sendWhatsAppGroup}
+              style={{
+                padding: 13, borderRadius: 10,
+                background: '#25D366', color: '#fff',
+                border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, letterSpacing: '1.3px',
+                textTransform: 'uppercase' as const, fontFamily: 'DM Sans, sans-serif',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <Users size={14} /> As group
+            </button>
+            <div style={{ fontSize: 10, color: C.muted, textAlign: 'center' as const, fontStyle: 'italic' as const }}>
+              Opens WhatsApp — you'll create the group and paste
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
+              {recipients.map((m: any) => (
+                <button
+                  key={m.id}
+                  onClick={() => sendWhatsAppIndividual(m)}
+                  style={{
+                    padding: '10px 8px', borderRadius: 8,
+                    background: C.ivory, color: '#25D366',
+                    border: `1px solid ${C.border}`, cursor: 'pointer',
+                    fontSize: 11, fontWeight: 500,
+                    fontFamily: 'DM Sans, sans-serif',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  }}
+                >
+                  <Send size={10} /> {m.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 10, color: C.muted, textAlign: 'center' as const, fontStyle: 'italic' as const, marginTop: 4 }}>
+              Or tap a name to send direct 1-on-1
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function AssistantsPanel({ session }: { session: VendorSession }) {
   const [assistants, setAssistants] = useState<Assistant[]>([]);
@@ -9360,7 +10582,7 @@ const TEAM_ROLES = [
 
 const TEAM_SIZE_LIMIT: Record<string, number> = { essential: 0, signature: 5, prestige: 999 };
 
-function TeamPanel({ session, tier }: { session: VendorSession; tier: Tier }) {
+function LegacyTeamPanel({ session, tier }: { session: VendorSession; tier: Tier }) {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
