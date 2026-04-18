@@ -966,10 +966,120 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
     return <div style={{ padding: '40px 0', textAlign: 'center', color: C.muted }}>Loading your business…</div>;
   }
 
+  // ── Computed: this week bookings ──
+  const weekEnd = new Date();
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  const thisWeekCount = bookings.filter((b: any) => {
+    if (!b.event_date) return false;
+    const d = new Date(b.event_date);
+    return d >= new Date() && d <= weekEnd;
+  }).length;
+
+  const hasAnyToday = todayBookings.length > 0 || thisWeekCount > 0 || pendingPayments > 0 || leads.length > 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '8px' }}>
 
-      {/* ── NEEDS ATTENTION HUB (Turn 9D + 9H reminders) — sits at the very top ── */}
+      {/* ══════════════════════════════════════════════════════════════════
+          1. TODAY RIBBON — always visible (unless ALL stats zero for new vendor)
+         ══════════════════════════════════════════════════════════════════ */}
+      {hasAnyToday && (
+        <div style={{
+          background: `linear-gradient(180deg, ${C.champagne} 0%, ${C.goldSoft} 100%)`,
+          borderRadius: '18px',
+          padding: '22px 22px 20px',
+          border: `1px solid ${C.goldBorder}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '18px' }}>
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '15px', fontWeight: 400,
+              color: C.goldDeep, letterSpacing: '0.4px',
+            }}>{today}</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(201,168,76,0.25)' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'end' }}>
+            {[
+              { num: todayBookings.length, label: 'Today',     highlight: todayBookings.length > 0 },
+              { num: thisWeekCount,        label: 'This Wk',   highlight: thisWeekCount > 0 },
+              { num: totalOwed > 0 ? '\u20B9' + fmtINR(totalOwed) : '0', label: 'Pending', highlight: false, warn: totalOwed > 0 },
+              { num: leads.length,         label: 'Enquiries', highlight: leads.length > 0 },
+            ].map((stat: any, i: number, arr: any[]) => (
+              <div key={i} style={{ textAlign: 'center', position: 'relative' }}>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: typeof stat.num === 'string' ? '22px' : '32px', fontWeight: 400,
+                  color: stat.warn ? C.red : (stat.highlight ? C.gold : C.dark),
+                  letterSpacing: '-0.5px', lineHeight: 1,
+                }}>{stat.num}</div>
+                <div style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '9px', fontWeight: 500,
+                  letterSpacing: '2px', textTransform: 'uppercase',
+                  color: C.muted, marginTop: '8px',
+                }}>{stat.label}</div>
+                {i < arr.length - 1 && (
+                  <div style={{
+                    position: 'absolute', right: 0, top: '18%',
+                    height: '55%', width: 1,
+                    background: 'rgba(201,168,76,0.18)',
+                  }} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          2. QUICK ACTIONS — 7 actions, 4+3 grid, same for all tiers
+         ══════════════════════════════════════════════════════════════════ */}
+      {(() => {
+        const actions = [
+          { icon: CheckCircle,   label: 'To-Do',      onClick: () => onOpenTodo && onOpenTodo() },
+          { icon: Calendar,      label: 'Add Event',   onClick: () => onOpenEvent && onOpenEvent() },
+          { icon: Users,         label: 'Add Client',  onClick: () => onAddClient && onAddClient() },
+          { icon: Calendar,      label: 'Block Date',  onClick: () => onOpenBlockDate && onOpenBlockDate() },
+          { icon: FileText,      label: 'Invoice',     onClick: () => onOpenInvoice && onOpenInvoice() },
+          { icon: TrendingDown,  label: 'Expense',     onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } },
+          { icon: MessageCircle, label: 'Broadcast',   onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'whatsapp'); } },
+        ];
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+            {actions.map((a: any, i: number) => {
+              const I = a.icon;
+              return (
+                <button
+                  key={i}
+                  onClick={a.onClick}
+                  style={{
+                    background: C.ivory,
+                    border: `1px solid ${C.goldBorder}`,
+                    borderRadius: '14px',
+                    padding: '16px 6px 14px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.25s ease',
+                  }}
+                >
+                  <I size={16} color={C.gold} />
+                  <span style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '9px', fontWeight: 500,
+                    letterSpacing: '1.2px', textTransform: 'uppercase',
+                    color: C.dark, textAlign: 'center', lineHeight: 1.15,
+                  }}>{a.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          3. NEEDS ATTENTION HUB — only if items exist
+         ══════════════════════════════════════════════════════════════════ */}
       <NeedsAttentionCard
         paymentSchedules={paymentSchedules}
         invoices={invoices}
@@ -979,307 +1089,158 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
         onJumpToTab={onJumpToTab}
       />
 
-      {/* ── PROFILE COMPLETION CARD (sits above Dream Ai — dismissible, collapsable) ── */}
-      {profileIncomplete && !checklistDismissed && vendorData && (
-        <ProfileCompletionCard
-          percent={profilePercent}
-          steps={profileSteps}
-          onDismiss={onDismissChecklist}
-        />
-      )}
-
-      {/* ── CONTEXTUAL UPGRADE NUDGE (Pattern 4) ── */}
-      {activeTrigger && (
-        <UpgradeNudge
-          trigger={activeTrigger}
-          onDismiss={() => dismissNudge(activeTrigger!.key)}
-        />
-      )}
-
-      {/* ── DREAM AI HERO CARD ── */}
-      <div
-        onClick={() => {
-          if (vendorData?.ai_enabled) {
-            const joinCode = 'join acres-eventually';
-            window.open('https://wa.me/14155238886?text=' + encodeURIComponent(joinCode), '_blank');
-          } else {
-            onOpenAiModal();
-          }
-        }}
-        style={{
-          position: 'relative',
-          background: 'linear-gradient(180deg, #FFFDF7 0%, #FFF8EC 100%)',
-          borderRadius: '14px',
-          padding: '22px 20px',
-          border: vendorData?.ai_enabled ? '1.5px solid #C9A84C' : '1px solid rgba(201,168,76,0.32)',
-          boxShadow: vendorData?.ai_enabled
-            ? '0 4px 24px rgba(201,168,76,0.14)'
-            : '0 2px 14px rgba(140,123,110,0.08)',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          transition: 'all 0.4s ease',
-        }}
-      >
-        {/* Pulsing gold dot (active only) */}
-        {vendorData?.ai_enabled && (
-          <div style={{
-            position: 'absolute', top: '22px', right: '112px',
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: C.gold,
-            animation: 'tdwAiPulse 2s ease-in-out infinite',
-            pointerEvents: 'none',
-          }} />
-        )}
-
-        {/* Status badge — outlined */}
-        <div style={{
-          position: 'absolute', top: '14px', right: '14px',
-          background: 'transparent',
-          border: '1px solid ' + (vendorData?.ai_enabled ? C.gold : 'rgba(201,168,76,0.45)'),
-          borderRadius: '50px', padding: '4px 12px',
-          fontFamily: 'DM Sans, sans-serif', fontSize: '9px', fontWeight: 600,
-          letterSpacing: '2px',
-          color: vendorData?.ai_enabled ? '#A88B3A' : 'rgba(168,139,58,0.85)',
-        }}>
-          {vendorData?.ai_enabled ? 'BETA · ACTIVE' : vendorData?.ai_access_requested ? 'BETA · WAITLIST' : 'BETA · INVITE ONLY'}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', zIndex: 2 }}>
-          {/* Sparkle icon */}
-          <div style={{
-            width: '54px', height: '54px',
-            borderRadius: '16px',
-            background: vendorData?.ai_enabled ? C.goldSoft : '#F5F0E8',
-            border: '1px solid ' + (vendorData?.ai_enabled ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'),
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L14.09 8.26L20.5 9L15.5 13.5L17 20L12 16.5L7 20L8.5 13.5L3.5 9L9.91 8.26L12 2Z"
-                fill={C.gold} opacity={vendorData?.ai_enabled ? '1' : '0.6'} />
-              <circle cx="5" cy="5" r="1.2" fill={C.gold} opacity={vendorData?.ai_enabled ? '0.8' : '0.4'} />
-              <circle cx="19" cy="19" r="1.2" fill={C.gold} opacity={vendorData?.ai_enabled ? '0.8' : '0.4'} />
-              <circle cx="19" cy="5" r="0.8" fill={C.gold} opacity={vendorData?.ai_enabled ? '0.6' : '0.3'} />
-            </svg>
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '22px',
-              color: vendorData?.ai_enabled ? C.dark : '#4A3F38',
-              letterSpacing: '1.2px', marginBottom: '6px',
-              fontWeight: 400,
-            }}>Dream Ai</div>
-            <div style={{
-              fontFamily: 'DM Sans, sans-serif', fontSize: '11px',
-              color: C.muted, fontWeight: 400, lineHeight: 1.55,
-            }}>
-              {vendorData?.ai_enabled
-                ? "Run your business from WhatsApp. Tap to open."
-                : vendorData?.ai_access_requested
-                  ? "You're on the waitlist. We'll be in touch."
-                  : "World's first wedding AI. By invitation only."}
-            </div>
-          </div>
-
-          {/* Arrow / lock icon */}
-          <div style={{
-            width: '34px', height: '34px', borderRadius: '50%',
-            background: vendorData?.ai_enabled ? 'rgba(201,168,76,0.12)' : 'rgba(140,123,110,0.06)',
-            border: '1px solid ' + (vendorData?.ai_enabled ? 'rgba(201,168,76,0.25)' : 'rgba(140,123,110,0.15)'),
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              {vendorData?.ai_enabled ? (
-                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke={C.gold} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              ) : (
-                <path d="M19 11H17V7C17 4.24 14.76 2 12 2C9.24 2 7 4.24 7 7V11H5C3.9 11 3 11.9 3 13V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V13C21 11.9 20.1 11 19 11ZM9 7C9 5.34 10.34 4 12 4C13.66 4 15 5.34 15 7V11H9V7Z"
-                  fill={C.muted} opacity="0.8"/>
-              )}
-            </svg>
-          </div>
-        </div>
-      </div>
-
       {/* ══════════════════════════════════════════════════════════════════
-          TIER-SPECIFIC DASHBOARD BODY
-          - Essential: personal-assistant feel (onboarding, next event, money owed, enquiries, actions)
-          - Signature: business-briefing (Turn 3 expands; placeholder uses Essential for now)
-          - Prestige:  CEO command-feed (Turn 3 expands; placeholder uses Essential for now)
+          4. TODAY'S SCHEDULE — only if events/bookings today
          ══════════════════════════════════════════════════════════════════ */}
-
-      {/* ── TODAY RIBBON — editorial cream-gold, NOT dark ── */}
-      <div style={{
-        background: `linear-gradient(180deg, ${C.champagne} 0%, ${C.goldSoft} 100%)`,
-        borderRadius: '18px',
-        padding: '22px 22px 20px',
-        border: `1px solid ${C.goldBorder}`,
-        position: 'relative',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '18px' }}>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '15px', fontWeight: 400,
-            color: C.goldDeep, letterSpacing: '0.4px',
-          }}>{today}</span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(201,168,76,0.25)' }} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'end' }}>
-          {[
-            { num: todayBookings.length, label: 'Today',    highlight: todayBookings.length > 0 },
-            { num: upcomingBookings,     label: 'Upcoming', highlight: false },
-            { num: pendingPayments,      label: 'Unpaid',   highlight: pendingPayments > 0, warn: pendingPayments > 0 },
-            { num: clients.length,       label: 'Clients',  highlight: false },
-          ].map((stat: any, i: number, arr: any[]) => (
-            <div key={i} style={{ textAlign: 'center', position: 'relative' }}>
-              <div style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: '32px', fontWeight: 400,
-                color: stat.warn ? C.red : (stat.highlight ? C.gold : C.dark),
-                letterSpacing: '-0.5px', lineHeight: 1,
-              }}>{stat.num}</div>
-              <div style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '9px', fontWeight: 500,
-                letterSpacing: '2px', textTransform: 'uppercase',
-                color: C.muted, marginTop: '8px',
-              }}>{stat.label}</div>
-              {i < arr.length - 1 && (
-                <div style={{
-                  position: 'absolute', right: 0, top: '18%',
-                  height: '55%', width: 1,
-                  background: 'rgba(201,168,76,0.18)',
-                }} />
-              )}
+      {(() => {
+        const todayStr = new Date().toDateString();
+        const todaysEvents = (events || []).filter((e: any) => e.event_date && new Date(e.event_date).toDateString() === todayStr);
+        const todaysBookings = bookings.filter((b: any) => b.event_date && new Date(b.event_date).toDateString() === todayStr);
+        if (todaysEvents.length === 0 && todaysBookings.length === 0) return null;
+        const items = [
+          ...todaysBookings.map((b: any) => ({ id: 'b-'+b.id, title: b.users?.name || b.client_name || 'Booking', sub: b.event_type || 'Event', time: b.event_time || null, kind: 'booking' })),
+          ...todaysEvents.map((e: any) => ({ id: 'e-'+e.id, title: e.title, sub: e.client_name || e.type || 'Personal', time: e.event_time || null, kind: 'event' })),
+        ];
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <SectionLabel>Today's Schedule</SectionLabel>
+              <span style={{ fontSize: '10px', color: C.muted, fontWeight: 600, letterSpacing: '1px' }}>{items.length} ITEM{items.length === 1 ? '' : 'S'}</span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          BUSINESS PULSE — Signature & Prestige only
-          4-stat grid: Revenue this month, vs last month, outstanding, conversion
-          Gated by 15-day data requirement
-         ══════════════════════════════════════════════════════════════════ */}
-
-      {(tier === 'signature' || tier === 'prestige') && (
-        hasEnoughData ? (
-          <div style={{
-            background: C.ivory,
-            borderRadius: '18px',
-            padding: '22px',
-            border: `1px solid ${C.goldBorder}`,
-            position: 'relative',
-          }}>
-            <div style={{
-              position: 'absolute', top: 0, left: 22, right: 22, height: '2px',
-              background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
-            }} />
-            <div style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '9px', fontWeight: 600,
-              letterSpacing: '2.5px', textTransform: 'uppercase',
-              color: C.goldDeep, marginBottom: '14px',
-            }}>Business Pulse · This Month</div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 16px' }}>
-              {/* Revenue this month */}
-              <div>
-                <div style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: '26px', color: C.dark, fontWeight: 400,
-                  letterSpacing: '-0.3px', lineHeight: 1,
-                }}>₹{fmtINR(revenueThisMonth)}</div>
-                <div style={{
-                  fontSize: '9px', color: C.muted, marginTop: '4px',
-                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
-                }}>Revenue</div>
-              </div>
-
-              {/* Vs last month */}
-              <div>
-                <div style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: '26px', fontWeight: 400,
-                  color: revenueDelta == null ? C.muted : revenueDelta >= 0 ? C.green : C.red,
-                  letterSpacing: '-0.3px', lineHeight: 1,
-                }}>
-                  {revenueDelta == null ? '—' : (revenueDelta >= 0 ? '↗' : '↘') + ' ' + Math.abs(revenueDelta) + '%'}
+            <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+              {items.map((it, idx) => (
+                <div key={it.id} style={{ padding: '12px 14px', borderBottom: idx < items.length - 1 ? `1px solid ${C.borderSoft}` : 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '6px', height: '36px', borderRadius: '3px',
+                    background: it.kind === 'booking' ? C.gold : C.muted, flexShrink: 0,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13.5px', color: C.dark, fontWeight: 500, lineHeight: 1.4 }}>{it.title}</div>
+                    <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>{it.time ? it.time + ' \u00b7 ' : ''}{it.sub}</div>
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: '9px', color: C.muted, marginTop: '4px',
-                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
-                }}>Vs Last Month</div>
-              </div>
-
-              {/* Outstanding */}
-              <div>
-                <div style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: '22px', color: totalOwed > 0 ? C.dark : C.muted, fontWeight: 400,
-                  letterSpacing: '-0.3px', lineHeight: 1,
-                }}>₹{fmtINR(totalOwed)}</div>
-                <div style={{
-                  fontSize: '9px', color: C.muted, marginTop: '4px',
-                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
-                }}>Outstanding</div>
-              </div>
-
-              {/* Conversion rate */}
-              <div>
-                <div style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: '22px', color: C.dark, fontWeight: 400,
-                  letterSpacing: '-0.3px', lineHeight: 1,
-                }}>{conversionRate == null ? '—' : conversionRate + '%'}</div>
-                <div style={{
-                  fontSize: '9px', color: C.muted, marginTop: '4px',
-                  letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
-                }}>Conversion</div>
-              </div>
+              ))}
             </div>
           </div>
-        ) : (
-          // Data insufficient state — muted, builds anticipation
-          <div style={{
-            background: C.pearl,
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          5. TO-DO — pending tasks, top 5, with quick add
+         ══════════════════════════════════════════════════════════════════ */}
+      {(() => {
+        const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+        const pendingTodos = (todos || []).filter((t: any) => !t.done);
+        if (pendingTodos.length === 0) return null;
+        const overdueCountT = pendingTodos.filter((t: any) => t.due_date && new Date(t.due_date) < todayDate).length;
+        const visible = pendingTodos.slice(0, 5);
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <SectionLabel>To-Do</SectionLabel>
+              <button onClick={() => onOpenTodo && onOpenTodo()} style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                fontSize: '11px', color: C.goldDeep, fontWeight: 600, letterSpacing: '0.5px',
+                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px',
+              }}><Plus size={12} /> Add</button>
+            </div>
+            <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+              {overdueCountT > 0 && (
+                <div style={{
+                  background: C.redSoft, padding: '8px 14px',
+                  fontSize: '11px', color: C.red, fontWeight: 600,
+                  borderBottom: `1px solid ${C.redBorder}`,
+                }}>{overdueCountT} overdue</div>
+              )}
+              {visible.map((t: any, idx: number) => {
+                const isOverdue = t.due_date && new Date(t.due_date) < todayDate;
+                return (
+                  <div key={t.id} style={{ padding: '12px 14px', borderBottom: idx < visible.length - 1 ? `1px solid ${C.borderSoft}` : 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      onClick={() => onToggleTodo && onToggleTodo(t.id, true)}
+                      style={{
+                        width: '18px', height: '18px', flexShrink: 0,
+                        borderRadius: '5px', border: `1.5px solid ${C.border}`,
+                        background: 'transparent', cursor: 'pointer', padding: 0,
+                      }} aria-label="Mark done" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div>
+                      {t.due_date && (
+                        <div style={{ fontSize: '11px', color: isOverdue ? C.red : C.muted, marginTop: '2px', fontWeight: isOverdue ? 600 : 400 }}>
+                          {isOverdue ? 'Overdue \u00b7 ' : ''}{new Date(t.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </div>
+                      )}
+                    </div>
+                    {t.priority === 'high' && <div style={{ width: '6px', height: '24px', borderRadius: '3px', background: C.red }} />}
+                  </div>
+                );
+              })}
+              {pendingTodos.length > 5 && (
+                <button onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'todos'); }} style={{
+                  width: '100%', padding: '10px',
+                  background: C.pearl, color: C.muted,
+                  border: 'none', borderTop: `1px solid ${C.borderSoft}`,
+                  fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>View all {pendingTodos.length} \u2192</button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          6. PENDING ENQUIRIES — only if leads exist
+         ══════════════════════════════════════════════════════════════════ */}
+      {leads.length > 0 && (
+        <button
+          onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'inquiries'); }}
+          style={{
+            background: C.goldSoft,
+            border: `1px solid ${C.goldBorder}`,
             borderRadius: '18px',
-            padding: '24px',
-            border: `1px dashed ${C.borderSoft}`,
-            textAlign: 'center',
+            padding: '18px 20px',
+            textAlign: 'left',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            fontFamily: 'inherit',
+            width: '100%',
+          }}
+        >
+          <div style={{
+            width: '30px', height: '30px', borderRadius: '50%',
+            background: C.ivory, border: `1px solid ${C.goldBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <div style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '9px', fontWeight: 600,
-              letterSpacing: '2.5px', textTransform: 'uppercase',
-              color: C.muted, marginBottom: '10px',
-            }}>Business Pulse</div>
+            <Zap size={13} color={C.gold} />
+          </div>
+          <div style={{ flex: 1 }}>
             <div style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '18px', color: C.dark, fontWeight: 400,
-              letterSpacing: '0.2px', lineHeight: 1.4, marginBottom: '6px',
+              fontSize: '17px', color: C.dark, fontWeight: 400,
+              letterSpacing: '0.2px',
             }}>
-              Unlocking in {daysUntilPulseReady} {daysUntilPulseReady === 1 ? 'day' : 'days'}.
+              {leads.length} {leads.length === 1 ? 'enquiry' : 'enquiries'} waiting
             </div>
             <div style={{
-              fontSize: '11px', color: C.muted, lineHeight: 1.55,
-              maxWidth: '280px', margin: '0 auto',
-            }}>
-              We need at least 15 days of your data to tell you anything meaningful about your business.
-            </div>
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px', color: C.muted, marginTop: '2px',
+            }}>Respond within 48 hours</div>
           </div>
-        )
+          <ChevronRight size={16} color={C.gold} />
+        </button>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          ESSENTIAL — Personal Assistant
-          (Used for Essential now. Signature & Prestige fall through to this
-          in Turn 1; Turn 3 will add their distinct layouts.)
+          7. TEAM ACTIVITY FEED — Prestige only (moved up per Dev request)
          ══════════════════════════════════════════════════════════════════ */}
+      {tier === 'prestige' && (
+        <TeamActivityFeed vendorId={session?.vendorId} />
+      )}
 
-      {/* ── NEXT EVENT (cream + gold, editorial) ── */}
+      {/* ══════════════════════════════════════════════════════════════════
+          8. NEXT EVENT — only if upcoming confirmed booking exists
+         ══════════════════════════════════════════════════════════════════ */}
       {nextEvent && (
         <div style={{
           background: C.ivory,
@@ -1289,7 +1250,6 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
           position: 'relative',
           overflow: 'hidden',
         }}>
-          {/* Whisper decorative diagonal line (gold) */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
             background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
@@ -1313,55 +1273,15 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
             {nextEvent.event_date
               ? new Date(nextEvent.event_date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
               : 'Date to be confirmed'}
-            {nextEvent.venue ? ` · ${nextEvent.venue}` : ''}
+            {nextEvent.venue ? ` \u00b7 ${nextEvent.venue}` : ''}
           </div>
         </div>
       )}
 
-      {/* ── PENDING ENQUIRIES ALERT (warm gold) ── */}
-      {leads.length > 0 && (
-        <button
-          onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'inquiries'); }}
-          style={{
-            background: C.goldSoft,
-            border: `1px solid ${C.goldBorder}`,
-            borderRadius: '18px',
-            padding: '18px 20px',
-            textAlign: 'left',
-            cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', gap: '6px',
-            fontFamily: 'inherit',
-            width: '100%',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '30px', height: '30px', borderRadius: '50%',
-              background: C.ivory, border: `1px solid ${C.goldBorder}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Zap size={13} color={C.gold} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: '17px', color: C.dark, fontWeight: 400,
-                letterSpacing: '0.2px',
-              }}>
-                {leads.length} {leads.length === 1 ? 'enquiry' : 'enquiries'} waiting
-              </div>
-              <div style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px', color: C.muted, marginTop: '2px',
-              }}>Respond within 48 hours</div>
-            </div>
-            <ChevronRight size={16} color={C.gold} />
-          </div>
-        </button>
-      )}
-
-      {/* ── MONEY OWED (top 3 unpaid invoices with WhatsApp reminders) ── */}
-      {unpaidInvoices.length > 0 && (
+      {/* ══════════════════════════════════════════════════════════════════
+          9. OUTSTANDING — merged Money Owed + Overdue Schedules
+         ══════════════════════════════════════════════════════════════════ */}
+      {(unpaidInvoices.length > 0 || overdueSchedules.length > 0) && (
         <div style={{
           background: C.champagne,
           borderRadius: '18px',
@@ -1378,12 +1298,12 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
               fontSize: '9px', fontWeight: 600,
               letterSpacing: '2.5px', textTransform: 'uppercase',
               color: C.goldDeep,
-            }}>Money Owed to You</div>
+            }}>Outstanding</div>
             <div style={{
               fontFamily: "'Playfair Display', serif",
               fontSize: '22px', fontWeight: 400,
               color: C.dark, letterSpacing: '-0.3px',
-            }}>₹{fmtINR(totalOwed)}</div>
+            }}>{'\u20B9'}{fmtINR(totalOwed)}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {unpaidInvoices.slice(0, 3).map((inv: any) => (
@@ -1400,10 +1320,10 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
                 <div style={{
                   fontFamily: "'Playfair Display', serif",
                   fontSize: '15px', color: C.dark, fontWeight: 400,
-                }}>₹{fmtINR(parseInt(inv.amount) || 0)}</div>
+                }}>{'\u20B9'}{fmtINR(parseInt(inv.amount) || 0)}</div>
                 {inv.client_phone && (
                   <a
-                    href={`https://wa.me/91${String(inv.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${inv.client_name || ''}! Gentle reminder on invoice ${inv.invoice_number || ''} for ₹${(parseInt(inv.amount) || 0).toLocaleString('en-IN')}.`)}`}
+                    href={`https://wa.me/91${String(inv.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${inv.client_name || ''}! Gentle reminder on invoice ${inv.invoice_number || ''} for \u20B9${(parseInt(inv.amount) || 0).toLocaleString('en-IN')}.`)}`}
                     target="_blank" rel="noreferrer"
                     style={{
                       background: 'transparent',
@@ -1418,8 +1338,37 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
                 )}
               </div>
             ))}
+            {overdueSchedules.length > 0 && unpaidInvoices.length > 0 && (
+              <div style={{ height: 1, background: `rgba(201,168,76,0.18)`, margin: '4px 0' }} />
+            )}
+            {overdueSchedules.slice(0, 2).map((sched: any) => (
+              <div key={sched.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: C.red, flexShrink: 0,
+                }} />
+                <span style={{ fontSize: '13px', color: C.dark, flex: 1 }}>
+                  {sched.client_name} — overdue
+                </span>
+                {sched.client_phone && (
+                  <a
+                    href={`https://wa.me/91${String(sched.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${sched.client_name || ''}! Gentle reminder about your pending payment.`)}`}
+                    target="_blank" rel="noreferrer"
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${C.redBorder}`,
+                      borderRadius: '50%', width: '28px', height: '28px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <MessageCircle size={11} color={C.red} />
+                  </a>
+                )}
+              </div>
+            ))}
           </div>
-          {unpaidInvoices.length > 3 && (
+          {(unpaidInvoices.length > 3 || overdueSchedules.length > 2) && (
             <button
               onClick={() => onJumpToTab('Power')}
               style={{
@@ -1429,231 +1378,121 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
                 cursor: 'pointer', marginTop: '14px', padding: 0,
                 fontFamily: 'inherit',
               }}
-            >View all {unpaidInvoices.length} →</button>
+            >View all \u2192</button>
           )}
         </div>
       )}
 
-      {/* ── ATTENTION NEEDED (overdue payment schedules) ── */}
-      {overdueSchedules.length > 0 && (
+      {/* ══════════════════════════════════════════════════════════════════
+          10. BUSINESS PULSE — Signature & Prestige (15-day gate)
+         ══════════════════════════════════════════════════════════════════ */}
+      {(tier === 'signature' || tier === 'prestige') && hasEnoughData && (
         <div style={{
-          background: C.redSoft,
-          borderRadius: '18px', padding: '18px 20px',
-          border: `1px solid ${C.redBorder}`,
-          display: 'flex', flexDirection: 'column', gap: '10px',
+          background: C.ivory,
+          borderRadius: '18px',
+          padding: '22px',
+          border: `1px solid ${C.goldBorder}`,
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 22, right: 22, height: '2px',
+            background: `linear-gradient(90deg, transparent 0%, ${C.gold} 50%, transparent 100%)`,
+          }} />
+          <div style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '9px', fontWeight: 600,
+            letterSpacing: '2.5px', textTransform: 'uppercase',
+            color: C.goldDeep, marginBottom: '14px',
+          }}>Business Pulse · This Month</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 16px' }}>
+            <div>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '26px', color: C.dark, fontWeight: 400,
+                letterSpacing: '-0.3px', lineHeight: 1,
+              }}>{'\u20B9'}{fmtINR(revenueThisMonth)}</div>
+              <div style={{
+                fontSize: '9px', color: C.muted, marginTop: '4px',
+                letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+              }}>Revenue</div>
+            </div>
+            <div>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '26px', fontWeight: 400,
+                color: revenueDelta == null ? C.muted : revenueDelta >= 0 ? C.green : C.red,
+                letterSpacing: '-0.3px', lineHeight: 1,
+              }}>
+                {revenueDelta == null ? '\u2014' : (revenueDelta >= 0 ? '\u2197' : '\u2198') + ' ' + Math.abs(revenueDelta) + '%'}
+              </div>
+              <div style={{
+                fontSize: '9px', color: C.muted, marginTop: '4px',
+                letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+              }}>Vs Last Month</div>
+            </div>
+            <div>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '22px', color: totalOwed > 0 ? C.dark : C.muted, fontWeight: 400,
+                letterSpacing: '-0.3px', lineHeight: 1,
+              }}>{'\u20B9'}{fmtINR(totalOwed)}</div>
+              <div style={{
+                fontSize: '9px', color: C.muted, marginTop: '4px',
+                letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+              }}>Outstanding</div>
+            </div>
+            <div>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '22px', color: C.dark, fontWeight: 400,
+                letterSpacing: '-0.3px', lineHeight: 1,
+              }}>{conversionRate == null ? '\u2014' : conversionRate + '%'}</div>
+              <div style={{
+                fontSize: '9px', color: C.muted, marginTop: '4px',
+                letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 500,
+              }}>Conversion</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          11. LEADS FOR YOU — Signature+ placeholder
+         ══════════════════════════════════════════════════════════════════ */}
+      {(tier === 'signature' || tier === 'prestige') && (
+        <div style={{
+          background: C.ivory,
+          borderRadius: '18px',
+          padding: '22px',
+          border: `1px dashed ${C.goldBorder}`,
+          textAlign: 'center',
         }}>
           <div style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '9px', fontWeight: 600,
             letterSpacing: '2.5px', textTransform: 'uppercase',
-            color: C.red,
-          }}>Attention Needed</div>
-          {overdueSchedules.slice(0, 3).map((sched: any) => (
-            <div key={sched.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '13px', color: C.dark, flex: 1 }}>
-                {sched.client_name} — overdue
-              </span>
-              {sched.client_phone && (
-                <a
-                  href={`https://wa.me/91${String(sched.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${sched.client_name || ''}! Gentle reminder about your pending payment.`)}`}
-                  target="_blank" rel="noreferrer"
-                  style={{
-                    background: 'transparent',
-                    border: `1px solid ${C.redBorder}`,
-                    borderRadius: '50%', width: '28px', height: '28px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <MessageCircle size={11} color={C.red} />
-                </a>
-              )}
-            </div>
-          ))}
+            color: C.goldDeep, marginBottom: '10px',
+          }}>Leads for You</div>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '18px', color: C.dark, fontWeight: 400,
+            letterSpacing: '0.2px', lineHeight: 1.4, marginBottom: '6px',
+          }}>
+            Coming soon.
+          </div>
+          <div style={{
+            fontSize: '11px', color: C.muted, lineHeight: 1.55,
+            maxWidth: '280px', margin: '0 auto',
+          }}>
+            Couples matching your budget and category, delivered to your dashboard.
+          </div>
         </div>
       )}
 
-      {/* ── QUICK ACTIONS (real, all wired to bottom sheets, tier-aware) ── */}
-      {(() => {
-        const essentialActions = [
-          { icon: FileText,   label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
-          { icon: Send,       label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
-          { icon: Calendar,   label: 'Add Event',  onClick: () => onOpenEvent && onOpenEvent() },
-          { icon: CheckCircle, label: 'To-Do',     onClick: () => onOpenTodo && onOpenTodo() },
-          { icon: Users,      label: 'Add Client', onClick: () => onAddClient && onAddClient() },
-          { icon: Calendar,   label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
-        ];
-        const signatureActions = [
-          { icon: FileText,    label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
-          { icon: Send,        label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
-          { icon: Calendar,    label: 'Add Event',  onClick: () => onOpenEvent && onOpenEvent() },
-          { icon: CheckCircle, label: 'To-Do',      onClick: () => onOpenTodo && onOpenTodo() },
-          { icon: Users,       label: 'Add Client', onClick: () => onAddClient && onAddClient() },
-          { icon: Calendar,    label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
-          { icon: TrendingDown, label: 'Expense',   onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } } },
-          { icon: MessageCircle, label: 'Broadcast', onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'whatsapp'); } } },
-        ];
-        const prestigeActions = [
-          { icon: FileText,      label: 'Invoice',    onClick: () => onOpenInvoice && onOpenInvoice() },
-          { icon: Send,          label: 'Reminder',   onClick: () => onOpenReminder && onOpenReminder() },
-          { icon: Calendar,      label: 'Add Event',  onClick: () => onOpenEvent && onOpenEvent() },
-          { icon: CheckCircle,   label: 'To-Do',      onClick: () => onOpenTodo && onOpenTodo() },
-          { icon: Calendar,      label: 'Block Date', onClick: () => onOpenBlockDate && onOpenBlockDate() },
-          { icon: TrendingDown,  label: 'Expense',    onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'expenses'); } } },
-          { icon: BarChart2,     label: 'Analytics',  onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'analytics'); } } },
-          { icon: MessageCircle, label: 'Broadcast',  onClick: () => { onJumpToTab('Power'); if (typeof window !== 'undefined') { localStorage.setItem('tdw_pwa_open_sub', 'whatsapp'); } } },
-        ];
-        const actions = tier === 'prestige' ? prestigeActions : tier === 'signature' ? signatureActions : essentialActions;
-        const cols = 4;
-        return (
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '8px' }}>
-            {actions.map((a: any, i: number) => {
-              const I = a.icon;
-              return (
-                <button
-                  key={i}
-                  onClick={a.onClick}
-                  style={{
-                    background: C.ivory,
-                    border: `1px solid ${C.goldBorder}`,
-                    borderRadius: '14px',
-                    padding: '16px 6px 14px',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    transition: 'all 0.25s ease',
-                  }}
-                  onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.background = C.goldSoft; }}
-                  onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.background = C.ivory; }}
-                >
-                  <I size={16} color={C.gold} />
-                  <span style={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '9px', fontWeight: 500,
-                    letterSpacing: '1.2px', textTransform: 'uppercase',
-                    color: C.dark, textAlign: 'center', lineHeight: 1.15,
-                  }}>{a.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        );
-      })()}
-
       {/* ══════════════════════════════════════════════════════════════════
-          TODAY'S SCHEDULE — events + bookings happening today
+          12. PIPELINE — Signature & Prestige
          ══════════════════════════════════════════════════════════════════ */}
-      {(() => {
-        const todayStr = new Date().toDateString();
-        const todaysEvents = (events || []).filter((e: any) => e.event_date && new Date(e.event_date).toDateString() === todayStr);
-        const todaysBookings = bookings.filter((b: any) => b.event_date && new Date(b.event_date).toDateString() === todayStr);
-        if (todaysEvents.length === 0 && todaysBookings.length === 0) return null;
-        const items = [
-          ...todaysBookings.map((b: any) => ({ id: 'b-'+b.id, title: b.users?.name || b.client_name || 'Booking', sub: b.event_type || 'Event', time: b.event_time || null, kind: 'booking' })),
-          ...todaysEvents.map((e: any) => ({ id: 'e-'+e.id, title: e.title, sub: e.client_name || e.type || 'Personal', time: e.event_time || null, kind: 'event' })),
-        ];
-        return (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <SectionLabel>Today's Schedule</SectionLabel>
-              <span style={{ fontSize: '10px', color: C.muted, fontWeight: 600, letterSpacing: '1px' }}>{items.length} ITEM{items.length === 1 ? '' : 'S'}</span>
-            </div>
-            <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-              {items.map((it, idx) => (
-                <div key={it.id} style={{ padding: '12px 14px', borderBottom: idx < items.length - 1 ? `1px solid ${C.borderSoft}` : 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '6px', height: '36px', borderRadius: '3px',
-                    background: it.kind === 'booking' ? C.gold : C.muted, flexShrink: 0,
-                  }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13.5px', color: C.dark, fontWeight: 500, lineHeight: 1.4 }}>{it.title}</div>
-                    <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>{it.time ? it.time + ' · ' : ''}{it.sub}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ══════════════════════════════════════════════════════════════════
-          TO-DO CARD — pending tasks, with quick add
-         ══════════════════════════════════════════════════════════════════ */}
-      {(() => {
-        const today = new Date(); today.setHours(0,0,0,0);
-        const pendingTodos = (todos || []).filter((t: any) => !t.done);
-        const overdueCount = pendingTodos.filter((t: any) => t.due_date && new Date(t.due_date) < today).length;
-        const visible = pendingTodos.slice(0, 5);
-        return (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <SectionLabel>To-Do</SectionLabel>
-              <button onClick={() => onOpenTodo && onOpenTodo()} style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                fontSize: '11px', color: C.goldDeep, fontWeight: 600, letterSpacing: '0.5px',
-                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px',
-              }}><Plus size={12} /> Add</button>
-            </div>
-            {pendingTodos.length === 0 ? (
-              <div style={{
-                background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`,
-                padding: '24px 20px', textAlign: 'center',
-              }}>
-                <div style={{ fontSize: '13px', color: C.muted }}>All clear. Add a to-do to get started.</div>
-              </div>
-            ) : (
-              <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-                {overdueCount > 0 && (
-                  <div style={{
-                    background: C.redSoft, padding: '8px 14px',
-                    fontSize: '11px', color: C.red, fontWeight: 600,
-                    borderBottom: `1px solid ${C.redBorder}`,
-                  }}>{overdueCount} overdue</div>
-                )}
-                {visible.map((t: any, idx: number) => {
-                  const isOverdue = t.due_date && new Date(t.due_date) < today;
-                  return (
-                    <div key={t.id} style={{ padding: '12px 14px', borderBottom: idx < visible.length - 1 ? `1px solid ${C.borderSoft}` : 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <button
-                        onClick={() => onToggleTodo && onToggleTodo(t.id, true)}
-                        style={{
-                          width: '18px', height: '18px', flexShrink: 0,
-                          borderRadius: '5px', border: `1.5px solid ${C.border}`,
-                          background: 'transparent', cursor: 'pointer', padding: 0,
-                        }} aria-label="Mark done" />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '13px', color: C.dark, fontWeight: 500, lineHeight: 1.35 }}>{t.title}</div>
-                        {t.due_date && (
-                          <div style={{ fontSize: '11px', color: isOverdue ? C.red : C.muted, marginTop: '2px', fontWeight: isOverdue ? 600 : 400 }}>
-                            {isOverdue ? 'Overdue · ' : ''}{new Date(t.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </div>
-                        )}
-                      </div>
-                      {t.priority === 'high' && <div style={{ width: '6px', height: '24px', borderRadius: '3px', background: C.red }} />}
-                    </div>
-                  );
-                })}
-                {pendingTodos.length > 5 && (
-                  <button onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'todos'); }} style={{
-                    width: '100%', padding: '10px',
-                    background: C.pearl, color: C.muted,
-                    border: 'none', borderTop: `1px solid ${C.borderSoft}`,
-                    fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px',
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}>View all {pendingTodos.length} →</button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ══════════════════════════════════════════════════════════════════
-          LEAD PIPELINE — Signature & Prestige
-          3-column horizontal visual: New Enquiries → Quoted → Confirmed
-         ══════════════════════════════════════════════════════════════════ */}
-
-      {(tier === 'signature' || tier === 'prestige') && (newLeads > 0 || quotedBookings > 0 || confirmedThisMonth > 0) && (
+      {(tier === 'signature' || tier === 'prestige') && (newLeads.length > 0 || quotedBookings.length > 0 || confirmedThisMonth > 0) && (
         <div>
           <SectionLabel>Pipeline</SectionLabel>
           <div style={{
@@ -1662,12 +1501,11 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
             border: `1px solid ${C.border}`,
             padding: '16px',
             display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px',
-            position: 'relative',
           }}>
             {[
-              { label: 'New', count: newLeads, tone: C.goldSoft, border: C.goldBorder, text: C.goldDeep },
-              { label: 'Quoted', count: quotedBookings, tone: C.pearl, border: C.border, text: C.muted },
-              { label: 'Confirmed', count: confirmedThisMonth, tone: C.greenSoft, border: C.border, text: C.green },
+              { label: 'New', count: newLeads.length, tone: C.goldSoft, border: C.goldBorder, text: C.goldDeep },
+              { label: 'Quoted', count: quotedBookings.length, tone: C.pearl, border: C.border, text: C.muted },
+              { label: 'Confirmed', count: confirmedThisMonth, tone: C.greenSoft || C.pearl, border: C.border, text: C.green || C.muted },
             ].map((col, i) => (
               <div key={i}
                 onClick={() => { onJumpToTab('Power'); if (typeof window !== 'undefined') localStorage.setItem('tdw_pwa_open_sub', 'inquiries'); }}
@@ -1696,10 +1534,59 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          ACTIVE EVENTS — Prestige only
-          Currently-in-progress weddings with stage markers
+          13. REVENUE TREND — Signature & Prestige, last 6 months
          ══════════════════════════════════════════════════════════════════ */}
+      {(tier === 'signature' || tier === 'prestige') && monthlyRevenue.some(m => m.amount > 0) && (
+        <div>
+          <SectionLabel>Revenue Trend</SectionLabel>
+          <div style={{
+            background: C.ivory,
+            borderRadius: '16px',
+            border: `1px solid ${C.border}`,
+            padding: '18px 16px 14px',
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', alignItems: 'end', height: '64px' }}>
+              {monthlyRevenue.map((m, i) => {
+                const pct = m.amount > 0 ? (m.amount / maxMonthRevenue) * 100 : 4;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'stretch', justifyContent: 'flex-end',
+                    height: '100%',
+                  }}>
+                    {i === 5 && m.amount > 0 && (
+                      <div style={{
+                        fontSize: '9px', color: C.goldDeep, fontWeight: 600,
+                        textAlign: 'center', marginBottom: '4px',
+                        letterSpacing: '0.5px',
+                      }}>{'\u20B9'}{fmtINR(m.amount)}</div>
+                    )}
+                    <div style={{
+                      height: `${pct}%`,
+                      background: i === 5 ? C.gold : C.goldBorder,
+                      borderRadius: '4px 4px 0 0',
+                      minHeight: '3px',
+                    }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginTop: '8px' }}>
+              {monthlyRevenue.map((m, i) => (
+                <div key={i} style={{
+                  fontSize: '9px', color: C.muted,
+                  letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 500,
+                  textAlign: 'center',
+                }}>{m.label}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* ══════════════════════════════════════════════════════════════════
+          14. ACTIVE EVENTS — Prestige only
+         ══════════════════════════════════════════════════════════════════ */}
       {tier === 'prestige' && (() => {
         const activeEventsList = bookings.filter((b: any) => {
           if (b.status !== 'confirmed' || !b.event_date) return false;
@@ -1769,150 +1656,25 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
       })()}
 
       {/* ══════════════════════════════════════════════════════════════════
-          TEAM ACTIVITY FEED — Prestige only
-          Live feed from Deluxe Suite tables. Empty state with CTA.
+          15. PROFILE COMPLETION — only if < 100%
          ══════════════════════════════════════════════════════════════════ */}
-
-      {tier === 'prestige' && (
-        <TeamActivityFeed vendorId={session?.vendorId} />
+      {profileIncomplete && !checklistDismissed && vendorData && (
+        <ProfileCompletionCard
+          percent={profilePercent}
+          steps={profileSteps}
+          onDismiss={onDismissChecklist}
+        />
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════
-          REVENUE TREND — Signature & Prestige
-          Last 6 months sparkline, simple SVG
-         ══════════════════════════════════════════════════════════════════ */}
-
-      {(tier === 'signature' || tier === 'prestige') && (totalRevenue > 0 || monthlyRevenue.some(m => m.amount > 0)) && (
-        <div>
-          <SectionLabel>Revenue Trend</SectionLabel>
-          <div style={{
-            background: C.ivory,
-            borderRadius: '16px',
-            border: `1px solid ${C.border}`,
-            padding: '18px 16px 14px',
-          }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', alignItems: 'end', height: '64px' }}>
-              {monthlyRevenue.map((m, i) => {
-                const pct = m.amount > 0 ? (m.amount / maxMonthRevenue) * 100 : 4;
-                return (
-                  <div key={i} style={{
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'stretch', justifyContent: 'flex-end',
-                    height: '100%',
-                  }}>
-                    <div style={{
-                      height: `${pct}%`,
-                      background: i === 5 ? C.gold : C.goldBorder,
-                      borderRadius: '4px 4px 0 0',
-                      minHeight: '3px',
-                    }} />
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginTop: '8px' }}>
-              {monthlyRevenue.map((m, i) => (
-                <div key={i} style={{
-                  fontSize: '9px', color: C.muted,
-                  letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 500,
-                  textAlign: 'center',
-                }}>{m.label}</div>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* ── CONTEXTUAL UPGRADE NUDGE — fires once per trigger ── */}
+      {activeTrigger && (
+        <UpgradeNudge
+          trigger={activeTrigger}
+          onDismiss={() => dismissNudge(activeTrigger!.key)}
+        />
       )}
 
-      {/* ── TODAY'S EVENTS (if any) ── */}
-      {todayBookings.length > 0 && (
-        <div>
-          <SectionLabel>Today</SectionLabel>
-          <div style={{
-            background: C.ivory, borderRadius: '14px',
-            border: `1px solid ${C.border}`, overflow: 'hidden',
-          }}>
-            {todayBookings.map((b: any, idx: number) => (
-              <div key={b.id} style={{
-                padding: '14px 18px',
-                borderBottom: idx < todayBookings.length - 1 ? `1px solid ${C.borderSoft}` : 'none',
-              }}>
-                <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>
-                  {b.users?.name || b.client_name || 'Client'}
-                </div>
-                <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>
-                  {b.event_type || 'Event'}{b.venue ? ` · ${b.venue}` : ''}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── RECENT CLIENTS ── */}
-      {clients.length > 0 && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <SectionLabel>Recent Clients</SectionLabel>
-            <button
-              onClick={() => onJumpToTab('Power')}
-              style={{
-                background: 'none', border: 'none',
-                fontSize: '10px', color: C.goldDeep, fontWeight: 600,
-                letterSpacing: '1.5px', textTransform: 'uppercase',
-                cursor: 'pointer', padding: 0, fontFamily: 'inherit',
-              }}
-            >View all →</button>
-          </div>
-          <div style={{
-            background: C.ivory, borderRadius: '14px',
-            border: `1px solid ${C.border}`, overflow: 'hidden',
-          }}>
-            {clients.slice(0, 4).map((c: any, idx: number) => (
-              <div key={c.id} style={{
-                display: 'flex', alignItems: 'center', gap: '14px',
-                padding: '14px 16px',
-                borderBottom: idx < Math.min(clients.length, 4) - 1 ? `1px solid ${C.borderSoft}` : 'none',
-              }}>
-                <div style={{
-                  width: '40px', height: '40px', borderRadius: '50%',
-                  background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: C.goldDeep, fontWeight: 600, fontSize: '14px',
-                  fontFamily: "'Playfair Display', serif",
-                  flexShrink: 0,
-                }}>{(c.name || '?')[0].toUpperCase()}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: '13px', color: C.dark, fontWeight: 500,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{c.name}</div>
-                  <div style={{ fontSize: '11px', color: C.muted, marginTop: '1px' }}>
-                    {c.event_date
-                      ? new Date(c.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : 'Date TBC'}
-                  </div>
-                </div>
-                {c.phone && (
-                  <a
-                    href={`tel:${c.phone}`}
-                    style={{
-                      background: 'transparent',
-                      border: `1px solid ${C.goldBorder}`,
-                      borderRadius: '50%', width: '32px', height: '32px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      textDecoration: 'none', flexShrink: 0,
-                    }}
-                  >
-                    <Phone size={13} color={C.gold} />
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── EMPTY STATE — editorial greeting for new vendors ── */}
+      {/* ── EMPTY STATE — new vendors with zero data ── */}
       {bookings.length === 0 && clients.length === 0 && (
         <div style={{
           background: C.ivory, borderRadius: '18px',

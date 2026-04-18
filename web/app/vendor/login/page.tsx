@@ -383,6 +383,17 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
     if (cleaned.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
     setLoading(true); setError('');
     try {
+      // Check if phone already registered
+      const checkRes = await fetch(`${API}/api/vendor/forgot-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleaned }),
+      });
+      const checkData = await checkRes.json();
+      if (checkData.success && checkData.data?.exists) {
+        setError('This phone is already registered. Please sign in instead.');
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`${API}/api/auth/send-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: cleaned }),

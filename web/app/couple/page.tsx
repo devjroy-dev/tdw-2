@@ -5325,7 +5325,7 @@ function MoodboardTool({
       )}
 
       {/* Share-from-anywhere teaser */}
-      {canEditBoard && pins.length >= 2 && (
+      {canEditBoard && (
         <div style={{ padding: '12px 20px 0' }}>
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 12,
@@ -5335,10 +5335,10 @@ function MoodboardTool({
             <Smartphone size={16} color={C.gold} style={{ marginTop: 2, flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 12, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
-                Share from anywhere — coming with the app
+                Sharing from web and apps launching soon
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '16px' }}>
-                See something on Instagram or Pinterest? You'll be able to share it straight into your moodboard when we launch the app.
+                Soon you'll be able to share straight from Instagram, Pinterest, or any website into your moodboard.
               </p>
             </div>
           </div>
