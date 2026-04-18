@@ -3,32 +3,27 @@ import { useState, useEffect, useRef } from 'react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
-// ── Net-a-Porter palette (matches mobile PWA exactly) ──
 const C = {
   cream: '#FAF6F0',
   ivory: '#FFFFFF',
   pearl: '#FBF8F2',
-  champagne: '#FFFDF7',
   goldSoft: '#FFF8EC',
-  goldMist: '#FFF3DB',
   goldBorder: '#E8D9B5',
   border: '#EDE8E0',
-  borderSoft: '#F2EDE4',
   dark: '#2C2420',
   gold: '#C9A84C',
   goldDeep: '#B8963A',
   muted: '#8C7B6E',
-  light: '#B8ADA4',
+  mutedLight: '#B8ADA4',
   red: '#C65757',
   redSoft: '#FBEEEE',
   redBorder: '#F0CFCF',
 };
 
-type Mode = 'signup' | 'login' | 'forgot';
+type Mode = 'login' | 'signup' | 'forgot';
 
 export default function VendorLoginPage() {
   const [mode, setMode] = useState<Mode>('login');
-  const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [prefillCode, setPrefillCode] = useState<string | null>(null);
 
@@ -39,9 +34,6 @@ export default function VendorLoginPage() {
 
   useEffect(() => {
     setMounted(true);
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
     try {
       const s = localStorage.getItem('vendor_web_session');
       if (s) {
@@ -56,462 +48,273 @@ export default function VendorLoginPage() {
         setPrefillCode(code.trim().toUpperCase());
         setMode('signup');
       }
+      const m = params.get('mode');
+      if (m === 'forgot') setMode('forgot');
+      if (m === 'signup') setMode('signup');
     } catch {}
-    return () => window.removeEventListener('resize', check);
   }, []);
 
   if (!mounted) return null;
 
   return (
     <div style={{
-      display: 'flex', minHeight: '100vh',
+      minHeight: '100vh', background: C.cream,
       fontFamily: "'DM Sans', sans-serif",
-      background: C.cream,
+      padding: '56px 24px max(24px, env(safe-area-inset-bottom))',
     }}>
-      {!isMobile && (
-        <div style={{
-          width: '50%',
-          background: `linear-gradient(135deg, ${C.champagne} 0%, ${C.goldSoft} 100%)`,
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          padding: '56px 64px',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            position: 'absolute', top: -100, right: -100,
-            width: 300, height: 300, borderRadius: '50%',
-            background: `radial-gradient(circle, ${C.goldMist} 0%, transparent 70%)`,
-            opacity: 0.6,
-          }} />
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{
-              fontSize: 11, fontWeight: 600, letterSpacing: '3px',
-              color: C.goldDeep, textTransform: 'uppercase',
-              fontFamily: "'DM Sans', sans-serif",
-            }}>
-              The Dream Wedding
-            </div>
-            <div style={{
-              fontSize: 10, color: C.muted, letterSpacing: '0.5px',
-              marginTop: 4, fontFamily: "'DM Sans', sans-serif",
-            }}>
-              Vendor Portal
-            </div>
-          </div>
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <h1 style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 44, fontWeight: 400, color: C.dark,
-              lineHeight: 1.15, letterSpacing: '-0.5px',
-              margin: 0, marginBottom: 18,
-            }}>
-              Your business,<br />in your pocket.
-            </h1>
-            <p style={{
-              fontSize: 14, color: C.muted, lineHeight: 1.7,
-              maxWidth: 360, margin: 0,
-              fontFamily: "'DM Sans', sans-serif", fontWeight: 300,
-            }}>
-              Clients, calendar, enquiries, payments — everything you need to run your wedding business. Beautifully arranged.
-            </p>
-          </div>
-
-          <div style={{
-            position: 'relative', zIndex: 1,
-            borderTop: `1px solid ${C.goldBorder}`, paddingTop: 24,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      <div style={{ maxWidth: 420, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <p style={{
+            margin: '0 0 4px', fontSize: 10, color: C.goldDeep, fontWeight: 500,
+            letterSpacing: '3px', textTransform: 'uppercase',
+          }}>The Dream Wedding</p>
+          <h1 style={{
+            margin: 0, fontSize: 28, color: C.dark,
+            fontFamily: "'Playfair Display', serif", fontWeight: 400, lineHeight: '34px',
+          }}>Your business, in your pocket.</h1>
+          <p style={{
+            margin: '10px 0 0', fontSize: 13, color: C.muted,
+            fontWeight: 300, lineHeight: '20px',
           }}>
-            <div style={{
-              fontSize: 11, color: C.muted, letterSpacing: '0.3px',
-              fontFamily: "'DM Sans', sans-serif",
-            }}>
-              vendor.thedreamwedding.in
-            </div>
-            <div style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 11, color: C.goldDeep,
-              fontStyle: 'italic',
-            }}>
-              est. 2026
-            </div>
-          </div>
+            Run your wedding business beautifully.
+          </p>
         </div>
-      )}
 
-      <div style={{
-        width: isMobile ? '100%' : '50%',
-        background: C.cream,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: isMobile ? '40px 24px max(40px, env(safe-area-inset-bottom))' : '64px',
-        minHeight: isMobile ? '100vh' : 'auto',
-      }}>
-        {isMobile && (
-          <div style={{ marginBottom: 36, textAlign: 'center' }}>
-            <div style={{
-              fontSize: 11, fontWeight: 600, letterSpacing: '3px',
-              color: C.goldDeep, textTransform: 'uppercase',
-              marginBottom: 4,
-            }}>
-              The Dream Wedding
-            </div>
-            <div style={{
-              fontSize: 10, color: C.muted, letterSpacing: '0.5px',
-            }}>
-              Vendor Portal
-            </div>
-          </div>
+        {mode === 'login' && (
+          <VendorLoginForm
+            onSuccess={goToVendorHome}
+            onForgot={() => setMode('forgot')}
+            onSignup={() => setMode('signup')}
+          />
+        )}
+        {mode === 'signup' && (
+          <SignupFlow
+            onBack={() => setMode('login')}
+            onComplete={goToVendorHome}
+            prefillCode={prefillCode}
+          />
+        )}
+        {mode === 'forgot' && (
+          <ForgotPasswordFlow
+            onDone={() => setMode('login')}
+            onBack={() => setMode('login')}
+          />
         )}
 
-        <div style={{ width: '100%', maxWidth: 380 }}>
-          {mode === 'login' && <LoginFlow onSignup={() => setMode('signup')} onForgot={() => setMode('forgot')} onComplete={goToVendorHome} />}
-          {mode === 'signup' && <SignupFlow onBack={() => setMode('login')} onComplete={goToVendorHome} prefillCode={prefillCode} />}
-          {mode === 'forgot' && <ForgotFlow onBack={() => setMode('login')} onDone={() => setMode('login')} />}
-        </div>
+        <p style={{
+          textAlign: 'center', margin: '28px 0 0',
+          fontSize: 10, color: C.mutedLight,
+          fontWeight: 300, letterSpacing: '0.3px',
+        }}>
+          Vendor invites are sent personally by our team.
+        </p>
       </div>
     </div>
   );
 }
 
-function FloatingField({
-  label, value, onChange, type = 'text', required, prefix,
-  inputMode, autoComplete, autoFocus, maxLength, helper, error,
-  onKeyDown, suffix, disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  required?: boolean;
-  prefix?: string;
-  inputMode?: 'text' | 'numeric' | 'decimal' | 'tel' | 'email';
-  autoComplete?: string;
-  autoFocus?: boolean;
-  maxLength?: number;
-  helper?: string;
-  error?: boolean;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  suffix?: React.ReactNode;
-  disabled?: boolean;
-}) {
-  const [focused, setFocused] = useState(false);
-  const hasValue = value.length > 0;
-  const labelFloated = focused || hasValue;
+// ─── Shared form pieces (matches couple page.tsx pattern exactly) ───
 
+function FormLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{
-        position: 'relative',
-        background: disabled ? C.pearl : C.ivory,
-        border: `1.5px solid ${error ? C.red : focused ? C.gold : C.border}`,
-        borderRadius: 12,
-        transition: 'border-color 0.2s ease',
-      }}>
-        <label style={{
-          position: 'absolute',
-          left: prefix && labelFloated ? 14 : prefix ? 50 : 14,
-          top: labelFloated ? 6 : '50%',
-          transform: labelFloated ? 'none' : 'translateY(-50%)',
-          fontSize: labelFloated ? 9 : 13,
-          fontWeight: labelFloated ? 600 : 400,
-          letterSpacing: labelFloated ? '1.5px' : 'normal',
-          textTransform: labelFloated ? 'uppercase' : 'none',
-          color: focused ? C.goldDeep : C.muted,
-          fontFamily: "'DM Sans', sans-serif",
-          pointerEvents: 'none',
-          transition: 'all 0.2s ease',
-          background: 'transparent',
-        }}>
-          {label}
-          {required && <span style={{ color: C.red, marginLeft: 4 }}>*</span>}
-        </label>
-
-        {prefix && (
-          <span style={{
-            position: 'absolute',
-            left: 14,
-            top: labelFloated ? 26 : '50%',
-            transform: labelFloated ? 'none' : 'translateY(-50%)',
-            fontSize: 14,
-            color: labelFloated ? C.dark : 'transparent',
-            fontFamily: "'DM Sans', sans-serif",
-            transition: 'all 0.2s ease',
-            pointerEvents: 'none',
-            fontWeight: 500,
-          }}>
-            {prefix}
-          </span>
-        )}
-
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onKeyDown={onKeyDown}
-          inputMode={inputMode}
-          autoComplete={autoComplete}
-          autoFocus={autoFocus}
-          maxLength={maxLength}
-          disabled={disabled}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none', outline: 'none',
-            padding: prefix
-              ? (labelFloated ? '24px 14px 10px 50px' : '20px 14px 16px 50px')
-              : (labelFloated ? '24px 14px 10px 14px' : '20px 14px 16px 14px'),
-            fontSize: 14,
-            color: C.dark,
-            fontFamily: "'DM Sans', sans-serif",
-            boxSizing: 'border-box',
-            transition: 'padding 0.2s ease',
-          }}
-        />
-
-        {suffix && (
-          <div style={{
-            position: 'absolute',
-            right: 12,
-            top: '50%',
-            transform: 'translateY(-50%)',
-          }}>
-            {suffix}
-          </div>
-        )}
-      </div>
-      {helper && (
-        <div style={{
-          fontSize: 11, color: C.muted, marginTop: 6, paddingLeft: 4,
-          fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5,
-        }}>
-          {helper}
-        </div>
-      )}
-    </div>
+    <label style={{
+      display: 'block', fontSize: 11, color: C.muted,
+      fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase',
+      marginBottom: 6, fontFamily: "'DM Sans', sans-serif",
+    }}>{children}</label>
   );
 }
 
-function OtpInput({ value, onChange, onComplete }: {
-  value: string;
-  onChange: (v: string) => void;
-  onComplete?: (v: string) => void;
-}) {
-  const refs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const handleChange = (idx: number, char: string) => {
-    const digit = char.replace(/[^0-9]/g, '').slice(-1);
-    const arr = value.split('');
-    arr[idx] = digit;
-    while (arr.length < 6) arr.push('');
-    const next = arr.join('').slice(0, 6);
-    onChange(next);
-    if (digit && idx < 5) refs.current[idx + 1]?.focus();
-    if (next.length === 6 && next.split('').every(c => /\d/.test(c))) {
-      onComplete && onComplete(next);
-    }
-  };
-
-  const handleKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !value[idx] && idx > 0) {
-      refs.current[idx - 1]?.focus();
-    }
-    if (e.key === 'ArrowLeft' && idx > 0) refs.current[idx - 1]?.focus();
-    if (e.key === 'ArrowRight' && idx < 5) refs.current[idx + 1]?.focus();
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
-    if (pasted.length > 0) {
-      onChange(pasted);
-      const focusIdx = Math.min(pasted.length, 5);
-      refs.current[focusIdx]?.focus();
-      if (pasted.length === 6 && onComplete) onComplete(pasted);
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginBottom: 16 }}>
-      {Array.from({ length: 6 }, (_, i) => (
-        <input
-          key={i}
-          ref={el => { refs.current[i] = el; }}
-          type="tel"
-          inputMode="numeric"
-          maxLength={1}
-          value={value[i] || ''}
-          onChange={e => handleChange(i, e.target.value)}
-          onKeyDown={e => handleKey(i, e)}
-          onPaste={handlePaste}
-          autoFocus={i === 0}
-          style={{
-            width: 46, height: 56,
-            background: C.ivory,
-            border: `1.5px solid ${value[i] ? C.gold : C.border}`,
-            borderRadius: 10,
-            textAlign: 'center',
-            fontSize: 22,
-            fontFamily: "'Playfair Display', serif",
-            color: C.dark,
-            outline: 'none',
-            transition: 'border-color 0.2s ease',
-            boxSizing: 'border-box',
-          }}
-          onFocus={e => e.target.style.borderColor = C.gold}
-          onBlur={e => e.target.style.borderColor = value[i] ? C.gold : C.border}
-        />
-      ))}
-    </div>
-  );
-}
-
-function PrimaryButton({ children, onClick, disabled, loading }: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled || loading}
-      style={{
-        width: '100%',
-        padding: '15px 20px',
-        background: (disabled || loading) ? C.border : C.dark,
-        color: (disabled || loading) ? C.light : C.gold,
-        border: 'none',
-        borderRadius: 12,
-        cursor: (disabled || loading) ? 'not-allowed' : 'pointer',
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: '2px',
-        textTransform: 'uppercase',
-        fontFamily: "'DM Sans', sans-serif",
-        transition: 'all 0.2s ease',
-      }}
-    >
-      {loading ? 'Please wait…' : children}
-    </button>
-  );
-}
-
-function SecondaryButton({ children, onClick }: {
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        padding: '15px 20px',
-        background: 'transparent',
-        color: C.dark,
-        border: `1.5px solid ${C.border}`,
-        borderRadius: 12,
-        cursor: 'pointer',
-        fontSize: 11,
-        fontWeight: 500,
-        letterSpacing: '2px',
-        textTransform: 'uppercase',
-        fontFamily: "'DM Sans', sans-serif",
-        transition: 'all 0.2s ease',
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function TextLink({ children, onClick }: {
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        color: C.muted,
-        fontSize: 12,
-        fontWeight: 400,
-        fontFamily: "'DM Sans', sans-serif",
-        padding: '8px 4px',
-        textDecoration: 'underline',
-        textDecorationColor: C.borderSoft,
-        textUnderlineOffset: 4,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Headline({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 style={{
-      fontFamily: "'Playfair Display', serif",
-      fontSize: 26, fontWeight: 400,
-      color: C.dark, letterSpacing: '-0.3px',
-      margin: 0, marginBottom: 8,
-      lineHeight: 1.25,
-    }}>
-      {children}
-    </h2>
-  );
-}
-
-function Subhead({ children }: { children: React.ReactNode }) {
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
-      fontSize: 13, color: C.muted, lineHeight: 1.6,
-      margin: 0, marginBottom: 24,
-      fontFamily: "'DM Sans', sans-serif",
-    }}>
-      {children}
-    </p>
+      margin: '0 0 12px', fontSize: 10, color: C.muted, fontWeight: 500,
+      letterSpacing: '2px', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif",
+    }}>{children}</p>
   );
 }
 
-function ErrorMsg({ children }: { children: React.ReactNode }) {
+function ErrorBanner({ msg }: { msg: string }) {
+  if (!msg) return null;
   return (
     <div style={{
-      background: C.redSoft,
-      border: `1px solid ${C.redBorder}`,
-      borderRadius: 8,
-      padding: '10px 12px',
-      fontSize: 12, color: C.red,
-      fontFamily: "'DM Sans', sans-serif",
-      marginBottom: 14,
+      background: C.redSoft, border: `1px solid ${C.redBorder}`,
+      borderRadius: 8, padding: '10px 12px',
+      fontSize: 12, color: C.red, marginBottom: 14,
     }}>
-      {children}
+      {msg}
     </div>
   );
 }
 
-function Divider() {
+function GoldButton({ label, onTap, fullWidth, disabled }: {
+  label: string; onTap: () => void; fullWidth?: boolean; disabled?: boolean;
+}) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      margin: '24px 0',
-    }}>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-      <span style={{
-        fontSize: 9, color: C.muted, fontWeight: 600,
-        letterSpacing: '2px', textTransform: 'uppercase',
+    <button
+      onClick={onTap}
+      disabled={disabled}
+      style={{
+        width: fullWidth ? '100%' : 'auto',
+        padding: '14px 24px',
+        background: disabled ? C.border : C.dark,
+        color: disabled ? C.mutedLight : C.gold,
+        border: 'none', borderRadius: 12,
+        fontSize: 12, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase',
         fontFamily: "'DM Sans', sans-serif",
-      }}>Or</span>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >{label}</button>
+  );
+}
+
+// THE phone input pattern from couple — guarantees +91 and digits on same baseline
+function PhoneInput({ value, onChange, placeholder = '98765 43210', autoFocus }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; autoFocus?: boolean;
+}) {
+  return (
+    <div style={{ position: 'relative', marginBottom: 14 }}>
+      <span style={{
+        position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+        fontSize: 15, color: C.muted, fontFamily: "'DM Sans', sans-serif",
+      }}>+91</span>
+      <input
+        type="tel" value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="tel"
+        inputMode="numeric"
+        autoFocus={autoFocus}
+        style={{
+          width: '100%', boxSizing: 'border-box',
+          padding: '12px 16px 12px 46px', borderRadius: 10,
+          border: `1px solid ${C.border}`, background: C.ivory,
+          fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.dark, outline: 'none',
+        }}
+      />
     </div>
   );
 }
+
+// ══════════════════════════════════════════════════════════
+// VENDOR LOGIN FORM
+// ══════════════════════════════════════════════════════════
+
+function VendorLoginForm({ onSuccess, onForgot, onSignup }: {
+  onSuccess: () => void;
+  onForgot: () => void;
+  onSignup: () => void;
+}) {
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
+    if (password.length < 1) { setError('Enter your password'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/api/vendor/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '+91' + clean, password }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
+      try {
+        localStorage.setItem('vendor_web_session', JSON.stringify({
+          vendorId: d.data.id,
+          vendorName: d.data.name,
+          category: d.data.category,
+          city: d.data.city,
+          tier: d.data.tier,
+        }));
+      } catch {}
+      onSuccess();
+    } catch { setError('Network error'); setLoading(false); }
+  };
+
+  return (
+    <div>
+      <Eyebrow>Sign in</Eyebrow>
+
+      <FormLabel>Phone</FormLabel>
+      <PhoneInput value={phone} onChange={setPhone} autoFocus />
+
+      <FormLabel>Password</FormLabel>
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          value={password} onChange={e => setPassword(e.target.value)}
+          placeholder="Your password"
+          autoComplete="current-password"
+          onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '12px 52px 12px 16px', borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.ivory,
+            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.dark, outline: 'none',
+          }}
+        />
+        <button
+          onClick={() => setShowPassword(v => !v)}
+          type="button"
+          style={{
+            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+            padding: '6px 10px', borderRadius: 8,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: C.muted, fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+          }}
+        >{showPassword ? 'Hide' : 'Show'}</button>
+      </div>
+
+      <ErrorBanner msg={error} />
+
+      <GoldButton fullWidth label={loading ? 'Signing in…' : 'Sign in'} onTap={handleLogin} disabled={loading} />
+
+      <div style={{ textAlign: 'center', margin: '14px 0 20px' }}>
+        <button
+          onClick={onForgot}
+          type="button"
+          style={{
+            background: 'none', border: 'none', color: C.muted,
+            fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+            textDecoration: 'underline',
+          }}
+        >Forgot password?</button>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 20px' }}>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+        <span style={{
+          fontSize: 10, color: C.mutedLight, fontWeight: 500,
+          letterSpacing: '2px', textTransform: 'uppercase',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>New here?</span>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+      </div>
+
+      <button
+        onClick={onSignup}
+        style={{
+          width: '100%', padding: '14px', borderRadius: 12,
+          background: C.ivory, border: `1px solid ${C.goldBorder}`,
+          cursor: 'pointer',
+          color: C.goldDeep, fontFamily: "'DM Sans', sans-serif",
+          fontSize: 13, fontWeight: 500, letterSpacing: '1.5px',
+          textTransform: 'uppercase',
+        }}
+      >
+        Sign up with invite code
+      </button>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// SIGNUP FLOW — 5 steps, real backend endpoints
+// ══════════════════════════════════════════════════════════
 
 const VENDOR_CATEGORIES = [
   'Photography', 'Videography', 'Makeup Artist', 'Mehendi Artist',
@@ -530,6 +333,8 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
   const [businessName, setBusinessName] = useState('');
   const [category, setCategory] = useState('');
   const [city, setCity] = useState('');
+  const [email, setEmail] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [sessionInfo, setSessionInfo] = useState('');
@@ -538,26 +343,27 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [tier, setTier] = useState<string | null>(null);
-  const [codeId, setCodeId] = useState<string | null>(null);
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '12px 16px', borderRadius: 10,
+    border: `1px solid ${C.border}`, background: C.ivory,
+    fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.dark, outline: 'none',
+    marginBottom: 14,
+  };
 
   const verifyCode = async () => {
     if (!code.trim()) { setError('Enter your invite code'); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch(`${API}/api/signup/validate-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code.trim().toUpperCase() }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Invalid code'); setLoading(false); return; }
-      if (d.data?.type !== 'vendor') {
-        setError('This is not a vendor code');
-        setLoading(false);
-        return;
-      }
+      if (d.data?.type !== 'vendor') { setError('This is not a vendor code'); setLoading(false); return; }
       setTier(d.data.tier);
-      setCodeId(d.data.code_id);
       setStep(2);
     } catch { setError('Network error'); }
     finally { setLoading(false); }
@@ -567,24 +373,23 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
     if (!businessName.trim()) { setError('Enter your business name'); return; }
     if (!category) { setError('Pick a category'); return; }
     if (!city.trim()) { setError('Enter your city'); return; }
-    setError('');
-    setStep(3);
+    if (!email.trim() || !/.+@.+\..+/.test(email.trim())) { setError('Enter a valid email'); return; }
+    if (!instagram.trim()) { setError('Enter your Instagram handle'); return; }
+    setError(''); setStep(3);
   };
 
   const sendOtp = async () => {
     const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length !== 10) { setError('Enter a valid 10-digit phone number'); return; }
+    if (cleaned.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch(`${API}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: cleaned }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not send OTP'); setLoading(false); return; }
-      setSessionInfo(d.sessionInfo);
-      setStep(4);
+      setSessionInfo(d.sessionInfo); setStep(4);
     } catch { setError('Network error'); }
     finally { setLoading(false); }
   };
@@ -595,8 +400,7 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
     setLoading(true); setError('');
     try {
       const res = await fetch(`${API}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionInfo, code: codeVal }),
       });
       const d = await res.json();
@@ -612,14 +416,16 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
     setLoading(true); setError('');
     try {
       const cleaned = phone.replace(/\D/g, '');
-      const res = await fetch(`${API}/api/vendor-signup-v2`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`${API}/api/vendor/onboard`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: code.trim().toUpperCase(),
-          business_name: businessName.trim(),
-          category, city: city.trim(),
+          name: businessName.trim(),
           phone: '+91' + cleaned,
+          email: email.trim(),
+          category,
+          city: city.trim(),
+          instagram: instagram.trim(),
+          access_code: code.trim().toUpperCase(),
           password,
         }),
       });
@@ -627,10 +433,10 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
       if (!d.success) { setError(d.error || 'Could not create account'); setLoading(false); return; }
       try {
         localStorage.setItem('vendor_web_session', JSON.stringify({
-          vendorId: d.vendorId,
-          vendorName: businessName.trim(),
+          vendorId: d.data.id,
+          vendorName: d.data.name || businessName.trim(),
           category, city: city.trim(),
-          tier: d.tier || tier,
+          tier: d.data.tier || tier || 'essential',
         }));
       } catch {}
       onComplete();
@@ -640,9 +446,7 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
 
   return (
     <div>
-      <div style={{
-        display: 'flex', gap: 4, marginBottom: 28,
-      }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 22 }}>
         {[1, 2, 3, 4, 5].map(i => (
           <div key={i} style={{
             flex: 1, height: 3, borderRadius: 2,
@@ -652,293 +456,174 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
         ))}
       </div>
 
+      <Eyebrow>Sign up · Step {step} of 5</Eyebrow>
+
       {step === 1 && (
         <>
-          <Headline>Your invite code.</Headline>
-          <Subhead>Enter the code you received from The Dream Wedding.</Subhead>
-          <FloatingField
-            label="Invite code"
-            required
-            value={code}
-            onChange={v => { setCode(v.toUpperCase()); setError(''); }}
+          <FormLabel>Invite code</FormLabel>
+          <input
+            type="text" value={code}
+            onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            placeholder="ABCDEF"
             autoFocus
             onKeyDown={e => e.key === 'Enter' && !loading && verifyCode()}
+            style={{ ...inputStyle, letterSpacing: '3px', fontSize: 16, textAlign: 'center' }}
           />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={verifyCode} loading={loading} disabled={!code.trim()}>Continue</PrimaryButton>
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label={loading ? 'Verifying…' : 'Continue'} onTap={verifyCode} disabled={loading || !code.trim()} />
           <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <TextLink onClick={onBack}>Back</TextLink>
+            <button onClick={onBack} type="button" style={{
+              background: 'none', border: 'none', color: C.muted,
+              fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+              textDecoration: 'underline',
+            }}>Back to sign in</button>
           </div>
         </>
       )}
 
       {step === 2 && (
         <>
-          <Headline>About your business.</Headline>
-          <Subhead>Tell us a little about what you do.</Subhead>
-          <FloatingField label="Business name" required value={businessName} onChange={setBusinessName} autoFocus />
-          <CategorySelect value={category} onChange={setCategory} />
-          <FloatingField label="City" required value={city} onChange={setCity} onKeyDown={e => e.key === 'Enter' && submitBusiness()} />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={submitBusiness}>Continue</PrimaryButton>
+          <FormLabel>Business name</FormLabel>
+          <input type="text" value={businessName}
+            onChange={e => setBusinessName(e.target.value)}
+            placeholder="e.g. Studio Aurelia"
+            autoFocus style={inputStyle} />
+
+          <FormLabel>Category</FormLabel>
+          <select value={category}
+            onChange={e => setCategory(e.target.value)}
+            style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
+            <option value="">Select your category</option>
+            {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <FormLabel>City</FormLabel>
+          <input type="text" value={city}
+            onChange={e => setCity(e.target.value)}
+            placeholder="e.g. Delhi NCR"
+            style={inputStyle} />
+
+          <FormLabel>Email</FormLabel>
+          <input type="email" value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="you@studio.com"
+            autoComplete="email"
+            style={inputStyle} />
+
+          <FormLabel>Instagram handle</FormLabel>
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            <span style={{
+              position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+              fontSize: 15, color: C.muted, fontFamily: "'DM Sans', sans-serif",
+            }}>@</span>
+            <input type="text" value={instagram}
+              onChange={e => setInstagram(e.target.value.replace('@', ''))}
+              placeholder="studio_aurelia"
+              onKeyDown={e => e.key === 'Enter' && submitBusiness()}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '12px 16px 12px 32px', borderRadius: 10,
+                border: `1px solid ${C.border}`, background: C.ivory,
+                fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.dark, outline: 'none',
+              }} />
+          </div>
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label="Continue" onTap={submitBusiness} />
           <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <TextLink onClick={() => setStep(1)}>Back</TextLink>
+            <button onClick={() => setStep(1)} type="button" style={{
+              background: 'none', border: 'none', color: C.muted,
+              fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+              textDecoration: 'underline',
+            }}>Back</button>
           </div>
         </>
       )}
 
       {step === 3 && (
         <>
-          <Headline>Your phone.</Headline>
-          <Subhead>We'll send a 6-digit code to verify it's really you.</Subhead>
-          <FloatingField
-            label="Mobile number"
-            required
-            value={phone}
-            onChange={v => { setPhone(v.replace(/\D/g, '').slice(0, 10)); setError(''); }}
-            prefix="+91"
-            inputMode="numeric"
-            type="tel"
-            autoComplete="tel"
-            autoFocus
-            onKeyDown={e => e.key === 'Enter' && !loading && sendOtp()}
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={sendOtp} loading={loading} disabled={phone.replace(/\D/g, '').length !== 10}>
-            Send code
-          </PrimaryButton>
+          <p style={{
+            fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5,
+          }}>
+            We'll send a 6-digit code to verify it's really you.
+          </p>
+
+          <FormLabel>Mobile number</FormLabel>
+          <PhoneInput value={phone} onChange={v => { setPhone(v.replace(/\D/g, '').slice(0, 10)); setError(''); }} autoFocus />
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth
+            label={loading ? 'Sending…' : 'Send code'}
+            onTap={sendOtp}
+            disabled={loading || phone.replace(/\D/g, '').length !== 10} />
           <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <TextLink onClick={() => setStep(2)}>Back</TextLink>
+            <button onClick={() => setStep(2)} type="button" style={{
+              background: 'none', border: 'none', color: C.muted,
+              fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+              textDecoration: 'underline',
+            }}>Back</button>
           </div>
         </>
       )}
 
       {step === 4 && (
         <>
-          <Headline>Enter the code.</Headline>
-          <Subhead>We sent a 6-digit code to +91 {phone.slice(-10)}.</Subhead>
-          <OtpInput
-            value={otp}
-            onChange={v => { setOtp(v); setError(''); }}
-            onComplete={(v) => !loading && verifyOtp(v)}
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={() => verifyOtp()} loading={loading} disabled={otp.length < 6}>
-            Verify
-          </PrimaryButton>
-          <div style={{ textAlign: 'center', marginTop: 14, display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <TextLink onClick={() => { setOtp(''); setError(''); setStep(3); }}>Didn't get it? Resend</TextLink>
+          <p style={{
+            fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5,
+          }}>
+            We sent a 6-digit code to +91 {phone.replace(/\D/g, '').slice(-10)}.
+          </p>
+
+          <FormLabel>Verification code</FormLabel>
+          <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} onComplete={(v) => !loading && verifyOtp(v)} />
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label={loading ? 'Verifying…' : 'Verify'} onTap={() => verifyOtp()} disabled={loading || otp.length < 6} />
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <button onClick={() => { setOtp(''); setError(''); setStep(3); }} type="button" style={{
+              background: 'none', border: 'none', color: C.muted,
+              fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+              textDecoration: 'underline',
+            }}>Didn't get it? Resend</button>
           </div>
         </>
       )}
 
       {step === 5 && (
         <>
-          <Headline>Set a password.</Headline>
-          <Subhead>You'll use this to sign in from any device.</Subhead>
-          <FloatingField
-            label="Password"
-            required
-            value={password}
-            onChange={v => { setPassword(v); setError(''); }}
-            type="password"
-            autoFocus
-            helper="At least 8 characters"
-          />
-          <FloatingField
-            label="Confirm password"
-            required
-            value={confirmPassword}
-            onChange={v => { setConfirmPassword(v); setError(''); }}
-            type="password"
+          <p style={{
+            fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5,
+          }}>
+            You'll use this to sign in from any device. At least 8 characters.
+          </p>
+
+          <FormLabel>Password</FormLabel>
+          <input type="password" value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Create a password"
+            autoFocus style={inputStyle} />
+
+          <FormLabel>Confirm password</FormLabel>
+          <input type="password" value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Confirm password"
             onKeyDown={e => e.key === 'Enter' && !loading && createAccount()}
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={createAccount} loading={loading} disabled={password.length < 8 || password !== confirmPassword}>
-            Create account
-          </PrimaryButton>
+            style={inputStyle} />
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label={loading ? 'Creating…' : 'Create account'} onTap={createAccount}
+            disabled={loading || password.length < 8 || password !== confirmPassword} />
         </>
       )}
     </div>
   );
 }
 
-function CategorySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [focused, setFocused] = useState(false);
-  const labelFloated = focused || !!value;
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{
-        position: 'relative',
-        background: C.ivory,
-        border: `1.5px solid ${focused ? C.gold : C.border}`,
-        borderRadius: 12,
-        transition: 'border-color 0.2s ease',
-      }}>
-        <label style={{
-          position: 'absolute',
-          left: 14,
-          top: labelFloated ? 6 : '50%',
-          transform: labelFloated ? 'none' : 'translateY(-50%)',
-          fontSize: labelFloated ? 9 : 13,
-          fontWeight: labelFloated ? 600 : 400,
-          letterSpacing: labelFloated ? '1.5px' : 'normal',
-          textTransform: labelFloated ? 'uppercase' : 'none',
-          color: focused ? C.goldDeep : C.muted,
-          fontFamily: "'DM Sans', sans-serif",
-          pointerEvents: 'none',
-          transition: 'all 0.2s ease',
-        }}>
-          Category<span style={{ color: C.red, marginLeft: 4 }}>*</span>
-        </label>
-        <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none', outline: 'none',
-            padding: labelFloated ? '24px 14px 10px 14px' : '20px 14px 16px 14px',
-            fontSize: 14,
-            color: C.dark,
-            fontFamily: "'DM Sans', sans-serif",
-            appearance: 'none',
-            cursor: 'pointer',
-            boxSizing: 'border-box',
-          }}
-        >
-          <option value="">{labelFloated ? 'Select your category' : ''}</option>
-          {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <div style={{
-          position: 'absolute', right: 14, top: '50%',
-          transform: 'translateY(-50%)', pointerEvents: 'none',
-          color: C.muted, fontSize: 12,
-        }}>▾</div>
-      </div>
-    </div>
-  );
-}
+// ══════════════════════════════════════════════════════════
+// FORGOT PASSWORD FLOW
+// ══════════════════════════════════════════════════════════
 
-function LoginFlow({ onSignup, onForgot, onComplete }: {
-  onSignup: () => void;
-  onForgot: () => void;
-  onComplete: () => void;
-}) {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const submit = async () => {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
-    if (!password) { setError('Enter your password'); return; }
-    setLoading(true); setError('');
-    try {
-      const res = await fetch(`${API}/api/vendor/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + cleaned, password }),
-      });
-      const d = await res.json();
-      if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
-      try {
-        localStorage.setItem('vendor_web_session', JSON.stringify({
-          vendorId: d.data.id,
-          vendorName: d.data.name,
-          category: d.data.category,
-          city: d.data.city,
-          tier: d.data.tier,
-        }));
-      } catch {}
-      onComplete();
-    } catch { setError('Network error'); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <div>
-      <Headline>Welcome back.</Headline>
-      <Subhead>Sign in with the phone you used to register.</Subhead>
-
-      <FloatingField
-        label="Mobile number"
-        required
-        value={phone}
-        onChange={v => { setPhone(v.replace(/\D/g, '').slice(0, 10)); setError(''); }}
-        prefix="+91"
-        inputMode="numeric"
-        type="tel"
-        autoComplete="tel"
-        autoFocus
-      />
-
-      <FloatingField
-        label="Password"
-        required
-        value={password}
-        onChange={v => { setPassword(v); setError(''); }}
-        type={showPassword ? 'text' : 'password'}
-        autoComplete="current-password"
-        onKeyDown={e => e.key === 'Enter' && !loading && submit()}
-        suffix={
-          <button
-            onClick={() => setShowPassword(!showPassword)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 11, color: C.muted, padding: 4,
-              fontFamily: "'DM Sans', sans-serif",
-              letterSpacing: '0.5px',
-            }}
-          >{showPassword ? 'Hide' : 'Show'}</button>
-        }
-      />
-
-      {error && <ErrorMsg>{error}</ErrorMsg>}
-
-      <PrimaryButton onClick={submit} loading={loading} disabled={phone.replace(/\D/g, '').length !== 10 || !password}>
-        Sign in
-      </PrimaryButton>
-
-      <div style={{ textAlign: 'center', margin: '14px 0 20px' }}>
-        <TextLink onClick={onForgot}>Forgot password?</TextLink>
-      </div>
-
-      {/* Divider — "New here?" */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 20px',
-      }}>
-        <div style={{ flex: 1, height: 1, background: C.border }} />
-        <span style={{
-          fontSize: 10, color: C.light, fontWeight: 500,
-          letterSpacing: '2px', textTransform: 'uppercase',
-          fontFamily: "'DM Sans', sans-serif",
-        }}>New here?</span>
-        <div style={{ flex: 1, height: 1, background: C.border }} />
-      </div>
-
-      <button
-        onClick={onSignup}
-        style={{
-          width: '100%', padding: '14px', borderRadius: 12,
-          background: C.ivory, border: `1px solid ${C.goldBorder}`,
-          cursor: 'pointer',
-          color: C.goldDeep, fontFamily: "'DM Sans', sans-serif",
-          fontSize: 12, fontWeight: 500, letterSpacing: '1.5px',
-          textTransform: 'uppercase',
-        }}
-      >
-        Sign up with invite code
-      </button>
-    </div>
-  );
-}
-
-function ForgotFlow({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
+function ForgotPasswordFlow({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -948,20 +633,26 @@ function ForgotFlow({ onBack, onDone }: { onBack: () => void; onDone: () => void
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '12px 16px', borderRadius: 10,
+    border: `1px solid ${C.border}`, background: C.ivory,
+    fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.dark, outline: 'none',
+    marginBottom: 14,
+  };
+
   const sendOtp = async () => {
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch(`${API}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: cleaned }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not send OTP'); setLoading(false); return; }
-      setSessionInfo(d.sessionInfo);
-      setStep(2);
+      setSessionInfo(d.sessionInfo); setStep(2);
     } catch { setError('Network error'); }
     finally { setLoading(false); }
   };
@@ -972,8 +663,7 @@ function ForgotFlow({ onBack, onDone }: { onBack: () => void; onDone: () => void
     setLoading(true); setError('');
     try {
       const res = await fetch(`${API}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionInfo, code: codeVal }),
       });
       const d = await res.json();
@@ -989,10 +679,9 @@ function ForgotFlow({ onBack, onDone }: { onBack: () => void; onDone: () => void
     setLoading(true); setError('');
     try {
       const cleaned = phone.replace(/\D/g, '');
-      const res = await fetch(`${API}/api/vendor-reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + cleaned, password }),
+      const res = await fetch(`${API}/api/vendor/reset-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '+91' + cleaned, new_password: password, otp_verified: true }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not reset'); setLoading(false); return; }
@@ -1003,77 +692,148 @@ function ForgotFlow({ onBack, onDone }: { onBack: () => void; onDone: () => void
 
   return (
     <div>
+      <Eyebrow>Reset password</Eyebrow>
+
       {step === 1 && (
         <>
-          <Headline>Reset your password.</Headline>
-          <Subhead>Enter your registered phone — we'll send a verification code.</Subhead>
-          <FloatingField
-            label="Mobile number"
-            required
-            value={phone}
-            onChange={v => { setPhone(v.replace(/\D/g, '').slice(0, 10)); setError(''); }}
-            prefix="+91"
-            inputMode="numeric"
-            type="tel"
-            autoFocus
-            onKeyDown={e => e.key === 'Enter' && !loading && sendOtp()}
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={sendOtp} loading={loading} disabled={phone.replace(/\D/g, '').length !== 10}>
-            Send code
-          </PrimaryButton>
+          <p style={{
+            fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5,
+          }}>
+            Enter your registered phone — we'll send a verification code.
+          </p>
+
+          <FormLabel>Phone</FormLabel>
+          <PhoneInput value={phone} onChange={v => { setPhone(v.replace(/\D/g, '').slice(0, 10)); setError(''); }} autoFocus />
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label={loading ? 'Sending…' : 'Send code'} onTap={sendOtp} disabled={loading} />
           <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <TextLink onClick={onBack}>Back to sign in</TextLink>
+            <button onClick={onBack} type="button" style={{
+              background: 'none', border: 'none', color: C.muted,
+              fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+              textDecoration: 'underline',
+            }}>Back to sign in</button>
           </div>
         </>
       )}
 
       {step === 2 && (
         <>
-          <Headline>Enter the code.</Headline>
-          <Subhead>Code sent to +91 {phone.slice(-10)}.</Subhead>
-          <OtpInput
-            value={otp}
-            onChange={v => { setOtp(v); setError(''); }}
-            onComplete={v => !loading && verifyOtp(v)}
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={() => verifyOtp()} loading={loading} disabled={otp.length < 6}>
-            Verify
-          </PrimaryButton>
+          <p style={{
+            fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5,
+          }}>
+            Code sent to +91 {phone.slice(-10)}.
+          </p>
+
+          <FormLabel>Verification code</FormLabel>
+          <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} onComplete={(v) => !loading && verifyOtp(v)} />
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label={loading ? 'Verifying…' : 'Verify'} onTap={() => verifyOtp()} disabled={loading || otp.length < 6} />
           <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <TextLink onClick={() => { setOtp(''); setStep(1); }}>Back</TextLink>
+            <button onClick={() => { setOtp(''); setStep(1); }} type="button" style={{
+              background: 'none', border: 'none', color: C.muted,
+              fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+              textDecoration: 'underline',
+            }}>Back</button>
           </div>
         </>
       )}
 
       {step === 3 && (
         <>
-          <Headline>New password.</Headline>
-          <Subhead>Pick something you'll remember.</Subhead>
-          <FloatingField
-            label="New password"
-            required
-            value={password}
-            onChange={v => { setPassword(v); setError(''); }}
-            type="password"
-            autoFocus
-            helper="At least 8 characters"
-          />
-          <FloatingField
-            label="Confirm password"
-            required
-            value={confirmPassword}
-            onChange={v => { setConfirmPassword(v); setError(''); }}
-            type="password"
+          <p style={{
+            fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5,
+          }}>
+            Pick a new password (at least 8 characters).
+          </p>
+
+          <FormLabel>New password</FormLabel>
+          <input type="password" value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="New password"
+            autoFocus style={inputStyle} />
+
+          <FormLabel>Confirm password</FormLabel>
+          <input type="password" value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Confirm password"
             onKeyDown={e => e.key === 'Enter' && !loading && resetPassword()}
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <PrimaryButton onClick={resetPassword} loading={loading} disabled={password.length < 8 || password !== confirmPassword}>
-            Update password
-          </PrimaryButton>
+            style={inputStyle} />
+
+          <ErrorBanner msg={error} />
+          <GoldButton fullWidth label={loading ? 'Updating…' : 'Update password'} onTap={resetPassword} disabled={loading} />
         </>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// OTP INPUT — 6 separate boxes
+// ══════════════════════════════════════════════════════════
+
+function OtpInput({ value, onChange, onComplete }: {
+  value: string; onChange: (v: string) => void; onComplete?: (v: string) => void;
+}) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (idx: number, char: string) => {
+    const digit = char.replace(/[^0-9]/g, '').slice(-1);
+    const arr = value.split('');
+    arr[idx] = digit;
+    while (arr.length < 6) arr.push('');
+    const next = arr.join('').slice(0, 6);
+    onChange(next);
+    if (digit && idx < 5) refs.current[idx + 1]?.focus();
+    if (next.length === 6 && next.split('').every(c => /\d/.test(c))) onComplete && onComplete(next);
+  };
+
+  const handleKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !value[idx] && idx > 0) refs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowLeft' && idx > 0) refs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowRight' && idx < 5) refs.current[idx + 1]?.focus();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+    if (pasted.length > 0) {
+      onChange(pasted);
+      const focusIdx = Math.min(pasted.length, 5);
+      refs.current[focusIdx]?.focus();
+      if (pasted.length === 6 && onComplete) onComplete(pasted);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginBottom: 14 }}>
+      {Array.from({ length: 6 }, (_, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el; }}
+          type="tel"
+          inputMode="numeric"
+          maxLength={1}
+          value={value[i] || ''}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKey(i, e)}
+          onPaste={handlePaste}
+          autoFocus={i === 0}
+          style={{
+            width: 44, height: 52,
+            background: C.ivory,
+            border: `1px solid ${value[i] ? C.gold : C.border}`,
+            borderRadius: 10,
+            textAlign: 'center',
+            fontSize: 20,
+            fontFamily: "'Playfair Display', serif",
+            color: C.dark,
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+      ))}
     </div>
   );
 }

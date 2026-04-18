@@ -804,11 +804,7 @@ function VendorRouter({
   };
 
   if (authMode === 'login') {
-    // No intermediary screen — go straight to /vendor/login
-    if (typeof window !== 'undefined') {
-      window.location.href = '/vendor/login';
-    }
-    return null;
+    return <VendorLoginInline />;
   }
 
   if (showCodeInput) {
@@ -866,6 +862,144 @@ function VendorRouter({
             transition: 'all 0.3s ease',
           }}
         >Request an invite</button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// VendorLoginInline — inline login form for marketing page
+// Renders inside the same tab → smooth, no redirect, no page reload.
+// Mirrors couple LoginForm pattern exactly. +91 perfectly aligned.
+// ══════════════════════════════════════════════════════════════
+
+function VendorLoginInline() {
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    const clean = phone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
+    if (password.length < 1) { setError('Enter your password'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API_URL}/api/vendor/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '+91' + clean, password }),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
+      try {
+        localStorage.setItem('vendor_web_session', JSON.stringify({
+          vendorId: d.data.id,
+          vendorName: d.data.name,
+          category: d.data.category,
+          city: d.data.city,
+          tier: d.data.tier,
+        }));
+      } catch {}
+      const mob = window.innerWidth < 768;
+      window.location.href = mob ? '/vendor/mobile' : '/vendor/dashboard';
+    } catch { setError('Network error'); setLoading(false); }
+  };
+
+  return (
+    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
+      <p style={{
+        margin: '0 0 12px', fontSize: 10, color: '#8C7B6E', fontWeight: 500,
+        letterSpacing: '2px', textTransform: 'uppercase' as const, fontFamily: "'DM Sans', sans-serif",
+      }}>Sign in</p>
+
+      <label style={{
+        display: 'block', fontSize: 11, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
+        fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+      }}>Phone</label>
+      <div style={{ position: 'relative' as const, marginBottom: 14 }}>
+        <span style={{
+          position: 'absolute' as const, left: 14, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 15, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
+        }}>+91</span>
+        <input
+          type="tel" value={phone} onChange={e => { setPhone(e.target.value); setError(''); }}
+          placeholder="98765 43210"
+          autoComplete="tel"
+          inputMode="numeric"
+          autoFocus
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 16px 12px 46px', borderRadius: 10,
+            border: '1px solid #EDE8E0', background: '#FFFFFF',
+            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#2C2420', outline: 'none',
+          }}
+        />
+      </div>
+
+      <label style={{
+        display: 'block', fontSize: 11, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
+        fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
+      }}>Password</label>
+      <div style={{ position: 'relative' as const, marginBottom: 14 }}>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
+          placeholder="Your password"
+          autoComplete="current-password"
+          onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
+          style={{
+            width: '100%', boxSizing: 'border-box' as const,
+            padding: '12px 52px 12px 16px', borderRadius: 10,
+            border: '1px solid #EDE8E0', background: '#FFFFFF',
+            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#2C2420', outline: 'none',
+          }}
+        />
+        <button
+          onClick={() => setShowPassword(v => !v)}
+          type="button"
+          style={{
+            position: 'absolute' as const, right: 8, top: '50%', transform: 'translateY(-50%)',
+            padding: '6px 10px', borderRadius: 8,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: '#8C7B6E', fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+          }}
+        >{showPassword ? 'Hide' : 'Show'}</button>
+      </div>
+
+      {error && (
+        <div style={{
+          background: '#FBEEEE', border: '1px solid #F0CFCF',
+          borderRadius: 8, padding: '10px 12px',
+          fontSize: 12, color: '#C65757', fontFamily: "'DM Sans', sans-serif",
+          marginBottom: 14,
+        }}>{error}</div>
+      )}
+
+      <button
+        onClick={handleLogin}
+        disabled={loading}
+        style={{
+          width: '100%', padding: '14px 24px',
+          background: loading ? '#EDE8E0' : '#2C2420',
+          color: loading ? '#B8ADA4' : '#C9A84C',
+          border: 'none', borderRadius: 12,
+          fontSize: 12, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase' as const,
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: loading ? 'not-allowed' : 'pointer',
+        }}
+      >{loading ? 'Signing in…' : 'Sign in'}</button>
+
+      <div style={{ textAlign: 'center' as const, margin: '14px 0 20px' }}>
+        <button
+          onClick={() => { window.location.href = '/vendor/login?mode=forgot'; }}
+          type="button"
+          style={{
+            background: 'none', border: 'none', color: '#8C7B6E',
+            fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+            textDecoration: 'underline',
+          }}
+        >Forgot password?</button>
       </div>
     </div>
   );
