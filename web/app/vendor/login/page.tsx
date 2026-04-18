@@ -538,19 +538,26 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [tier, setTier] = useState<string | null>(null);
+  const [codeId, setCodeId] = useState<string | null>(null);
 
   const verifyCode = async () => {
     if (!code.trim()) { setError('Enter your invite code'); return; }
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/api/vendor-codes/verify`, {
+      const res = await fetch(`${API}/api/signup/validate-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code.trim().toUpperCase() }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Invalid code'); setLoading(false); return; }
-      setTier(d.tier);
+      if (d.data?.type !== 'vendor') {
+        setError('This is not a vendor code');
+        setLoading(false);
+        return;
+      }
+      setTier(d.data.tier);
+      setCodeId(d.data.code_id);
       setStep(2);
     } catch { setError('Network error'); }
     finally { setLoading(false); }
@@ -572,7 +579,7 @@ function SignupFlow({ onBack, onComplete, prefillCode }: {
       const res = await fetch(`${API}/api/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + cleaned }),
+        body: JSON.stringify({ phone: cleaned }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not send OTP'); setLoading(false); return; }
@@ -832,20 +839,20 @@ function LoginFlow({ onSignup, onForgot, onComplete }: {
     if (!password) { setError('Enter your password'); return; }
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/api/vendor-login-v2`, {
+      const res = await fetch(`${API}/api/signup/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + cleaned, password }),
+        body: JSON.stringify({ identifier: '+91' + cleaned, password }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
       try {
         localStorage.setItem('vendor_web_session', JSON.stringify({
-          vendorId: d.vendor.id,
-          vendorName: d.vendor.business_name,
-          category: d.vendor.category,
-          city: d.vendor.city,
-          tier: d.vendor.tier,
+          vendorId: d.data.id,
+          vendorName: d.data.name,
+          category: d.data.category,
+          city: d.data.city,
+          tier: d.data.tier,
         }));
       } catch {}
       onComplete();
@@ -949,7 +956,7 @@ function ForgotFlow({ onBack, onDone }: { onBack: () => void; onDone: () => void
       const res = await fetch(`${API}/api/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + cleaned }),
+        body: JSON.stringify({ phone: cleaned }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not send OTP'); setLoading(false); return; }
