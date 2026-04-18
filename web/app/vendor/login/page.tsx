@@ -839,10 +839,10 @@ function LoginFlow({ onSignup, onForgot, onComplete }: {
     if (!password) { setError('Enter your password'); return; }
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/api/signup/login`, {
+      const res = await fetch(`${API}/api/vendor/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: '+91' + cleaned, password }),
+        body: JSON.stringify({ phone: '+91' + cleaned, password }),
       });
       const d = await res.json();
       if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
