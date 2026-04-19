@@ -1101,17 +1101,32 @@ function DashboardTab({ session, tier, bookings, invoices, clients, leads, payme
             {[
               { num: todayBookings.length, label: 'Today',     highlight: todayBookings.length > 0 },
               { num: thisWeekCount,        label: 'This Wk',   highlight: thisWeekCount > 0 },
-              { num: totalOwed > 0 ? '\u20B9' + fmtINR(totalOwed) : 0, label: 'Pending', highlight: false, warn: totalOwed > 0 },
+              { num: totalOwed > 0 ? fmtINR(totalOwed) : 0, prefix: totalOwed > 0 ? 'Rs.' : null, label: 'Pending', highlight: false, warn: totalOwed > 0 },
               { num: leads.length,         label: 'Enquiries', highlight: leads.length > 0 },
             ].map((stat: any, i: number, arr: any[]) => (
               <div key={i} style={{ textAlign: 'center', position: 'relative' }}>
                 <div style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: '26px', fontWeight: 400,
+                  display: 'inline-flex' as const,
+                  alignItems: 'baseline' as const,
+                  gap: 3,
                   color: stat.warn ? C.red : (stat.highlight ? C.gold : C.dark),
-                  letterSpacing: '-0.5px', lineHeight: 1,
-                  fontVariantNumeric: 'tabular-nums' as const,
-                }}>{stat.num}</div>
+                  lineHeight: 1,
+                }}>
+                  {stat.prefix && (
+                    <span style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '11px', fontWeight: 500,
+                      letterSpacing: '0.5px',
+                      opacity: 0.85,
+                    }}>{stat.prefix}</span>
+                  )}
+                  <span style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: '26px', fontWeight: 400,
+                    letterSpacing: '-0.5px',
+                    fontVariantNumeric: 'tabular-nums' as const,
+                  }}>{stat.num}</span>
+                </div>
                 <div style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '9px', fontWeight: 500,
@@ -2479,7 +2494,7 @@ function ToolDetailView({ session, tier, sub, clients, invoices, bookings, leads
                         <div style={{ fontSize: '14px', color: C.dark, fontWeight: 500 }}>{inv.client_name || 'Client'}</div>
                         <div style={{ fontSize: '11px', color: C.muted }}>{inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                          <span style={{ fontSize: '15px', fontWeight: 600, color: C.dark }}>₹{fmtINR(parseInt(inv.amount) || 0)}</span>
+                          <span style={{ fontSize: '15px', fontWeight: 600, color: C.dark, fontFamily: "'Playfair Display', serif", fontVariantNumeric: 'tabular-nums' as const }}>₹{fmtINR(parseInt(inv.amount) || 0)}</span>
                           <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' as const, padding: '2px 8px', borderRadius: '50px', background: inv.status === 'paid' ? `${C.green}15` : C.goldSoft, color: inv.status === 'paid' ? C.green : C.goldDeep, border: `1px solid ${inv.status === 'paid' ? `${C.green}40` : C.goldBorder}` }}>{inv.status || 'unpaid'}</span>
                         </div>
                       </div>
@@ -5302,7 +5317,7 @@ function TeamPaymentsPanel({ session, members, payments, onBack, onChanged }: an
                   <div style={{ fontSize: 12, color: C.dark }}>{memberName(p.team_member_id)}</div>
                   <div style={{ fontSize: 10, color: C.muted }}>{p.label}{p.paid_date ? ` · ${new Date(p.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}</div>
                 </div>
-                <div style={{ fontSize: 13, color: C.green, fontWeight: 500 }}>₹{fmtINR(parseInt(p.amount) || 0)}</div>
+                <div style={{ fontSize: 13, color: C.green, fontWeight: 500, fontFamily: "'Playfair Display', serif", fontVariantNumeric: 'tabular-nums' as const }}>₹{fmtINR(parseInt(p.amount) || 0)}</div>
               </div>
             ))}
           </div>
@@ -11438,6 +11453,7 @@ function ExpensesPanel({ session, tier, clients }: any) {
                     <div style={{
                       fontFamily: "'Playfair Display', serif",
                       fontSize: 16, color, fontWeight: 500,
+                      fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       {isLoss ? '−' : ''}₹{fmtINR(Math.abs(profit))}
                     </div>
@@ -11580,7 +11596,7 @@ function ExpensesPanel({ session, tier, clients }: any) {
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: C.dark }}>₹{fmtINR(parseInt(exp.amount) || 0)}</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: C.dark, fontFamily: "'Playfair Display', serif", fontVariantNumeric: 'tabular-nums' as const }}>₹{fmtINR(parseInt(exp.amount) || 0)}</div>
                 <button
                   onClick={() => handleDelete(exp.id)}
                   style={{
@@ -13537,7 +13553,7 @@ function DiscoveryRouter({ session }: { session: VendorSession }) {
           ) : (
             <>
               <textarea value={requestReason} onChange={e => setRequestReason(e.target.value)}
-                placeholder="Briefly tell us about your business"
+                placeholder="Briefly tell us about your business (optional)"
                 rows={4}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -13547,18 +13563,26 @@ function DiscoveryRouter({ session }: { session: VendorSession }) {
                   boxSizing: 'border-box' as const,
                 }} onFocus={scrollIntoViewOnFocus} />
               <button onClick={async () => {
+                if (!session?.vendorId) { alert('Session error. Please refresh.'); return; }
                 try {
-                  await fetch(`${API}/api/vendor-discover/request`, {
+                  const res = await fetch(`${API}/api/vendor-discover/request-access`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vendor_id: session.vendorId, reason: requestReason }),
+                    body: JSON.stringify({ vendor_id: session.vendorId, reason: requestReason.trim() || null }),
                   });
-                  setRequestSent(true);
-                } catch {}
-              }} disabled={requestReason.trim().length < 10} style={{
+                  const d = await res.json();
+                  if (d.success) {
+                    setRequestSent(true);
+                    setAccessStatus('pending');
+                  } else {
+                    alert(d.error || 'Could not send request. Please try again.');
+                  }
+                } catch (err) {
+                  alert('Network error. Please try again.');
+                }
+              }} style={{
                 width: '100%', padding: '12px', borderRadius: 10, background: C.dark,
                 border: 'none', color: C.gold, fontSize: 13,
                 fontFamily: 'DM Sans, sans-serif', fontWeight: 500, cursor: 'pointer',
-                opacity: requestReason.trim().length < 10 ? 0.5 : 1,
               }}>Request access</button>
             </>
           )}
