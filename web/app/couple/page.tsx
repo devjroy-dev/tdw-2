@@ -9,6 +9,7 @@ import {
   Camera, Paperclip, Image as ImageIcon, Gift, Upload,
   Link as LinkIcon, Share2, ExternalLink, Smartphone,
   Lock as LockIcon, Send, MessageCircle, Settings2, ChevronDown,
+  Flower2, Wine, Music, Droplet, Palette, Martini,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -2137,6 +2138,8 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
   const handleSave = (vendor: any) => {
     if (!vendor || savedIds.has(vendor.id)) return;
     setSavedIds(prev => new Set(prev).add(vendor.id));
+    setMuseSaveVendor(vendor);       // enables the "Also to Moodboard" checkbox in the toast
+    setAlsoMoodboard(false);          // default unchecked
     if (session?.id) {
       fetch(`${API}/api/couple/muse/save`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2176,22 +2179,64 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
     });
   };
 
+  // ── Save / skip ──
+  // museSaveVendor = the vendor that was just saved (kept until toast dismisses)
+  // alsoMoodboard = checkbox state for the toast
+  // moodboardTooltipShown = once-per-session flag for the checkbox tooltip
+  const [museSaveVendor, setMuseSaveVendor] = useState<any>(null);
+  const [alsoMoodboard, setAlsoMoodboard] = useState(false);
+  const [moodboardTooltipShown, setMoodboardTooltipShown] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return sessionStorage.getItem('tdw_moodboard_tooltip_shown') === '1';
+  });
+
   const showSaveToast = (msg: string) => {
     setSaveToast(msg);
     if (saveToastTimer.current) clearTimeout(saveToastTimer.current);
-    saveToastTimer.current = setTimeout(() => { setSaveToast(null); setUndoVendor(null); }, 3000);
+    saveToastTimer.current = setTimeout(() => {
+      setSaveToast(null);
+      setUndoVendor(null);
+      setMuseSaveVendor(null);
+      setAlsoMoodboard(false);
+    }, 3500);
   };
 
-  // ── Double-tap handler — Revealed: save + heart pulse. Blind: reveals vendor.
+  // Handler: when user ticks the "Also to Moodboard" checkbox
+  const toggleAlsoMoodboard = async (checked: boolean) => {
+    setAlsoMoodboard(checked);
+    // Mark tooltip seen
+    if (!moodboardTooltipShown) {
+      setMoodboardTooltipShown(true);
+      sessionStorage.setItem('tdw_moodboard_tooltip_shown', '1');
+    }
+    // If checked AND we have a vendor that was just saved, add to Moodboard
+    if (checked && museSaveVendor && session?.id) {
+      try {
+        await fetch(`${API}/api/couple/moodboard`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            couple_id: session.id,
+            event: 'general',
+            pin_type: 'vendor',
+            image_url: museSaveVendor.featured_photos?.[0] || museSaveVendor.portfolio_images?.[0] || null,
+            title: museSaveVendor.name,
+            note: `Saved from Discover · ${museSaveVendor.category}`,
+          }),
+        });
+        setSaveToast(`${museSaveVendor.name} saved to Muse + Moodboard`);
+      } catch {}
+    }
+  };
+
+  // ── Double-tap handler — Revealed: save + heart pulse. Blind: reveals vendor (opens profile).
   const handleCardTap = (vendor: any) => {
     const now = Date.now();
     if (now - lastTapTime.current < 300) {
-      // Double tap detected
       if (blindMode) {
-        // In blind mode, double-tap reveals (handled elsewhere or just saves)
-        handleSave(vendor);
+        // In blind mode, double-tap reveals the vendor (opens profile layover)
+        openProfile(vendor);
       } else {
-        // Revealed mode: save + heart animation
+        // Revealed mode: save + heart pulse + toast with Moodboard checkbox
         handleSave(vendor);
         setHeartPulse(true);
         setTimeout(() => setHeartPulse(false), 700);
@@ -2214,13 +2259,10 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
     gestureDelta.current = { x: dx, y: dy };
 
     if (blindMode) {
-      // Blind mode: horizontal swipe gestures (save/pass) — vertical falls through to page scroll
+      // Blind: horizontal swipe only. Vertical does NOTHING (pure commit-and-move-on).
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
         setIsGesturing(true);
         setGestureOffset({ x: dx, y: 0 });
-      } else if (Math.abs(dy) > 10) {
-        setIsGesturing(true);
-        setGestureOffset({ x: 0, y: dy });
       }
     } else {
       // Revealed mode: vertical swipe between vendors, horizontal cycles images of current vendor
@@ -2241,14 +2283,9 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
     const v = vendors[currentIndex];
 
     if (blindMode) {
-      // Blind: right-swipe = save + advance, left-swipe = pass + advance, vertical = prev/next
-      if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > threshold) { if (v) handleSave(v); goNext(); }
-        else if (dx < -threshold) { if (v) handleSkip(v); }
-      } else {
-        if (dy < -threshold) goNext();
-        else if (dy > threshold) goPrev();
-      }
+      // Blind: ONLY horizontal — right=save+advance, left=pass+advance. Vertical = ignored.
+      if (dx > threshold) { if (v) handleSave(v); goNext(); }
+      else if (dx < -threshold) { if (v) handleSkip(v); }
     } else {
       // Revealed: vertical = prev/next vendor, horizontal = cycle images within current vendor
       if (Math.abs(dy) > Math.abs(dx)) {
@@ -3060,13 +3097,13 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
   // CUSTOMIZE — multi-event configuration
   // ══════════════════════════════════════════════════════════════
   if (layer === 'customize') {
-    const EVENT_TYPES = [
-      { id: 'ceremony',  label: 'Ceremony',  emoji: '💐', default: true },
-      { id: 'reception', label: 'Reception', emoji: '🥂', default: true },
-      { id: 'sangeet',   label: 'Sangeet',   emoji: '🎵', default: false },
-      { id: 'haldi',     label: 'Haldi',     emoji: '🌼', default: false },
-      { id: 'mehendi',   label: 'Mehendi',   emoji: '🎨', default: false },
-      { id: 'cocktail',  label: 'Cocktail',  emoji: '🍸', default: false },
+    const EVENT_TYPES: { id: string; label: string; Icon: any; default: boolean }[] = [
+      { id: 'ceremony',  label: 'Ceremony',  Icon: Flower2,  default: true  },
+      { id: 'reception', label: 'Reception', Icon: Wine,     default: true  },
+      { id: 'sangeet',   label: 'Sangeet',   Icon: Music,    default: false },
+      { id: 'haldi',     label: 'Haldi',     Icon: Droplet,  default: false },
+      { id: 'mehendi',   label: 'Mehendi',   Icon: Palette,  default: false },
+      { id: 'cocktail',  label: 'Cocktail',  Icon: Martini,  default: false },
     ];
 
     const existingTypes = new Set(events.map(e => e.event_type));
@@ -3098,7 +3135,14 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
                 marginBottom: 10, padding: '14px 16px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 22 }}>{typeMeta?.emoji || '✨'}</span>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+                    display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+                    flexShrink: 0,
+                  }}>
+                    {typeMeta?.Icon ? <typeMeta.Icon size={18} color={C.gold} /> : <Sparkles size={18} color={C.gold} />}
+                  </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 500 }}>
                       {typeMeta?.label || ev.event_type}
@@ -3137,8 +3181,8 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
             );
           })}
 
-          {/* Add missing default events quick-add */}
-          {missingDefaults.length > 0 && events.length === 0 && (
+          {/* Add missing default events quick-add — always visible if defaults missing */}
+          {missingDefaults.length > 0 && (
             <div style={{
               background: C.goldSoft, border: `1px solid ${C.goldBorder}`, borderRadius: 12,
               padding: '14px 16px', marginBottom: 14,
@@ -3157,7 +3201,7 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
                 width: '100%', padding: '10px', borderRadius: 8,
                 background: C.dark, border: 'none', cursor: 'pointer',
                 color: C.gold, fontSize: 12, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
-              }}>Add Ceremony + Reception</button>
+              }}>Add {missingDefaults.map(d => d.label).join(' + ')}</button>
             </div>
           )}
 
@@ -3173,11 +3217,26 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 fontSize: 12, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 400,
               }}>
-                <span>{t.emoji}</span>
+                <t.Icon size={13} color={C.gold} />
                 <Plus size={10} color={C.muted} />
                 <span>{t.label}</span>
               </button>
             ))}
+            {/* Custom event pill — lets user create any event type by name */}
+            <button onClick={async () => {
+              const name = prompt('What do you want to call this event?\n(e.g. Tea Ceremony, Rehearsal Dinner)');
+              if (!name || !name.trim()) return;
+              const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `custom-${Date.now()}`;
+              await upsertEvent({ event_type: slug, is_active: true, sort_order: events.length });
+            }} style={{
+              padding: '8px 14px', borderRadius: 20, background: C.dark,
+              border: `1px solid ${C.gold}`, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 12, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+            }}>
+              <Plus size={12} color={C.gold} />
+              <span>Custom</span>
+            </button>
           </div>
 
           {eventsLoading && (
@@ -3440,36 +3499,22 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
     );
   };
 
-  // ── Swipe mode action buttons ──
+  // ── Blind mode action buttons — ONLY Eye (no X/Heart clutter) ──
   const renderSwipeActions = () => {
     if (!blindMode || !vendor) return null;
     return (
       <div style={{
         position: 'absolute', bottom: 'max(100px, calc(env(safe-area-inset-bottom) + 90px))',
-        left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 20, zIndex: 6,
+        left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 6,
       }}>
-        <button onClick={e => { e.stopPropagation(); handleSkip(vendor); }} style={{
-          width: 48, height: 48, borderRadius: 24, background: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        }}>
-          <X size={20} color="#fff" />
-        </button>
         <button onClick={e => { e.stopPropagation(); openProfile(vendor); }} style={{
-          width: 48, height: 48, borderRadius: 24, background: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+          width: 56, height: 56, borderRadius: 28, background: 'rgba(0,0,0,0.55)',
+          border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
         }}>
-          <Eye size={18} color="#fff" />
-        </button>
-        <button onClick={e => { e.stopPropagation(); handleSave(vendor); goNext(); }} style={{
-          width: 56, height: 56, borderRadius: 28, background: C.gold,
-          border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Heart size={24} color={C.dark} />
+          <Eye size={22} color="#fff" />
         </button>
       </div>
     );
@@ -3756,24 +3801,73 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
         {renderSwipeActions()}
       </div>
 
-      {/* SAVE TOAST / UNDO */}
+      {/* SAVE TOAST / UNDO — bottom-left corner to avoid Eye button overlap */}
       {saveToast && (
         <div style={{
-          position: 'fixed', bottom: 'max(90px, calc(env(safe-area-inset-bottom) + 80px))',
-          left: '50%', transform: 'translateX(-50%)', zIndex: 50,
-          background: C.dark, borderRadius: 12, padding: '10px 20px',
-          display: 'flex', alignItems: 'center', gap: 10,
+          position: 'fixed',
+          bottom: 'max(90px, calc(env(safe-area-inset-bottom) + 80px))',
+          left: 16, zIndex: 50,
+          maxWidth: 'calc(100% - 100px)',
+          background: C.dark, borderRadius: 12, padding: '10px 14px',
+          display: 'flex', flexDirection: 'column' as const, gap: 8,
           boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}>
-          <span style={{ fontSize: 13, color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 400 }}>{saveToast}</span>
-          {undoVendor && (
-            <button onClick={handleUndo} style={{
-              background: C.gold, border: 'none', borderRadius: 6, padding: '4px 10px',
-              fontSize: 11, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, cursor: 'pointer',
-            }}>Undo</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 400, flex: 1 }}>{saveToast}</span>
+            {undoVendor && (
+              <button onClick={handleUndo} style={{
+                background: C.gold, border: 'none', borderRadius: 6, padding: '4px 10px',
+                fontSize: 11, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, cursor: 'pointer',
+              }}>Undo</button>
+            )}
+          </div>
+
+          {/* Also to Moodboard checkbox — only in Revealed mode, only for Muse saves (not skips) */}
+          {museSaveVendor && !blindMode && !undoVendor && (
+            <>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                cursor: 'pointer' as const, userSelect: 'none' as const,
+                padding: '2px 0',
+              }} onClick={e => e.stopPropagation()}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: 4,
+                  background: alsoMoodboard ? C.gold : 'transparent',
+                  border: `1.5px solid ${alsoMoodboard ? C.gold : 'rgba(255,255,255,0.5)'}`,
+                  display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+                  flexShrink: 0, transition: 'all 0.2s',
+                }}>
+                  {alsoMoodboard && <Check size={10} color={C.dark} strokeWidth={3} />}
+                </div>
+                <input
+                  type="checkbox"
+                  checked={alsoMoodboard}
+                  onChange={e => toggleAlsoMoodboard(e.target.checked)}
+                  style={{ position: 'absolute' as const, opacity: 0, pointerEvents: 'none' as const }}
+                />
+                <span onClick={() => toggleAlsoMoodboard(!alsoMoodboard)}
+                  style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: 'DM Sans, sans-serif' }}>
+                  Also add to Moodboard
+                </span>
+              </label>
+
+              {/* First-time-per-session tooltip */}
+              {!moodboardTooltipShown && (
+                <div style={{
+                  background: C.gold, borderRadius: 6, padding: '4px 8px',
+                  fontSize: 10, color: C.dark, fontFamily: 'DM Sans, sans-serif',
+                  fontStyle: 'italic' as const, fontWeight: 400, alignSelf: 'flex-start' as const,
+                  animation: 'fadeIn 0.3s ease',
+                }}>
+                  Tick to curate your Moodboard vibe too
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
+
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* CATEGORY LAYOVER */}
       {showCategoryLayover && renderCategoryLayover()}
@@ -4905,7 +4999,41 @@ function ChecklistTool({
   const [activeEvent, setActiveEvent] = useState<string>('All');
   const [showAdd, setShowAdd] = useState(false);
   const [editingTask, setEditingTask] = useState<ChecklistTask | null>(null);
+  const [groupBy, setGroupBy] = useState<'event' | 'phase' | 'priority'>('event');
+  const [disabledEvents, setDisabledEvents] = useState<Set<string>>(new Set());
   const canEditTool = canEdit(session.coShareRole, 'checklist');
+
+  // Load Customize events — tasks linked to toggled-OFF events get grayed/struck
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/couple/events/${session.id}`);
+        const d = await res.json();
+        if (!mounted) return;
+        if (d.success && Array.isArray(d.data)) {
+          const off = new Set<string>();
+          for (const ev of d.data) {
+            if (ev.is_active === false) off.add(ev.event_type);
+          }
+          setDisabledEvents(off);
+        }
+      } catch {}
+    })();
+    return () => { mounted = false; };
+  }, [session.id]);
+
+  // Infer "phase" from due_date relative to wedding date
+  const getTaskPhase = (task: ChecklistTask): string => {
+    if (!task.due_date || !session.weddingDate) return 'Anytime';
+    const due = new Date(task.due_date);
+    const wed = new Date(session.weddingDate);
+    const diffDays = Math.ceil((wed.getTime() - due.getTime()) / 86400000);
+    if (diffDays < 0) return 'Post-wedding';
+    if (diffDays <= 7) return 'Ceremony week';
+    if (diffDays <= 30) return 'Final month';
+    return 'Pre-wedding';
+  };
 
   const eventTabs = ['All', ...session.events];
   const filtered = activeEvent === 'All' ? tasks : tasks.filter(t => t.event === activeEvent);
@@ -4913,12 +5041,16 @@ function ChecklistTool({
   const incomplete = sorted.filter(t => !t.is_complete);
   const complete = sorted.filter(t => t.is_complete);
 
-  // Group by event when "All" is selected
+  // Group by event / phase / priority when "All" is selected
   const grouped: Record<string, ChecklistTask[]> = {};
   if (activeEvent === 'All') {
     for (const t of incomplete) {
-      if (!grouped[t.event]) grouped[t.event] = [];
-      grouped[t.event].push(t);
+      let key: string;
+      if (groupBy === 'phase') key = getTaskPhase(t);
+      else if (groupBy === 'priority') key = t.priority === 'urgent' ? 'Urgent' : 'Normal';
+      else key = t.event;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(t);
     }
   }
 
@@ -4956,6 +5088,26 @@ function ChecklistTool({
             <Plus size={16} color={C.gold} />
           </button>
         )}
+      </div>
+
+      {/* Group by chips */}
+      <div style={{
+        display: 'flex', gap: 8, padding: '10px 20px 4px',
+        background: C.cream, borderBottom: `1px solid ${C.border}`,
+        overflowX: 'auto' as const,
+      }}>
+        <span style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, alignSelf: 'center' as const }}>Group by</span>
+        {(['event', 'phase', 'priority'] as const).map(g => (
+          <button key={g} onClick={() => setGroupBy(g)} style={{
+            padding: '4px 10px', borderRadius: 14, whiteSpace: 'nowrap' as const,
+            background: groupBy === g ? C.dark : 'transparent',
+            border: `1px solid ${groupBy === g ? C.dark : C.border}`,
+            color: groupBy === g ? C.gold : C.muted,
+            fontSize: 11, fontWeight: groupBy === g ? 500 : 400,
+            fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            flexShrink: 0, textTransform: 'capitalize' as const,
+          }}>{g}</button>
+        ))}
       </div>
 
       {/* Event filter chips */}
@@ -5034,6 +5186,7 @@ function ChecklistTool({
                   canEdit={canEditTool}
                   onToggleComplete={() => onToggleComplete(t.id, !t.is_complete)}
                   onEdit={() => setEditingTask(t)}
+                  eventIsDisabled={disabledEvents.has(t.event)}
                 />
               ))}
             </div>
@@ -5050,6 +5203,7 @@ function ChecklistTool({
                 canEdit={canEditTool}
                 onToggleComplete={() => onToggleComplete(t.id, !t.is_complete)}
                 onEdit={() => setEditingTask(t)}
+                eventIsDisabled={disabledEvents.has(t.event)}
               />
             ))}
           </div>
@@ -5068,6 +5222,7 @@ function ChecklistTool({
                   key={t.id}
                   task={t}
                   canEdit={canEditTool}
+                  eventIsDisabled={disabledEvents.has(t.event)}
                   onToggleComplete={() => onToggleComplete(t.id, !t.is_complete)}
                   onEdit={() => setEditingTask(t)}
                   compact
@@ -5105,28 +5260,30 @@ function ChecklistTool({
   );
 }
 
-function TaskRow({ task, canEdit: canEditRow, onToggleComplete, onEdit, compact }: {
+function TaskRow({ task, canEdit: canEditRow, onToggleComplete, onEdit, compact, eventIsDisabled }: {
   task: ChecklistTask; canEdit: boolean;
   onToggleComplete: () => void; onEdit: () => void; compact?: boolean;
+  eventIsDisabled?: boolean;
 }) {
   const isUrgent = task.priority === 'urgent' && !task.is_complete;
+  const dimmed = task.is_complete || eventIsDisabled;
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 12,
-      background: task.is_complete ? C.pearl : C.ivory,
+      background: task.is_complete ? C.pearl : eventIsDisabled ? '#F4F0E8' : C.ivory,
       borderRadius: 12,
       border: `1px solid ${isUrgent ? C.goldBorder : C.border}`,
       padding: compact ? '10px 12px' : '12px 14px',
-      opacity: task.is_complete ? 0.7 : 1,
+      opacity: dimmed ? 0.55 : 1,
     }}>
       <button
         onClick={onToggleComplete}
-        disabled={!canEditRow}
+        disabled={!canEditRow || eventIsDisabled}
         style={{
           width: 22, height: 22, borderRadius: 11, flexShrink: 0,
           background: task.is_complete ? C.gold : C.cream,
           border: `1.5px solid ${C.goldBorder}`,
-          cursor: canEditRow ? 'pointer' : 'default', padding: 0, marginTop: 1,
+          cursor: (canEditRow && !eventIsDisabled) ? 'pointer' : 'default', padding: 0, marginTop: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -5143,7 +5300,7 @@ function TaskRow({ task, canEdit: canEditRow, onToggleComplete, onEdit, compact 
           margin: 0, fontSize: compact ? 13 : 14, color: C.dark,
           fontFamily: 'DM Sans, sans-serif',
           lineHeight: compact ? '18px' : '20px',
-          textDecoration: task.is_complete ? 'line-through' : 'none',
+          textDecoration: (task.is_complete || eventIsDisabled) ? 'line-through' : 'none',
           wordBreak: 'break-word' as const,
         }}>{task.text}</p>
         {!compact && (
@@ -5152,6 +5309,13 @@ function TaskRow({ task, canEdit: canEditRow, onToggleComplete, onEdit, compact 
               <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
                 {formatDueDate(task.due_date)}
               </span>
+            )}
+            {eventIsDisabled && (
+              <span style={{
+                fontSize: 9, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase' as const,
+                background: C.pearl, padding: '1px 6px', borderRadius: 3,
+              }}>Event off</span>
             )}
             {isUrgent && (
               <>
@@ -6144,6 +6308,19 @@ function ExpenseEditor({
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
         }}>Category</label>
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          <button onClick={() => {
+            const custom = prompt('Custom category name:');
+            if (custom && custom.trim()) setCategory(custom.trim());
+          }} style={{
+            padding: '5px 11px', borderRadius: 14,
+            background: C.dark, border: `1px solid ${C.gold}`,
+            color: C.gold, fontSize: 11, fontWeight: 500,
+            fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            display: 'inline-flex' as const, alignItems: 'center' as const, gap: 4,
+          }}>
+            <Plus size={10} color={C.gold} />
+            <span>Custom</span>
+          </button>
           {EXPENSE_CATEGORIES.map(cat => (
             <button key={cat} onClick={() => setCategory(cat)} style={{
               padding: '5px 11px', borderRadius: 14,
@@ -6154,6 +6331,18 @@ function ExpenseEditor({
               fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
             }}>{cat}</button>
           ))}
+          {category && !EXPENSE_CATEGORIES.includes(category) && (
+            <span style={{
+              padding: '5px 11px', borderRadius: 14,
+              background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+              color: C.goldDeep, fontSize: 11, fontWeight: 500,
+              fontFamily: 'DM Sans, sans-serif',
+              display: 'inline-flex' as const, alignItems: 'center' as const, gap: 4,
+            }}>
+              <Check size={10} color={C.goldDeep} />
+              <span>{category}</span>
+            </span>
+          )}
         </div>
 
         {/* Payment status */}
@@ -6832,33 +7021,42 @@ function GuestTool({
             >
               <span style={{ transform: refreshing ? 'rotate(180deg)' : 'none', transition: 'transform 300ms' }}>↻</span>
             </button>
-            {/* WhatsApp import — always available */}
+            {/* WhatsApp import — gated to DreamAi users */}
             <button
-              onClick={() => setShowWhatsAppImport(true)}
+              onClick={() => {
+                const hasDreamAi = (session as any)?.hasDreamAi;
+                if (hasDreamAi) {
+                  setShowWhatsAppImport(true);
+                } else {
+                  alert('WhatsApp contact import is included with DreamAi. Unlock it from the DreamAi floating button in Plan mode.');
+                }
+              }}
               style={{
                 width: 36, height: 36, borderRadius: 18, background: C.ivory,
                 border: `1px solid ${C.goldBorder}`, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
-              title="Import via WhatsApp"
+              title="Import via WhatsApp (DreamAi)"
             >
               <Phone size={14} color={C.gold} />
             </button>
-            {contactsSupported && (
-              <button
-                onClick={pickContacts}
-                disabled={importing}
-                style={{
-                  width: 36, height: 36, borderRadius: 18, background: C.ivory,
-                  border: `1px solid ${C.goldBorder}`, cursor: importing ? 'default' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: importing ? 0.5 : 1,
-                }}
-                title="Import from phonebook"
-              >
-                <Smartphone size={14} color={C.gold} />
-              </button>
-            )}
+            {/* Phonebook import — always visible; if not supported, show Launching soon */}
+            <button
+              onClick={() => {
+                if (contactsSupported) pickContacts();
+                else alert('Phonebook import is launching soon. Currently supported only on Android Chrome — we are bringing it to iOS too.');
+              }}
+              disabled={importing}
+              style={{
+                width: 36, height: 36, borderRadius: 18, background: C.ivory,
+                border: `1px solid ${C.goldBorder}`, cursor: importing ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: importing ? 0.5 : 1,
+              }}
+              title={contactsSupported ? 'Import from phonebook' : 'Phonebook import — launching soon'}
+            >
+              <Smartphone size={14} color={C.gold} />
+            </button>
             <button onClick={() => setShowAdd(true)} style={{
               width: 36, height: 36, borderRadius: 18, background: C.dark,
               border: 'none', cursor: 'pointer', display: 'flex',
@@ -6970,9 +7168,12 @@ function GuestTool({
                 ? 'Start with the people you\u2019re most excited to have there.'
                 : 'Nothing tracked yet.'}
             </p>
-            {canEditTool && contactsSupported && (
+            {canEditTool && (
               <button
-                onClick={pickContacts}
+                onClick={() => {
+                  if (contactsSupported) pickContacts();
+                  else alert('Phonebook import is launching soon. Currently supported only on Android Chrome — we are bringing it to iOS too.');
+                }}
                 disabled={importing}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -9028,6 +9229,34 @@ function VendorTool({
   const [statusFilter, setStatusFilter] = useState<VendorStatus | 'all'>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
+  const [contactsSupported, setContactsSupported] = useState(false);
+
+  // Detect Contact Picker API (Android Chrome) — hidden on iOS
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window) {
+      setContactsSupported(true);
+    }
+  }, []);
+
+  // Pick contacts to auto-populate vendor add — each picked contact creates a vendor draft
+  const pickContactsForVendor = async () => {
+    try {
+      // @ts-ignore — Contact Picker API
+      const contacts = await (navigator as any).contacts.select(['name', 'tel'], { multiple: true });
+      if (!contacts || contacts.length === 0) return;
+      for (const c of contacts) {
+        const name = (c.name?.[0] || '').trim();
+        const phone = (c.tel?.[0] || '').replace(/\s+/g, '');
+        if (!name) continue;
+        await onAdd({
+          name,
+          phone,
+          category: 'Miscellaneous',
+          status: 'enquired',
+        });
+      }
+    } catch {}
+  };
 
   const canEditTool = canEdit(session.coShareRole, 'vendors');
   const canSeeMoney = canView(session.coShareRole, 'vendor_money');
@@ -9074,13 +9303,44 @@ function VendorTool({
           </div>
         </div>
         {canEditTool && (
-          <button onClick={() => setShowAdd(true)} style={{
-            width: 36, height: 36, borderRadius: 18, background: C.dark,
-            border: 'none', cursor: 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Plus size={16} color={C.gold} />
-          </button>
+          <div style={{ display: 'flex' as const, gap: 6, alignItems: 'center' as const }}>
+            <button
+              onClick={() => {
+                const hasDreamAi = (session as any)?.hasDreamAi;
+                if (hasDreamAi) alert('WhatsApp vendor import: coming in the next build.');
+                else alert('WhatsApp vendor import is included with DreamAi. Unlock from the DreamAi floating button.');
+              }}
+              style={{
+                width: 36, height: 36, borderRadius: 18, background: C.ivory,
+                border: `1px solid ${C.goldBorder}`, cursor: 'pointer',
+                display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+              }}
+              title="Import vendors via WhatsApp (DreamAi)"
+            >
+              <Phone size={14} color={C.gold} />
+            </button>
+            <button
+              onClick={() => {
+                if (contactsSupported) pickContactsForVendor();
+                else alert('Phonebook vendor import is launching soon. Currently supported only on Android Chrome.');
+              }}
+              style={{
+                width: 36, height: 36, borderRadius: 18, background: C.ivory,
+                border: `1px solid ${C.goldBorder}`, cursor: 'pointer',
+                display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+              }}
+              title={contactsSupported ? 'Import vendors from phonebook' : 'Phonebook import — launching soon'}
+            >
+              <Smartphone size={14} color={C.gold} />
+            </button>
+            <button onClick={() => setShowAdd(true)} style={{
+              width: 36, height: 36, borderRadius: 18, background: C.dark,
+              border: 'none', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Plus size={16} color={C.gold} />
+            </button>
+          </div>
         )}
       </div>
 
@@ -9406,6 +9666,19 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
           fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
         }}>Category</label>
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 14 }}>
+          <button onClick={() => {
+            const custom = prompt('Custom category name:');
+            if (custom && custom.trim()) setCategory(custom.trim());
+          }} style={{
+            padding: '5px 11px', borderRadius: 14,
+            background: C.dark, border: `1px solid ${C.gold}`,
+            color: C.gold, fontSize: 11, fontWeight: 500,
+            fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+            display: 'inline-flex' as const, alignItems: 'center' as const, gap: 4,
+          }}>
+            <Plus size={10} color={C.gold} />
+            <span>Custom</span>
+          </button>
           {EXPENSE_CATEGORIES.map(cat => (
             <button key={cat} onClick={() => setCategory(cat)} style={{
               padding: '5px 11px', borderRadius: 14,
@@ -9416,6 +9689,18 @@ function VendorEditor({ mode, session, events, vendor, onClose, onSave, onDelete
               fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
             }}>{cat}</button>
           ))}
+          {category && !EXPENSE_CATEGORIES.includes(category) && (
+            <span style={{
+              padding: '5px 11px', borderRadius: 14,
+              background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+              color: C.goldDeep, fontSize: 11, fontWeight: 500,
+              fontFamily: 'DM Sans, sans-serif',
+              display: 'inline-flex' as const, alignItems: 'center' as const, gap: 4,
+            }}>
+              <Check size={10} color={C.goldDeep} />
+              <span>{category}</span>
+            </span>
+          )}
         </div>
 
         <InputField label="Phone" value={phone} onChange={setPhone} type="tel" placeholder="+91 98765 43210" />
