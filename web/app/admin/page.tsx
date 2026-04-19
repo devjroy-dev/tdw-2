@@ -228,6 +228,16 @@ export default function AdminPage() {
   const [discLoading, setDiscLoading] = useState(false);
   const [discView, setDiscView] = useState<'requests' | 'granted'>('requests');
   const [discGrantDays, setDiscGrantDays] = useState('30');
+  // ── Vendor Discover state ────────────────────────
+  const [discAudience, setDiscAudience] = useState<'couples' | 'vendors'>('couples');
+  const [vendDiscRequests, setVendDiscRequests] = useState<any[]>([]);
+  const [vendDiscGranted, setVendDiscGranted] = useState<any[]>([]);
+  const [vendSubmissions, setVendSubmissions] = useState<any[]>([]);
+  const [vendSubView, setVendSubView] = useState<'requests' | 'granted' | 'submissions'>('requests');
+  const [reviewingSubmission, setReviewingSubmission] = useState<any>(null);
+  const [reviewDetail, setReviewDetail] = useState<any>(null);
+  const [rejectPhotoReason, setRejectPhotoReason] = useState<Record<string, string>>({});
+  const [overallRejectReason, setOverallRejectReason] = useState('');
 
   const loadDiscover = async () => {
     setDiscLoading(true);
@@ -278,6 +288,129 @@ export default function AdminPage() {
   };
 
   useEffect(() => { if (activeTab === 'discover') loadDiscover(); }, [activeTab]);
+
+  // ── Vendor Discover loaders and actions ────────────────────────
+  const loadVendorDiscover = async () => {
+    setDiscLoading(true);
+    try {
+      const [reqRes, statsRes, subsRes] = await Promise.all([
+        fetch(`${API}/api/vendor-discover/admin/requests`).then(r => r.json()),
+        fetch(`${API}/api/vendor-discover/admin/stats`).then(r => r.json()),
+        fetch(`${API}/api/vendor-discover/admin/submissions`).then(r => r.json()),
+      ]);
+      if (reqRes.success) setVendDiscRequests(reqRes.data || []);
+      if (statsRes.success) setVendDiscGranted(statsRes.granted_vendors || []);
+      if (subsRes.success) setVendSubmissions(subsRes.data || []);
+    } catch {}
+    setDiscLoading(false);
+  };
+
+  const vendDiscGrant = async (vendorId: string) => {
+    try {
+      const r = await fetch(`${API}/api/vendor-discover/admin/grant`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: vendorId, days: parseInt(discGrantDays) || 365 }),
+      });
+      const d = await r.json();
+      if (d.success) loadVendorDiscover();
+    } catch {}
+  };
+
+  const vendDiscRevoke = async (vendorId: string) => {
+    if (!confirm('Revoke Discover access for this vendor?')) return;
+    try {
+      const r = await fetch(`${API}/api/vendor-discover/admin/revoke`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: vendorId }),
+      });
+      const d = await r.json();
+      if (d.success) loadVendorDiscover();
+    } catch {}
+  };
+
+  const vendDiscDeny = async (requestId: string) => {
+    if (!confirm('Deny this request?')) return;
+    try {
+      const r = await fetch(`${API}/api/vendor-discover/admin/deny`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId }),
+      });
+      const d = await r.json();
+      if (d.success) loadVendorDiscover();
+    } catch {}
+  };
+
+  const openSubmissionReview = async (sub: any) => {
+    setReviewingSubmission(sub);
+    setRejectPhotoReason({});
+    setOverallRejectReason('');
+    try {
+      const r = await fetch(`${API}/api/vendor-discover/admin/submissions/${sub.id}`);
+      const d = await r.json();
+      if (d.success) setReviewDetail(d.data);
+    } catch {}
+  };
+
+  const approvePhoto = async (photoApprovalId: string) => {
+    try {
+      await fetch(`${API}/api/vendor-discover/admin/photo/approve`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_approval_id: photoApprovalId }),
+      });
+      // Refresh detail
+      if (reviewingSubmission) {
+        const r = await fetch(`${API}/api/vendor-discover/admin/submissions/${reviewingSubmission.id}`);
+        const d = await r.json();
+        if (d.success) setReviewDetail(d.data);
+      }
+    } catch {}
+  };
+
+  const rejectPhoto = async (photoApprovalId: string) => {
+    const reason = rejectPhotoReason[photoApprovalId] || '';
+    if (!reason.trim()) { alert('Please provide a rejection reason'); return; }
+    try {
+      await fetch(`${API}/api/vendor-discover/admin/photo/reject`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_approval_id: photoApprovalId, reason }),
+      });
+      if (reviewingSubmission) {
+        const r = await fetch(`${API}/api/vendor-discover/admin/submissions/${reviewingSubmission.id}`);
+        const d = await r.json();
+        if (d.success) setReviewDetail(d.data);
+      }
+      setRejectPhotoReason(prev => ({ ...prev, [photoApprovalId]: '' }));
+    } catch {}
+  };
+
+  const finalizeSubmission = async (status: 'approved' | 'partial' | 'rejected') => {
+    if (!reviewingSubmission) return;
+    if (status === 'rejected' && !overallRejectReason.trim()) {
+      alert('Provide a reason for rejection');
+      return;
+    }
+    if (!confirm(`Finalize submission as "${status}"?`)) return;
+    try {
+      const r = await fetch(`${API}/api/vendor-discover/admin/submission/finalize`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: reviewingSubmission.id,
+          status,
+          rejection_reason: overallRejectReason || null,
+        }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setReviewingSubmission(null);
+        setReviewDetail(null);
+        loadVendorDiscover();
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (activeTab === 'discover' && discAudience === 'vendors') loadVendorDiscover();
+  }, [activeTab, discAudience]);
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -2029,9 +2162,30 @@ export default function AdminPage() {
             <div style={s.cardPad}>
               <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>🧭 Discover Beta Management</div>
               <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16, lineHeight: 1.5 }}>
-                Discover is invite-only while vendor catalogue grows. Grant 30-day windows to couples who request early access.
+                Discover is invite-only. Grant access windows to couples (who browse) and to vendors (who list their storefront).
                 <br />Target: 50+ vendors live before global rollout.
               </div>
+
+              {/* AUDIENCE TOGGLE: Couples / Vendors */}
+              <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: '#F5F0E6', borderRadius: 10, padding: 4, maxWidth: 320 }}>
+                {(['couples', 'vendors'] as const).map(a => (
+                  <button
+                    key={a}
+                    onClick={() => setDiscAudience(a)}
+                    style={{
+                      flex: 1, padding: '8px 14px', border: 'none',
+                      background: discAudience === a ? '#2C2420' : 'transparent',
+                      color: discAudience === a ? '#C9A84C' : '#8C7B6E',
+                      cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                      borderRadius: 8, transition: 'all 0.15s',
+                    }}
+                  >
+                    {a === 'couples' ? `Couples (${discRequests.filter(r => r.status === 'pending').length + discGranted.length})` : `Vendors (${vendDiscRequests.filter(r => r.status === 'pending').length + vendDiscGranted.length + vendSubmissions.filter(s => s.status === 'pending').length})`}
+                  </button>
+                ))}
+              </div>
+
+              {discAudience === 'couples' && (<>
 
               {/* Sub-tab nav */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: '1px solid #E8E0D5', paddingBottom: 0 }}>
@@ -2193,6 +2347,250 @@ export default function AdminPage() {
                     </>
                   )}
                 </>
+              )}
+              </>)}
+
+              {/* ═══════════ VENDOR DISCOVERY ═══════════ */}
+              {discAudience === 'vendors' && (<>
+
+                {/* Vendor Sub-tab nav */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: '1px solid #E8E0D5', paddingBottom: 0 }}>
+                  {(['requests', 'granted', 'submissions'] as const).map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setVendSubView(v)}
+                      style={{
+                        padding: '8px 14px', border: 'none', background: 'transparent',
+                        cursor: 'pointer', fontSize: 12,
+                        color: vendSubView === v ? '#2C2420' : '#8C7B6E',
+                        borderBottom: vendSubView === v ? '2px solid #C9A84C' : '2px solid transparent',
+                        fontWeight: vendSubView === v ? 500 : 400, marginBottom: -1,
+                      }}
+                    >
+                      {v === 'requests' ? `Access Requests (${vendDiscRequests.filter(r => r.status === 'pending').length})`
+                        : v === 'granted' ? `Active Grants (${vendDiscGranted.length})`
+                        : `Pending Review (${vendSubmissions.filter(s => s.status === 'pending').length})`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Default days config */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#FAF6F0', borderRadius: 8 }}>
+                  <label style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
+                  <input type="number" min="1" max="730" value={discGrantDays} onChange={e => setDiscGrantDays(e.target.value)}
+                    style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid #E8E0D5', fontSize: 13 }} />
+                  <span style={{ fontSize: 11, color: '#8C7B6E' }}>days</span>
+                  <span style={{ fontSize: 10, color: '#B8ADA4', marginLeft: 'auto' }}>Default: 365 days for vendors • Max: 730 days</span>
+                </div>
+
+                {discLoading ? (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>Loading…</div>
+                ) : (
+                  <>
+                    {vendSubView === 'requests' && (
+                      <>
+                        {vendDiscRequests.length === 0 ? (
+                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No vendor access requests yet.</div>
+                        ) : (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Phone</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Reason</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Status</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {vendDiscRequests.map(req => (
+                                  <tr key={req.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{req.vendor_name || '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E' }}>{req.vendor_phone || '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#2C2420', maxWidth: 220 }}>{req.reason || '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 11 }}>
+                                      <span style={{ padding: '3px 8px', borderRadius: 4, background: req.status === 'pending' ? '#FFF3DB' : req.status === 'granted' ? '#E8F5E9' : '#FFEBEE', color: req.status === 'pending' ? '#B8963A' : req.status === 'granted' ? '#2E7D32' : '#C62828' }}>{req.status}</span>
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                                      {req.status === 'pending' && (
+                                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                          <button onClick={() => vendDiscGrant(req.vendor_id)} style={{ padding: '6px 12px', fontSize: 11, background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}>Grant</button>
+                                          <button onClick={() => vendDiscDeny(req.id)} style={{ padding: '6px 12px', fontSize: 11, background: 'transparent', color: '#8C7B6E', border: '1px solid #E8E0D5', borderRadius: 6, cursor: 'pointer' }}>Deny</button>
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {vendSubView === 'granted' && (
+                      <>
+                        {vendDiscGranted.length === 0 ? (
+                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No vendors granted Discovery access yet.</div>
+                        ) : (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Category</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Completion</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Listed?</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Expires</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {vendDiscGranted.map(v => (
+                                  <tr key={v.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{v.name}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E' }}>{v.category} · {v.city}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#2C2420' }}>{v.discover_completion_pct || 0}%</td>
+                                    <td style={{ padding: '12px', fontSize: 11 }}>
+                                      <span style={{ padding: '3px 8px', borderRadius: 4, background: v.discover_listed ? '#E8F5E9' : '#FFF3DB', color: v.discover_listed ? '#2E7D32' : '#B8963A' }}>{v.discover_listed ? 'Live' : 'Not listed'}</span>
+                                    </td>
+                                    <td style={{ padding: '12px', fontSize: 11, color: '#8C7B6E' }}>{v.vendor_discover_expires_at ? new Date(v.vendor_discover_expires_at).toLocaleDateString() : '—'}</td>
+                                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                                      <button onClick={() => vendDiscRevoke(v.id)} style={{ padding: '6px 12px', fontSize: 11, background: 'transparent', color: '#C62828', border: '1px solid #FFCDD2', borderRadius: 6, cursor: 'pointer' }}>Revoke</button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {vendSubView === 'submissions' && (
+                      <>
+                        {vendSubmissions.length === 0 ? (
+                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No submissions to review.</div>
+                        ) : (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Tier</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Submitted</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Status</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {vendSubmissions.map(sub => (
+                                  <tr key={sub.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{sub.vendor_name}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E', textTransform: 'capitalize' as const }}>{sub.vendor_tier}</td>
+                                    <td style={{ padding: '12px', fontSize: 11, color: '#8C7B6E' }}>{new Date(sub.submitted_at).toLocaleString()}</td>
+                                    <td style={{ padding: '12px', fontSize: 11 }}>
+                                      <span style={{ padding: '3px 8px', borderRadius: 4, background: sub.status === 'pending' ? '#FFF3DB' : sub.status === 'approved' ? '#E8F5E9' : sub.status === 'partial' ? '#E3F2FD' : '#FFEBEE', color: sub.status === 'pending' ? '#B8963A' : sub.status === 'approved' ? '#2E7D32' : sub.status === 'partial' ? '#1565C0' : '#C62828' }}>{sub.status}</span>
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                                      <button onClick={() => openSubmissionReview(sub)} style={{ padding: '6px 12px', fontSize: 11, background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}>
+                                        {sub.status === 'pending' ? 'Review' : 'View'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </>)}
+
+              {/* ═══════════ SUBMISSION REVIEW MODAL ═══════════ */}
+              {reviewingSubmission && reviewDetail && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setReviewingSubmission(null); setReviewDetail(null); }}>
+                  <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, maxWidth: 900, width: '100%', maxHeight: '92vh', overflow: 'auto', padding: 28 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 600, color: '#2C2420', marginBottom: 4 }}>Review: {reviewDetail.vendor?.name}</div>
+                        <div style={{ fontSize: 12, color: '#8C7B6E' }}>{reviewDetail.vendor?.category} · {reviewDetail.vendor?.city} · Tier: {reviewingSubmission.vendor_tier}</div>
+                      </div>
+                      <button onClick={() => { setReviewingSubmission(null); setReviewDetail(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#8C7B6E' }}>×</button>
+                    </div>
+
+                    <div style={{ padding: 14, background: '#FAF6F0', borderRadius: 10, marginBottom: 18, fontSize: 12, color: '#2C2420', lineHeight: 1.6 }}>
+                      <div><strong>Starting price:</strong> Rs {reviewDetail.vendor?.starting_price ? (reviewDetail.vendor.starting_price / 100000).toFixed(1) + 'L' : '—'}</div>
+                      <div><strong>About:</strong> {reviewDetail.vendor?.about || '—'}</div>
+                      <div><strong>Vibe tags:</strong> {(reviewDetail.vendor?.vibe_tags || []).join(', ') || '—'}</div>
+                      <div><strong>Years active:</strong> {reviewDetail.vendor?.years_active || '—'} · <strong>Weddings:</strong> {reviewDetail.vendor?.weddings_delivered || '—'}</div>
+                      <div><strong>Languages:</strong> {(reviewDetail.vendor?.languages || []).join(', ') || '—'}</div>
+                      <div><strong>Serves:</strong> {reviewDetail.vendor?.serves_flexible ? 'Flexible (any location)' : (reviewDetail.vendor?.serves_cities || []).join(', ') || '—'}</div>
+                      <div><strong>Packages:</strong> {reviewDetail.packages?.length || 0}</div>
+                    </div>
+
+                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#2C2420' }}>
+                      Portfolio Photos ({reviewDetail.photo_approvals?.length || 0})
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, marginBottom: 20 }}>
+                      {reviewDetail.photo_approvals?.map((pa: any) => (
+                        <div key={pa.id} style={{
+                          border: pa.approval_status === 'approved' ? '2px solid #4CAF50' : pa.approval_status === 'rejected' ? '2px solid #E57373' : '1px solid #E8E0D5',
+                          borderRadius: 10, overflow: 'hidden', background: '#FAF6F0',
+                        }}>
+                          <div style={{ aspectRatio: '1', background: `url(${pa.image_url}) center/cover` }} />
+                          <div style={{ padding: 8 }}>
+                            <div style={{ fontSize: 10, color: '#8C7B6E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              {pa.context} · {pa.approval_status}
+                            </div>
+                            {pa.approval_status === 'rejected' && pa.rejection_reason && (
+                              <div style={{ fontSize: 11, color: '#C62828', marginBottom: 6, padding: 6, background: '#FFEBEE', borderRadius: 4 }}>{pa.rejection_reason}</div>
+                            )}
+                            {pa.approval_status === 'pending' && (
+                              <>
+                                <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                                  <button onClick={() => approvePhoto(pa.id)} style={{ flex: 1, padding: '4px 8px', fontSize: 10, background: '#2E7D32', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>Approve</button>
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="Rejection reason…"
+                                  value={rejectPhotoReason[pa.id] || ''}
+                                  onChange={e => setRejectPhotoReason(prev => ({ ...prev, [pa.id]: e.target.value }))}
+                                  style={{ width: '100%', padding: '4px 6px', fontSize: 10, borderRadius: 4, border: '1px solid #E8E0D5', marginBottom: 4, boxSizing: 'border-box' }}
+                                />
+                                <button onClick={() => rejectPhoto(pa.id)} style={{ width: '100%', padding: '4px 8px', fontSize: 10, background: '#C62828', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>Reject</button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {reviewingSubmission.status === 'pending' && (
+                      <div style={{ padding: 16, background: '#FAF6F0', borderRadius: 10, marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#2C2420' }}>Finalize submission</div>
+                        <textarea
+                          placeholder="Optional overall note (required if rejecting — e.g. 'Photo quality too low', 'Pricing missing')"
+                          value={overallRejectReason}
+                          onChange={e => setOverallRejectReason(e.target.value)}
+                          rows={2}
+                          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #E8E0D5', fontSize: 12, boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' as const, fontFamily: 'inherit' }}
+                        />
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+                          <button onClick={() => finalizeSubmission('approved')} style={{ flex: 1, minWidth: 100, padding: '10px 16px', fontSize: 12, background: '#2E7D32', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>✓ Approve & List</button>
+                          <button onClick={() => finalizeSubmission('partial')} style={{ flex: 1, minWidth: 100, padding: '10px 16px', fontSize: 12, background: '#1565C0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>◐ Partial Approve</button>
+                          <button onClick={() => finalizeSubmission('rejected')} style={{ flex: 1, minWidth: 100, padding: '10px 16px', fontSize: 12, background: '#C62828', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>✗ Reject</button>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 10, lineHeight: 1.5 }}>
+                          <strong>Approve:</strong> lists with all photos. <strong>Partial:</strong> lists but rejected photos hidden. <strong>Reject:</strong> vendor sees red mark and must re-submit.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </>

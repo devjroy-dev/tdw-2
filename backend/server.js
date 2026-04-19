@@ -7751,3 +7751,517 @@ app.get('/api/discover/admin/stats', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VENDOR DISCOVERY — access control (mirrors couple Discover pattern)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Status: vendor PWA calls on Discover mode mount
+app.get('/api/vendor-discover/status', async (req, res) => {
+  try {
+    const { vendor_id } = req.query;
+    if (!vendor_id) return res.status(400).json({ success: false, error: 'vendor_id required' });
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('id, vendor_discover_enabled, vendor_discover_expires_at, discover_listed, discover_submitted_at, discover_approved_at, discover_rejected_reason, discover_completion_pct')
+      .eq('id', vendor_id).maybeSingle();
+    if (error || !data) return res.json({ success: true, enabled: false, reason: 'not_found' });
+    if (!data.vendor_discover_enabled) {
+      const { data: pending } = await supabase
+        .from('vendor_discover_access_requests')
+        .select('id, status, created_at')
+        .eq('vendor_id', vendor_id).eq('status', 'pending')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      return res.json({ success: true, enabled: false, reason: 'not_granted', pending_request: pending || null });
+    }
+    if (data.vendor_discover_expires_at && new Date(data.vendor_discover_expires_at) < new Date()) {
+      return res.json({ success: true, enabled: false, reason: 'expired' });
+    }
+    res.json({
+      success: true,
+      enabled: true,
+      expires_at: data.vendor_discover_expires_at,
+      listed: data.discover_listed,
+      submitted_at: data.discover_submitted_at,
+      approved_at: data.discover_approved_at,
+      rejection_reason: data.discover_rejected_reason,
+      completion_pct: data.discover_completion_pct || 0,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Request access
+app.post('/api/vendor-discover/request-access', async (req, res) => {
+  try {
+    const { vendor_id, reason } = req.body || {};
+    if (!vendor_id) return res.status(400).json({ success: false, error: 'vendor_id required' });
+    const { data: existing } = await supabase
+      .from('vendor_discover_access_requests')
+      .select('id').eq('vendor_id', vendor_id).eq('status', 'pending').maybeSingle();
+    if (existing) return res.json({ success: true, already_pending: true, data: existing });
+    const { data: v } = await supabase.from('vendors').select('name, phone').eq('id', vendor_id).maybeSingle();
+    const { data, error } = await supabase
+      .from('vendor_discover_access_requests').insert([{
+        vendor_id, vendor_name: v?.name || null, vendor_phone: v?.phone || null,
+        reason: reason || null,
+      }]).select().single();
+    if (error) throw error;
+    await supabase.from('vendors').update({
+      vendor_discover_access_requested_at: new Date().toISOString(),
+    }).eq('id', vendor_id);
+    logActivity('vendor_discover_requested', `Vendor ${v?.name || vendor_id} requested Discover beta`);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Admin: list requests
+app.get('/api/vendor-discover/admin/requests', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_discover_access_requests')
+      .select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: grant
+app.post('/api/vendor-discover/admin/grant', async (req, res) => {
+  try {
+    const { vendor_id, days } = req.body || {};
+    if (!vendor_id) return res.status(400).json({ success: false, error: 'vendor_id required' });
+    const dayCount = Math.min(Math.max(parseInt(days) || 365, 1), 730);
+    const now = new Date();
+    const expires = new Date(now.getTime() + dayCount * 86400000);
+    const { error } = await supabase.from('vendors').update({
+      vendor_discover_enabled: true,
+      vendor_discover_granted_at: now.toISOString(),
+      vendor_discover_expires_at: expires.toISOString(),
+    }).eq('id', vendor_id);
+    if (error) throw error;
+    await supabase.from('vendor_discover_access_requests').update({
+      status: 'granted', reviewed_at: now.toISOString(), reviewed_by: 'admin',
+    }).eq('vendor_id', vendor_id).eq('status', 'pending');
+    logActivity('vendor_discover_granted', `Vendor ${vendor_id} granted Discover for ${dayCount} days`);
+    res.json({ success: true, expires_at: expires.toISOString(), days: dayCount });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: revoke
+app.post('/api/vendor-discover/admin/revoke', async (req, res) => {
+  try {
+    const { vendor_id } = req.body || {};
+    if (!vendor_id) return res.status(400).json({ success: false, error: 'vendor_id required' });
+    const { error } = await supabase.from('vendors').update({
+      vendor_discover_enabled: false, discover_listed: false,
+    }).eq('id', vendor_id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: deny
+app.post('/api/vendor-discover/admin/deny', async (req, res) => {
+  try {
+    const { request_id } = req.body || {};
+    if (!request_id) return res.status(400).json({ success: false, error: 'request_id required' });
+    const { error } = await supabase.from('vendor_discover_access_requests').update({
+      status: 'denied', reviewed_at: new Date().toISOString(), reviewed_by: 'admin',
+    }).eq('id', request_id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: stats (granted vendors list)
+app.get('/api/vendor-discover/admin/stats', async (req, res) => {
+  try {
+    const { data: granted } = await supabase.from('vendors')
+      .select('id, name, phone, category, city, vendor_discover_granted_at, vendor_discover_expires_at, discover_listed, discover_completion_pct')
+      .eq('vendor_discover_enabled', true);
+    res.json({ success: true, granted_vendors: granted || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VENDOR DISCOVERY PROFILE — CRUD operations
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Get full discovery profile for a vendor
+app.get('/api/vendor-discover/profile/:vendor_id', async (req, res) => {
+  try {
+    const { vendor_id } = req.params;
+    const [{ data: vendor }, { data: packages }, { data: albums }, { data: blocks }, { data: photos }] = await Promise.all([
+      supabase.from('vendors').select('*').eq('id', vendor_id).maybeSingle(),
+      supabase.from('vendor_packages').select('*').eq('vendor_id', vendor_id).order('sort_order'),
+      supabase.from('vendor_wedding_albums').select('*').eq('vendor_id', vendor_id).order('sort_order'),
+      supabase.from('vendor_availability_blocks').select('*').eq('vendor_id', vendor_id),
+      supabase.from('vendor_photo_approvals').select('*').eq('vendor_id', vendor_id),
+    ]);
+    if (!vendor) return res.status(404).json({ success: false, error: 'vendor not found' });
+    res.json({
+      success: true,
+      data: {
+        vendor,
+        packages: packages || [],
+        albums: albums || [],
+        blocked_dates: blocks || [],
+        photo_approvals: photos || [],
+      },
+    });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Update vendor discovery fields (partial update)
+app.patch('/api/vendor-discover/profile/:vendor_id', async (req, res) => {
+  try {
+    const { vendor_id } = req.params;
+    // Whitelist updatable fields to avoid accidents
+    const allowed = [
+      'owner_name', 'serves_cities', 'serves_flexible', 'years_active', 'weddings_delivered',
+      'languages', 'team_size', 'category_details', 'gst_number', 'studio_address',
+      'studio_lat', 'studio_lng', 'cancellation_policy', 'payment_terms', 'travel_charges',
+      'about', 'vibe_tags', 'starting_price', 'equipment', 'delivery_time',
+      'portfolio_images', 'featured_photos', 'cities', 'instagram',
+    ];
+    const updates = {};
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    }
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'no updatable fields in body' });
+    }
+    const { data, error } = await supabase.from('vendors').update(updates).eq('id', vendor_id).select().single();
+    if (error) throw error;
+    // Recompute completion %
+    await recomputeDiscoverCompletion(vendor_id);
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Completion % helper
+async function recomputeDiscoverCompletion(vendor_id) {
+  try {
+    const { data: v } = await supabase.from('vendors').select('*').eq('id', vendor_id).maybeSingle();
+    if (!v) return;
+    const { data: packages } = await supabase.from('vendor_packages').select('id').eq('vendor_id', vendor_id);
+    let score = 0;
+    const total = 12;
+    if (v.name) score++;
+    if (v.category && v.city) score++;
+    if (v.serves_cities && Array.isArray(v.serves_cities) && v.serves_cities.length > 0) score++;
+    if (v.years_active) score++;
+    if (v.weddings_delivered) score++;
+    if (v.languages && Array.isArray(v.languages) && v.languages.length > 0) score++;
+    if (v.starting_price) score++;
+    if (v.portfolio_images && Array.isArray(v.portfolio_images) && v.portfolio_images.length >= 3) score++;
+    if (v.about && v.about.length >= 100) score++;
+    if (v.vibe_tags && Array.isArray(v.vibe_tags) && v.vibe_tags.length >= 3) score++;
+    if (packages && packages.length > 0) score++;
+    if (v.cancellation_policy) score++;
+    const pct = Math.round((score / total) * 100);
+    await supabase.from('vendors').update({ discover_completion_pct: pct }).eq('id', vendor_id);
+  } catch (e) { console.warn('recomputeDiscoverCompletion error:', e.message); }
+}
+
+// ── Packages CRUD
+app.get('/api/vendor-discover/packages/:vendor_id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('vendor_packages')
+      .select('*').eq('vendor_id', req.params.vendor_id).order('sort_order');
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/vendor-discover/packages', async (req, res) => {
+  try {
+    const { vendor_id, name, price, deliverables, duration, ideal_for, included, sort_order } = req.body || {};
+    if (!vendor_id || !name) return res.status(400).json({ success: false, error: 'vendor_id and name required' });
+    const { data, error } = await supabase.from('vendor_packages').insert([{
+      vendor_id, name, price: price || null,
+      deliverables: deliverables || [], duration: duration || null,
+      ideal_for: ideal_for || null, included: included || null,
+      sort_order: sort_order || 0,
+    }]).select().single();
+    if (error) throw error;
+    await recomputeDiscoverCompletion(vendor_id);
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.patch('/api/vendor-discover/packages/:id', async (req, res) => {
+  try {
+    const allowed = ['name', 'price', 'deliverables', 'duration', 'ideal_for', 'included', 'sort_order'];
+    const updates = { updated_at: new Date().toISOString() };
+    for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+    const { data, error } = await supabase.from('vendor_packages').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/vendor-discover/packages/:id', async (req, res) => {
+  try {
+    const { data: pkg } = await supabase.from('vendor_packages').select('vendor_id').eq('id', req.params.id).maybeSingle();
+    const { error } = await supabase.from('vendor_packages').delete().eq('id', req.params.id);
+    if (error) throw error;
+    if (pkg?.vendor_id) await recomputeDiscoverCompletion(pkg.vendor_id);
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Availability blocks CRUD
+app.get('/api/vendor-discover/availability/:vendor_id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('vendor_availability_blocks')
+      .select('*').eq('vendor_id', req.params.vendor_id).order('blocked_date');
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/vendor-discover/availability', async (req, res) => {
+  try {
+    const { vendor_id, dates, reason } = req.body || {};
+    if (!vendor_id || !Array.isArray(dates) || dates.length === 0) {
+      return res.status(400).json({ success: false, error: 'vendor_id and dates[] required' });
+    }
+    const rows = dates.map(d => ({ vendor_id, blocked_date: d, reason: reason || null }));
+    const { data, error } = await supabase.from('vendor_availability_blocks')
+      .upsert(rows, { onConflict: 'vendor_id,blocked_date', ignoreDuplicates: true }).select();
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/vendor-discover/availability', async (req, res) => {
+  try {
+    const { vendor_id, dates } = req.body || {};
+    if (!vendor_id || !Array.isArray(dates) || dates.length === 0) {
+      return res.status(400).json({ success: false, error: 'vendor_id and dates[] required' });
+    }
+    const { error } = await supabase.from('vendor_availability_blocks')
+      .delete().eq('vendor_id', vendor_id).in('blocked_date', dates);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Wedding albums CRUD
+app.get('/api/vendor-discover/albums/:vendor_id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('vendor_wedding_albums')
+      .select('*').eq('vendor_id', req.params.vendor_id).order('sort_order');
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/vendor-discover/albums', async (req, res) => {
+  try {
+    const { vendor_id, title, city, event_date, images, video_url, sort_order } = req.body || {};
+    if (!vendor_id || !title) return res.status(400).json({ success: false, error: 'vendor_id and title required' });
+    const { data, error } = await supabase.from('vendor_wedding_albums').insert([{
+      vendor_id, title, city: city || null, event_date: event_date || null,
+      images: images || [], video_url: video_url || null, sort_order: sort_order || 0,
+    }]).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.patch('/api/vendor-discover/albums/:id', async (req, res) => {
+  try {
+    const allowed = ['title', 'city', 'event_date', 'images', 'video_url', 'sort_order'];
+    const updates = { updated_at: new Date().toISOString() };
+    for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+    const { data, error } = await supabase.from('vendor_wedding_albums').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/vendor-discover/albums/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('vendor_wedding_albums').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VENDOR DISCOVERY SUBMISSIONS — approval queue
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Vendor submits for approval (or re-submits after edits)
+app.post('/api/vendor-discover/submit', async (req, res) => {
+  try {
+    const { vendor_id } = req.body || {};
+    if (!vendor_id) return res.status(400).json({ success: false, error: 'vendor_id required' });
+
+    const { data: vendor } = await supabase.from('vendors').select('*').eq('id', vendor_id).maybeSingle();
+    if (!vendor) return res.status(404).json({ success: false, error: 'vendor not found' });
+
+    // Resolve tier
+    const { data: sub } = await supabase.from('vendor_subscriptions').select('tier').eq('vendor_id', vendor_id).maybeSingle();
+    const tier = sub?.tier || 'essential';
+
+    // Prestige: auto-approve (skip manual review), just list directly
+    if (tier === 'prestige') {
+      await supabase.from('vendors').update({
+        discover_listed: true,
+        discover_submitted_at: new Date().toISOString(),
+        discover_approved_at: new Date().toISOString(),
+        discover_rejected_reason: null,
+      }).eq('id', vendor_id);
+      // Mark all pending photos approved
+      await supabase.from('vendor_photo_approvals').update({
+        approval_status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: 'auto-prestige',
+      }).eq('vendor_id', vendor_id).eq('approval_status', 'pending');
+      logActivity('vendor_discover_auto_approved', `Prestige vendor ${vendor.name} auto-listed`);
+      return res.json({ success: true, auto_approved: true });
+    }
+
+    // Essential/Signature: create submission for manual review
+    const { data: submission, error } = await supabase.from('vendor_discover_submissions').insert([{
+      vendor_id, vendor_name: vendor.name, vendor_tier: tier,
+      status: 'pending',
+    }]).select().single();
+    if (error) throw error;
+
+    // Mark vendor as submitted (not yet listed)
+    await supabase.from('vendors').update({
+      discover_submitted_at: new Date().toISOString(),
+      discover_rejected_reason: null,
+    }).eq('id', vendor_id);
+
+    // Ensure photo approvals exist for every portfolio+featured image
+    const photoRows = [];
+    for (const url of (vendor.portfolio_images || [])) {
+      photoRows.push({ vendor_id, image_url: url, context: 'portfolio', approval_status: 'pending' });
+    }
+    for (const url of (vendor.featured_photos || [])) {
+      photoRows.push({ vendor_id, image_url: url, context: 'featured', approval_status: 'pending' });
+    }
+    if (photoRows.length > 0) {
+      await supabase.from('vendor_photo_approvals').upsert(photoRows, {
+        onConflict: 'vendor_id,image_url,context', ignoreDuplicates: true,
+      });
+    }
+
+    // Mark packages as pending
+    await supabase.from('vendor_packages').update({ approval_status: 'pending' })
+      .eq('vendor_id', vendor_id).eq('approval_status', 'draft');
+
+    logActivity('vendor_discover_submitted', `${tier} vendor ${vendor.name} submitted for Discovery review`);
+    res.json({ success: true, submission });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Admin: list all submissions (pending first)
+app.get('/api/vendor-discover/admin/submissions', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let q = supabase.from('vendor_discover_submissions').select('*').order('submitted_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: get full submission detail (vendor profile + photos + packages)
+app.get('/api/vendor-discover/admin/submissions/:id', async (req, res) => {
+  try {
+    const { data: sub } = await supabase.from('vendor_discover_submissions').select('*').eq('id', req.params.id).maybeSingle();
+    if (!sub) return res.status(404).json({ success: false, error: 'submission not found' });
+    const [{ data: vendor }, { data: packages }, { data: albums }, { data: photos }] = await Promise.all([
+      supabase.from('vendors').select('*').eq('id', sub.vendor_id).maybeSingle(),
+      supabase.from('vendor_packages').select('*').eq('vendor_id', sub.vendor_id),
+      supabase.from('vendor_wedding_albums').select('*').eq('vendor_id', sub.vendor_id),
+      supabase.from('vendor_photo_approvals').select('*').eq('vendor_id', sub.vendor_id),
+    ]);
+    res.json({ success: true, data: { submission: sub, vendor, packages: packages || [], albums: albums || [], photo_approvals: photos || [] } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: approve photo
+app.post('/api/vendor-discover/admin/photo/approve', async (req, res) => {
+  try {
+    const { photo_approval_id } = req.body || {};
+    if (!photo_approval_id) return res.status(400).json({ success: false, error: 'photo_approval_id required' });
+    const { error } = await supabase.from('vendor_photo_approvals').update({
+      approval_status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: 'admin',
+    }).eq('id', photo_approval_id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: reject photo with reason
+app.post('/api/vendor-discover/admin/photo/reject', async (req, res) => {
+  try {
+    const { photo_approval_id, reason } = req.body || {};
+    if (!photo_approval_id) return res.status(400).json({ success: false, error: 'photo_approval_id required' });
+    const { error } = await supabase.from('vendor_photo_approvals').update({
+      approval_status: 'rejected', rejection_reason: reason || null,
+      reviewed_at: new Date().toISOString(), reviewed_by: 'admin',
+    }).eq('id', photo_approval_id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: finalize submission review (approve/partial/reject overall)
+app.post('/api/vendor-discover/admin/submission/finalize', async (req, res) => {
+  try {
+    const { submission_id, status, rejection_reason, notes } = req.body || {};
+    if (!submission_id || !['approved', 'partial', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'submission_id and valid status required' });
+    }
+    const { data: sub } = await supabase.from('vendor_discover_submissions').select('vendor_id').eq('id', submission_id).maybeSingle();
+    if (!sub) return res.status(404).json({ success: false, error: 'submission not found' });
+
+    // Update submission
+    await supabase.from('vendor_discover_submissions').update({
+      status, rejection_reason: rejection_reason || null,
+      notes: notes || [],
+      reviewed_at: new Date().toISOString(), reviewed_by: 'admin',
+    }).eq('id', submission_id);
+
+    if (status === 'approved' || status === 'partial') {
+      // List the vendor — only approved photos will show (enforced on read)
+      await supabase.from('vendors').update({
+        discover_listed: true,
+        discover_approved_at: new Date().toISOString(),
+        discover_rejected_reason: status === 'partial' ? (rejection_reason || null) : null,
+      }).eq('id', sub.vendor_id);
+      // Auto-approve any still-pending photos (if admin didn't touch them, treat as accepted)
+      await supabase.from('vendor_photo_approvals').update({
+        approval_status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: 'admin-bulk',
+      }).eq('vendor_id', sub.vendor_id).eq('approval_status', 'pending');
+      // Auto-approve pending packages
+      await supabase.from('vendor_packages').update({ approval_status: 'approved', reviewed_at: new Date().toISOString() })
+        .eq('vendor_id', sub.vendor_id).eq('approval_status', 'pending');
+      logActivity('vendor_discover_listed', `Vendor ${sub.vendor_id} listed in Discovery (${status})`);
+    } else {
+      // Rejected — don't list
+      await supabase.from('vendors').update({
+        discover_listed: false,
+        discover_rejected_reason: rejection_reason || 'Submission rejected',
+      }).eq('id', sub.vendor_id);
+      logActivity('vendor_discover_rejected', `Vendor ${sub.vendor_id} Discovery submission rejected`);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});

@@ -6623,38 +6623,1067 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
 // ══════════════════════════════════════════════════════════════════════════
 
 function DiscoveryComingSoon({ session }: { session: VendorSession }) {
-  return (
-    <div style={{
-      minHeight: '60vh',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '40px 24px', textAlign: 'center' as const,
-    }}>
-      <div style={{
-        width: 56, height: 56, borderRadius: 28,
-        background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 20,
-      }}>
-        <Globe size={22} color={C.gold} />
+  // ──────────── ALL HOOKS DECLARED BEFORE ANY EARLY RETURNS ────────────
+  const [accessStatus, setAccessStatus] = useState<'loading' | 'granted' | 'pending' | 'denied' | 'expired'>('loading');
+  const [requestSent, setRequestSent] = useState(false);
+  const [requestReason, setRequestReason] = useState('');
+  const [profile, setProfile] = useState<any>(null);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [photoApprovals, setPhotoApprovals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [listed, setListed] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [completionPct, setCompletionPct] = useState(0);
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+  const [ownerName, setOwnerName] = useState('');
+  const [servesCities, setServesCities] = useState<string[]>([]);
+  const [servesFlexible, setServesFlexible] = useState(false);
+  const [yearsActive, setYearsActive] = useState('');
+  const [weddingsDelivered, setWeddingsDelivered] = useState('');
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [teamSize, setTeamSize] = useState('');
+  const [startingPrice, setStartingPrice] = useState('');
+  const [about, setAbout] = useState('');
+  const [vibeTags, setVibeTags] = useState<string[]>([]);
+  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [featuredPhotos, setFeaturedPhotos] = useState<string[]>([]);
+  const [cancellationPolicy, setCancellationPolicy] = useState('');
+  const [categoryDetails, setCategoryDetails] = useState<any>({});
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<any>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<any>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() };
+  });
+  const [showRejectionDetails, setShowRejectionDetails] = useState(false);
+
+  // Constants
+  const CITIES_FULL = ['Delhi NCR', 'Mumbai', 'Bangalore', 'Jaipur', 'Udaipur', 'Kolkata', 'Chennai', 'Hyderabad', 'Lucknow', 'Goa', 'Chandigarh', 'Pune', 'Ahmedabad', 'Surat', 'Indore', 'Kochi', 'Gurugram', 'Noida'];
+  const LANGUAGES = ['Hindi', 'English', 'Punjabi', 'Tamil', 'Telugu', 'Bengali', 'Marathi', 'Gujarati', 'Kannada', 'Malayalam', 'Urdu', 'Odia'];
+  const VIBE_TAGS_ALL = ['Candid', 'Luxury', 'Traditional', 'Cinematic', 'Minimalist', 'Destination', 'Royal', 'Bohemian', 'Editorial', 'Modern', 'Intimate', 'Grand'];
+
+  const showToast = (m: string) => {
+    setToast(m);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
+  };
+
+  // Effects
+  useEffect(() => {
+    if (!session?.vendorId) { setAccessStatus('denied'); return; }
+    fetch(`${API}/api/vendor-discover/status?vendor_id=${session.vendorId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.enabled) {
+          setAccessStatus('granted');
+          setListed(d.listed || false);
+          setSubmittedAt(d.submitted_at || null);
+          setRejectionReason(d.rejection_reason || null);
+          setCompletionPct(d.completion_pct || 0);
+        } else if (d.pending_request) setAccessStatus('pending');
+        else if (d.reason === 'expired') setAccessStatus('expired');
+        else setAccessStatus('denied');
+      })
+      .catch(() => setAccessStatus('denied'));
+  }, [session?.vendorId]);
+
+  useEffect(() => {
+    if (accessStatus === 'granted' && session?.vendorId) loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessStatus, session?.vendorId]);
+
+  const loadProfile = async () => {
+    if (!session?.vendorId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/vendor-discover/profile/${session.vendorId}`);
+      const d = await res.json();
+      if (d.success) {
+        const v = d.data.vendor;
+        setProfile(v);
+        setPackages(d.data.packages || []);
+        setBlocks(d.data.blocked_dates || []);
+        setPhotoApprovals(d.data.photo_approvals || []);
+        setListed(!!v.discover_listed);
+        setCompletionPct(v.discover_completion_pct || 0);
+        setSubmittedAt(v.discover_submitted_at);
+        setRejectionReason(v.discover_rejected_reason);
+        setOwnerName(v.owner_name || '');
+        setServesCities(Array.isArray(v.serves_cities) ? v.serves_cities : []);
+        setServesFlexible(!!v.serves_flexible);
+        setYearsActive(v.years_active || '');
+        setWeddingsDelivered(v.weddings_delivered || '');
+        setLanguages(Array.isArray(v.languages) ? v.languages : []);
+        setTeamSize(v.team_size || '');
+        setStartingPrice(v.starting_price ? String(v.starting_price) : '');
+        setAbout(v.about || '');
+        setVibeTags(Array.isArray(v.vibe_tags) ? v.vibe_tags : []);
+        setPortfolioImages(Array.isArray(v.portfolio_images) ? v.portfolio_images : []);
+        setFeaturedPhotos(Array.isArray(v.featured_photos) ? v.featured_photos : []);
+        setCancellationPolicy(v.cancellation_policy || '');
+        setCategoryDetails(v.category_details || {});
+      }
+    } catch {}
+    setLoading(false);
+  };
+
+  const saveFields = async (updates: any) => {
+    if (!session?.vendorId) return;
+    try {
+      const res = await fetch(`${API}/api/vendor-discover/profile/${session.vendorId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('Saved');
+        loadProfile();
+      } else showToast('Save failed');
+    } catch { showToast('Save failed'); }
+  };
+
+  const submitAccessRequest = async () => {
+    if (!session?.vendorId) return;
+    try {
+      await fetch(`${API}/api/vendor-discover/request-access`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: session.vendorId, reason: requestReason || null }),
+      });
+      setRequestSent(true);
+      setAccessStatus('pending');
+    } catch {}
+  };
+
+  const submitForReview = async () => {
+    if (!session?.vendorId) return;
+    if (completionPct < 70) {
+      alert('Complete at least 70% of your profile before submitting. Current: ' + completionPct + '%');
+      return;
+    }
+    if (!confirm('Submit your profile for review?\n\nOur team will review your photos and packages within 24-48 hours. You\'ll get notified once approved.')) return;
+    try {
+      const res = await fetch(`${API}/api/vendor-discover/submit`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: session.vendorId }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast(d.auto_approved ? 'Your profile is live!' : 'Submitted for review');
+        loadProfile();
+      }
+    } catch { showToast('Submission failed'); }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploadingPhoto(true);
+    const uploaded: string[] = [];
+    for (const f of files) {
+      const url = await uploadToCloudinary(f);
+      if (url) uploaded.push(url);
+    }
+    if (uploaded.length > 0) {
+      const next = [...portfolioImages, ...uploaded];
+      setPortfolioImages(next);
+      await saveFields({ portfolio_images: next });
+    }
+    setUploadingPhoto(false);
+    e.target.value = '';
+  };
+
+  const removePhoto = async (url: string) => {
+    const next = portfolioImages.filter(u => u !== url);
+    setPortfolioImages(next);
+    const nextFeat = featuredPhotos.filter(u => u !== url);
+    setFeaturedPhotos(nextFeat);
+    await saveFields({ portfolio_images: next, featured_photos: nextFeat });
+  };
+
+  const toggleFeatured = async (url: string) => {
+    let next: string[];
+    if (featuredPhotos.includes(url)) {
+      next = featuredPhotos.filter(u => u !== url);
+    } else {
+      if (featuredPhotos.length >= 5) { showToast('Max 5 featured photos'); return; }
+      next = [...featuredPhotos, url];
+    }
+    setFeaturedPhotos(next);
+    await saveFields({ featured_photos: next });
+  };
+
+  const openNewPackage = () => {
+    setEditingPackage({ id: null, name: '', price: '', duration: '', ideal_for: '', deliverables: [''], included: '' });
+  };
+
+  const savePackage = async () => {
+    if (!editingPackage || !editingPackage.name) { showToast('Name required'); return; }
+    const body = {
+      vendor_id: session.vendorId,
+      name: editingPackage.name,
+      price: editingPackage.price ? parseInt(String(editingPackage.price)) : null,
+      duration: editingPackage.duration || null,
+      ideal_for: editingPackage.ideal_for || null,
+      deliverables: (editingPackage.deliverables || []).filter((d: string) => d.trim()),
+      included: editingPackage.included || null,
+      sort_order: editingPackage.sort_order || packages.length,
+    };
+    try {
+      let res;
+      if (editingPackage.id) {
+        res = await fetch(`${API}/api/vendor-discover/packages/${editingPackage.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch(`${API}/api/vendor-discover/packages`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      }
+      const d = await res.json();
+      if (d.success) {
+        showToast('Package saved');
+        setEditingPackage(null);
+        loadProfile();
+      } else showToast('Save failed');
+    } catch { showToast('Save failed'); }
+  };
+
+  const deletePackage = async (id: string) => {
+    if (!confirm('Delete this package?')) return;
+    try {
+      await fetch(`${API}/api/vendor-discover/packages/${id}`, { method: 'DELETE' });
+      showToast('Deleted');
+      loadProfile();
+    } catch {}
+  };
+
+  const blockedSet = new Set(blocks.map((b: any) => b.blocked_date));
+
+  const toggleDateBlock = async (dateStr: string) => {
+    try {
+      if (blockedSet.has(dateStr)) {
+        await fetch(`${API}/api/vendor-discover/availability`, {
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vendor_id: session.vendorId, dates: [dateStr] }),
+        });
+      } else {
+        await fetch(`${API}/api/vendor-discover/availability`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vendor_id: session.vendorId, dates: [dateStr] }),
+        });
+      }
+      loadProfile();
+    } catch {}
+  };
+
+  // ──────────── EARLY RETURNS ────────────
+
+  if (accessStatus === 'loading') {
+    return (
+      <div style={{ padding: '120px 28px', textAlign: 'center' }}>
+        <div style={{ width: 32, height: 32, border: `2px solid ${C.goldBorder}`, borderTopColor: C.gold, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
-      <p style={{
-        margin: '0 0 4px', fontSize: 10, color: C.goldDeep, fontWeight: 500,
-        letterSpacing: '3px', textTransform: 'uppercase' as const,
-      }}>Coming soon</p>
-      <h2 style={{
-        fontFamily: 'Playfair Display, serif', fontSize: 26,
-        color: C.dark, margin: '0 0 12px', fontWeight: 400,
-      }}>Your storefront.</h2>
-      <p style={{
-        fontSize: 13, color: C.muted, lineHeight: '20px',
-        fontWeight: 300, maxWidth: 320, margin: 0,
+    );
+  }
+
+  if (accessStatus !== 'granted') {
+    return (
+      <div style={{ padding: '80px 28px 100px', textAlign: 'center' }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 20,
+          background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px',
+        }}>
+          <Globe size={28} color={C.gold} />
+        </div>
+        <h2 style={{
+          fontFamily: 'Playfair Display, serif', fontSize: 26,
+          color: C.dark, margin: '0 0 10px', fontWeight: 400,
+        }}>Your storefront, by invitation.</h2>
+        <p style={{
+          fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: C.muted,
+          fontWeight: 300, lineHeight: '22px', margin: '0 0 28px',
+        }}>
+          Discover is where India's most discerning brides find you. We're hand-picking vendors in this phase to keep the catalogue curated.
+        </p>
+
+        {accessStatus === 'pending' || requestSent ? (
+          <div style={{
+            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            borderRadius: 12, padding: '14px 20px', maxWidth: 300, margin: '0 auto',
+          }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 400 }}>
+              You're on the list. We'll notify you when access is ready.
+            </p>
+          </div>
+        ) : (
+          <div style={{ maxWidth: 320, margin: '0 auto' }}>
+            <textarea
+              value={requestReason}
+              onChange={e => setRequestReason(e.target.value)}
+              placeholder="Tell us briefly about your work (optional)"
+              rows={2}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 10,
+                border: `1px solid ${C.border}`, background: C.ivory,
+                fontFamily: 'DM Sans, sans-serif', fontSize: 13,
+                color: C.dark, outline: 'none', resize: 'none', marginBottom: 12,
+                boxSizing: 'border-box' as const,
+              }}
+            />
+            <button onClick={submitAccessRequest} style={{
+              width: '100%', padding: '14px', borderRadius: 10, background: C.dark,
+              border: 'none', cursor: 'pointer', color: C.gold,
+              fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 500,
+              letterSpacing: '0.5px',
+            }}>Request Invitation</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ──────────── GRANTED: Dashboard ────────────
+
+  const rejectedPhotos = photoApprovals.filter(p => p.approval_status === 'rejected');
+  const pendingPhotos = photoApprovals.filter(p => p.approval_status === 'pending');
+  const hasAlerts = !!rejectionReason || rejectedPhotos.length > 0;
+
+  // Styles
+  const phaseHeader: React.CSSProperties = {
+    padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+    cursor: 'pointer' as const, background: 'transparent',
+    border: 'none', width: '100%', textAlign: 'left' as const,
+  };
+  const phaseBody: React.CSSProperties = {
+    padding: '4px 16px 16px', borderTop: `1px solid ${C.border}`,
+  };
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '10px 12px', borderRadius: 8,
+    border: `1px solid ${C.border}`, background: C.cream,
+    fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+    outline: 'none', boxSizing: 'border-box' as const,
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+    fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase' as const,
+    display: 'block', marginBottom: 6, marginTop: 12,
+  };
+  const chip = (active: boolean): React.CSSProperties => ({
+    padding: '6px 12px', borderRadius: 20, fontSize: 12,
+    fontFamily: 'DM Sans, sans-serif', fontWeight: 400, cursor: 'pointer' as const,
+    background: active ? C.dark : C.cream,
+    color: active ? C.gold : C.dark,
+    border: `1px solid ${active ? C.dark : C.border}`,
+  });
+  const goldBtn: React.CSSProperties = {
+    width: '100%', padding: '12px', borderRadius: 10, background: C.dark,
+    border: 'none', cursor: 'pointer', color: C.gold, fontSize: 13,
+    fontFamily: 'DM Sans, sans-serif', fontWeight: 500, marginTop: 16,
+  };
+
+  const togglePhase = (id: string) => setExpandedPhase(expandedPhase === id ? null : id);
+
+  // Phase completion signals
+  const phase1Done = !!(profile?.name && profile?.category && profile?.city && portfolioImages.length >= 3);
+  const phase2Done = !!(about && about.length >= 100 && vibeTags.length >= 3 && portfolioImages.length >= 10);
+  const phase3Done = packages.length >= 1;
+  const phase4Done = profile?.category && Object.keys(categoryDetails).length >= 2;
+  const phase5Done = blocks.length > 0;
+  const phase6Done = !!(cancellationPolicy && profile?.studio_address);
+
+  const phaseDot = (done: boolean) => (
+    <div style={{
+      width: 22, height: 22, borderRadius: 11,
+      background: done ? C.gold : 'transparent',
+      border: done ? 'none' : `1.5px solid ${C.border}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      {done && <CheckCircle size={12} color={C.dark} />}
+    </div>
+  );
+
+  // Category-specific fields
+  const updateCD = (k: string, v: any) => setCategoryDetails((prev: any) => ({ ...prev, [k]: v }));
+  const toggleCDArr = (k: string, opt: string) => {
+    const arr = categoryDetails[k] || [];
+    const next = arr.includes(opt) ? arr.filter((x: string) => x !== opt) : [...arr, opt];
+    updateCD(k, next);
+  };
+
+  const renderCategorySpecific = () => {
+    const cat = profile?.category || '';
+    const cd = categoryDetails || {};
+
+    if (cat === 'venues') {
+      return (
+        <>
+          <label style={labelStyle}>Capacity (guests)</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input placeholder="Min" value={cd.capacity_min || ''} onChange={e => updateCD('capacity_min', e.target.value)} style={inputStyle} type="number" />
+            <input placeholder="Max" value={cd.capacity_max || ''} onChange={e => updateCD('capacity_max', e.target.value)} style={inputStyle} type="number" />
+          </div>
+          <label style={labelStyle}>Setting</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['indoor', 'outdoor', 'both'].map(opt => (
+              <button key={opt} onClick={() => updateCD('setting', opt)} style={chip(cd.setting === opt)}>{opt}</button>
+            ))}
+          </div>
+          <label style={labelStyle}>Features</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['In-house catering', 'Parking', 'Rooms onsite', 'Vegetarian kitchen', 'Liquor license', 'Mandap setup', 'Pet-friendly', 'Poolside'].map(opt => {
+              const active = (cd.features || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('features', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+        </>
+      );
+    }
+    if (cat === 'photographers' || cat === 'content-creators') {
+      return (
+        <>
+          <label style={labelStyle}>Equipment</label>
+          <input placeholder="e.g. Sony A1, Leica Q2" value={cd.equipment || ''} onChange={e => updateCD('equipment', e.target.value)} style={inputStyle} />
+          <label style={labelStyle}>Team on wedding day</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['1 shooter', '2 shooters', '3+ shooters'].map(opt => (
+              <button key={opt} onClick={() => updateCD('shooters', opt)} style={chip(cd.shooters === opt)}>{opt}</button>
+            ))}
+          </div>
+          <label style={labelStyle}>Delivery time</label>
+          <input placeholder="e.g. 6-8 weeks" value={cd.delivery_time || ''} onChange={e => updateCD('delivery_time', e.target.value)} style={inputStyle} />
+          <label style={labelStyle}>Add-ons available</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Drone', 'Same-day edit', 'Pre-wedding shoot', 'Cinematic video', 'Raw files included'].map(opt => {
+              const active = (cd.addons || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('addons', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+        </>
+      );
+    }
+    if (cat === 'mua') {
+      return (
+        <>
+          <label style={labelStyle}>Products used</label>
+          <input placeholder="e.g. MAC, Huda, Bobbi Brown" value={cd.products || ''} onChange={e => updateCD('products', e.target.value)} style={inputStyle} />
+          <label style={labelStyle}>Services offered</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Trial session', 'Hair styling', 'Airbrush', 'HD makeup', 'Family makeup', 'Draping', 'Groom styling'].map(opt => {
+              const active = (cd.services || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('services', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+          <label style={labelStyle}>Travel radius included (km)</label>
+          <input placeholder="e.g. 50" value={cd.travel_km || ''} onChange={e => updateCD('travel_km', e.target.value)} style={inputStyle} type="number" />
+        </>
+      );
+    }
+    if (cat === 'designers' || cat === 'jewellery') {
+      return (
+        <>
+          <label style={labelStyle}>Type</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Bespoke', 'Ready-to-wear', 'Both'].map(opt => (
+              <button key={opt} onClick={() => updateCD('type', opt)} style={chip(cd.type === opt)}>{opt}</button>
+            ))}
+          </div>
+          <label style={labelStyle}>Rental available</label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['Yes', 'No'].map(opt => (
+              <button key={opt} onClick={() => updateCD('rental', opt)} style={chip(cd.rental === opt)}>{opt}</button>
+            ))}
+          </div>
+          <label style={labelStyle}>Categories</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Bridal lehenga', 'Groom sherwani', 'Trousseau', 'Cocktail', 'Reception gowns', 'Pret', 'Fine jewellery', 'Kundan', 'Polki', 'Diamond'].map(opt => {
+              const active = (cd.categories || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('categories', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+        </>
+      );
+    }
+    if (cat === 'choreographers' || cat === 'dj') {
+      return (
+        <>
+          <label style={labelStyle}>Genres / Styles</label>
+          <input placeholder="e.g. Bollywood, Hip-hop, Classical" value={cd.genres || ''} onChange={e => updateCD('genres', e.target.value)} style={inputStyle} />
+          <label style={labelStyle}>Equipment</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Provided', 'Client provides', 'Both options'].map(opt => (
+              <button key={opt} onClick={() => updateCD('equipment_mode', opt)} style={chip(cd.equipment_mode === opt)}>{opt}</button>
+            ))}
+          </div>
+          <label style={labelStyle}>Add-ons</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Live music', 'Special effects', 'Lights', 'Confetti', 'Smoke', 'LED screens'].map(opt => {
+              const active = (cd.addons || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('addons', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+        </>
+      );
+    }
+    if (cat === 'event-managers') {
+      return (
+        <>
+          <label style={labelStyle}>Package tiers offered</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Day-of coordination', 'Partial planning', 'Full planning', 'Destination weddings'].map(opt => {
+              const active = (cd.tiers || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('tiers', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+          <label style={labelStyle}>Minimum event budget (Rs)</label>
+          <input placeholder="e.g. 2500000" value={cd.min_event_budget || ''} onChange={e => updateCD('min_event_budget', e.target.value)} style={inputStyle} type="number" />
+        </>
+      );
+    }
+    if (cat === 'bridal-wellness') {
+      return (
+        <>
+          <label style={labelStyle}>Session types</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['Yoga', 'Skin care', 'Diet / Nutrition', 'Therapy', 'Fitness', 'Meditation'].map(opt => {
+              const active = (cd.sessions || []).includes(opt);
+              return <button key={opt} onClick={() => toggleCDArr('sessions', opt)} style={chip(active)}>{opt}</button>;
+            })}
+          </div>
+          <label style={labelStyle}>Program duration</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {['4 weeks', '8 weeks', '12 weeks', 'Custom'].map(opt => (
+              <button key={opt} onClick={() => updateCD('duration', opt)} style={chip(cd.duration === opt)}>{opt}</button>
+            ))}
+          </div>
+          <label style={labelStyle}>Home visits available</label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['Yes', 'No'].map(opt => (
+              <button key={opt} onClick={() => updateCD('home_visits', opt)} style={chip(cd.home_visits === opt)}>{opt}</button>
+            ))}
+          </div>
+        </>
+      );
+    }
+    return <p style={{ fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>Category-specific fields coming soon for {cat}.</p>;
+  };
+
+  // ──────────── Calendar grid ────────────
+  const renderCalendar = () => {
+    const { year, month } = calendarMonth;
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startWeekday = firstDay.getDay();
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const monthName = firstDay.toLocaleString('en-US', { month: 'long' });
+    const fmtDate = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <button onClick={() => setCalendarMonth(m => m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><ChevronRight size={18} color={C.dark} style={{ transform: 'rotate(180deg)' }} /></button>
+          <span style={{ fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>{monthName} {year}</span>
+          <button onClick={() => setCalendarMonth(m => m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><ChevronRight size={18} color={C.dark} /></button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+            <div key={i} style={{ textAlign: 'center', fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          {cells.map((d, i) => {
+            if (!d) return <div key={i} />;
+            const ds = fmtDate(d);
+            const isBlocked = blockedSet.has(ds);
+            const isPast = new Date(year, month, d) < new Date(new Date().toDateString());
+            return (
+              <button key={i} disabled={isPast} onClick={() => toggleDateBlock(ds)} style={{
+                aspectRatio: '1', borderRadius: 8,
+                background: isBlocked ? '#C65757' : (isPast ? 'transparent' : C.cream),
+                color: isBlocked ? '#fff' : (isPast ? C.light : C.dark),
+                border: isBlocked ? 'none' : `1px solid ${isPast ? 'transparent' : C.border}`,
+                fontSize: 12, fontFamily: 'DM Sans, sans-serif',
+                cursor: isPast ? 'default' : 'pointer',
+                opacity: isPast ? 0.4 : 1,
+              }}>{d}</button>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, marginTop: 10, textAlign: 'center' as const }}>
+          Tap a date to mark unavailable. Blocked dates won't show your profile to couples planning weddings on those days.
+        </p>
+      </div>
+    );
+  };
+
+  // ──────────── Main render ────────────
+  return (
+    <div style={{ padding: '16px 16px 100px' }}>
+
+      {/* Status banner */}
+      {listed && !hasAlerts && (
+        <div style={{
+          background: C.goldSoft, border: `1px solid ${C.goldBorder}`, borderRadius: 12,
+          padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <CheckCircle size={16} color={C.gold} />
+          <div>
+            <p style={{ margin: 0, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>You're live on Discovery</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>Couples can see your profile now.</p>
+          </div>
+        </div>
+      )}
+
+      {submittedAt && !listed && !hasAlerts && (
+        <div style={{
+          background: '#FFF5E0', border: `1px solid #F0D89A`, borderRadius: 12,
+          padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <Clock size={16} color="#A6782A" />
+          <div>
+            <p style={{ margin: 0, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Pending image resolution verification</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>Our team will get back within 24-48 hours.</p>
+          </div>
+        </div>
+      )}
+
+      {hasAlerts && (
+        <div style={{
+          background: '#FFF0F0', border: `1px solid #F0A8A8`, borderRadius: 12,
+          padding: '12px 16px', marginBottom: 14, cursor: 'pointer',
+        }} onClick={() => setShowRejectionDetails(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <AlertCircle size={16} color="#C65757" />
+            <p style={{ margin: 0, fontSize: 13, color: '#B24646', fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
+              Resolution needed {rejectedPhotos.length > 0 && `— ${rejectedPhotos.length} photo${rejectedPhotos.length > 1 ? 's' : ''}`}
+            </p>
+          </div>
+          <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>
+            Tap to see details and re-submit
+          </p>
+        </div>
+      )}
+
+      {/* Completion meter */}
+      <div style={{
+        background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14,
+        padding: 16, marginBottom: 14,
       }}>
-        Get discovered by India's most discerning brides. Boost visibility, run offers, manage your profile — all coming to your pocket soon.
-      </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+          <span style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase' as const }}>Your profile</span>
+          <span style={{ fontSize: 22, color: C.gold, fontFamily: 'Playfair Display, serif', fontWeight: 400 }}>{completionPct}%</span>
+        </div>
+        <div style={{ height: 6, background: C.cream, borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+          <div style={{ width: `${completionPct}%`, height: '100%', background: C.gold, transition: 'width 0.3s ease' }} />
+        </div>
+        <p style={{ margin: 0, fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '18px' }}>
+          {completionPct < 70 ? `Complete at least 70% to submit for review. ${70 - completionPct}% to go.` :
+            listed ? 'Your profile is live. Keep it updated to stay competitive.' :
+            submittedAt ? 'Profile submitted. We\'ll review shortly.' :
+            'You\'re ready to submit your profile for review.'}
+        </p>
+        {completionPct >= 70 && !submittedAt && !listed && (
+          <button onClick={submitForReview} style={goldBtn}>Submit for review</button>
+        )}
+        {hasAlerts && (
+          <button onClick={submitForReview} style={{ ...goldBtn, background: '#C65757', color: '#fff' }}>Re-submit for review</button>
+        )}
+      </div>
+
+      {/* PHASE 1: Essentials */}
+      <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+        <button onClick={() => togglePhase('essentials')} style={phaseHeader}>
+          {phaseDot(phase1Done)}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Essentials</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>Business basics, cities, languages</p>
+          </div>
+          <ChevronDown size={16} color={C.muted} style={{ transform: expandedPhase === 'essentials' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+        {expandedPhase === 'essentials' && (
+          <div style={phaseBody}>
+            <label style={labelStyle}>Owner name</label>
+            <input value={ownerName} onChange={e => setOwnerName(e.target.value)} onBlur={() => saveFields({ owner_name: ownerName })} placeholder="Your full name" style={inputStyle} />
+
+            <label style={labelStyle}>Serves cities (select up to 10 — or mark flexible)</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8 }}>
+              <button onClick={() => { const n = !servesFlexible; setServesFlexible(n); saveFields({ serves_flexible: n }); }} style={chip(servesFlexible)}>Flexible (any location)</button>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {CITIES_FULL.map(c => {
+                const active = servesCities.includes(c);
+                return <button key={c} onClick={() => {
+                  const next = active ? servesCities.filter(x => x !== c) : (servesCities.length >= 10 ? servesCities : [...servesCities, c]);
+                  setServesCities(next); saveFields({ serves_cities: next });
+                }} style={chip(active)}>{c}</button>;
+              })}
+            </div>
+
+            <label style={labelStyle}>Years in business</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {['<1yr', '1-3yrs', '3-7yrs', '7+yrs'].map(opt => (
+                <button key={opt} onClick={() => { setYearsActive(opt); saveFields({ years_active: opt }); }} style={chip(yearsActive === opt)}>{opt}</button>
+              ))}
+            </div>
+
+            <label style={labelStyle}>Weddings delivered</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {['<10', '10-50', '50-200', '200+'].map(opt => (
+                <button key={opt} onClick={() => { setWeddingsDelivered(opt); saveFields({ weddings_delivered: opt }); }} style={chip(weddingsDelivered === opt)}>{opt}</button>
+              ))}
+            </div>
+
+            <label style={labelStyle}>Languages spoken</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {LANGUAGES.map(l => {
+                const active = languages.includes(l);
+                return <button key={l} onClick={() => {
+                  const next = active ? languages.filter(x => x !== l) : [...languages, l];
+                  setLanguages(next); saveFields({ languages: next });
+                }} style={chip(active)}>{l}</button>;
+              })}
+            </div>
+
+            <label style={labelStyle}>Team size</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {['solo', '2-5', '6-10', '10+'].map(opt => (
+                <button key={opt} onClick={() => { setTeamSize(opt); saveFields({ team_size: opt }); }} style={chip(teamSize === opt)}>{opt}</button>
+              ))}
+            </div>
+
+            <label style={labelStyle}>Starting price (Rs)</label>
+            <input value={startingPrice} onChange={e => setStartingPrice(e.target.value)} onBlur={() => saveFields({ starting_price: startingPrice ? parseInt(startingPrice) : null })} placeholder="e.g. 150000" type="number" style={inputStyle} />
+          </div>
+        )}
+      </div>
+
+      {/* PHASE 2: Profile content */}
+      <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+        <button onClick={() => togglePhase('profile')} style={phaseHeader}>
+          {phaseDot(phase2Done)}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Your story & portfolio</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>Bio, vibe tags, photos</p>
+          </div>
+          <ChevronDown size={16} color={C.muted} style={{ transform: expandedPhase === 'profile' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+        {expandedPhase === 'profile' && (
+          <div style={phaseBody}>
+            <label style={labelStyle}>About you / your business (150-500 chars)</label>
+            <textarea value={about} onChange={e => setAbout(e.target.value)} onBlur={() => saveFields({ about })} placeholder="Tell couples what makes your work special..." rows={5} style={{ ...inputStyle, resize: 'none' as const, fontFamily: 'DM Sans, sans-serif' }} maxLength={500} />
+            <p style={{ margin: '4px 0 0', fontSize: 10, color: C.muted, fontFamily: 'DM Sans, sans-serif', textAlign: 'right' as const }}>{about.length}/500</p>
+
+            <label style={labelStyle}>Vibe tags (pick 3-5)</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {VIBE_TAGS_ALL.map(v => {
+                const active = vibeTags.includes(v);
+                return <button key={v} onClick={() => {
+                  const next = active ? vibeTags.filter(x => x !== v) : (vibeTags.length >= 5 ? vibeTags : [...vibeTags, v]);
+                  setVibeTags(next); saveFields({ vibe_tags: next });
+                }} style={chip(active)}>{v}</button>;
+              })}
+            </div>
+
+            <label style={labelStyle}>Portfolio ({portfolioImages.length} photos — 10+ recommended)</label>
+            {portfolioImages.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
+                {portfolioImages.map((url, i) => {
+                  const approval = photoApprovals.find(p => p.image_url === url && p.context === 'portfolio');
+                  const rejected = approval?.approval_status === 'rejected';
+                  const isFeatured = featuredPhotos.includes(url);
+                  return (
+                    <div key={i} style={{
+                      aspectRatio: '1', position: 'relative' as const,
+                      borderRadius: 8, overflow: 'hidden',
+                      background: `url(${url}) center/cover`,
+                      border: rejected ? '2px solid #C65757' : (isFeatured ? `2px solid ${C.gold}` : `1px solid ${C.border}`),
+                    }}>
+                      <button onClick={() => toggleFeatured(url)} style={{
+                        position: 'absolute', top: 4, left: 4,
+                        background: isFeatured ? C.gold : 'rgba(0,0,0,0.5)',
+                        border: 'none', borderRadius: 4, padding: '2px 5px',
+                        fontSize: 9, color: isFeatured ? C.dark : '#fff',
+                        fontFamily: 'DM Sans, sans-serif', fontWeight: 500, cursor: 'pointer',
+                      }}>{isFeatured ? '★' : '☆'}</button>
+                      <button onClick={() => removePhoto(url)} style={{
+                        position: 'absolute', top: 4, right: 4,
+                        background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 10,
+                        width: 20, height: 20, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}><X size={10} color="#fff" /></button>
+                      {rejected && (
+                        <div style={{
+                          position: 'absolute', bottom: 0, left: 0, right: 0,
+                          background: '#C65757', color: '#fff',
+                          fontSize: 9, padding: '2px 4px',
+                          fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+                          textAlign: 'center' as const,
+                        }}>Rejected</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <label style={{
+              display: 'block', padding: '16px', borderRadius: 10,
+              border: `2px dashed ${C.border}`, background: C.cream,
+              textAlign: 'center' as const, cursor: 'pointer',
+              fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif',
+            }}>
+              <input type="file" multiple accept="image/*" onChange={handlePhotoUpload} disabled={uploadingPhoto} style={{ display: 'none' }} />
+              {uploadingPhoto ? 'Uploading...' : (
+                <>
+                  <Upload size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                  Upload photos
+                </>
+              )}
+            </label>
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>
+              Tap ★ to mark a photo as featured (max 5 — these appear in your hero)
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* PHASE 3: Packages */}
+      <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+        <button onClick={() => togglePhase('packages')} style={phaseHeader}>
+          {phaseDot(phase3Done)}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Packages</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>Tiered offerings with pricing ({packages.length} added)</p>
+          </div>
+          <ChevronDown size={16} color={C.muted} style={{ transform: expandedPhase === 'packages' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+        {expandedPhase === 'packages' && (
+          <div style={phaseBody}>
+            {packages.map(pkg => (
+              <div key={pkg.id} style={{
+                background: C.cream, borderRadius: 10, padding: '12px 14px', marginBottom: 8,
+                border: `1px solid ${C.border}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 2px', fontSize: 14, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 500 }}>{pkg.name}</p>
+                    {pkg.price && <p style={{ margin: 0, fontSize: 13, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Rs {(pkg.price / 100000).toFixed(pkg.price % 100000 === 0 ? 0 : 1)}L</p>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setEditingPackage({ ...pkg })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Edit2 size={14} color={C.muted} /></button>
+                    <button onClick={() => deletePackage(pkg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Trash2 size={14} color="#C65757" /></button>
+                  </div>
+                </div>
+                {pkg.duration && <p style={{ margin: '2px 0 0', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif' }}>{pkg.duration}</p>}
+                {pkg.deliverables && pkg.deliverables.length > 0 && (
+                  <p style={{ margin: '4px 0 0', fontSize: 11, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>{pkg.deliverables.join(' · ')}</p>
+                )}
+              </div>
+            ))}
+            <button onClick={openNewPackage} style={{
+              width: '100%', padding: '12px', borderRadius: 10,
+              background: 'transparent', border: `1.5px dashed ${C.border}`,
+              cursor: 'pointer', color: C.muted, fontSize: 13,
+              fontFamily: 'DM Sans, sans-serif', fontWeight: 400,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              <Plus size={14} /> Add package
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* PHASE 4: Category-specific */}
+      <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+        <button onClick={() => togglePhase('category')} style={phaseHeader}>
+          {phaseDot(phase4Done)}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Category details</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>What couples need to match you</p>
+          </div>
+          <ChevronDown size={16} color={C.muted} style={{ transform: expandedPhase === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+        {expandedPhase === 'category' && (
+          <div style={phaseBody}>
+            {renderCategorySpecific()}
+            <button onClick={() => saveFields({ category_details: categoryDetails })} style={goldBtn}>Save category details</button>
+          </div>
+        )}
+      </div>
+
+      {/* PHASE 5: Availability */}
+      <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+        <button onClick={() => togglePhase('availability')} style={phaseHeader}>
+          {phaseDot(phase5Done)}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Availability</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>Block dates you're unavailable</p>
+          </div>
+          <ChevronDown size={16} color={C.muted} style={{ transform: expandedPhase === 'availability' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+        {expandedPhase === 'availability' && (
+          <div style={phaseBody}>
+            {renderCalendar()}
+          </div>
+        )}
+      </div>
+
+      {/* PHASE 6: Trust */}
+      <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+        <button onClick={() => togglePhase('trust')} style={phaseHeader}>
+          {phaseDot(phase6Done)}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Trust & policies</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300 }}>Cancellation, studio address</p>
+          </div>
+          <ChevronDown size={16} color={C.muted} style={{ transform: expandedPhase === 'trust' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+        {expandedPhase === 'trust' && (
+          <div style={phaseBody}>
+            <label style={labelStyle}>Cancellation policy</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+              {['flexible', 'moderate', 'strict'].map(opt => (
+                <button key={opt} onClick={() => { setCancellationPolicy(opt); saveFields({ cancellation_policy: opt }); }} style={chip(cancellationPolicy === opt)}>{opt}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Package editor modal */}
+      {editingPackage && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end',
+        }} onClick={() => setEditingPackage(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 480, margin: '0 auto',
+            background: C.cream, borderRadius: '20px 20px 0 0',
+            padding: '20px 20px max(24px, env(safe-area-inset-bottom))',
+            maxHeight: '90vh', overflow: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontFamily: 'Playfair Display, serif', color: C.dark, fontWeight: 400 }}>
+                {editingPackage.id ? 'Edit package' : 'New package'}
+              </h3>
+              <button onClick={() => setEditingPackage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={C.muted} /></button>
+            </div>
+
+            <label style={labelStyle}>Package name</label>
+            <input value={editingPackage.name} onChange={e => setEditingPackage({ ...editingPackage, name: e.target.value })} placeholder='e.g. "Signature Wedding"' style={inputStyle} />
+
+            <label style={labelStyle}>Price (Rs)</label>
+            <input value={editingPackage.price || ''} onChange={e => setEditingPackage({ ...editingPackage, price: e.target.value })} placeholder="e.g. 450000" type="number" style={inputStyle} />
+
+            <label style={labelStyle}>Duration</label>
+            <input value={editingPackage.duration || ''} onChange={e => setEditingPackage({ ...editingPackage, duration: e.target.value })} placeholder="e.g. 8-10 hours" style={inputStyle} />
+
+            <label style={labelStyle}>Ideal for</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['intimate', 'medium', 'grand'].map(opt => (
+                <button key={opt} onClick={() => setEditingPackage({ ...editingPackage, ideal_for: opt })} style={chip(editingPackage.ideal_for === opt)}>{opt}</button>
+              ))}
+            </div>
+
+            <label style={labelStyle}>Deliverables (one per line)</label>
+            {(editingPackage.deliverables || ['']).map((d: string, i: number) => (
+              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                <input value={d} onChange={e => {
+                  const next = [...editingPackage.deliverables];
+                  next[i] = e.target.value;
+                  setEditingPackage({ ...editingPackage, deliverables: next });
+                }} placeholder="e.g. 500 edited images" style={inputStyle} />
+                {editingPackage.deliverables.length > 1 && (
+                  <button onClick={() => {
+                    const next = editingPackage.deliverables.filter((_: any, idx: number) => idx !== i);
+                    setEditingPackage({ ...editingPackage, deliverables: next });
+                  }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><X size={14} color={C.muted} /></button>
+                )}
+              </div>
+            ))}
+            <button onClick={() => setEditingPackage({ ...editingPackage, deliverables: [...(editingPackage.deliverables || []), ''] })} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 12, color: C.gold, fontFamily: 'DM Sans, sans-serif',
+            }}>+ Add deliverable</button>
+
+            <button onClick={savePackage} style={goldBtn}>Save package</button>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection details modal */}
+      {showRejectionDetails && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end',
+        }} onClick={() => setShowRejectionDetails(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 480, margin: '0 auto',
+            background: C.cream, borderRadius: '20px 20px 0 0',
+            padding: '20px 20px max(24px, env(safe-area-inset-bottom))',
+            maxHeight: '80vh', overflow: 'auto',
+          }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: 18, fontFamily: 'Playfair Display, serif', color: C.dark, fontWeight: 400 }}>Feedback from review</h3>
+
+            {rejectionReason && (
+              <div style={{ background: '#FFF0F0', border: '1px solid #F0A8A8', borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, color: '#B24646', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase' as const }}>Overall note</p>
+                <p style={{ margin: 0, fontSize: 13, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '20px' }}>{rejectionReason}</p>
+              </div>
+            )}
+
+            {rejectedPhotos.length > 0 && (
+              <>
+                <p style={{ margin: '0 0 10px', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase' as const }}>Rejected photos ({rejectedPhotos.length})</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  {rejectedPhotos.map(p => (
+                    <div key={p.id} style={{
+                      borderRadius: 8, overflow: 'hidden', border: '2px solid #C65757',
+                    }}>
+                      <div style={{ aspectRatio: '1', background: `url(${p.image_url}) center/cover` }} />
+                      {p.rejection_reason && (
+                        <div style={{ padding: 8, background: '#FFF0F0' }}>
+                          <p style={{ margin: 0, fontSize: 10, color: '#B24646', fontFamily: 'DM Sans, sans-serif', fontWeight: 400, lineHeight: '14px' }}>{p.rejection_reason}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p style={{ margin: '14px 0 0', fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '18px' }}>
+                  Remove or replace rejected photos from the Portfolio section above, then re-submit.
+                </p>
+              </>
+            )}
+
+            <button onClick={() => setShowRejectionDetails(false)} style={goldBtn}>Got it</button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 'max(90px, calc(env(safe-area-inset-bottom) + 80px))',
+          left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          background: C.dark, borderRadius: 12, padding: '10px 20px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        }}>
+          <span style={{ fontSize: 13, color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 400 }}>{toast}</span>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════
 // ADD CLIENT / ADD EVENT MODAL

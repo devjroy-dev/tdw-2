@@ -2502,10 +2502,10 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
 
         {isActive && (
           <>
-            {/* Top overlay row — counter + controls */}
+            {/* Top overlay row — counter + controls. Offset below fixed TopBar (~60px) */}
             <div style={{
               position: 'absolute',
-              top: 'max(12px, env(safe-area-inset-top))',
+              top: 'calc(max(12px, env(safe-area-inset-top)) + 56px)',
               left: 12, right: 12,
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 5,
             }}>
@@ -2571,7 +2571,7 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
 
             {/* Saved indicator */}
             {isSaved && (
-              <div style={{ position: 'absolute', top: 'max(52px, calc(env(safe-area-inset-top) + 44px))', left: '50%', transform: 'translateX(-50%)', zIndex: 6 }}>
+              <div style={{ position: 'absolute', top: 'calc(max(52px, calc(env(safe-area-inset-top) + 44px)) + 56px)', left: '50%', transform: 'translateX(-50%)', zIndex: 6 }}>
                 <div style={{ background: C.gold, borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Heart size={10} color={C.dark} fill={C.dark} />
                   <span style={{ fontSize: 10, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>Saved</span>
