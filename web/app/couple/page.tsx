@@ -1866,6 +1866,19 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessStatus, layer === 'feed']);
 
+  // ── Preload next vendor image (must be before early returns for hook order) ──
+  useEffect(() => {
+    const next = vendors[currentIndex + 1];
+    if (next && typeof window !== 'undefined') {
+      const imgs = next?.featured_photos?.length > 0 ? next.featured_photos : next?.portfolio_images;
+      const url = imgs?.[0];
+      if (url) {
+        const img = new Image();
+        img.src = url;
+      }
+    }
+  }, [currentIndex, vendors]);
+
   // ── Mode switch ──
   const cycleMode = () => {
     const modes: BrowseMode[] = ['scroll', 'carousel', 'swipe'];
@@ -2229,14 +2242,6 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
   const vendor = vendors[currentIndex];
   const nextVendor = vendors[currentIndex + 1];
   const prevVendor = currentIndex > 0 ? vendors[currentIndex - 1] : null;
-
-  // Preload next vendor image
-  useEffect(() => {
-    if (nextVendor && typeof window !== 'undefined') {
-      const img = new Image();
-      img.src = getHeroImage(nextVendor);
-    }
-  }, [currentIndex, nextVendor]);
 
   // ══════════════════════════════════════════════════════════════
   // DISCOVER DASH — landing after back-swipe from Feed
