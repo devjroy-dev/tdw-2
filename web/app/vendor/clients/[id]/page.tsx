@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, Mail,  ChevronLeft } from "lucide-react";
+import { Phone, Mail, Star, ChevronLeft } from "lucide-react";
 
 const CLIENT_DATA = {
   "1": {
