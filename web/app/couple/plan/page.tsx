@@ -3,7 +3,23 @@
 import React, { useEffect, useState } from 'react';
 
 const RAILWAY_URL = process.env.NEXT_PUBLIC_RAILWAY_URL || 'https://dream-wedding-production-89ae.up.railway.app';
-const DEMO_USER_ID = 'demo';
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+// Reads the same localStorage key used by the v1 couple app.
+// No redirect — soft message if no session.
+
+interface CoupleSession {
+  id: string;
+  name: string;
+}
+
+function getSession(): CoupleSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('couple_session');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
 
 type Tab = 'tasks' | 'money' | 'people' | 'events';
 
@@ -32,7 +48,6 @@ type Task = {
   priority: 'high' | 'medium' | 'low';
 };
 
-type TaskGroup = { event_name: string; tasks: Task[] };
 type TaskFilter = 'event' | 'phase' | 'priority';
 
 function formatDue(d?: string) {
@@ -53,6 +68,45 @@ function groupBy<T>(arr: T[], key: (t: T) => string): { group: string; items: T[
 
 function priorityOrder(p: string) { return p === 'high' ? 0 : p === 'medium' ? 1 : 2; }
 
+function TaskCard({ task }: { task: Task }) {
+  const prioColor = (p: string) => p === 'high' ? '#C9A84C' : p === 'medium' ? '#8C8480' : '#E8D9B5';
+  const statusChip = (s: string) => {
+    const styles: Record<string, React.CSSProperties> = {
+      pending: { background: '#FFF8EC', color: '#C9A84C' },
+      in_progress: { background: '#F4F1EC', color: '#3C3835' },
+      done: { background: '#F4F1EC', color: '#8C8480' },
+    };
+    return (
+      <span style={{
+        ...styles[s] || styles.pending,
+        fontFamily: "'Jost', sans-serif",
+        fontSize: 10, fontWeight: 400,
+        letterSpacing: '0.12em', textTransform: 'uppercase',
+        padding: '4px 8px', borderRadius: 100, whiteSpace: 'nowrap',
+      }}>{s.replace('_', ' ')}</span>
+    );
+  };
+  return (
+    <div style={{
+      background: '#F4F1EC', border: '1px solid #E8D9B5',
+      borderRadius: 12, padding: 16,
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+    }}>
+      <span style={{ width: 4, height: 4, borderRadius: '50%', background: prioColor(task.priority), flexShrink: 0, marginTop: 8 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09',
+          margin: '0 0 4px', textDecoration: task.status === 'done' ? 'line-through' : 'none',
+        }}>{task.title}</p>
+        {task.due_date && (
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{formatDue(task.due_date)}</p>
+        )}
+      </div>
+      {statusChip(task.status)}
+    </div>
+  );
+}
+
 function TasksTab({ userId }: { userId: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,30 +126,6 @@ function TasksTab({ userId }: { userId: string }) {
     { key: 'priority', label: 'By Priority' },
   ];
 
-  const prioColor = (p: string) => p === 'high' ? '#C9A84C' : p === 'medium' ? '#8C8480' : '#E8D9B5';
-
-  const statusChip = (s: string) => {
-    const styles: Record<string, React.CSSProperties> = {
-      pending: { background: '#FFF8EC', color: '#C9A84C' },
-      in_progress: { background: '#F4F1EC', color: '#3C3835' },
-      done: { background: '#F4F1EC', color: '#8C8480' },
-    };
-    return (
-      <span style={{
-        ...styles[s] || styles.pending,
-        fontFamily: "'Jost', sans-serif",
-        fontSize: 10,
-        fontWeight: 400,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        padding: '4px 8px',
-        borderRadius: 100,
-        whiteSpace: 'nowrap',
-      }}>{s.replace('_', ' ')}</span>
-    );
-  };
-
-  // Group tasks
   let groups: { group: string; items: Task[] }[] = [];
   if (filter === 'event') {
     groups = groupBy(tasks, t => t.events?.name || t.event_name || 'General');
@@ -103,7 +133,6 @@ function TasksTab({ userId }: { userId: string }) {
     const sorted = [...tasks].sort((a, b) => priorityOrder(a.priority) - priorityOrder(b.priority));
     groups = groupBy(sorted, t => t.priority === 'high' ? 'High Priority' : t.priority === 'medium' ? 'Medium Priority' : 'Low Priority');
   } else {
-    // phase — group by status
     groups = groupBy(tasks, t => t.status === 'pending' ? 'To Do' : t.status === 'in_progress' ? 'In Progress' : 'Done');
   }
 
@@ -113,8 +142,7 @@ function TasksTab({ userId }: { userId: string }) {
         <div key={g} style={{ marginBottom: 24 }}>
           <Shimmer h={8} w={60} br={4} />
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Shimmer h={64} />
-            <Shimmer h={64} />
+            <Shimmer h={64} /><Shimmer h={64} />
           </div>
         </div>
       ))}
@@ -123,24 +151,18 @@ function TasksTab({ userId }: { userId: string }) {
 
   return (
     <div>
-      {/* Filter chips */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {filterChips.map(fc => (
           <button key={fc.key} onClick={() => setFilter(fc.key)} style={{
-            fontFamily: "'Jost', sans-serif",
-            fontSize: 10,
-            fontWeight: 300,
-            padding: '4px 10px',
-            borderRadius: 100,
+            fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+            padding: '4px 10px', borderRadius: 100,
             border: filter === fc.key ? 'none' : '1px solid #E8D9B5',
             background: filter === fc.key ? '#0C0A09' : 'transparent',
             color: filter === fc.key ? '#FAFAF8' : '#8C8480',
-            cursor: 'pointer',
-            letterSpacing: '0.1em',
+            cursor: 'pointer', letterSpacing: '0.1em',
           }}>{fc.label}</button>
         ))}
       </div>
-
       {tasks.length === 0 ? (
         <div style={{ marginTop: 64, textAlign: 'center' }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>No tasks yet.</p>
@@ -151,33 +173,7 @@ function TasksTab({ userId }: { userId: string }) {
           <div key={group} style={{ marginBottom: 24 }}>
             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 8px' }}>{group}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {items.map(task => (
-                <div key={task.id} style={{
-                  background: '#F4F1EC',
-                  border: '1px solid #E8D9B5',
-                  borderRadius: 12,
-                  padding: 16,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 10,
-                }}>
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: prioColor(task.priority), flexShrink: 0, marginTop: 8 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontSize: 17,
-                      fontWeight: 300,
-                      color: '#0C0A09',
-                      margin: '0 0 4px',
-                      textDecoration: task.status === 'done' ? 'line-through' : 'none',
-                    }}>{task.title}</p>
-                    {task.due_date && (
-                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{formatDue(task.due_date)}</p>
-                    )}
-                  </div>
-                  {statusChip(task.status)}
-                </div>
-              ))}
+              {items.map(task => <TaskCard key={task.id} task={task} />)}
             </div>
           </div>
         ))
@@ -204,6 +200,7 @@ type Expense = {
   amount: number;
   due_date?: string;
   status?: string;
+  event_name?: string;
 };
 
 type PaymentFilter = 'week' | 'next30';
@@ -230,16 +227,7 @@ function MoneyTab({ userId }: { userId: string }) {
     <div style={{ paddingTop: 4 }}>
       <Shimmer h={120} br={16} />
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Shimmer h={8} w={80} br={4} />
-        <Shimmer h={64} />
-        <Shimmer h={64} />
-        <Shimmer h={64} />
-      </div>
-      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Shimmer h={8} w={120} br={4} />
-        <Shimmer h={48} />
-        <Shimmer h={48} />
-        <Shimmer h={48} />
+        <Shimmer h={8} w={80} br={4} /><Shimmer h={64} /><Shimmer h={64} /><Shimmer h={64} />
       </div>
     </div>
   );
@@ -252,7 +240,6 @@ function MoneyTab({ userId }: { userId: string }) {
 
   return (
     <div>
-      {/* Hero card */}
       <div style={{ background: '#F4F1EC', border: '1px solid #E8D9B5', borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 6px' }}>TOTAL JOURNEY</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: '#0C0A09', margin: '0 0 16px', lineHeight: 1 }}>{fmtINR(d.totalBudget)}</p>
@@ -266,7 +253,6 @@ function MoneyTab({ userId }: { userId: string }) {
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#3C3835', margin: 0 }}>{fmtINR(d.paid)}</p>
           </div>
         </div>
-        {/* Progress bar */}
         <div style={{ position: 'relative', height: 6, borderRadius: 8, background: '#E8D9B5', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${committedPct}%`, background: '#C9A84C', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${paidPct}%`, background: '#0C0A09', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
@@ -274,7 +260,6 @@ function MoneyTab({ userId }: { userId: string }) {
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: '8px 0 0' }}>{fmtINR(remaining)} remaining</p>
       </div>
 
-      {/* By Event */}
       {d.events.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 12px' }}>BY EVENT</p>
@@ -292,7 +277,6 @@ function MoneyTab({ userId }: { userId: string }) {
         </div>
       )}
 
-      {/* Upcoming Payments */}
       <div>
         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 12px' }}>UPCOMING PAYMENTS</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -358,7 +342,6 @@ function PeopleTab({ userId }: { userId: string }) {
 
   const allEvents = Array.from(new Set(guests.flatMap(g => g.events || (g.event_name ? [g.event_name] : []))));
   const filtered = activeEvent === 'all' ? guests : guests.filter(g => (g.events || [g.event_name]).includes(activeEvent));
-
   const confirmed = guests.filter(g => g.rsvp === 'confirmed' || Object.values(g.rsvp_status || {}).some(v => v === 'confirmed')).length;
   const pending = guests.filter(g => g.rsvp === 'pending' || Object.values(g.rsvp_status || {}).some(v => v === 'pending')).length;
 
@@ -379,7 +362,6 @@ function PeopleTab({ userId }: { userId: string }) {
 
   return (
     <div>
-      {/* Summary bar */}
       <div style={{ background: '#F4F1EC', border: '1px solid #E8D9B5', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-around', marginBottom: 16 }}>
         {[{ label: 'Total', val: guests.length }, { label: 'Confirmed', val: confirmed }, { label: 'Pending', val: pending }].map(s => (
           <div key={s.label} style={{ textAlign: 'center' }}>
@@ -388,8 +370,6 @@ function PeopleTab({ userId }: { userId: string }) {
           </div>
         ))}
       </div>
-
-      {/* Event filter chips */}
       {allEvents.length > 0 && (
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 16, paddingBottom: 4 }}>
           {['all', ...allEvents].map(ev => (
@@ -403,7 +383,6 @@ function PeopleTab({ userId }: { userId: string }) {
           ))}
         </div>
       )}
-
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', marginTop: 64 }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>Your guest list is empty.</p>
@@ -455,9 +434,181 @@ function formatEventDate(d?: string) {
   };
 }
 
-function EventsTab({ userId }: { userId: string }) {
+function formatEventDateLong(d?: string) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// ─── Event Detail Sheet ───────────────────────────────────────────────────────
+
+type SheetTab = 'tasks' | 'vendors' | 'guests';
+
+interface EventSheetProps {
+  event: WeddingEvent;
+  allTasks: Task[];
+  allGuests: Guest[];
+  allExpenses: Expense[];
+  onClose: () => void;
+}
+
+function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: EventSheetProps) {
+  const [sheetTab, setSheetTab] = useState<SheetTab>('tasks');
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Trigger animation on mount
+    const t = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 280);
+  };
+
+  // Filter data for this event
+  const eventTasks = allTasks.filter(t => (t.events?.name || t.event_name) === event.name);
+  const eventGuests = allGuests.filter(g => (g.events || []).includes(event.name));
+  const eventExpenses = allExpenses.filter(e => e.event_name === event.name);
+
+  const sheetChipStyle = (active: boolean): React.CSSProperties => ({
+    fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+    padding: '5px 12px', borderRadius: 100,
+    border: active ? 'none' : '1px solid #E8D9B5',
+    background: active ? '#0C0A09' : 'transparent',
+    color: active ? '#FAFAF8' : '#8C8480',
+    cursor: 'pointer', letterSpacing: '0.12em',
+  });
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={handleClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(12,10,9,0.4)',
+          transition: 'opacity 280ms',
+          opacity: visible ? 1 : 0,
+        }}
+      />
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
+        height: '85vh',
+        background: '#FAFAF8',
+        borderRadius: '20px 20px 0 0',
+        borderTop: '1px solid #E8D9B5',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: visible
+          ? 'transform 400ms cubic-bezier(0.22,1,0.36,1)'
+          : 'transform 280ms cubic-bezier(0.22,1,0.36,1)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 8px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E8D9B5' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ padding: '4px 20px 16px', borderBottom: '1px solid #E8D9B5' }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{event.name}</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>
+            {formatEventDateLong(event.date)}{event.venue ? ` · ${event.venue}` : ''}
+          </p>
+          {/* Stat chips */}
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>
+            {[
+              event.task_count != null && `${event.task_count} Tasks`,
+              event.vendor_count != null && `${event.vendor_count} Vendors`,
+              event.guest_count != null && `${event.guest_count} Guests`,
+            ].filter(Boolean).join(' • ')}
+          </p>
+        </div>
+
+        {/* Sub-nav */}
+        <div style={{ display: 'flex', gap: 8, padding: '12px 20px', borderBottom: '1px solid #E8D9B5' }}>
+          {(['tasks', 'vendors', 'guests'] as SheetTab[]).map(t => (
+            <button key={t} onClick={() => setSheetTab(t)} style={sheetChipStyle(sheetTab === t)}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
+
+          {/* Tasks */}
+          {sheetTab === 'tasks' && (
+            eventTasks.length === 0
+              ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No tasks for this event yet.</p>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {eventTasks.map(t => <TaskCard key={t.id} task={t} />)}
+                </div>
+          )}
+
+          {/* Vendors */}
+          {sheetTab === 'vendors' && (
+            eventExpenses.length === 0
+              ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No vendors linked yet.</p>
+              : <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {eventExpenses.map((exp, i) => (
+                    <div key={exp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: i < eventExpenses.length - 1 ? '1px solid #E8D9B5' : 'none' }}>
+                      <div>
+                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose || ''}</p>
+                      </div>
+                      <span style={{
+                        fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400,
+                        letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px', borderRadius: 100,
+                        ...(exp.status === 'paid'
+                          ? { background: '#F4F1EC', color: '#8C8480' }
+                          : { background: '#FFF8EC', color: '#C9A84C' }),
+                      }}>
+                        {exp.status === 'paid' ? 'BOOKED' : 'ENQUIRED'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+          )}
+
+          {/* Guests */}
+          {sheetTab === 'guests' && (
+            eventGuests.length === 0
+              ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No guests added to this event yet.</p>
+              : <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {eventGuests.map((g, i) => {
+                    const rsvp = g.rsvp_status?.[event.name] || g.rsvp || 'pending';
+                    const chipStyle: React.CSSProperties = rsvp === 'confirmed'
+                      ? { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E8D9B5' }
+                      : rsvp === 'declined'
+                      ? { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E8D9B5', textDecoration: 'line-through' }
+                      : { background: '#FFF8EC', color: '#C9A84C' };
+                    return (
+                      <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: i < eventGuests.length - 1 ? '1px solid #E8D9B5' : 'none' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E8D9B5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initials(g.name)}</span>
+                        </div>
+                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: 0, flex: 1 }}>{g.name}</p>
+                        <span style={{ ...chipStyle, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 7px', borderRadius: 100 }}>
+                          {rsvp}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: string; allTasks: Task[]; allGuests: Guest[]; allExpenses: Expense[] }) {
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<WeddingEvent | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -475,55 +626,70 @@ function EventsTab({ userId }: { userId: string }) {
       {[0,1,2].map(i => (
         <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
           <Shimmer h={40} w={40} br={50} />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Shimmer h={80} />
-          </div>
+          <div style={{ flex: 1 }}><Shimmer h={80} /></div>
         </div>
       ))}
     </div>
   );
 
   return (
-    <div>
-      {events.length === 0 ? (
-        <div style={{ textAlign: 'center', marginTop: 64 }}>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>No events yet.</p>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: 0 }}>Your wedding events will appear here.</p>
-        </div>
-      ) : (
-        <div style={{ position: 'relative' }}>
-          {/* Vertical line */}
-          <div style={{ position: 'absolute', left: 19, top: 20, bottom: 20, width: 1, background: '#E8D9B5' }} />
-          {events.map((ev, i) => {
-            const { month, day } = formatEventDate(ev.date);
-            const isSoonest = i === soonestIdx;
-            return (
-              <div key={ev.id} style={{ display: 'flex', gap: 12, marginBottom: 24, position: 'relative' }}>
-                {/* Date circle */}
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                  background: '#F4F1EC',
-                  border: `1px solid ${isSoonest ? '#C9A84C' : '#E8D9B5'}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 1,
-                }}>
-                  <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, color: '#8C8480', lineHeight: 1 }}>{month}</span>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', lineHeight: 1.1 }}>{day}</span>
+    <>
+      <div>
+        {events.length === 0 ? (
+          <div style={{ textAlign: 'center', marginTop: 64 }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>No events yet.</p>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: 0 }}>Your wedding events will appear here.</p>
+          </div>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', left: 19, top: 20, bottom: 20, width: 1, background: '#E8D9B5' }} />
+            {events.map((ev, i) => {
+              const { month, day } = formatEventDate(ev.date);
+              const isSoonest = i === soonestIdx;
+              return (
+                <div key={ev.id} style={{ display: 'flex', gap: 12, marginBottom: 24, position: 'relative' }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                    background: '#F4F1EC', border: `1px solid ${isSoonest ? '#C9A84C' : '#E8D9B5'}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1,
+                  }}>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, color: '#8C8480', lineHeight: 1 }}>{month}</span>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', lineHeight: 1.1 }}>{day}</span>
+                  </div>
+                  {/* Tappable card */}
+                  <button
+                    onClick={() => setSelectedEvent(ev)}
+                    style={{
+                      flex: 1, background: '#F4F1EC', border: '1px solid #E8D9B5',
+                      borderRadius: 12, padding: 16, textAlign: 'left', cursor: 'pointer',
+                    }}
+                  >
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
+                    {ev.venue && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>{ev.venue}</p>}
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#8C8480', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
+                      {[
+                        ev.task_count != null && `${ev.task_count} Tasks`,
+                        ev.vendor_count != null && `${ev.vendor_count} Vendors`,
+                        ev.guest_count != null && `${ev.guest_count} Guests`,
+                      ].filter(Boolean).join(' · ')}
+                    </p>
+                  </button>
                 </div>
-                {/* Event card */}
-                <div style={{ flex: 1, background: '#F4F1EC', border: '1px solid #E8D9B5', borderRadius: 12, padding: 16, marginLeft: 0 }}>
-                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
-                  {ev.venue && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>{ev.venue}</p>}
-                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#8C8480', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
-                    {[ev.task_count != null && `${ev.task_count} Tasks`, ev.vendor_count != null && `${ev.vendor_count} Vendors`, ev.guest_count != null && `${ev.guest_count} Guests`].filter(Boolean).join(' · ')}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {selectedEvent && (
+        <EventDetailSheet
+          event={selectedEvent}
+          allTasks={allTasks}
+          allGuests={allGuests}
+          allExpenses={allExpenses}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -545,22 +711,63 @@ const NAV_ITEMS = [
 
 export default function CouplePlanPage() {
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
-  const userId = DEMO_USER_ID;
+  const [session, setSession] = useState<CoupleSession | null | undefined>(undefined);
+
+  // Cross-tab data for Events detail sheet
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [allGuests, setAllGuests] = useState<Guest[]>([]);
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    setSession(getSession());
+  }, []);
+
+  // Pre-fetch tasks, guests, expenses for the Events detail sheet once we have a userId
+  useEffect(() => {
+    if (!session?.id) return;
+    const uid = session.id;
+    fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${uid}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setAllTasks(d); }).catch(() => {});
+    fetch(`${RAILWAY_URL}/api/v2/couple/guests/${uid}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setAllGuests(d); }).catch(() => {});
+    fetch(`${RAILWAY_URL}/api/v2/couple/money/${uid}`).then(r => r.json()).then(d => {
+      const rows = [...(d?.thisWeek || []), ...(d?.next30 || [])];
+      setAllExpenses(rows);
+    }).catch(() => {});
+  }, [session?.id]);
+
+  // Loading state
+  if (session === undefined) return null;
+
+  // No session — soft message
+  if (!session) {
+    return (
+      <>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
+          * { box-sizing: border-box; } body { margin: 0; background: #FAFAF8; }
+        `}</style>
+        <div style={{ minHeight: '100dvh', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835' }}>
+            Sign in to view your plan.
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  const userId = session.id;
+  const initial = (session.name?.[0] || 'D').toUpperCase();
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
-        * { box-sizing: border-box; }
-        body { margin: 0; background: #FAFAF8; }
+        * { box-sizing: border-box; } body { margin: 0; background: #FAFAF8; }
         ::-webkit-scrollbar { display: none; }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
 
-      {/* Page shell */}
       <div style={{
-        background: '#FAFAF8',
-        minHeight: '100dvh',
+        background: '#FAFAF8', minHeight: '100dvh',
         paddingTop: 24,
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)',
       }}>
@@ -568,34 +775,23 @@ export default function CouplePlanPage() {
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: 0 }}>Plan</h1>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E8D9B5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>D</span>
+            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initial}</span>
           </div>
         </div>
 
         {/* Sub-nav chips */}
         <div style={{ padding: '0 16px', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 8 }}>
           {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                flexShrink: 0,
-                fontFamily: "'Jost', sans-serif",
-                fontSize: 11,
-                fontWeight: 400,
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                padding: '6px 14px',
-                borderRadius: 100,
-                border: activeTab === tab.key ? 'none' : '1px solid #E8D9B5',
-                background: activeTab === tab.key ? '#0C0A09' : 'transparent',
-                color: activeTab === tab.key ? '#FAFAF8' : '#8C8480',
-                cursor: 'pointer',
-                transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
-              }}
-            >
-              {tab.label}
-            </button>
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+              flexShrink: 0,
+              fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
+              letterSpacing: '0.15em', textTransform: 'uppercase',
+              padding: '6px 14px', borderRadius: 100,
+              border: activeTab === tab.key ? 'none' : '1px solid #E8D9B5',
+              background: activeTab === tab.key ? '#0C0A09' : 'transparent',
+              color: activeTab === tab.key ? '#FAFAF8' : '#8C8480',
+              cursor: 'pointer', transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+            }}>{tab.label}</button>
           ))}
         </div>
 
@@ -604,45 +800,33 @@ export default function CouplePlanPage() {
           {activeTab === 'tasks' && <TasksTab userId={userId} />}
           {activeTab === 'money' && <MoneyTab userId={userId} />}
           {activeTab === 'people' && <PeopleTab userId={userId} />}
-          {activeTab === 'events' && <EventsTab userId={userId} />}
+          {activeTab === 'events' && (
+            <EventsTab
+              userId={userId}
+              allTasks={allTasks}
+              allGuests={allGuests}
+              allExpenses={allExpenses}
+            />
+          )}
         </div>
       </div>
 
       {/* Bottom Nav */}
       <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: '#FAFAF8',
-        borderTop: '1px solid #E8D9B5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        zIndex: 100,
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: '#FAFAF8', borderTop: '1px solid #E8D9B5',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100,
       }}>
         {NAV_ITEMS.map(item => (
-          <a key={item.key} href={item.href} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '12px 20px',
-            gap: 4,
-            textDecoration: 'none',
-          }}>
+          <a key={item.key} href={item.href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', gap: 4, textDecoration: 'none' }}>
             <span style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: 10,
+              fontFamily: "'Jost', sans-serif", fontSize: 10,
               fontWeight: item.key === 'plan' ? 400 : 300,
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
+              letterSpacing: '0.15em', textTransform: 'uppercase',
               color: item.key === 'plan' ? '#0C0A09' : '#8C8480',
             }}>{item.label}</span>
-            {item.key === 'plan' && (
-              <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#C9A84C', display: 'block' }} />
-            )}
+            {item.key === 'plan' && <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#C9A84C', display: 'block' }} />}
           </a>
         ))}
       </nav>

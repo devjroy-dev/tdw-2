@@ -66,7 +66,7 @@ export default function CoupleTodayPage() {
       }}>
         <TodayHero
           weddingDate={data.wedding_date}
-          eventLabel={data.event_label || 'wedding'}
+          eventLabel={data.event_label || 'Sangeet'}
           loading={loading}
         />
         <MomentsNeedYou nudges={data.nudges} loading={loading} />
