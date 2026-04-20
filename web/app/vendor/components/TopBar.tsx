@@ -1,26 +1,10 @@
 "use client";
 
-import { useState, createContext, useContext } from "react";
-
-// Mode context — exported so BottomNav can consume it
-export type AppMode = "BUSINESS" | "DISCOVERY";
-export const ModeContext = createContext<{
-  mode: AppMode;
-  setMode: (m: AppMode) => void;
-}>({ mode: "BUSINESS", setMode: () => {} });
-export const useAppMode = () => useContext(ModeContext);
+import { useAppMode } from "../layout";
+import type { AppMode } from "../layout";
 
 export default function TopBar() {
-  const [mode, setMode] = useState<AppMode>("BUSINESS");
-
-  // Expose mode via a custom event so BottomNav (separate tree) can react
-  const handleModeChange = (next: AppMode) => {
-    setMode(next);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("tdw-mode-change", { detail: next }));
-    }
-  };
-
+  const { mode, setMode } = useAppMode();
   const initials = "RM";
 
   return (
@@ -70,7 +54,7 @@ export default function TopBar() {
           return (
             <button
               key={m}
-              onClick={() => handleModeChange(m)}
+              onClick={() => setMode(m)}
               style={{
                 fontFamily: "'Jost', sans-serif",
                 fontSize: "10px",

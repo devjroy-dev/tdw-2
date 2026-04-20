@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   Home,
   Users,
@@ -12,14 +11,13 @@ import {
   Image,
   Handshake,
 } from "lucide-react";
-
-type AppMode = "BUSINESS" | "DISCOVERY";
+import { useAppMode } from "../layout";
 
 const BUSINESS_TABS = [
-  { label: "TODAY",  Icon: Home,            href: "/vendor/today"             },
-  { label: "CLIENTS", Icon: Users,          href: "/vendor/clients"           },
-  { label: "MONEY",  Icon: Wallet,          href: "/vendor/money"             },
-  { label: "STUDIO", Icon: Grid2X2,         href: "/vendor/studio"            },
+  { label: "TODAY",   Icon: Home,            href: "/vendor/today"             },
+  { label: "CLIENTS", Icon: Users,           href: "/vendor/clients"           },
+  { label: "MONEY",   Icon: Wallet,          href: "/vendor/money"             },
+  { label: "STUDIO",  Icon: Grid2X2,         href: "/vendor/studio"            },
 ];
 
 const DISCOVERY_TABS = [
@@ -32,16 +30,7 @@ const DISCOVERY_TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
-  const [mode, setMode] = useState<AppMode>("BUSINESS");
-
-  // Listen for mode changes broadcast from TopBar
-  useEffect(() => {
-    const handler = (e: Event) => {
-      setMode((e as CustomEvent<AppMode>).detail);
-    };
-    window.addEventListener("tdw-mode-change", handler);
-    return () => window.removeEventListener("tdw-mode-change", handler);
-  }, []);
+  const { mode } = useAppMode();
 
   const tabs = mode === "BUSINESS" ? BUSINESS_TABS : DISCOVERY_TABS;
 
@@ -86,7 +75,7 @@ export default function BottomNav() {
             }}
             aria-label={label}
           >
-            {/* Active indicator — gold line above tab */}
+            {/* Gold indicator line above active tab */}
             <span
               style={{
                 position: "absolute",
