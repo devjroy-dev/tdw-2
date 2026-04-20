@@ -221,18 +221,43 @@ app.delete('/api/users/:id', async (req, res) => {
   try {
     const { admin_password } = req.body || {};
     if (admin_password !== 'Mira@2551354') return res.status(403).json({ success: false, error: 'Unauthorised' });
-    // Cascade delete related records (best-effort)
     const userId = req.params.id;
-    const tables = ['moodboard_items', 'messages', 'co_planners', 'couple_planner_checklist', 'couple_planner_budget', 'couple_planner_guests', 'couple_planner_timeline'];
+    console.log('[delete-user] Starting for', userId);
+
+    // 1) Cascade delete child rows (best-effort, ignore per-table errors)
+    const tables = [
+      'moodboard_items', 'messages', 'co_planners',
+      'couple_planner_checklist', 'couple_planner_budget', 'couple_planner_guests', 'couple_planner_timeline',
+      'couple_events', 'couple_event_category_budgets', 'couple_checklist',
+      'couple_guests', 'couple_moodboard_pins', 'couple_shagun', 'couple_vendors',
+      'guests', 'couple_discover_waitlist', 'couple_waitlist',
+      'discover_access_requests', 'pai_access_requests', 'pai_events',
+      'ai_token_purchases', 'notifications',
+      'vendor_enquiries', 'vendor_enquiry_messages',
+      'lock_date_holds', 'lock_date_interest', 'luxury_appointments',
+    ];
     for (const t of tables) {
       try { await supabase.from(t).delete().eq('user_id', userId); } catch (e) {}
       try { await supabase.from(t).delete().eq('couple_id', userId); } catch (e) {}
     }
+
+    // 2) CRITICAL: Nullify access_codes.redeemed_user_id (FK that was blocking delete)
+    try { await supabase.from('access_codes').update({ redeemed_user_id: null }).eq('redeemed_user_id', userId); } catch (e) {}
+
+    // 3) Now delete the user
     const { error } = await supabase.from('users').delete().eq('id', userId);
-    if (error) throw error;
+    if (error) {
+      console.error('[delete-user] Delete failed:', error.message);
+      throw error;
+    }
+
+    console.log('[delete-user] Success for', userId);
     logActivity('user_deleted', `User ${userId} deleted by admin`);
     res.json({ success: true });
-  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+  } catch (error) {
+    console.error('[delete-user] error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.get('/api/users/:id', async (req, res) => {
@@ -5598,6 +5623,9 @@ app.delete('/api/admin/users/:id', async (req, res) => {
       } catch {}
     }
 
+    // CRITICAL: Nullify access_codes.redeemed_user_id (FK that blocks delete)
+    try { await supabase.from('access_codes').update({ redeemed_user_id: null }).eq('redeemed_user_id', userId); } catch {}
+
     // Finally delete the user row
     const { error } = await supabase.from('users').delete().eq('id', userId);
     if (error) throw error;
@@ -5631,6 +5659,9 @@ app.delete('/api/admin/vendors/:id', async (req, res) => {
     for (const t of childTables) {
       try { await supabase.from(t).delete().eq('vendor_id', vendorId); } catch {}
     }
+
+    // CRITICAL: Nullify access_codes.redeemed_vendor_id (FK that blocks delete)
+    try { await supabase.from('access_codes').update({ redeemed_vendor_id: null }).eq('redeemed_vendor_id', vendorId); } catch {}
 
     // Now delete the vendor row itself
     const { error } = await supabase.from('vendors').delete().eq('id', vendorId);
