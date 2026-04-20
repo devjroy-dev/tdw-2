@@ -4677,7 +4677,7 @@ const PORT = process.env.PORT || 8080;
 app.get('/api/v2/couple/tasks/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const { data, error } = await supabase.from('couple_tasks').select('*, events(name)').eq('couple_id', userId).order('due_date', { ascending: true });
+    const { data, error } = await supabase.from('couple_checklist').select('*').eq('couple_id', userId).order('due_date', { ascending: true });
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
@@ -4694,8 +4694,8 @@ app.get('/api/v2/couple/money/:userId', async (req, res) => {
 
     const [profile, expenses, events] = await Promise.all([
       supabase.from('couple_profiles').select('total_budget').eq('user_id', userId).single().then(r => r.data),
-      supabase.from('expenses').select('*').eq('couple_id', userId).then(r => r.data || []),
-      supabase.from('events').select('id, name, budget').eq('couple_id', userId).then(r => r.data || []),
+      supabase.from('couple_expenses').select('*').eq('couple_id', userId).then(r => r.data || []),
+      supabase.from('couple_events').select('id, event_name, budget_total').eq('couple_id', userId).then(r => r.data || []),
     ]);
 
     const committed = expenses.filter(e => ['committed','paid'].includes(e.status)).reduce((s,e) => s + (e.amount || 0), 0);
@@ -4712,7 +4712,7 @@ app.get('/api/v2/couple/money/:userId', async (req, res) => {
 app.get('/api/v2/couple/guests/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const { data, error } = await supabase.from('guests').select('*').eq('couple_id', userId).order('name', { ascending: true });
+    const { data, error } = await supabase.from('couple_guests').select('*').eq('couple_id', userId).order('name', { ascending: true });
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
@@ -4723,7 +4723,7 @@ app.get('/api/v2/couple/guests/:userId', async (req, res) => {
 app.get('/api/v2/couple/events/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const { data, error } = await supabase.from('events').select('*').eq('couple_id', userId).order('date', { ascending: true });
+    const { data, error } = await supabase.from('couple_events').select('*').eq('couple_id', userId).order('event_date', { ascending: true });
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
