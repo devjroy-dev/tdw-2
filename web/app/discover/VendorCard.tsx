@@ -1,5 +1,4 @@
 "use client";
-import { useRef, useState, useCallback } from "react";
 import { DiscoveryCard } from "./useDiscoverFeed";
 
 interface Props {
@@ -9,24 +8,25 @@ interface Props {
   entering: boolean;
 }
 
+/**
+ * VendorCard is purely presentational.
+ * - No pointer/touch handlers. ALL gesture detection happens in the parent wrapper.
+ *   This was the bug: the parallax onPointerMove was hijacking pointer events
+ *   on some cards, causing tap inconsistency.
+ * - pointer-events: none on every child so taps always reach the parent wrapper.
+ * - Parallax removed: it was causing re-renders mid-gesture. Can be reintroduced
+ *   later via CSS-only transform driven by parent, not card-local state.
+ */
 export default function VendorCard({ card, imageIndex, revealLevel, entering }: Props) {
-  const [parallaxY, setParallaxY] = useState(0);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const dy = (e.clientY - rect.top - rect.height / 2) * 0.04;
-    setParallaxY(dy);
-  }, []);
-
   const src = card.images[imageIndex] || card.images[0];
 
   return (
     <div
-      onPointerMove={handlePointerMove}
       style={{
         position: "absolute",
         inset: 0,
         overflow: "hidden",
+        pointerEvents: "none", // children pass all pointer events up to parent wrapper
         animation: entering ? "dissolve 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards" : "none",
         opacity: revealLevel >= 3 ? 0.4 : 1,
         transition: revealLevel >= 3 ? "opacity 280ms" : undefined,
@@ -34,13 +34,11 @@ export default function VendorCard({ card, imageIndex, revealLevel, entering }: 
     >
       <div style={{
         position: "absolute",
-        inset: "-5%",
+        inset: 0,
         backgroundImage: `url(${src})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        transform: `translateY(${parallaxY}px)`,
-        transition: "transform 0.1s linear",
-        willChange: "transform",
+        pointerEvents: "none",
       }} />
 
       <div style={{

@@ -24,7 +24,9 @@ export default function DiscoverFeed({ isSignedIn = false, profileComplete = fal
   const [showSheet, setShowSheet] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [swipesSinceNudge, setSwipesSinceNudge] = useState(0);
-  const dragStart = useRef<{ x: number; y: number } | null>(null);
+
+  // Gesture state: ref-only, never reads from stale closures
+  const gestureRef = useRef<{ x: number; y: number; t: number; pointerId: number } | null>(null);
 
   useEffect(() => {
     if (cards.length > 0) preloadImages(1, 3);
@@ -44,6 +46,9 @@ export default function DiscoverFeed({ isSignedIn = false, profileComplete = fal
   }, [cards, preloadImages]);
 
   const handleTap = useCallback(() => {
+    // Gate: if sheet is open, tap does nothing
+    if (showSheet) return;
+
     if (!isSignedIn) {
       if (!showNudge) { setShowNudge(true); setSwipesSinceNudge(0); }
       else if (swipesSinceNudge >= 3) { setShowNudge(true); setSwipesSinceNudge(0); }
@@ -52,30 +57,69 @@ export default function DiscoverFeed({ isSignedIn = false, profileComplete = fal
     const next = revealLevel + 1;
     if (next >= 3) { setRevealLevel(3); setShowSheet(true); }
     else setRevealLevel(next);
-  }, [isSignedIn, revealLevel, swipesSinceNudge, showNudge]);
+  }, [isSignedIn, revealLevel, swipesSinceNudge, showNudge, showSheet]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    dragStart.current = { x: e.clientX, y: e.clientY };
-  }, []);
+    // Gate: ignore pointer events when any overlay is active
+    if (showSheet || showNudge) return;
+
+    gestureRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      t: Date.now(),
+      pointerId: e.pointerId,
+    };
+
+    // Capture the pointer on the root so pointerup ALWAYS fires here,
+    // even if the child re-renders or the finger drifts over child elements.
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch { /* some browsers throw on already-captured pointers; ignore */ }
+  }, [showSheet, showNudge]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!dragStart.current) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-    dragStart.current = null;
+    const g = gestureRef.current;
+    gestureRef.current = null;
+    if (!g) return;
+    if (g.pointerId !== e.pointerId) return;
 
-    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { handleTap(); return; }
+    try {
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    } catch { /* ignore */ }
 
-    if (Math.abs(dy) > Math.abs(dx)) {
-      if (dy < -40) goToCard(cardIndex + 1);
-      else if (dy > 40) goToCard(cardIndex - 1);
-    } else {
+    const dx = e.clientX - g.x;
+    const dy = e.clientY - g.y;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const duration = Date.now() - g.t;
+
+    // TAP: tight movement, quick duration
+    if (absDx < 8 && absDy < 8 && duration < 300) {
+      handleTap();
+      return;
+    }
+
+    // VERTICAL SWIPE
+    if (absDy > absDx && absDy > 30) {
+      if (dy < 0) goToCard(cardIndex + 1);
+      else goToCard(cardIndex - 1);
+      return;
+    }
+
+    // HORIZONTAL SWIPE
+    if (absDx > absDy && absDx > 30) {
       const card = cards[cardIndex];
       if (!card) return;
-      if (dx < -40) setImageIndex((i) => Math.min(i + 1, card.images.length - 1));
-      else if (dx > 40) setImageIndex((i) => Math.max(i - 1, 0));
+      if (dx < 0) setImageIndex((i) => Math.min(i + 1, card.images.length - 1));
+      else setImageIndex((i) => Math.max(i - 1, 0));
+      return;
     }
+    // Anything in-between (e.g. 10px drift, 500ms hold) = no-op. Never fires tap + swipe.
   }, [cardIndex, cards, goToCard, handleTap]);
+
+  const handlePointerCancel = useCallback(() => {
+    gestureRef.current = null;
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -110,9 +154,28 @@ export default function DiscoverFeed({ isSignedIn = false, profileComplete = fal
       <div
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
-        style={{ position: "fixed", inset: 0, background: "#0C0A09", overflow: "hidden", touchAction: "none", cursor: "pointer" }}
+        onPointerCancel={handlePointerCancel}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "#0C0A09",
+          overflow: "hidden",
+          touchAction: "none",
+          cursor: "pointer",
+        }}
       >
-        <VendorCard key={`${cardIndex}-${imageIndex}`} card={currentCard} imageIndex={imageIndex} revealLevel={revealLevel} entering={entering} />
+        {/*
+          Key is tied ONLY to cardIndex, not imageIndex.
+          - Card change: full unmount/remount (clean slate, no listener leaks).
+          - Image swipe within same vendor: just prop update, no remount (preserves parallax, smoother).
+        */}
+        <VendorCard
+          key={cardIndex}
+          card={currentCard}
+          imageIndex={imageIndex}
+          revealLevel={revealLevel}
+          entering={entering}
+        />
       </div>
 
       {showNudge && !isSignedIn && (

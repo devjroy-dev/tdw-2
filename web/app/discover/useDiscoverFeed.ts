@@ -20,16 +20,20 @@ export function useDiscoverFeed() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("https://dream-wedding-production-89ae.up.railway.app/api/v2/discovery/feed")
       .then((r) => r.json())
       .then((data) => {
+        if (cancelled) return;
         setCards(data.cards || []);
         setLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setError("Could not load feed.");
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, []);
 
   const preloadImages = useCallback((startIndex: number, count: number) => {
