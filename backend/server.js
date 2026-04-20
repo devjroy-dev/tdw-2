@@ -2518,14 +2518,25 @@ app.post('/api/vendor/login', async (req, res) => {
     }
     const fullPhone = '+91' + cleanPhone;
 
-    const { data: vendor } = await supabase
-      .from('vendors').select('*').eq('phone', fullPhone).maybeSingle();
+    // Look up credentials by phone (this is where passwords live for ALL vendors,
+    // both signup-flow vendors and admin-created ones)
+    const { data: cred } = await supabase
+      .from('vendor_credentials').select('*').eq('phone_number', fullPhone).maybeSingle();
 
-    if (!vendor || !vendor.password_hash) {
+    if (!cred || !cred.password_hash) {
       return res.status(401).json({ success: false, error: 'Invalid phone or password' });
     }
-    const match = await bcrypt.compare(password, vendor.password_hash);
+    const match = await bcrypt.compare(password, cred.password_hash);
     if (!match) return res.status(401).json({ success: false, error: 'Invalid phone or password' });
+
+    // Now load the vendor row
+    const { data: vendor } = await supabase
+      .from('vendors').select('*').eq('id', cred.vendor_id).maybeSingle();
+    if (!vendor) {
+      // Orphan credentials — auto-clean and reject
+      try { await supabase.from('vendor_credentials').delete().eq('id', cred.id); } catch {}
+      return res.status(401).json({ success: false, error: 'Account no longer exists' });
+    }
 
     // Get tier
     let tier = 'essential';
@@ -5663,38 +5674,82 @@ app.post('/api/admin/create-vendor', async (req, res) => {
     if (cleanPhone.length !== 10) return res.status(400).json({ success: false, error: 'Phone must be 10 digits' });
     const fullPhone = '+91' + cleanPhone;
 
-    // Check no existing
-    const { data: existing } = await supabase.from('vendor_credentials')
-      .select('id').eq('phone_number', fullPhone).maybeSingle();
-    if (existing) return res.status(409).json({ success: false, error: 'Vendor with this phone already exists' });
+    console.log('[admin-create-vendor] Starting for phone:', fullPhone, 'tier:', finalTier);
+
+    // Pre-check: any existing vendor_credentials with this phone? Reject if so.
+    const { data: existingCreds } = await supabase.from('vendor_credentials')
+      .select('id, vendor_id').eq('phone_number', fullPhone);
+    if (existingCreds && existingCreds.length > 0) {
+      console.log('[admin-create-vendor] Existing creds found:', existingCreds.length, 'rows. Rejecting.');
+      return res.status(409).json({
+        success: false,
+        error: `Vendor with this phone already exists (${existingCreds.length} stale credential row(s) found). Run cleanup-credentials first to clear them.`,
+      });
+    }
+    // Also check: any existing vendor row with this phone?
+    const { data: existingVendors } = await supabase.from('vendors')
+      .select('id').eq('phone', cleanPhone);
+    if (existingVendors && existingVendors.length > 0) {
+      console.log('[admin-create-vendor] Existing vendor row found. Cleaning before re-create.');
+      // Soft cleanup of vendor row + related (since user is choosing to re-create)
+      for (const v of existingVendors) {
+        try { await supabase.from('vendor_subscriptions').delete().eq('vendor_id', v.id); } catch {}
+        try { await supabase.from('vendors').delete().eq('id', v.id); } catch {}
+      }
+    }
+    // Also check: any other rows in vendor_credentials with username matching cleanPhone (unique constraint)
+    const { data: existingByUsername } = await supabase.from('vendor_credentials')
+      .select('id').eq('username', cleanPhone);
+    if (existingByUsername && existingByUsername.length > 0) {
+      console.log('[admin-create-vendor] Cleaning stale username-only credential rows:', existingByUsername.length);
+      for (const c of existingByUsername) {
+        try { await supabase.from('vendor_credentials').delete().eq('id', c.id); } catch {}
+      }
+    }
 
     // Create vendor row
     const { data: vendor, error: vErr } = await supabase.from('vendors').insert([{
       name: name || ('Vendor ' + cleanPhone), category: 'photographers', city: 'Delhi NCR',
       phone: cleanPhone, ig_verified: false, subscription_active: true,
     }]).select().single();
-    if (vErr) throw vErr;
+    if (vErr) {
+      console.error('[admin-create-vendor] Vendor insert failed:', vErr.message);
+      return res.status(500).json({ success: false, error: 'Vendor row insert failed: ' + vErr.message });
+    }
+    console.log('[admin-create-vendor] Vendor row created:', vendor.id);
 
     // Create subscription
     const threeMonths = new Date(Date.now() + 90 * 86400000);
     const aug1 = new Date('2026-08-01T00:00:00Z');
     const trial_end = threeMonths < aug1 ? threeMonths : aug1;
-    await supabase.from('vendor_subscriptions').insert([{
+    const { error: sErr } = await supabase.from('vendor_subscriptions').insert([{
       vendor_id: vendor.id, tier: finalTier, status: 'trial',
       trial_start_date: new Date().toISOString(), trial_end_date: trial_end.toISOString(),
       activated_by_code: 'ADMIN_CREATED', is_founding_vendor: false, founding_badge: false,
     }]);
+    if (sErr) console.error('[admin-create-vendor] Subscription insert failed (non-fatal):', sErr.message);
 
-    // Create credentials (use phone as username for admin-created accounts)
+    // Create credentials — THIS IS THE CRITICAL ONE; capture and surface error
     const hashedPwd = await bcrypt.hash(password, 10);
-    await supabase.from('vendor_credentials').insert([{
+    const { error: cErr } = await supabase.from('vendor_credentials').insert([{
       vendor_id: vendor.id, username: cleanPhone, password_hash: hashedPwd,
       phone_number: fullPhone, phone_verified: true, email_verified: false,
     }]);
+    if (cErr) {
+      console.error('[admin-create-vendor] CREDENTIALS insert failed:', cErr.message);
+      // Roll back vendor row to avoid orphaned vendor with no login
+      try { await supabase.from('vendor_subscriptions').delete().eq('vendor_id', vendor.id); } catch {}
+      try { await supabase.from('vendors').delete().eq('id', vendor.id); } catch {}
+      return res.status(500).json({ success: false, error: 'Credentials insert failed: ' + cErr.message });
+    }
+    console.log('[admin-create-vendor] Credentials inserted. Login should now work for', fullPhone);
 
     logActivity('admin_vendor_created', `Admin created vendor ${vendor.name} (${fullPhone}, ${finalTier})`);
     res.json({ success: true, data: { id: vendor.id, name: vendor.name, phone: fullPhone, tier: finalTier } });
-  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+  } catch (error) {
+    console.error('[admin-create-vendor] Unhandled error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ── Admin: create couple profile directly
@@ -5710,9 +5765,18 @@ app.post('/api/admin/create-couple', async (req, res) => {
     if (cleanPhone.length !== 10) return res.status(400).json({ success: false, error: 'Phone must be 10 digits' });
     const fullPhone = '+91' + cleanPhone;
 
-    const { data: existing } = await supabase.from('users')
-      .select('id').eq('phone', fullPhone).maybeSingle();
-    if (existing) return res.status(409).json({ success: false, error: 'Couple with this phone already exists' });
+    console.log('[admin-create-couple] Starting for phone:', fullPhone, 'tier:', finalTier);
+
+    // Check for any existing user rows with this phone (use array, not maybeSingle)
+    const { data: existingUsers } = await supabase.from('users')
+      .select('id').eq('phone', fullPhone);
+    if (existingUsers && existingUsers.length > 0) {
+      console.log('[admin-create-couple] Existing user(s) found:', existingUsers.length, '. Rejecting.');
+      return res.status(409).json({
+        success: false,
+        error: `Couple with this phone already exists (${existingUsers.length} existing row(s)). Delete from admin first.`,
+      });
+    }
 
     const tierMap = { basic: 'free', gold: 'premium', platinum: 'elite' };
     const tokenMap = { basic: 3, gold: 15, platinum: 999 };
@@ -5727,11 +5791,18 @@ app.post('/api/admin/create-couple', async (req, res) => {
       password_hash: hashedPwd, email_verified: false,
       dreamer_type: 'couple',
     }]).select().single();
-    if (uErr) throw uErr;
+    if (uErr) {
+      console.error('[admin-create-couple] User insert failed:', uErr.message);
+      return res.status(500).json({ success: false, error: 'Couple insert failed: ' + uErr.message });
+    }
+    console.log('[admin-create-couple] Couple created:', user.id, '. Login should now work for', fullPhone);
 
     logActivity('admin_couple_created', `Admin created couple ${user.name} (${fullPhone}, ${finalTier})`);
     res.json({ success: true, data: { id: user.id, name: user.name, phone: fullPhone, tier: finalTier, tokens } });
-  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+  } catch (error) {
+    console.error('[admin-create-couple] Unhandled error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════
