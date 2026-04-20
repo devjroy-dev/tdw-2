@@ -1,27 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { Bell, Plus } from "lucide-react";
+import { useState, createContext, useContext } from "react";
 
-const TIER_COLORS: Record<string, { border: string; text: string; bg: string }> = {
-  Essential: { border: "#C9A84C", text: "#C9A84C", bg: "#FAF6F0" },
-  Signature: { border: "#C9A84C", text: "#C9A84C", bg: "#FDF9F0" },
-  Prestige: { border: "#8B6914", text: "#8B6914", bg: "#FBF5E6" },
-};
+// Mode context — exported so BottomNav can consume it
+export type AppMode = "BUSINESS" | "DISCOVERY";
+export const ModeContext = createContext<{
+  mode: AppMode;
+  setMode: (m: AppMode) => void;
+}>({ mode: "BUSINESS", setMode: () => {} });
+export const useAppMode = () => useContext(ModeContext);
 
-interface TopBarProps {
-  vendorName?: string;
-  tier?: "Essential" | "Signature" | "Prestige";
-  notificationCount?: number;
-}
+export default function TopBar() {
+  const [mode, setMode] = useState<AppMode>("BUSINESS");
 
-export default function TopBar({
-  vendorName = "Riya Mehta Studio",
-  tier = "Signature",
-  notificationCount = 3,
-}: TopBarProps) {
-  const [showNotifDot] = useState(notificationCount > 0);
-  const tierStyle = TIER_COLORS[tier];
+  // Expose mode via a custom event so BottomNav (separate tree) can react
+  const handleModeChange = (next: AppMode) => {
+    setMode(next);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("tdw-mode-change", { detail: next }));
+    }
+  };
+
+  const initials = "RM";
 
   return (
     <header
@@ -29,94 +29,95 @@ export default function TopBar({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "14px 20px",
-        backgroundColor: "#FAF6F0",
-        borderBottom: "1px solid #E8E0D5",
-        position: "sticky",
+        padding: "0 20px",
+        height: "56px",
+        backgroundColor: "#0C0A09",
+        position: "fixed",
         top: 0,
-        zIndex: 100,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        boxSizing: "border-box",
       }}
     >
-      {/* Left: Name + Tier badge */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <span
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "16px",
-            fontWeight: 600,
-            color: "#1A1A1A",
-            letterSpacing: "0.01em",
-          }}
-        >
-          {vendorName}
-        </span>
-        <span
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "10px",
-            fontWeight: 500,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: tierStyle.text,
-            border: `1px solid ${tierStyle.border}`,
-            backgroundColor: tierStyle.bg,
-            borderRadius: "20px",
-            padding: "2px 8px",
-          }}
-        >
-          {tier}
-        </span>
+      {/* Left: TDW wordmark */}
+      <span
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: "20px",
+          fontWeight: 300,
+          color: "#FAFAF8",
+          letterSpacing: "0.04em",
+          lineHeight: 1,
+        }}
+      >
+        TDW
+      </span>
+
+      {/* Centre: Mode toggle pill */}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          background: "rgba(255,255,255,0.08)",
+          borderRadius: "20px",
+          padding: "3px",
+          gap: 0,
+        }}
+      >
+        {(["BUSINESS", "DISCOVERY"] as AppMode[]).map((m) => {
+          const active = mode === m;
+          return (
+            <button
+              key={m}
+              onClick={() => handleModeChange(m)}
+              style={{
+                fontFamily: "'Jost', sans-serif",
+                fontSize: "10px",
+                fontWeight: 300,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                padding: "6px 16px",
+                borderRadius: "16px",
+                border: "none",
+                cursor: "pointer",
+                background: active ? "#FAFAF8" : "transparent",
+                color: active ? "#0C0A09" : "rgba(255,255,255,0.5)",
+                transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {m}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Right: Notification bell + Quick-add */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {/* Bell */}
-        <div style={{ position: "relative", cursor: "pointer" }}>
-          <Bell
-            size={20}
-            color="#5C5C5C"
-            strokeWidth={1.6}
-          />
-          {showNotifDot && (
-            <span
-              style={{
-                position: "absolute",
-                top: "-2px",
-                right: "-2px",
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
-                backgroundColor: "#C9A84C",
-                border: "1.5px solid #FAF6F0",
-              }}
-            />
-          )}
-        </div>
-
-        {/* Quick-add */}
-        <button
+      {/* Right: Profile circle */}
+      <div
+        style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "50%",
+          border: "1px solid #C9A84C",
+          background: "rgba(201,168,76,0.15)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <span
           style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            backgroundColor: "#C9A84C",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "background-color 0.15s ease",
+            fontFamily: "'Jost', sans-serif",
+            fontSize: "12px",
+            fontWeight: 400,
+            color: "#FAFAF8",
+            lineHeight: 1,
           }}
-          onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = "#B8963E")
-          }
-          onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = "#C9A84C")
-          }
-          aria-label="Quick add"
         >
-          <Plus size={16} color="#FAF6F0" strokeWidth={2.2} />
-        </button>
+          {initials}
+        </span>
       </div>
     </header>
   );
