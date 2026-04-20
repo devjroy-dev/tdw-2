@@ -5806,6 +5806,139 @@ app.post('/api/admin/create-couple', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
+// ADMIN: NUCLEAR WIPE — clear all vendors / couples / both
+// Requires confirm: 'WIPE_VENDORS' or 'WIPE_COUPLES' or 'WIPE_ALL' in body to prevent accident
+// ══════════════════════════════════════════════════════════════
+
+const VENDOR_CHILD_TABLES = [
+  'vendor_subscriptions', 'vendor_logins', 'vendor_credentials', 'vendor_login_codes',
+  'vendor_images', 'vendor_packages', 'vendor_availability_blocks', 'vendor_calendar_events',
+  'vendor_clients', 'vendor_contracts', 'vendor_invoices', 'vendor_payment_schedules',
+  'vendor_leads', 'vendor_enquiries', 'vendor_enquiry_messages', 'vendor_assistants',
+  'vendor_team_members', 'vendor_todos', 'vendor_reminders', 'vendor_referrals',
+  'vendor_offers', 'vendor_boosts', 'vendor_featured_applications', 'vendor_photo_approvals',
+  'vendor_wedding_albums', 'vendor_tds_ledger', 'vendor_activity_log', 'vendor_analytics_daily',
+  'vendor_discover_access_requests', 'vendor_discover_submissions',
+  'blocked_dates', 'bookings', 'lock_date_holds', 'lock_date_interest', 'luxury_appointments',
+  'photo_approvals', 'team_tasks', 'team_messages', 'team_checkins',
+  'procurement_items', 'delivery_items', 'trial_schedule', 'client_sentiment',
+  'delegation_templates', 'destination_packages',
+];
+
+const COUPLE_CHILD_TABLES = [
+  'couple_events', 'couple_event_category_budgets', 'couple_checklist',
+  'couple_guests', 'couple_moodboard_pins', 'couple_shagun', 'couple_vendors',
+  'guests', 'moodboard_items', 'co_planners',
+  'couple_discover_waitlist', 'couple_waitlist',
+  'discover_access_requests', 'pai_access_requests', 'pai_events',
+  'ai_token_purchases', 'notifications', 'messages',
+];
+
+app.post('/api/admin/wipe-vendors', async (req, res) => {
+  try {
+    const { confirm } = req.body || {};
+    if (confirm !== 'WIPE_VENDORS') {
+      return res.status(400).json({ success: false, error: 'Confirmation required. Send {"confirm":"WIPE_VENDORS"}' });
+    }
+    console.log('[wipe-vendors] STARTING — wiping ALL vendor data');
+    const counts = {};
+    // Wipe all child tables first (FK constraints)
+    for (const t of VENDOR_CHILD_TABLES) {
+      try {
+        const { count } = await supabase.from(t).delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+        counts[t] = count || 0;
+      } catch (e) {
+        counts[t] = 'skip:' + (e.message || '').slice(0, 30);
+      }
+    }
+    // Now wipe vendors table
+    try {
+      const { count } = await supabase.from('vendors').delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+      counts['vendors'] = count || 0;
+    } catch (e) {
+      counts['vendors'] = 'error:' + e.message;
+    }
+    console.log('[wipe-vendors] DONE. Counts:', JSON.stringify(counts));
+    logActivity('admin_wipe_vendors', `Wiped all vendor data: ${JSON.stringify(counts)}`);
+    res.json({ success: true, wiped: counts });
+  } catch (error) {
+    console.error('[wipe-vendors] error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/admin/wipe-couples', async (req, res) => {
+  try {
+    const { confirm } = req.body || {};
+    if (confirm !== 'WIPE_COUPLES') {
+      return res.status(400).json({ success: false, error: 'Confirmation required. Send {"confirm":"WIPE_COUPLES"}' });
+    }
+    console.log('[wipe-couples] STARTING — wiping ALL couple data');
+    const counts = {};
+    for (const t of COUPLE_CHILD_TABLES) {
+      try {
+        const { count } = await supabase.from(t).delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+        counts[t] = count || 0;
+      } catch (e) {
+        counts[t] = 'skip:' + (e.message || '').slice(0, 30);
+      }
+    }
+    // Wipe users (only couples — preserve dreamer_type !== 'couple' if it exists)
+    try {
+      const { count } = await supabase.from('users').delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+      counts['users'] = count || 0;
+    } catch (e) {
+      counts['users'] = 'error:' + e.message;
+    }
+    console.log('[wipe-couples] DONE. Counts:', JSON.stringify(counts));
+    logActivity('admin_wipe_couples', `Wiped all couple data: ${JSON.stringify(counts)}`);
+    res.json({ success: true, wiped: counts });
+  } catch (error) {
+    console.error('[wipe-couples] error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/admin/wipe-all', async (req, res) => {
+  try {
+    const { confirm } = req.body || {};
+    if (confirm !== 'WIPE_ALL') {
+      return res.status(400).json({ success: false, error: 'Confirmation required. Send {"confirm":"WIPE_ALL"}' });
+    }
+    console.log('[wipe-all] STARTING — wiping vendors + couples + everything');
+    const counts = { vendors: {}, couples: {} };
+    for (const t of VENDOR_CHILD_TABLES) {
+      try {
+        const { count } = await supabase.from(t).delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+        counts.vendors[t] = count || 0;
+      } catch { counts.vendors[t] = 0; }
+    }
+    try {
+      const { count } = await supabase.from('vendors').delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+      counts.vendors['vendors'] = count || 0;
+    } catch (e) { counts.vendors['vendors'] = 'error:' + e.message; }
+
+    for (const t of COUPLE_CHILD_TABLES) {
+      try {
+        const { count } = await supabase.from(t).delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+        counts.couples[t] = count || 0;
+      } catch { counts.couples[t] = 0; }
+    }
+    try {
+      const { count } = await supabase.from('users').delete({ count: 'exact' }).neq('id', '00000000-0000-0000-0000-000000000000');
+      counts.couples['users'] = count || 0;
+    } catch (e) { counts.couples['users'] = 'error:' + e.message; }
+
+    console.log('[wipe-all] DONE. Counts:', JSON.stringify(counts));
+    logActivity('admin_wipe_all', `Wiped EVERYTHING: ${JSON.stringify(counts)}`);
+    res.json({ success: true, wiped: counts });
+  } catch (error) {
+    console.error('[wipe-all] error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
 // COUPLE TIER CODES — invite-only couple access
 // ══════════════════════════════════════════════════════════════
 

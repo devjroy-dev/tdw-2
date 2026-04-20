@@ -1489,6 +1489,105 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* DANGER ZONE — visible only on Home tab */}
+        {activeTab === 'dashboard' && (
+          <div style={{
+            marginTop: 32, padding: '20px 22px', borderRadius: 12,
+            background: '#FFF5F5', border: '1px solid #FFCDD2',
+          }}>
+            <div style={{ fontSize: 9, color: '#C62828', letterSpacing: 3, textTransform: 'uppercase' as const, marginBottom: 4, fontWeight: 600 }}>Danger Zone</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 6, fontFamily: 'Playfair Display, serif' }}>Wipe all data</div>
+            <div style={{ fontSize: 12, color: '#8C7B6E', lineHeight: 1.6, marginBottom: 16 }}>
+              Permanently deletes vendors and/or couples and ALL their related data (credentials, subscriptions, leads, photos, enquiries, moodboards, etc.). Use this to reset the database before launch. <strong style={{ color: '#C62828' }}>This cannot be undone.</strong>
+            </div>
+            <div style={{ display: 'flex' as const, gap: 10, flexWrap: 'wrap' as const }}>
+              <button
+                onClick={async () => {
+                  if (!confirm('Wipe ALL VENDOR data?\n\nThis will permanently delete every vendor + their credentials, subscriptions, photos, leads, enquiries, contracts, etc.\n\nClick OK to continue, then you will be asked one more time.')) return;
+                  if (!confirm('LAST WARNING.\n\nType-confirm coming next. Click OK to proceed.')) return;
+                  const typed = prompt('Type WIPE_VENDORS exactly to confirm:');
+                  if (typed !== 'WIPE_VENDORS') { alert('Cancelled (text did not match)'); return; }
+                  try {
+                    const r = await fetch(API + '/api/admin/wipe-vendors', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ confirm: 'WIPE_VENDORS' }),
+                    });
+                    const d = await r.json();
+                    if (d.success) {
+                      alert('All vendor data wiped. Counts:\n' + JSON.stringify(d.wiped, null, 2));
+                      loadAll();
+                    } else {
+                      alert('Failed: ' + (d.error || 'unknown'));
+                    }
+                  } catch (e: any) { alert('Network error: ' + e.message); }
+                }}
+                style={{
+                  padding: '10px 18px', borderRadius: 8,
+                  background: '#FFF', color: '#C62828', border: '1px solid #FFCDD2',
+                  fontSize: 12, fontWeight: 500, cursor: 'pointer' as const,
+                  letterSpacing: '0.3px',
+                }}
+              >Wipe All Vendors</button>
+
+              <button
+                onClick={async () => {
+                  if (!confirm('Wipe ALL COUPLE data?\n\nThis will permanently delete every couple + all moodboards, checklists, enquiries, etc.\n\nClick OK to continue.')) return;
+                  if (!confirm('LAST WARNING.\n\nType-confirm coming next. Click OK to proceed.')) return;
+                  const typed = prompt('Type WIPE_COUPLES exactly to confirm:');
+                  if (typed !== 'WIPE_COUPLES') { alert('Cancelled (text did not match)'); return; }
+                  try {
+                    const r = await fetch(API + '/api/admin/wipe-couples', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ confirm: 'WIPE_COUPLES' }),
+                    });
+                    const d = await r.json();
+                    if (d.success) {
+                      alert('All couple data wiped. Counts:\n' + JSON.stringify(d.wiped, null, 2));
+                      loadUsers();
+                    } else {
+                      alert('Failed: ' + (d.error || 'unknown'));
+                    }
+                  } catch (e: any) { alert('Network error: ' + e.message); }
+                }}
+                style={{
+                  padding: '10px 18px', borderRadius: 8,
+                  background: '#FFF', color: '#C62828', border: '1px solid #FFCDD2',
+                  fontSize: 12, fontWeight: 500, cursor: 'pointer' as const,
+                  letterSpacing: '0.3px',
+                }}
+              >Wipe All Couples</button>
+
+              <button
+                onClick={async () => {
+                  if (!confirm('NUKE EVERYTHING?\n\nThis wipes ALL vendors AND ALL couples AND every piece of related data. Database is reset to an empty state (codes + featured boards + admin login preserved).\n\nClick OK to continue.')) return;
+                  if (!confirm('LAST WARNING. This is IRREVERSIBLE.\n\nType-confirm coming next.')) return;
+                  const typed = prompt('Type WIPE_ALL exactly to confirm:');
+                  if (typed !== 'WIPE_ALL') { alert('Cancelled (text did not match)'); return; }
+                  try {
+                    const r = await fetch(API + '/api/admin/wipe-all', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ confirm: 'WIPE_ALL' }),
+                    });
+                    const d = await r.json();
+                    if (d.success) {
+                      alert('EVERYTHING WIPED. Counts:\n' + JSON.stringify(d.wiped, null, 2));
+                      loadAll(); loadUsers();
+                    } else {
+                      alert('Failed: ' + (d.error || 'unknown'));
+                    }
+                  } catch (e: any) { alert('Network error: ' + e.message); }
+                }}
+                style={{
+                  padding: '10px 18px', borderRadius: 8,
+                  background: '#C62828', color: '#FFF', border: '1px solid #C62828',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer' as const,
+                  letterSpacing: '0.3px',
+                }}
+              >Nuke Everything</button>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'waitlist' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
