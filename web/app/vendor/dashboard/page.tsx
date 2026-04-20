@@ -258,7 +258,6 @@ function DeluxeSuiteModal({ tab, onClose }: { tab: any; onClose: () => void }) {
 // ── Coming Soon Modal ────────────────────────────────────────────
 function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
   if (!tab) return null;
-  const Icon = tab.icon;
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
@@ -267,73 +266,57 @@ function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
       padding: '24px',
     }} onClick={onClose}>
       <div style={{
-        background: 'var(--white)',
-        borderRadius: '20px',
-        padding: '48px',
+        background: '#FAF6F0',  // ivory
+        borderRadius: '16px',
+        padding: '24px 22px',
         maxWidth: '480px',
         width: '100%',
-        border: '1px solid var(--border)',
+        border: '1px solid rgba(201,168,76,0.35)',  // gold border
       }} onClick={e => e.stopPropagation()}>
-        <div style={{
-          width: '52px', height: '52px',
-          borderRadius: '13px',
-          backgroundColor: 'var(--light-gold)',
-          border: '1px solid var(--gold-border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginBottom: '24px',
+        <p style={{
+          margin: '0 0 6px',
+          fontSize: '10px',
+          fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500,
+          color: 'var(--gold)',
+          letterSpacing: '3px',
+          textTransform: 'uppercase' as const,
         }}>
-          <Icon size={22} color="var(--gold)" />
-        </div>
-        <div style={{
-          display: 'inline-block',
-          background: tab.build === 'Build 2' ? 'rgba(201,168,76,0.12)' : 'rgba(140,123,110,0.12)',
-          border: `1px solid ${tab.build === 'Build 2' ? 'rgba(201,168,76,0.3)' : 'rgba(140,123,110,0.3)'}`,
-          borderRadius: '50px',
-          padding: '4px 14px',
-          marginBottom: '16px',
-        }}>
-          <span style={{
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '10px',
-            fontWeight: 500,
-            color: tab.build === 'Build 2' ? 'var(--gold)' : 'var(--grey)',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-          }}>
-            {tab.build}
-          </span>
-        </div>
+          {tab.label} · {tab.build === 'Build 2' ? 'Coming Soon' : 'Beta'}
+        </p>
         <h3 style={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize: '24px',
-          fontWeight: 300,
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '22px',
+          fontWeight: 500,
           color: 'var(--dark)',
-          marginBottom: '14px',
+          margin: '0 0 16px',
+          lineHeight: '28px',
         }}>
           {tab.label}
         </h3>
         <p style={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize: '14px',
-          fontWeight: 300,
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '13px',
           color: 'var(--grey)',
-          lineHeight: 1.8,
-          marginBottom: '32px',
+          lineHeight: 1.6,
+          marginBottom: '20px',
+          margin: '0 0 20px',
         }}>
           {tab.desc}
         </p>
         <button onClick={onClose} style={{
+          width: '100%',
           background: 'var(--dark)',
-          color: 'var(--cream)',
-          fontFamily: 'Inter, sans-serif',
+          color: 'var(--gold)',
+          fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 500,
-          letterSpacing: '1px',
-          padding: '14px 28px',
-          borderRadius: '8px',
+          letterSpacing: '2px',
+          padding: '14px',
+          borderRadius: '10px',
           border: 'none',
           cursor: 'pointer',
-          textTransform: 'uppercase',
+          textTransform: 'uppercase' as const,
         }}>
           Got it
         </button>

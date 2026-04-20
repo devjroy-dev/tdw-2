@@ -5172,23 +5172,21 @@ function ToolPlaceholder({ toolId, session, onBack }: {
         </button>
         <span style={{ fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>{tool.label}</span>
       </div>
-      <div style={{ padding: '48px 28px', textAlign: 'center' }}>
+      <div style={{ padding: '40px 20px 100px' }}>
         <div style={{
-          width: 56, height: 56, borderRadius: 18,
-          background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 16px',
+          background: C.ivory, border: `1px solid ${C.goldBorder}`, borderRadius: 16,
+          padding: '24px 22px',
         }}>
-          <tool.Icon size={24} color={C.gold} />
+          <p style={{ margin: '0 0 6px', fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase' as const }}>
+            {tool.label} · Coming Soon
+          </p>
+          <h2 style={{ margin: '0 0 16px', fontSize: 22, color: C.dark, fontFamily: "'Playfair Display', serif", fontWeight: 500, lineHeight: '28px' }}>
+            {msg.title}
+          </h2>
+          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, fontFamily: 'DM Sans, sans-serif' }}>
+            {msg.body}
+          </div>
         </div>
-        <h2 style={{
-          fontFamily: 'Playfair Display, serif', fontSize: 20,
-          color: C.dark, margin: '0 0 8px', fontWeight: 400,
-        }}>{msg.title}</h2>
-        <p style={{
-          fontFamily: 'DM Sans, sans-serif', fontSize: 14,
-          color: C.muted, fontWeight: 300, lineHeight: '22px', margin: 0,
-        }}>{msg.body}</p>
       </div>
     </div>
   );
@@ -12203,15 +12201,28 @@ function AccessWaitlistForm({ onBack }: { onBack: () => void }) {
 
   if (submitted) {
     return (
-      <div style={{ textAlign: 'center' as const, padding: '20px 10px' }}>
-        <Sparkles size={28} color={C.gold} style={{ marginBottom: 10 }} />
-        <p style={{ margin: '0 0 8px', fontSize: 18, color: C.dark, fontFamily: 'Playfair Display, serif' }}>
-          You're on the list.
-        </p>
-        <p style={{ margin: '0 0 20px', fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '20px' }}>
-          We'll reach out personally when an invite is ready for you.
-        </p>
-        <GhostButton label="Back" onTap={onBack} />
+      <div style={{ padding: '20px 0' }}>
+        <div style={{
+          background: C.ivory, border: `1px solid ${C.goldBorder}`, borderRadius: 16,
+          padding: '24px 22px',
+        }}>
+          <p style={{ margin: '0 0 6px', fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase' as const }}>
+            TDW · Beta
+          </p>
+          <h2 style={{ margin: '0 0 12px', fontSize: 22, color: C.dark, fontFamily: "'Playfair Display', serif", fontWeight: 500, lineHeight: '28px' }}>
+            You're on the list.
+          </h2>
+          <div style={{ marginBottom: 16, fontSize: 13, color: C.muted, lineHeight: 1.6, fontFamily: 'DM Sans, sans-serif' }}>
+            We'll reach out personally when an invite is ready for you.
+          </div>
+          <button onClick={onBack} style={{
+            width: '100%', padding: 14, borderRadius: 10,
+            background: C.dark, color: C.gold, border: 'none',
+            cursor: 'pointer', fontSize: 12, fontWeight: 500,
+            letterSpacing: '2px', textTransform: 'uppercase' as const,
+            fontFamily: 'DM Sans, sans-serif',
+          }}>Back</button>
+        </div>
       </div>
     );
   }
