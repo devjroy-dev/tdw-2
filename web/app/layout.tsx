@@ -1,18 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { SessionProvider } from "./session-provider";
 
 export const metadata: Metadata = {
   title: "The Dream Wedding",
-  description: "Not just happily married — getting married happily.",
-};
-
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#FAF6F0",
+  description: "Getting married happily.",
 };
 
 export default function RootLayout({
@@ -23,27 +14,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="The Dream Wedding" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Jost:wght@200;300;400;500&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body>
-        <SessionProvider>
-          {children}
-        </SessionProvider>
-        {/*
-          Service worker registration moved to /vendor/mobile/layout.tsx so it only
-          applies to the PWA. Registering here registered SW for the entire origin,
-          which intercepted /vendor/dashboard requests and caused infinite-loop
-          re-fetches that crashed the dashboard with React error #310.
-        */}
-              <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+      <body style={{ margin: 0, padding: 0, background: "#0C0A09" }}>
+        {children}
       </body>
     </html>
   );
