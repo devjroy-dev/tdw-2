@@ -11,19 +11,16 @@ export default function VendorLayout({
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        backgroundColor: "#FAF6F0",
-        overflow: "hidden",
+        backgroundColor: "#FAFAF8",
         fontFamily: "'DM Sans', sans-serif",
+        minHeight: "100vh",
       }}
     >
       <TopBar />
       <main
         style={{
-          flex: 1,
-          overflowY: "auto",
+          paddingTop: "56px",
+          paddingBottom: "calc(64px + env(safe-area-inset-bottom))",
           overflowX: "hidden",
         }}
       >
