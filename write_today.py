@@ -1,4 +1,6 @@
-'use client';
+import os
+
+content = r"""'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -72,3 +74,10 @@ export default function CoupleTodayPage() {
     </>
   );
 }
+"""
+
+out = '/workspaces/tdw-2/web/app/couple/today/page.tsx'
+os.makedirs(os.path.dirname(out), exist_ok=True)
+with open(out, 'w') as f:
+    f.write(content)
+print('✅ today page written:', out)

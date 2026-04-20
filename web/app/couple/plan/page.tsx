@@ -300,7 +300,7 @@ function MoneyTab({ userId }: { userId: string }) {
                 {exp.purpose && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose}</p>}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#0C0A09', margin: '0 0 2px' }}>{fmtINR(exp.amount)}</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#C9A84C', margin: '0 0 2px' }}>{fmtINR(exp.actual_amount || exp.amount || 0)}</p>
                 {exp.due_date && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#8C8480', margin: 0 }}>{formatDue(exp.due_date)}</p>}
               </div>
             </div>
@@ -737,21 +737,10 @@ export default function CouplePlanPage() {
   // Loading state
   if (session === undefined) return null;
 
-  // No session — soft message
+  // No session — redirect to login
   if (!session) {
-    return (
-      <>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
-          * { box-sizing: border-box; } body { margin: 0; background: #FAFAF8; }
-        `}</style>
-        <div style={{ minHeight: '100dvh', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835' }}>
-            Sign in to view your plan.
-          </p>
-        </div>
-      </>
-    );
+    if (typeof window !== 'undefined') window.location.replace('/couple/login');
+    return null;
   }
 
   const userId = session.id;
