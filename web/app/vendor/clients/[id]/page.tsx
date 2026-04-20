@@ -28,7 +28,7 @@ const CLIENT_DATA = {
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
   ACTIVE: { backgroundColor: "#C9A84C", color: "#0C0A09" },
   UPCOMING: { backgroundColor: "transparent", color: "#FAFAF8", border: "1px solid #3C3835" },
-  DELIVERED: { backgroundColor: "#2E7D32", color: "#FAFAF8" },
+  DELIVERED: { backgroundColor: "#F4F1EC", color: "#8C8480" },
   ARCHIVED: { backgroundColor: "#2C2A28", color: "#8C8480" },
 };
 
