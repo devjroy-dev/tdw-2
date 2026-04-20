@@ -1,3 +1,4 @@
+import './globals-v2.css';
 import type { Metadata } from "next";
 import "./globals.css";
 

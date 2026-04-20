@@ -69,7 +69,7 @@ function groupBy<T>(arr: T[], key: (t: T) => string): { group: string; items: T[
 function priorityOrder(p: string) { return p === 'high' ? 0 : p === 'medium' ? 1 : 2; }
 
 function TaskCard({ task }: { task: Task }) {
-  const prioColor = (p: string) => p === 'high' ? '#C9A84C' : p === 'medium' ? '#8C8480' : '#E8D9B5';
+  const prioColor = (p: string) => p === 'high' ? '#C9A84C' : p === 'medium' ? '#8C8480' : '#E2DED8';
   const statusChip = (s: string) => {
     const styles: Record<string, React.CSSProperties> = {
       pending: { background: '#FFF8EC', color: '#C9A84C' },
@@ -88,7 +88,7 @@ function TaskCard({ task }: { task: Task }) {
   };
   return (
     <div style={{
-      background: '#F4F1EC', border: '1px solid #E8D9B5',
+      background: '#F4F1EC', border: '1px solid #E2DED8',
       borderRadius: 12, padding: 16,
       display: 'flex', alignItems: 'flex-start', gap: 10,
     }}>
@@ -156,7 +156,7 @@ function TasksTab({ userId }: { userId: string }) {
           <button key={fc.key} onClick={() => setFilter(fc.key)} style={{
             fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
             padding: '4px 10px', borderRadius: 100,
-            border: filter === fc.key ? 'none' : '1px solid #E8D9B5',
+            border: filter === fc.key ? 'none' : '1px solid #E2DED8',
             background: filter === fc.key ? '#0C0A09' : 'transparent',
             color: filter === fc.key ? '#FAFAF8' : '#8C8480',
             cursor: 'pointer', letterSpacing: '0.1em',
@@ -242,7 +242,7 @@ function MoneyTab({ userId }: { userId: string }) {
 
   return (
     <div>
-      <div style={{ background: '#F4F1EC', border: '1px solid #E8D9B5', borderRadius: 16, padding: 24, marginBottom: 20 }}>
+      <div style={{ background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 6px' }}>TOTAL JOURNEY</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: '#0C0A09', margin: '0 0 16px', lineHeight: 1 }}>{fmtINR(d.totalBudget)}</p>
         <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
@@ -255,7 +255,7 @@ function MoneyTab({ userId }: { userId: string }) {
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#3C3835', margin: 0 }}>{fmtINR(d.paid)}</p>
           </div>
         </div>
-        <div style={{ position: 'relative', height: 6, borderRadius: 8, background: '#E8D9B5', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', height: 6, borderRadius: 8, background: '#E2DED8', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${committedPct}%`, background: '#C9A84C', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${paidPct}%`, background: '#0C0A09', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
         </div>
@@ -267,10 +267,10 @@ function MoneyTab({ userId }: { userId: string }) {
           <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 12px' }}>BY EVENT</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {d.events.map(ev => (
-              <div key={ev.id} style={{ background: '#FAFAF8', border: '1px solid #E8D9B5', borderRadius: 12, padding: 16 }}>
+              <div key={ev.id} style={{ background: '#FAFAF8', border: '1px solid #E2DED8', borderRadius: 12, padding: 16 }}>
                 <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 10px' }}>{fmtINR(ev.budget)} allocated</p>
-                <div style={{ height: 4, borderRadius: 4, background: '#E8D9B5', overflow: 'hidden' }}>
+                <div style={{ height: 4, borderRadius: 4, background: '#E2DED8', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: '40%', background: '#C9A84C', borderRadius: 4 }} />
                 </div>
               </div>
@@ -285,7 +285,7 @@ function MoneyTab({ userId }: { userId: string }) {
           {([{ key: 'week', label: 'This Week' }, { key: 'next30', label: 'Next 30 Days' }] as { key: PaymentFilter; label: string }[]).map(f => (
             <button key={f.key} onClick={() => setPayFilter(f.key)} style={{
               fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, padding: '4px 10px', borderRadius: 100,
-              border: payFilter === f.key ? 'none' : '1px solid #E8D9B5',
+              border: payFilter === f.key ? 'none' : '1px solid #E2DED8',
               background: payFilter === f.key ? '#0C0A09' : 'transparent',
               color: payFilter === f.key ? '#FAFAF8' : '#8C8480',
               cursor: 'pointer', letterSpacing: '0.1em',
@@ -296,7 +296,7 @@ function MoneyTab({ userId }: { userId: string }) {
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', padding: '24px 0' }}>No upcoming payments.</p>
         ) : (
           payments.map((exp, i) => (
-            <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < payments.length - 1 ? '1px solid #E8D9B5' : 'none' }}>
+            <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < payments.length - 1 ? '1px solid #E2DED8' : 'none' }}>
               <div>
                 <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
                 {exp.purpose && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose}</p>}
@@ -348,8 +348,8 @@ function PeopleTab({ userId }: { userId: string }) {
   const pending = guests.filter(g => g.rsvp === 'pending' || Object.values(g.rsvp_status || {}).some(v => v === 'pending')).length;
 
   const rsvpChipStyle = (status: string): React.CSSProperties => {
-    if (status === 'confirmed') return { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E8D9B5' };
-    if (status === 'declined') return { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E8D9B5', textDecoration: 'line-through' };
+    if (status === 'confirmed') return { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E2DED8' };
+    if (status === 'declined') return { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E2DED8', textDecoration: 'line-through' };
     return { background: '#FFF8EC', color: '#C9A84C', border: 'none' };
   };
 
@@ -364,7 +364,7 @@ function PeopleTab({ userId }: { userId: string }) {
 
   return (
     <div>
-      <div style={{ background: '#F4F1EC', border: '1px solid #E8D9B5', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-around', marginBottom: 16 }}>
+      <div style={{ background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-around', marginBottom: 16 }}>
         {[{ label: 'Total', val: guests.length }, { label: 'Confirmed', val: confirmed }, { label: 'Pending', val: pending }].map(s => (
           <div key={s.label} style={{ textAlign: 'center' }}>
             <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px', lineHeight: 1 }}>{s.val}</p>
@@ -377,7 +377,7 @@ function PeopleTab({ userId }: { userId: string }) {
           {['all', ...allEvents].map(ev => (
             <button key={ev} onClick={() => setActiveEvent(ev)} style={{
               flexShrink: 0, fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, padding: '4px 10px', borderRadius: 100,
-              border: activeEvent === ev ? 'none' : '1px solid #E8D9B5',
+              border: activeEvent === ev ? 'none' : '1px solid #E2DED8',
               background: activeEvent === ev ? '#0C0A09' : 'transparent',
               color: activeEvent === ev ? '#FAFAF8' : '#8C8480',
               cursor: 'pointer', letterSpacing: '0.1em', whiteSpace: 'nowrap',
@@ -396,8 +396,8 @@ function PeopleTab({ userId }: { userId: string }) {
           const shown = statuses.slice(0, 2);
           const more = statuses.length - 2;
           return (
-            <div key={guest.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', borderBottom: i < filtered.length - 1 ? '1px solid #E8D9B5' : 'none' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E8D9B5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div key={guest.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', borderBottom: i < filtered.length - 1 ? '1px solid #E2DED8' : 'none' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initials(guest.name)}</span>
               </div>
               <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: 0, flex: 1 }}>{guest.name}</p>
@@ -476,7 +476,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
   const sheetChipStyle = (active: boolean): React.CSSProperties => ({
     fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
     padding: '5px 12px', borderRadius: 100,
-    border: active ? 'none' : '1px solid #E8D9B5',
+    border: active ? 'none' : '1px solid #E2DED8',
     background: active ? '#0C0A09' : 'transparent',
     color: active ? '#FAFAF8' : '#8C8480',
     cursor: 'pointer', letterSpacing: '0.12em',
@@ -500,7 +500,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
         height: '85vh',
         background: '#FAFAF8',
         borderRadius: '20px 20px 0 0',
-        borderTop: '1px solid #E8D9B5',
+        borderTop: '1px solid #E2DED8',
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
         transition: visible
           ? 'transform 400ms cubic-bezier(0.22,1,0.36,1)'
@@ -510,11 +510,11 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
       }}>
         {/* Drag handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 8px' }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E8D9B5' }} />
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E2DED8' }} />
         </div>
 
         {/* Header */}
-        <div style={{ padding: '4px 20px 16px', borderBottom: '1px solid #E8D9B5' }}>
+        <div style={{ padding: '4px 20px 16px', borderBottom: '1px solid #E2DED8' }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{event.name}</p>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>
             {formatEventDateLong(event.date)}{event.venue ? ` · ${event.venue}` : ''}
@@ -530,7 +530,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
         </div>
 
         {/* Sub-nav */}
-        <div style={{ display: 'flex', gap: 8, padding: '12px 20px', borderBottom: '1px solid #E8D9B5' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '12px 20px', borderBottom: '1px solid #E2DED8' }}>
           {(['tasks', 'vendors', 'guests'] as SheetTab[]).map(t => (
             <button key={t} onClick={() => setSheetTab(t)} style={sheetChipStyle(sheetTab === t)}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -556,7 +556,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
               ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No vendors linked yet.</p>
               : <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {eventExpenses.map((exp, i) => (
-                    <div key={exp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: i < eventExpenses.length - 1 ? '1px solid #E8D9B5' : 'none' }}>
+                    <div key={exp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: i < eventExpenses.length - 1 ? '1px solid #E2DED8' : 'none' }}>
                       <div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
                         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose || ''}</p>
@@ -583,13 +583,13 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
                   {eventGuests.map((g, i) => {
                     const rsvp = g.rsvp_status?.[event.name] || g.rsvp || 'pending';
                     const chipStyle: React.CSSProperties = rsvp === 'confirmed'
-                      ? { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E8D9B5' }
+                      ? { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E2DED8' }
                       : rsvp === 'declined'
-                      ? { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E8D9B5', textDecoration: 'line-through' }
+                      ? { background: '#F4F1EC', color: '#8C8480', border: '1px solid #E2DED8', textDecoration: 'line-through' }
                       : { background: '#FFF8EC', color: '#C9A84C' };
                     return (
-                      <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: i < eventGuests.length - 1 ? '1px solid #E8D9B5' : 'none' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E8D9B5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: i < eventGuests.length - 1 ? '1px solid #E2DED8' : 'none' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initials(g.name)}</span>
                         </div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: 0, flex: 1 }}>{g.name}</p>
@@ -644,7 +644,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
           </div>
         ) : (
           <div style={{ position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 19, top: 20, bottom: 20, width: 1, background: '#E8D9B5' }} />
+            <div style={{ position: 'absolute', left: 19, top: 20, bottom: 20, width: 1, background: '#E2DED8' }} />
             {events.map((ev, i) => {
               const { month, day } = formatEventDate(ev.date);
               const isSoonest = i === soonestIdx;
@@ -652,7 +652,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
                 <div key={ev.id} style={{ display: 'flex', gap: 12, marginBottom: 24, position: 'relative' }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: '#F4F1EC', border: `1px solid ${isSoonest ? '#C9A84C' : '#E8D9B5'}`,
+                    background: '#F4F1EC', border: `1px solid ${isSoonest ? '#C9A84C' : '#E2DED8'}`,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1,
                   }}>
                     <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, color: '#8C8480', lineHeight: 1 }}>{month}</span>
@@ -662,7 +662,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
                   <button
                     onClick={() => setSelectedEvent(ev)}
                     style={{
-                      flex: 1, background: '#F4F1EC', border: '1px solid #E8D9B5',
+                      flex: 1, background: '#F4F1EC', border: '1px solid #E2DED8',
                       borderRadius: 12, padding: 16, textAlign: 'left', cursor: 'pointer',
                     }}
                   >
@@ -765,7 +765,7 @@ export default function CouplePlanPage() {
         {/* Header */}
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: 0 }}>Plan</h1>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E8D9B5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initial}</span>
           </div>
         </div>
@@ -778,7 +778,7 @@ export default function CouplePlanPage() {
               fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
               letterSpacing: '0.15em', textTransform: 'uppercase',
               padding: '6px 14px', borderRadius: 100,
-              border: activeTab === tab.key ? 'none' : '1px solid #E8D9B5',
+              border: activeTab === tab.key ? 'none' : '1px solid #E2DED8',
               background: activeTab === tab.key ? '#0C0A09' : 'transparent',
               color: activeTab === tab.key ? '#FAFAF8' : '#8C8480',
               cursor: 'pointer', transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
@@ -805,7 +805,7 @@ export default function CouplePlanPage() {
       {/* Bottom Nav */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#FAFAF8', borderTop: '1px solid #E8D9B5',
+        background: '#FAFAF8', borderTop: '1px solid #E2DED8',
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
         paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100,
       }}>

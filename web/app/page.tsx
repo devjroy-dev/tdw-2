@@ -1,1129 +1,679 @@
 'use client';
-import { useEffect, useState } from 'react';
 
-const API = 'https://dream-wedding-production-89ae.up.railway.app';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-type UserType = null | 'vendor' | 'dreamer';
-type AuthMode = 'signup' | 'login';
-type SignupPath = null | 'invite' | 'waitlist';
+const SLIDES = [
+  'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&q=80',
+  'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800&q=80',
+  'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80',
+  'https://images.unsplash.com/photo-1570862856967-0a3b9dda3964?w=800&q=80',
+  'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800&q=80',
+];
 
-export default function HomePage() {
-  const [userType, setUserType] = useState<UserType>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>('signup');
-  const [signupPath, setSignupPath] = useState<SignupPath>(null);
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [showFoundingForm, setShowFoundingForm] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [formVisible, setFormVisible] = useState(false);
+type Screen =
+  | 'home'
+  | 'dreamer'
+  | 'maker'
+  | 'otp'
+  | 'otp2'
+  | 'request'
+  | 'signin'
+  | 'signin2';
 
-  // Signup fields
-  const [code, setCode] = useState('');
-  const [codeData, setCodeData] = useState<any>(null);
-  const [name, setName] = useState('');
+const EASE = 'cubic-bezier(0.22,1,0.36,1)';
+
+export default function LandingPage() {
+  const [screen, setScreen] = useState<Screen>('home');
+  const [role, setRole] = useState<'Dreamer' | 'Maker'>('Dreamer');
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Transition layer state
+  const [desatOpacity, setDesatOpacity] = useState(0);
+  const [washTranslate, setWashTranslate] = useState('100%');
+  const [washOpacity, setWashOpacity] = useState(0);
+  const [creamVisible, setCreamVisible] = useState(false);
+  const [uiVisible, setUiVisible] = useState(true); // dots + curated tag
+
+  // Cream screen opacity/translate for fade-in
+  const [creamOpacity, setCreamOpacity] = useState(0);
+  const [creamTranslate, setCreamTranslate] = useState('8px');
+
+  // Phone / OTP state
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [instagram, setInstagram] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [requestError, setRequestError] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(30);
+  const [showResend, setShowResend] = useState(false);
 
-  // Login fields
-  const [loginId, setLoginId] = useState('');
-  const [loginPass, setLoginPass] = useState('');
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Waitlist fields
-  const [wlName, setWlName] = useState('');
-  const [wlEmail, setWlEmail] = useState('');
-  const [wlPhone, setWlPhone] = useState('');
-  const [wlIg, setWlIg] = useState('');
-  const [wlCategory, setWlCategory] = useState('');
-  const [dreamerType, setDreamerType] = useState('');
-
-  useEffect(() => {
-    setMounted(true);
-    try {
-      const vs = localStorage.getItem('vendor_web_session');
-      if (vs) { const p = JSON.parse(vs); if (p.vendorId) { window.location.href = '/vendor/mobile'; return; } }
-      const cs = localStorage.getItem('couple_session');
-      if (cs) { const p = JSON.parse(cs); if (p.id) { window.location.href = '/couple'; return; } }
-    } catch {}
+  // Carousel
+  const startCarousel = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setActiveSlide(s => (s + 1) % SLIDES.length);
+    }, 4500);
   }, []);
 
-  const resetForm = () => {
-    setStep(1); setSignupPath(null); setError(''); setSuccess(false);
-    setCode(''); setCodeData(null); setName(''); setPhone(''); setEmail('');
-    setInstagram(''); setPassword(''); setConfirmPassword('');
-    setLoginId(''); setLoginPass('');
-    setWlName(''); setWlEmail(''); setWlPhone(''); setWlIg(''); setWlCategory('');
+  useEffect(() => {
+    startCarousel();
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [startCarousel]);
+
+  // OTP resend countdown
+  useEffect(() => {
+    if (screen === 'otp2' || screen === 'signin2') {
+      setResendCountdown(30);
+      setShowResend(false);
+      const t = setInterval(() => {
+        setResendCountdown(c => {
+          if (c <= 1) { clearInterval(t); setShowResend(true); return 0; }
+          return c - 1;
+        });
+      }, 1000);
+      return () => clearInterval(t);
+    }
+  }, [screen]);
+
+  // --- Transition: dark → cream ---
+  const triggerTransition = (target: Screen) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setUiVisible(false);
+    // Step 1: desat
+    setDesatOpacity(0.75);
+    // Step 2: wash rises at 350ms
+    setTimeout(() => {
+      setWashTranslate('0%');
+      setWashOpacity(1);
+    }, 350);
+    // Step 3: set screen at 900ms
+    setTimeout(() => {
+      setScreen(target);
+      setCreamVisible(true);
+    }, 900);
+    // Step 4: fade in cream content at 950ms
+    setTimeout(() => {
+      setCreamOpacity(1);
+      setCreamTranslate('0px');
+    }, 950);
   };
 
-  const switchUserType = (type: UserType) => {
-    if (type === userType) { setUserType(null); setFormVisible(false); resetForm(); return; }
-    setFormVisible(false);
-    resetForm();
-    setAuthMode('signup');
-    setTimeout(() => { setUserType(type); setFormVisible(true); }, 150);
+  // --- Reverse: cream → dark ---
+  const reverseTransition = (backTo: Screen) => {
+    setCreamOpacity(0);
+    setCreamTranslate('8px');
+    setTimeout(() => {
+      setCreamVisible(false);
+      setScreen(backTo);
+      setWashTranslate('100%');
+      setWashOpacity(0);
+    }, 150);
+    setTimeout(() => {
+      setDesatOpacity(0);
+    }, 200);
+    setTimeout(() => {
+      setUiVisible(true);
+      startCarousel();
+    }, 600);
   };
 
-  // ─── API handlers ───
-  const handleValidateCode = async () => {
-    if (!code.trim()) { setError('Please enter your code'); return; }
+  const goBackFromCream = () => {
+    setRequestSuccess(false);
+    setRequestError('');
+    reverseTransition(role === 'Dreamer' ? 'dreamer' : 'maker');
+  };
+
+  const handleRoleSelect = (r: 'Dreamer' | 'Maker') => {
+    setRole(r);
+    setScreen(r === 'Dreamer' ? 'dreamer' : 'maker');
+  };
+
+  const handleOtpInput = (i: number, val: string) => {
+    const next = [...otp];
+    next[i] = val.slice(-1);
+    setOtp(next);
+    if (val && i < 5) otpRefs.current[i + 1]?.focus();
+  };
+
+  const handleOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[i] && i > 0) {
+      otpRefs.current[i - 1]?.focus();
+    }
+  };
+
+  const handleVerify = () => {
+    if (role === 'Dreamer') {
+      localStorage.setItem('couple_session', '1');
+      window.location.href = '/couple/today';
+    } else {
+      localStorage.setItem('vendor_session', '1');
+      window.location.href = '/couple/vendor/dashboard';
+    }
+  };
+
+  const handleRequestSubmit = async () => {
     try {
-      setLoading(true); setError('');
-      const res = await fetch(`${API}/api/signup/validate-code`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.trim() }),
+      const res = await fetch('/api/v2/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, instagram, role: role.toLowerCase() }),
       });
-      const data = await res.json();
-      if (data.success && data.data) {
-        if (userType === 'vendor' && data.data.type !== 'vendor') { setError('This is not a vendor code'); return; }
-        if (userType === 'dreamer' && data.data.type === 'vendor') { setError('This is a vendor code'); return; }
-        setCodeData(data.data); setStep(2);
-      } else { setError(data.error || 'Invalid or expired code'); }
-    } catch { setError('Network error'); } finally { setLoading(false); }
+      if (!res.ok) throw new Error();
+      setRequestSuccess(true);
+    } catch {
+      setRequestError('Something went wrong. Try again.');
+      setTimeout(() => setRequestError(''), 3000);
+    }
   };
 
-  const handleGoToPassword = () => {
-    if (!name.trim()) { setError(userType === 'vendor' ? 'Business name is required' : 'Your name is required'); return; }
-    if (!phone || phone.length < 10) { setError('Valid 10-digit phone required'); return; }
-    if (!email || !email.includes('@')) { setError('Valid email required'); return; }
-    if (!instagram.trim()) { setError('Instagram handle required'); return; }
-    setError(''); setStep(3);
+  const isCreamScreen = ['otp', 'otp2', 'request', 'signin', 'signin2'].includes(screen);
+  const roleTagline =
+    role === 'Dreamer'
+      ? 'Not just happily married. Getting married happily.'
+      : 'Behind every dream, there is a Maker.';
+
+  // Shared styles
+  const s = {
+    fontCormorant: { fontFamily: "'Cormorant Garamond', serif" } as React.CSSProperties,
+    fontDM: { fontFamily: "'DM Sans', sans-serif" } as React.CSSProperties,
+    fontJost: { fontFamily: "'Jost', sans-serif" } as React.CSSProperties,
   };
-
-  const handleCompleteSignup = async () => {
-    if (!password || password.length < 6) { setError('Password must be at least 6 characters'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    try {
-      setLoading(true); setError('');
-      const res = await fetch(`${API}/api/signup/complete`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: code.trim(), name: name.trim(), phone, email: email.trim(),
-          instagram: instagram.trim(), password,
-          code_type: codeData?.type, code_id: codeData?.code_id,
-          tier: codeData?.tier, vendor_id: codeData?.vendor_id,
-          referral_code: codeData?.referral_code,
-          dreamer_type: userType === 'dreamer' ? dreamerType : undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.data) {
-        if (data.data.type === 'vendor' || userType === 'vendor') {
-          localStorage.setItem('vendor_web_session', JSON.stringify({
-            vendorId: data.data.id, vendorName: data.data.name,
-            category: data.data.category, city: data.data.city,
-            tier: data.data.tier, trialEnd: data.data.trial_end,
-          }));
-          window.location.href = '/vendor/mobile';
-        } else {
-          localStorage.setItem('couple_session', JSON.stringify({
-            id: data.data.id, name: data.data.name,
-            couple_tier: data.data.couple_tier, tier_label: data.data.tier_label,
-            tokens: data.data.tokens,
-          }));
-          window.location.href = '/couple';
-        }
-      } else { setError(data.error || 'Signup failed'); }
-    } catch { setError('Network error'); } finally { setLoading(false); }
-  };
-
-  const handleLogin = async () => {
-    if (!loginId.trim()) { setError('Enter your email or phone number'); return; }
-    if (!loginPass) { setError('Enter your password'); return; }
-    try {
-      setLoading(true); setError('');
-      const res = await fetch(`${API}/api/signup/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: loginId.trim(), password: loginPass }),
-      });
-      const data = await res.json();
-      if (data.success && data.data) {
-        if (data.data.type === 'vendor') {
-          localStorage.setItem('vendor_web_session', JSON.stringify({
-            vendorId: data.data.id, vendorName: data.data.name,
-            category: data.data.category, city: data.data.city, tier: data.data.tier,
-          }));
-          window.location.href = '/vendor/mobile';
-        } else {
-          localStorage.setItem('couple_session', JSON.stringify({
-            id: data.data.id, name: data.data.name,
-            couple_tier: data.data.couple_tier, tier_label: data.data.tier_label,
-            tokens: data.data.tokens,
-          }));
-          window.location.href = '/couple';
-        }
-      } else { setError(data.error || 'Login failed'); }
-    } catch { setError('Network error'); } finally { setLoading(false); }
-  };
-
-  const handleWaitlist = async () => {
-    if (!wlName.trim() || !wlEmail.trim()) { setError('Name and email are required'); return; }
-    if (userType === 'vendor' && !wlCategory) { setError('Please select your category'); return; }
-    try {
-      setLoading(true); setError('');
-      await fetch(`${API}/api/waitlist`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: wlName.trim(), email: wlEmail.trim(), phone: wlPhone.trim(),
-          instagram: wlIg.trim(), category: wlCategory || null,
-          type: userType, source: 'landing_page',
-        }),
-      });
-      setSuccess(true);
-    } catch { setError('Network error'); } finally { setLoading(false); }
-  };
-
-  // ─── Shared styles ───
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '12px 0', fontSize: '13px',
-    fontFamily: "'DM Sans', sans-serif", fontWeight: 300,
-    border: 'none', borderBottom: '1px solid #E8DDD4',
-    backgroundColor: 'transparent', color: '#2C2420',
-    outline: 'none', letterSpacing: '0.3px',
-    transition: 'border-color 0.4s ease',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: '9px', fontWeight: 400, color: '#5C4A3A',
-    letterSpacing: '2.5px', textTransform: 'uppercase',
-    display: 'block', marginBottom: '0px',
-    fontFamily: "'DM Sans', sans-serif",
-  };
-
-  const primaryBtn = (active: boolean): React.CSSProperties => ({
-    width: '100%', background: active ? '#2C2420' : '#E8DDD4',
-    color: active ? '#C9A84C' : '#6B5E52', fontSize: '9px',
-    fontWeight: 400, letterSpacing: '3px', fontFamily: "'DM Sans', sans-serif",
-    padding: '16px 24px', border: 'none',
-    cursor: active ? 'pointer' : 'default',
-    textTransform: 'uppercase', transition: 'all 0.4s ease',
-    marginTop: '8px',
-  });
-
-  const secondaryBtn: React.CSSProperties = {
-    width: '100%', background: 'transparent',
-    color: '#8C7B6E', fontSize: '9px', fontWeight: 300,
-    letterSpacing: '2px', fontFamily: "'DM Sans', sans-serif",
-    padding: '12px', border: 'none', cursor: 'pointer',
-    textTransform: 'uppercase', marginTop: '4px',
-    transition: 'color 0.3s ease',
-  };
-
-  const errorStyle: React.CSSProperties = {
-    fontSize: '11px', color: '#C9A84C', fontFamily: "'DM Sans', sans-serif",
-    fontWeight: 300, letterSpacing: '0.3px', marginTop: '8px', marginBottom: '4px',
-  };
-
-  const focusHandler = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
-    (e.target as HTMLElement).style.borderBottomColor = '#C9A84C';
-  };
-  const blurHandler = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
-    (e.target as HTMLElement).style.borderBottomColor = '#E8DDD4';
-  };
-
-  // ─── Invite code step ───
-  const renderCodeStep = () => (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <label style={labelStyle}>Invite Code</label>
-        <input
-          type="text" placeholder="Enter your code"
-          value={code}
-          onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
-          onKeyDown={e => e.key === 'Enter' && handleValidateCode()}
-          onFocus={focusHandler} onBlur={blurHandler}
-          style={{ ...inputStyle, letterSpacing: '4px', textTransform: 'uppercase', fontSize: '15px', textAlign: 'center' }}
-        />
-      </div>
-      {error && <div style={errorStyle}>{error}</div>}
-      <button onClick={handleValidateCode} disabled={loading || !code.trim()} style={primaryBtn(!loading && !!code.trim())}>
-        {loading ? 'Verifying' : 'Continue'}
-      </button>
-      <button onClick={() => { setSignupPath(null); setError(''); }} style={secondaryBtn}>Back</button>
-    </div>
-  );
-
-  // ─── Details step ───
-  const renderDetailsStep = () => (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '12px' }}>
-        <div>
-          <label style={labelStyle}>{userType === 'vendor' ? 'Business Name' : 'Full Name'}</label>
-          <input type="text" placeholder={userType === 'vendor' ? 'Your business name' : 'Your name'} value={name} onChange={e => { setName(e.target.value); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-        </div>
-        {userType === 'dreamer' && (
-          <div>
-            <label style={labelStyle}>I am a</label>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-              {['Couple', 'Family', 'Friend'].map(t => (
-                <button key={t} onClick={() => setDreamerType(t.toLowerCase())} style={{
-                  flex: 1, padding: '12px 0', border: 'none', cursor: 'pointer',
-                  borderBottom: dreamerType === t.toLowerCase() ? '1px solid #C9A84C' : '1px solid #E8DDD4',
-                  background: 'transparent', fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '12px', fontWeight: dreamerType === t.toLowerCase() ? 400 : 300,
-                  color: dreamerType === t.toLowerCase() ? '#2C2420' : '#6B5D52',
-                  letterSpacing: '1px', transition: 'all 0.3s ease',
-                }}>{t}</button>
-              ))}
-            </div>
-          </div>
-        )}
-        <div>
-          <label style={labelStyle}>Phone</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#B8ADA4', fontFamily: "'DM Sans', sans-serif", fontWeight: 300, paddingTop: '12px' }}>+91</span>
-            <input type="tel" placeholder="10-digit number" value={phone} onChange={e => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={{ ...inputStyle, flex: 1 }} />
-          </div>
-          <div style={{ fontSize: '9px', color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif", marginTop: '4px', letterSpacing: '0.3px' }}>This will be your login ID</div>
-        </div>
-        <div>
-          <label style={labelStyle}>Email</label>
-          <input type="email" placeholder="your@email.com" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-          <div style={{ fontSize: '9px', color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif", marginTop: '4px', letterSpacing: '0.3px' }}>Or use this to log in</div>
-        </div>
-        <div>
-          <label style={labelStyle}>Instagram</label>
-          <input type="text" placeholder="@yourhandle" value={instagram} onChange={e => { setInstagram(e.target.value); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-        </div>
-      </div>
-      {error && <div style={errorStyle}>{error}</div>}
-      <button onClick={handleGoToPassword} style={primaryBtn(true)}>Continue</button>
-      <button onClick={() => { setStep(1); setError(''); }} style={secondaryBtn}>Back</button>
-    </div>
-  );
-
-  // ─── Password step ───
-  const renderPasswordStep = () => (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '12px' }}>
-        <div>
-          <label style={labelStyle}>Password</label>
-          <input type="password" placeholder="Minimum 6 characters" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Confirm Password</label>
-          <input type="password" placeholder="Confirm your password" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleCompleteSignup()} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-        </div>
-      </div>
-      {error && <div style={errorStyle}>{error}</div>}
-      <button onClick={handleCompleteSignup} disabled={loading} style={primaryBtn(!loading)}>
-        {loading ? 'Creating Account' : 'Create Account'}
-      </button>
-      <button onClick={() => { setStep(2); setError(''); }} style={secondaryBtn}>Back</button>
-    </div>
-  );
-
-  // ─── Waitlist form ───
-  const renderWaitlist = () => {
-    if (success) return (
-      <div style={{ animation: 'tdwFadeUp 0.5s ease forwards', textAlign: 'center', padding: '20px 0' }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '12px', letterSpacing: '0.5px' }}>
-          We&apos;ll be in touch
-        </div>
-        <div style={{ fontSize: '12px', color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif", fontWeight: 300, lineHeight: 1.8 }}>
-          We&apos;re onboarding in curated batches to ensure quality.<br />Expect to hear from us within 48 hours.
-        </div>
-      </div>
-    );
-
-    return (
-      <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-        <div style={{ fontSize: '12px', color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif", fontWeight: 300, lineHeight: 1.8, marginBottom: '24px', textAlign: 'center' }}>
-          We&apos;re onboarding in curated batches to ensure quality.<br />Leave your details and we&apos;ll invite you soon.
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '12px' }}>
-          <div>
-            <label style={labelStyle}>Name</label>
-            <input type="text" placeholder="Your name" value={wlName} onChange={e => { setWlName(e.target.value); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Email</label>
-            <input type="email" placeholder="your@email.com" value={wlEmail} onChange={e => { setWlEmail(e.target.value); setError(''); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Phone</label>
-            <input type="tel" placeholder="Optional" value={wlPhone} onChange={e => { setWlPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Instagram</label>
-            <input type="text" placeholder="@yourhandle" value={wlIg} onChange={e => { setWlIg(e.target.value); }} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-          </div>
-          {userType === 'vendor' && (
-            <div>
-              <label style={labelStyle}>Category</label>
-              <select value={wlCategory} onChange={e => { setWlCategory(e.target.value); setError(''); }} onFocus={focusHandler as any} onBlur={blurHandler as any}
-                style={{ ...inputStyle, appearance: 'none', color: wlCategory ? '#2C2420' : '#C4B8AC', cursor: 'pointer' }}>
-                <option value="">Select your category</option>
-                <option value="photographers">Photographer</option>
-                <option value="makeup-artists">Makeup Artist</option>
-                <option value="venues">Venue</option>
-                <option value="designers">Designer</option>
-                <option value="jewellery">Jewellery</option>
-                <option value="choreographers">Choreographer</option>
-                <option value="djs">DJ / Music</option>
-                <option value="content-creators">Content Creator</option>
-                <option value="event-managers">Event Manager</option>
-              </select>
-            </div>
-          )}
-        </div>
-        {error && <div style={errorStyle}>{error}</div>}
-        <button onClick={handleWaitlist} disabled={loading} style={primaryBtn(!loading)}>
-          {loading ? 'Submitting' : 'Request an Invite'}
-        </button>
-        <button onClick={() => { setSignupPath(null); setError(''); }} style={secondaryBtn}>Back</button>
-      </div>
-    );
-  };
-
-  // ─── Login form ───
-  const renderLogin = () => (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '12px' }}>
-        <div>
-          <label style={labelStyle}>Email or Phone</label>
-          <input type="text" placeholder="your@email.com or 9876543210" value={loginId} onChange={e => { setLoginId(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && document.getElementById('tdw-lp')?.focus()} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Password</label>
-          <input type="password" id="tdw-lp" placeholder="Your password" value={loginPass} onChange={e => { setLoginPass(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleLogin()} onFocus={focusHandler} onBlur={blurHandler} style={inputStyle} />
-        </div>
-      </div>
-      {error && <div style={errorStyle}>{error}</div>}
-      <button onClick={handleLogin} disabled={loading || !loginId.trim() || !loginPass} style={primaryBtn(!loading && !!loginId.trim() && !!loginPass)}>
-        {loading ? 'Signing in' : 'Sign In'}
-      </button>
-    </div>
-  );
-
-  // ─── "Do you have an invite?" ───
-  const renderInviteQuestion = () => (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards', textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '28px', letterSpacing: '0.5px' }}>
-        Do you have an invite?
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <button onClick={() => setSignupPath('invite')} style={{
-          width: '100%', padding: '15px', background: '#2C2420', color: '#C9A84C',
-          fontSize: '9px', fontWeight: 400, letterSpacing: '3px', textTransform: 'uppercase',
-          fontFamily: "'DM Sans', sans-serif", border: 'none', cursor: 'pointer',
-          transition: 'all 0.3s ease',
-        }}>Yes</button>
-        <button onClick={() => setSignupPath('waitlist')} style={{
-          width: '100%', padding: '15px', background: 'transparent', color: '#8C7B6E',
-          fontSize: '9px', fontWeight: 300, letterSpacing: '3px', textTransform: 'uppercase',
-          fontFamily: "'DM Sans', sans-serif", border: '1px solid #E8DDD4', cursor: 'pointer',
-          transition: 'all 0.3s ease',
-        }}>No</button>
-      </div>
-    </div>
-  );
-
-  // ─── Signup router ───
-  const renderSignup = () => {
-    if (!signupPath) return renderInviteQuestion();
-    if (signupPath === 'waitlist') return renderWaitlist();
-    if (step === 1) return renderCodeStep();
-    if (step === 2) return renderDetailsStep();
-    if (step === 3) return renderPasswordStep();
-    return null;
-  };
-
-  // ─── Form area ───
-  const renderForm = () => {
-    if (!userType) return null;
-    return (
-      <div style={{
-        opacity: formVisible ? 1 : 0,
-        transform: formVisible ? 'translateY(0)' : 'translateY(12px)',
-        transition: 'opacity 0.5s ease, transform 0.5s ease',
-        width: '100%', maxWidth: '320px', margin: '0 auto',
-      }}>
-        {/* Sign Up / Log In toggle */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', marginBottom: '32px' }}>
-          <button onClick={() => { setAuthMode('signup'); resetForm(); }} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px 0',
-            fontSize: '9px', fontWeight: 400, letterSpacing: '2.5px', textTransform: 'uppercase',
-            fontFamily: "'DM Sans', sans-serif",
-            color: authMode === 'signup' ? '#2C2420' : '#6B5D52',
-            borderBottom: authMode === 'signup' ? '1px solid #C9A84C' : '1px solid transparent',
-            transition: 'all 0.3s ease',
-          }}>Sign Up</button>
-          <button onClick={() => { setAuthMode('login'); resetForm(); }} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px 0',
-            fontSize: '9px', fontWeight: 400, letterSpacing: '2.5px', textTransform: 'uppercase',
-            fontFamily: "'DM Sans', sans-serif",
-            color: authMode === 'login' ? '#2C2420' : '#6B5D52',
-            borderBottom: authMode === 'login' ? '1px solid #C9A84C' : '1px solid transparent',
-            transition: 'all 0.3s ease',
-          }}>Log In</button>
-        </div>
-
-        {/* Dreamer and Vendor paths are both intercepted and routed to V2.
-            Vendors → /vendor/login (5-step phone+OTP+password)
-            Dreamers → /couple (5-step with EntryScreen) */}
-        {userType === 'dreamer' ? (
-          <DreamerRouter authMode={authMode} inputStyle={inputStyle} primaryBtn={primaryBtn} secondaryBtn={secondaryBtn} />
-        ) : userType === 'vendor' ? (
-          <VendorRouter authMode={authMode} inputStyle={inputStyle} primaryBtn={primaryBtn} secondaryBtn={secondaryBtn} />
-        ) : (
-          authMode === 'signup' ? renderSignup() : renderLogin()
-        )}
-      </div>
-    );
-  };
-
-  if (!mounted) return null;
 
   return (
-    <div style={{
-      minHeight: '100dvh', overflow: 'visible',
-      backgroundColor: '#FAF6F0',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '40px 24px',
-      position: 'relative',
-    }}>
+    <>
+      {/* Google Fonts */}
       <style>{`
-        @keyframes tdwFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes tdwFadeUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .tdw-landing { animation: tdwFadeIn 1.2s ease forwards; }
-        .tdw-tab {
-          background: none; border: none; cursor: pointer;
-          padding: 8px 0; position: relative;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 10px; font-weight: 300;
-          letter-spacing: 3px; text-transform: uppercase;
-          transition: color 0.4s ease;
-        }
-        .tdw-tab::after {
-          content: '';
-          position: absolute; bottom: 0; left: 50%; width: 0; height: 0.5px;
-          background: #C9A84C; transition: all 0.4s ease;
-          transform: translateX(-50%);
-        }
-        .tdw-tab.active { color: #2C2420; font-weight: 400; }
-        .tdw-tab.active::after { width: 100%; }
-        .tdw-tab.inactive { color: #6B5D52; }
-        .tdw-tab.inactive:hover { color: #2C2420; }
-        .tdw-bottom-link {
-          font-family: 'DM Sans', sans-serif;
-          font-size: 9px; font-weight: 300;
-          text-transform: uppercase;
-          color: #6B5D52; text-decoration: none;
-          transition: color 0.3s ease; cursor: pointer;
-          letter-spacing: 2px;
-        }
-        .tdw-bottom-link:hover { color: #2C2420; }
-        input::placeholder, select { font-family: 'DM Sans', sans-serif; }
-        input::placeholder { color: #8C7B6E; font-weight: 300; }
-        select option { font-family: 'DM Sans', sans-serif; color: #2C2420; }
-        @media (max-width: 480px) {
-          .tdw-brand-name { font-size: 22px !important; letter-spacing: 6px !important; }
-          .tdw-tagline { font-size: 11px !important; }
-          .tdw-tab { font-size: 9px !important; letter-spacing: 2.5px !important; }
-        }
-        @media (max-height: 700px) {
-          .tdw-form-scroll { max-height: 42vh; overflow-y: auto; padding-right: 4px; }
-          .tdw-form-scroll::-webkit-scrollbar { width: 2px; }
-          .tdw-form-scroll::-webkit-scrollbar-thumb { background: #E8DDD4; border-radius: 1px; }
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400&family=Jost:wght@200;300&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { overflow: hidden; background: #0C0A09; }
+        input { outline: none; border: none; background: transparent; }
+        button { cursor: pointer; border: none; background: transparent; }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
         }
       `}</style>
 
-      {/* ─── Main content ─── */}
-      <div className="tdw-landing" style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        width: '100%', maxWidth: '420px',
-      }}>
+      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#0C0A09' }}>
 
-        {/* Brand name */}
-        <h1 className="tdw-brand-name" style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: '28px', fontWeight: 300,
-          color: '#2C2420', letterSpacing: '8px',
-          textTransform: 'uppercase', textAlign: 'center',
-          margin: 0, lineHeight: 1.3,
-        }}>
-          The Dream<br />Wedding
-        </h1>
+        {/* ── CAROUSEL SLIDES ── */}
+        {SLIDES.map((src, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url(${src})`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              opacity: i === activeSlide ? 1 : 0,
+              transition: 'opacity 1.4s cubic-bezier(0.22,1,0.36,1)',
+              willChange: 'opacity',
+              transform: 'translateZ(0)',
+            }}
+          />
+        ))}
 
-        {/* Tagline */}
-        <p className="tdw-tagline" style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: '12px', fontWeight: 300, fontStyle: 'italic',
-          color: '#5C4A3A', letterSpacing: '1px',
-          marginTop: '16px', marginBottom: '0',
-          textAlign: 'center',
-        }}>
-          Not just happily married. Getting married happily.
-        </p>
-
-        {/* Thin gold accent line */}
+        {/* ── VIGNETTE ── */}
         <div style={{
-          width: '40px', height: '0.5px',
-          backgroundColor: '#C9A84C',
-          margin: '28px auto 16px',
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 100%)',
+          willChange: 'opacity', transform: 'translateZ(0)', pointerEvents: 'none',
         }} />
 
-        {/* Powered by Dream Ai */}
+        {/* ── BOTTOM GRADIENT ── */}
         <div style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: '12px',
-          fontStyle: 'italic',
-          fontWeight: 400,
-          color: 'rgba(201,168,76,0.75)',
-          letterSpacing: '0.8px',
-          textAlign: 'center',
-          marginBottom: '24px',
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '58%',
+          background: 'linear-gradient(to top, rgba(8,6,4,0.97) 0%, rgba(8,6,4,0.75) 45%, rgba(8,6,4,0.15) 75%, transparent 100%)',
+          willChange: 'opacity', transform: 'translateZ(0)', pointerEvents: 'none',
+        }} />
+
+        {/* ── CURATED TAG ── */}
+        <div style={{
+          position: 'absolute', top: 34, right: 14, zIndex: 5,
+          opacity: uiVisible ? 1 : 0,
+          transition: 'opacity 0.4s ease',
+          pointerEvents: 'none',
+          ...s.fontJost,
+          fontWeight: 200, fontSize: 7, color: 'rgba(201,168,76,0.6)',
+          textTransform: 'uppercase', letterSpacing: '0.22em',
         }}>
-          Powered by Dream Ai
+          Curated by TDW
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '40px', marginBottom: '36px', position: 'relative' }}>
-          <button
-            className={`tdw-tab ${userType === 'vendor' ? 'active' : 'inactive'}`}
-            onClick={() => switchUserType('vendor')}
-          >
-            I&apos;m a Vendor
-          </button>
-          <button
-            className={`tdw-tab ${userType === 'dreamer' ? 'active' : 'inactive'}`}
-            onClick={() => switchUserType('dreamer')}
-          >
-            Planning a Wedding
-          </button>
+        {/* ── DOT INDICATORS ── */}
+        <div style={{
+          position: 'absolute', bottom: 180, left: 0, right: 0,
+          display: 'flex', justifyContent: 'center', gap: 6, zIndex: 5,
+          opacity: uiVisible && (screen === 'home' || screen === 'dreamer' || screen === 'maker') ? 1 : 0,
+          transition: 'opacity 0.4s ease', pointerEvents: 'none',
+        }}>
+          {SLIDES.map((_, i) => (
+            <div key={i} style={{
+              width: 3, height: 3, borderRadius: '50%',
+              background: i === activeSlide ? '#C9A84C' : 'rgba(248,247,245,0.2)',
+              transition: 'background 0.4s ease',
+            }} />
+          ))}
         </div>
 
-        {/* Form area */}
-        <div className="tdw-form-scroll" style={{ width: '100%' }}>
-          {renderForm()}
-        </div>
-      </div>
+        {/* ── DESAT LAYER (Layer A) ── */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 8,
+          background: '#0C0A09',
+          opacity: desatOpacity,
+          transition: `opacity 450ms ${EASE}`,
+          willChange: 'opacity', transform: 'translateZ(0)',
+          pointerEvents: 'none',
+        }} />
 
-      {/* ─── Bottom links ─── */}
-      <div style={{
-        position: 'absolute', bottom: '28px', left: 0, right: 0,
-        display: 'flex', justifyContent: 'center', gap: '32px',
-        animation: 'tdwFadeIn 1.8s ease forwards',
-      }}>
-        {userType === 'vendor' && (
-          <a href="https://vendor.thedreamwedding.in/vendor/login?intent=mobile" className="tdw-bottom-link" style={{ textDecoration: 'none' }}>Business Portal</a>
-        )}
-        <button onClick={() => { switchUserType('vendor'); setAuthMode('signup'); setSignupPath('waitlist'); window.scrollTo(0,0); }} className="tdw-bottom-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>Founding Vendor Program</button>
-        <a href="/about" className="tdw-bottom-link">About The Dream Wedding</a>
-      </div>
+        {/* ── WASH LAYER (Layer B) ── */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 9,
+          background: '#F8F7F5',
+          transform: `translateZ(0) translateY(${washTranslate})`,
+          opacity: washOpacity,
+          transition: `transform 700ms ${EASE}, opacity 300ms ease`,
+          willChange: 'transform, opacity',
+          pointerEvents: 'none',
+        }} />
 
-      {/* ─── Year ─── */}
-      <div style={{
-        position: 'absolute', bottom: '12px', left: 0, right: 0,
-        textAlign: 'center',
-        fontFamily: "'DM Sans', sans-serif",
-        fontSize: '8px', fontWeight: 300,
-        color: '#D4CBC2', letterSpacing: '1.5px',
-      }}>
-        2026
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// DREAMER ROUTER
-// Landing page's dreamer path now delegates to V2 at /couple.
-// The vendor path continues to use the existing landing flow.
-// ─────────────────────────────────────────────────────────────
-
-const API_URL = 'https://dream-wedding-production-89ae.up.railway.app';
-
-function DreamerRouter({
-  authMode, inputStyle, primaryBtn, secondaryBtn,
-}: {
-  authMode: 'signup' | 'login';
-  inputStyle: React.CSSProperties;
-  primaryBtn: (active: boolean) => React.CSSProperties;
-  secondaryBtn: React.CSSProperties;
-}) {
-  const [localCode, setLocalCode] = useState('');
-  const [validatingCode, setValidatingCode] = useState(false);
-  const [codeErr, setCodeErr] = useState('');
-  const [showCodeInput, setShowCodeInput] = useState(false);
-
-  const handleHaveCode = async () => {
-    if (!localCode.trim()) { setCodeErr('Enter your invite code'); return; }
-    setValidatingCode(true); setCodeErr('');
-    try {
-      const res = await fetch(`${API_URL}/api/couple-codes/redeem`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: localCode.trim().toUpperCase() }),
-      });
-      const d = await res.json();
-      if (!d.success) {
-        setCodeErr(d.error || 'Invalid code');
-        setValidatingCode(false);
-        return;
-      }
-      window.location.href = `/couple?code=${encodeURIComponent(localCode.trim().toUpperCase())}`;
-    } catch {
-      setCodeErr('Network error. Try again.');
-      setValidatingCode(false);
-    }
-  };
-
-  if (authMode === 'login') {
-    return <CoupleLoginInline />;
-  }
-
-  if (showCodeInput) {
-    return (
-      <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '20px', textAlign: 'center', letterSpacing: '0.5px' }}>
-          Enter your invite
-        </div>
-        <input
-          type="text"
-          placeholder="Your invite code"
-          value={localCode}
-          onChange={e => { setLocalCode(e.target.value.toUpperCase()); setCodeErr(''); }}
-          onKeyDown={e => e.key === 'Enter' && !validatingCode && handleHaveCode()}
-          style={inputStyle}
-        />
-        {codeErr && (
-          <div style={{ color: '#B91C1C', fontSize: '11px', marginTop: '8px', fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            {codeErr}
+        {/* ── SCREEN 1: HOME ── */}
+        {screen === 'home' && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+            padding: '0 22px 36px',
+          }}>
+            {/* Wordmark */}
+            <div style={{ ...s.fontCormorant, fontStyle: 'italic', fontWeight: 300, fontSize: 21, color: '#F8F7F5', letterSpacing: '0.1em', marginBottom: 3 }}>
+              The Dream Wedding
+            </div>
+            {/* Sub-label */}
+            <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 7.5, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: '0.28em', marginBottom: 3 }}>
+              The Curated Wedding OS
+            </div>
+            {/* Gold rule */}
+            <div style={{ width: 22, height: 0.5, background: '#C9A84C', opacity: 0.5, marginBottom: 18 }} />
+            {/* "Are you a" */}
+            <div style={{ ...s.fontCormorant, fontWeight: 300, fontSize: 13, color: 'rgba(248,247,245,0.5)', letterSpacing: '0.06em', marginBottom: 12 }}>
+              Are you a
+            </div>
+            {/* Role buttons */}
+            <div style={{ display: 'flex', gap: 9 }}>
+              <button
+                onClick={() => handleRoleSelect('Dreamer')}
+                style={{
+                  flex: 1, padding: '13px 0',
+                  background: '#C9A84C', color: '#0C0A09',
+                  ...s.fontJost, fontWeight: 300, fontSize: 10,
+                  textTransform: 'uppercase', letterSpacing: '0.18em',
+                  touchAction: 'manipulation', transition: 'all 200ms',
+                }}>
+                Dreamer
+              </button>
+              <button
+                onClick={() => handleRoleSelect('Maker')}
+                style={{
+                  flex: 1, padding: '13px 0',
+                  background: 'transparent',
+                  border: '0.5px solid rgba(248,247,245,0.22)',
+                  color: '#F8F7F5',
+                  ...s.fontJost, fontWeight: 300, fontSize: 10,
+                  textTransform: 'uppercase', letterSpacing: '0.18em',
+                  touchAction: 'manipulation', transition: 'all 200ms',
+                }}>
+                Maker
+              </button>
+            </div>
           </div>
         )}
-        <div style={{ marginTop: '18px', display: 'flex', gap: '10px', flexDirection: 'column' }}>
-          <button
-            onClick={handleHaveCode} disabled={validatingCode || !localCode.trim()}
-            style={primaryBtn(!validatingCode && !!localCode.trim())}
-          >
-            {validatingCode ? 'Verifying\u2026' : 'Continue'}
-          </button>
-          <button onClick={() => { setShowCodeInput(false); setLocalCode(''); setCodeErr(''); }} style={secondaryBtn}>
-            Back
-          </button>
-        </div>
-      </div>
-    );
-  }
 
-  return (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards', textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '28px', letterSpacing: '0.5px' }}>
-        Do you have an invite?
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <button onClick={() => setShowCodeInput(true)} style={{
-          width: '100%', padding: '15px', background: '#2C2420', color: '#C9A84C',
-          fontSize: '9px', fontWeight: 400, letterSpacing: '3px', textTransform: 'uppercase',
-          fontFamily: "'DM Sans', sans-serif", border: 'none', cursor: 'pointer',
-          transition: 'all 0.3s ease',
-        }}>Yes, I have a code</button>
-        <button
-          onClick={() => { window.location.href = '/couple'; }}
-          style={{
-            width: '100%', padding: '15px', background: 'transparent', color: '#8C7B6E',
-            fontSize: '9px', fontWeight: 300, letterSpacing: '3px', textTransform: 'uppercase',
-            fontFamily: "'DM Sans', sans-serif", border: '1px solid #E8DDD4', cursor: 'pointer',
-            transition: 'all 0.3s ease',
-          }}
-        >Request an invite</button>
-      </div>
-    </div>
-  );
-}
+        {/* ── SCREEN 2: ROLE PANEL ── */}
+        {(screen === 'dreamer' || screen === 'maker') && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+            padding: '0 22px 36px',
+          }}>
+            {/* Back */}
+            <button
+              onClick={() => setScreen('home')}
+              style={{
+                position: 'absolute', top: 40, left: 20,
+                ...s.fontJost, fontWeight: 200, fontSize: 20,
+                color: 'rgba(248,247,245,0.7)', background: 'none', border: 'none',
+              }}>
+              ←
+            </button>
 
-// ─────────────────────────────────────────────────────────────
-// VENDOR ROUTER
-// Landing page's vendor path now delegates to /vendor/login.
-// Mirror of DreamerRouter — keeps marketing brand on /, uses V2 auth.
-// ─────────────────────────────────────────────────────────────
+            {/* Wordmark */}
+            <div style={{ ...s.fontCormorant, fontStyle: 'italic', fontWeight: 300, fontSize: 21, color: '#F8F7F5', letterSpacing: '0.1em', marginBottom: 3 }}>
+              The Dream Wedding
+            </div>
+            {/* Gold rule */}
+            <div style={{ width: 22, height: 0.5, background: '#C9A84C', opacity: 0.5, marginBottom: 12 }} />
+            {/* Role eyebrow */}
+            <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 7.5, color: 'rgba(201,168,76,0.75)', textTransform: 'uppercase', letterSpacing: '0.28em', marginBottom: 14 }}>
+              {screen === 'dreamer' ? 'Dreamer' : 'Maker'}
+            </div>
 
-function VendorRouter({
-  authMode, inputStyle, primaryBtn, secondaryBtn,
-}: {
-  authMode: 'signup' | 'login';
-  inputStyle: React.CSSProperties;
-  primaryBtn: (active: boolean) => React.CSSProperties;
-  secondaryBtn: React.CSSProperties;
-}) {
-  const [localCode, setLocalCode] = useState('');
-  const [validatingCode, setValidatingCode] = useState(false);
-  const [codeErr, setCodeErr] = useState('');
-  const [showCodeInput, setShowCodeInput] = useState(false);
-
-  const handleHaveCode = async () => {
-    if (!localCode.trim()) { setCodeErr('Enter your invite code'); return; }
-    setValidatingCode(true); setCodeErr('');
-    try {
-      const res = await fetch(`${API_URL}/api/vendor-codes/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: localCode.trim().toUpperCase() }),
-      });
-      const d = await res.json();
-      if (!d.success) {
-        setCodeErr(d.error || 'Invalid code');
-        setValidatingCode(false);
-        return;
-      }
-      // Valid vendor code — redirect to V2 vendor signup with code preserved
-      window.location.href = `/vendor/login?code=${encodeURIComponent(localCode.trim().toUpperCase())}`;
-    } catch {
-      setCodeErr('Network error. Try again.');
-      setValidatingCode(false);
-    }
-  };
-
-  if (authMode === 'login') {
-    return <VendorLoginInline />;
-  }
-
-  if (showCodeInput) {
-    return (
-      <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '20px', textAlign: 'center', letterSpacing: '0.5px' }}>
-          Enter your invite
-        </div>
-        <input
-          type="text"
-          placeholder="Your vendor code"
-          value={localCode}
-          onChange={e => { setLocalCode(e.target.value.toUpperCase()); setCodeErr(''); }}
-          onKeyDown={e => e.key === 'Enter' && !validatingCode && handleHaveCode()}
-          style={inputStyle}
-        />
-        {codeErr && (
-          <div style={{ color: '#B91C1C', fontSize: '11px', marginTop: '8px', fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            {codeErr}
+            {/* CTAs */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={() => { triggerTransition('otp'); }}
+                style={{
+                  padding: '13px 0', background: '#C9A84C', color: '#0C0A09',
+                  ...s.fontJost, fontWeight: 300, fontSize: 9,
+                  textTransform: 'uppercase', letterSpacing: '0.2em',
+                  touchAction: 'manipulation',
+                }}>
+                I have an invite
+              </button>
+              <button
+                onClick={() => { triggerTransition('request'); }}
+                style={{
+                  padding: '13px 0',
+                  background: 'transparent',
+                  border: '0.5px solid rgba(248,247,245,0.28)',
+                  color: '#F8F7F5',
+                  ...s.fontJost, fontWeight: 300, fontSize: 9,
+                  textTransform: 'uppercase', letterSpacing: '0.2em',
+                  touchAction: 'manipulation',
+                }}>
+                Request an invite
+              </button>
+              <button
+                onClick={() => { triggerTransition('signin'); }}
+                style={{
+                  padding: '10px 0', background: 'none', border: 'none',
+                  color: 'rgba(248,247,245,0.38)',
+                  ...s.fontJost, fontWeight: 200, fontSize: 8,
+                  letterSpacing: '0.16em',
+                  touchAction: 'manipulation',
+                }}>
+                Already a member — Sign in
+              </button>
+            </div>
           </div>
         )}
-        <div style={{ marginTop: '18px', display: 'flex', gap: '10px', flexDirection: 'column' }}>
+
+        {/* ── CREAM SCREENS (Layer C) ── */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 30,
+          background: '#F8F7F5',
+          opacity: creamVisible ? creamOpacity : 0,
+          transform: `translateY(${creamVisible ? creamTranslate : '8px'})`,
+          transition: `opacity 400ms ${EASE}, transform 400ms ${EASE}`,
+          pointerEvents: creamVisible ? 'auto' : 'none',
+          display: 'flex', flexDirection: 'column',
+          padding: '0 26px',
+          overflowY: 'auto',
+        }}>
+          {/* Back button */}
           <button
-            onClick={handleHaveCode} disabled={validatingCode || !localCode.trim()}
-            style={primaryBtn(!validatingCode && !!localCode.trim())}
-          >
-            {validatingCode ? 'Verifying\u2026' : 'Continue'}
+            onClick={goBackFromCream}
+            style={{
+              alignSelf: 'flex-start', marginTop: 44,
+              ...s.fontJost, fontWeight: 200, fontSize: 20, color: '#888580',
+            }}>
+            ←
           </button>
-          <button onClick={() => { setShowCodeInput(false); setLocalCode(''); setCodeErr(''); }} style={secondaryBtn}>
-            Back
-          </button>
+
+          {/* Cream header */}
+          <div style={{ textAlign: 'center', marginTop: 32, marginBottom: 28 }}>
+            <div style={{ ...s.fontCormorant, fontStyle: 'italic', fontWeight: 300, fontSize: 18, color: '#111111', letterSpacing: '0.1em', marginBottom: 3 }}>
+              The Dream Wedding
+            </div>
+            <div style={{ ...s.fontCormorant, fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: '#888580', letterSpacing: '0.04em', marginBottom: 12 }}>
+              {roleTagline}
+            </div>
+            <div style={{ width: 18, height: 0.5, background: '#C9A84C', opacity: 0.4, margin: '0 auto' }} />
+          </div>
+
+          {/* ── OTP PHONE ── */}
+          {screen === 'otp' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ ...s.fontCormorant, fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>
+                Welcome. Let's begin.
+              </div>
+              <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>
+                Enter your number. We'll send a code.
+              </div>
+              <div style={{ width: '100%', marginBottom: 24 }}>
+                <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 7, color: '#888580', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 7 }}>
+                  Phone Number
+                </div>
+                <input
+                  type="tel" maxLength={14} placeholder="+91 00000 00000"
+                  value={phone} onChange={e => setPhone(e.target.value)}
+                  style={{
+                    width: '100%', borderBottom: '1px solid #E2DED8',
+                    ...s.fontDM, fontWeight: 300, fontSize: 13, color: '#111111',
+                    padding: '8px 0',
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => setScreen('otp2')}
+                style={{
+                  width: '100%', padding: '14px 0',
+                  background: '#111111', color: '#F8F7F5',
+                  ...s.fontJost, fontWeight: 300, fontSize: 9,
+                  textTransform: 'uppercase', letterSpacing: '0.22em',
+                  marginBottom: 12,
+                }}>
+                Send code
+              </button>
+            </div>
+          )}
+
+          {/* ── OTP CODE ── */}
+          {screen === 'otp2' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ ...s.fontCormorant, fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>
+                Check your messages.
+              </div>
+              <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>
+                Enter the 6-digit code we sent you.
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
+                {otp.map((val, i) => (
+                  <input
+                    key={i}
+                    ref={el => { otpRefs.current[i] = el; }}
+                    type="tel" maxLength={1} value={val}
+                    onChange={e => handleOtpInput(i, e.target.value)}
+                    onKeyDown={e => handleOtpKey(i, e)}
+                    style={{
+                      width: 36, height: 44,
+                      borderBottom: '1.5px solid #E2DED8',
+                      ...s.fontDM, fontWeight: 400, fontSize: 18,
+                      color: '#111111', textAlign: 'center',
+                    }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={handleVerify}
+                style={{
+                  width: '100%', padding: '14px 0',
+                  background: '#111111', color: '#F8F7F5',
+                  ...s.fontJost, fontWeight: 300, fontSize: 9,
+                  textTransform: 'uppercase', letterSpacing: '0.22em',
+                  marginBottom: 12,
+                }}>
+                Verify
+              </button>
+              {showResend && (
+                <button style={{ ...s.fontJost, fontWeight: 200, fontSize: 8, color: '#AAAAAA' }}>
+                  Resend code
+                </button>
+              )}
+              {!showResend && (
+                <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 8, color: '#C8C4BE' }}>
+                  Resend in {resendCountdown}s
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── REQUEST INVITE ── */}
+          {screen === 'request' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {requestSuccess ? (
+                <div style={{ textAlign: 'center', marginTop: 40 }}>
+                  <div style={{ ...s.fontCormorant, fontStyle: 'italic', fontWeight: 300, fontSize: 32, color: '#111111', marginBottom: 12 }}>
+                    Received.
+                  </div>
+                  <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 12, color: '#888580', fontStyle: 'italic', textAlign: 'center' }}>
+                    We review every request personally.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {requestError && (
+                    <div style={{
+                      position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+                      background: '#FFFFFF', border: '0.5px solid #E2DED8',
+                      padding: '12px 20px', zIndex: 100,
+                      ...s.fontDM, fontSize: 14, color: '#888580',
+                    }}>
+                      {requestError}
+                    </div>
+                  )}
+                  <div style={{ ...s.fontCormorant, fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>
+                    Request an invite.
+                  </div>
+                  <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>
+                    We're selective. We'll reach out.
+                  </div>
+                  <div style={{ width: '100%', marginBottom: 16 }}>
+                    <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 7, color: '#888580', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 7 }}>
+                      Phone Number
+                    </div>
+                    <input
+                      type="tel" maxLength={14} placeholder="+91 00000 00000"
+                      value={phone} onChange={e => setPhone(e.target.value)}
+                      style={{ width: '100%', borderBottom: '1px solid #E2DED8', ...s.fontDM, fontWeight: 300, fontSize: 13, color: '#111111', padding: '8px 0' }}
+                    />
+                  </div>
+                  <div style={{ width: '100%', marginBottom: 24 }}>
+                    <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 7, color: '#888580', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 7 }}>
+                      Instagram
+                    </div>
+                    <input
+                      type="text" placeholder="@yourhandle"
+                      value={instagram} onChange={e => setInstagram(e.target.value)}
+                      style={{ width: '100%', borderBottom: '1px solid #E2DED8', ...s.fontDM, fontWeight: 300, fontSize: 13, color: '#111111', padding: '8px 0' }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleRequestSubmit}
+                    style={{
+                      width: '100%', padding: '14px 0',
+                      background: '#111111', color: '#F8F7F5',
+                      ...s.fontJost, fontWeight: 300, fontSize: 9,
+                      textTransform: 'uppercase', letterSpacing: '0.22em',
+                      marginBottom: 12,
+                    }}>
+                    Submit
+                  </button>
+                  <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 10, color: '#AAAAAA', fontStyle: 'italic', textAlign: 'center', lineHeight: 1.7 }}>
+                    We review every request personally.
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── SIGN IN PHONE ── */}
+          {screen === 'signin' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ ...s.fontCormorant, fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>
+                Welcome back.
+              </div>
+              <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>
+                Enter your number to continue.
+              </div>
+              <div style={{ width: '100%', marginBottom: 24 }}>
+                <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 7, color: '#888580', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 7 }}>
+                  Phone Number
+                </div>
+                <input
+                  type="tel" maxLength={14} placeholder="+91 00000 00000"
+                  value={phone} onChange={e => setPhone(e.target.value)}
+                  style={{ width: '100%', borderBottom: '1px solid #E2DED8', ...s.fontDM, fontWeight: 300, fontSize: 13, color: '#111111', padding: '8px 0' }}
+                />
+              </div>
+              <button
+                onClick={() => setScreen('signin2')}
+                style={{
+                  width: '100%', padding: '14px 0',
+                  background: '#111111', color: '#F8F7F5',
+                  ...s.fontJost, fontWeight: 300, fontSize: 9,
+                  textTransform: 'uppercase', letterSpacing: '0.22em',
+                }}>
+                Send code
+              </button>
+            </div>
+          )}
+
+          {/* ── SIGN IN OTP ── */}
+          {screen === 'signin2' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ ...s.fontCormorant, fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>
+                Check your messages.
+              </div>
+              <div style={{ ...s.fontDM, fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>
+                Enter the 6-digit code we sent you.
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
+                {otp.map((val, i) => (
+                  <input
+                    key={i}
+                    ref={el => { otpRefs.current[i] = el; }}
+                    type="tel" maxLength={1} value={val}
+                    onChange={e => handleOtpInput(i, e.target.value)}
+                    onKeyDown={e => handleOtpKey(i, e)}
+                    style={{
+                      width: 36, height: 44,
+                      borderBottom: '1.5px solid #E2DED8',
+                      ...s.fontDM, fontWeight: 400, fontSize: 18,
+                      color: '#111111', textAlign: 'center',
+                    }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={handleVerify}
+                style={{
+                  width: '100%', padding: '14px 0',
+                  background: '#111111', color: '#F8F7F5',
+                  ...s.fontJost, fontWeight: 300, fontSize: 9,
+                  textTransform: 'uppercase', letterSpacing: '0.22em',
+                  marginBottom: 12,
+                }}>
+                Verify
+              </button>
+              {showResend && (
+                <button style={{ ...s.fontJost, fontWeight: 200, fontSize: 8, color: '#AAAAAA' }}>
+                  Resend code
+                </button>
+              )}
+              {!showResend && (
+                <div style={{ ...s.fontJost, fontWeight: 200, fontSize: 8, color: '#C8C4BE' }}>
+                  Resend in {resendCountdown}s
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
+        {/* end cream layer */}
+
       </div>
-    );
-  }
-
-  return (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards', textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 300, color: '#2C2420', marginBottom: '28px', letterSpacing: '0.5px' }}>
-        Do you have an invite?
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <button onClick={() => setShowCodeInput(true)} style={{
-          width: '100%', padding: '15px', background: '#2C2420', color: '#C9A84C',
-          fontSize: '9px', fontWeight: 400, letterSpacing: '3px', textTransform: 'uppercase',
-          fontFamily: "'DM Sans', sans-serif", border: 'none', cursor: 'pointer',
-          transition: 'all 0.3s ease',
-        }}>Yes, I have a code</button>
-        <button
-          onClick={() => { window.location.href = '/vendor/login'; }}
-          style={{
-            width: '100%', padding: '15px', background: 'transparent', color: '#8C7B6E',
-            fontSize: '9px', fontWeight: 300, letterSpacing: '3px', textTransform: 'uppercase',
-            fontFamily: "'DM Sans', sans-serif", border: '1px solid #E8DDD4', cursor: 'pointer',
-            transition: 'all 0.3s ease',
-          }}
-        >Request an invite</button>
-      </div>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// VendorLoginInline — inline login form for marketing page
-// Renders inside the same tab → smooth, no redirect, no page reload.
-// Mirrors couple LoginForm pattern exactly. +91 perfectly aligned.
-// ══════════════════════════════════════════════════════════════
-
-function VendorLoginInline() {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleLogin = async () => {
-    const clean = phone.replace(/\D/g, '').slice(-10);
-    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
-    if (password.length < 1) { setError('Enter your password'); return; }
-    setLoading(true); setError('');
-    try {
-      const res = await fetch(`${API_URL}/api/vendor/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + clean, password }),
-      });
-      const d = await res.json();
-      if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
-      try {
-        localStorage.setItem('vendor_web_session', JSON.stringify({
-          vendorId: d.data.id,
-          vendorName: d.data.name,
-          category: d.data.category,
-          city: d.data.city,
-          tier: d.data.tier,
-        }));
-      } catch {}
-      const mob = window.innerWidth < 768;
-      window.location.href = mob ? '/vendor/mobile' : '/vendor/dashboard';
-    } catch { setError('Network error'); setLoading(false); }
-  };
-
-  return (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-      <p style={{
-        margin: '0 0 12px', fontSize: 10, color: '#8C7B6E', fontWeight: 500,
-        letterSpacing: '2px', textTransform: 'uppercase' as const, fontFamily: "'DM Sans', sans-serif",
-      }}>Sign in</p>
-
-      <label style={{
-        display: 'block', fontSize: 11, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
-        fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-      }}>Phone</label>
-      <div style={{ position: 'relative' as const, marginBottom: 14 }}>
-        <span style={{
-          position: 'absolute' as const, left: 14, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 15, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
-        }}>+91</span>
-        <input
-          type="tel" value={phone} onChange={e => { setPhone(e.target.value); setError(''); }}
-          placeholder="98765 43210"
-          autoComplete="tel"
-          inputMode="numeric"
-          autoFocus
-          style={{
-            width: '100%', boxSizing: 'border-box' as const,
-            padding: '12px 16px 12px 46px', borderRadius: 10,
-            border: '1px solid #EDE8E0', background: '#FFFFFF',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#2C2420', outline: 'none',
-          }}
-        />
-      </div>
-
-      <label style={{
-        display: 'block', fontSize: 11, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
-        fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-      }}>Password</label>
-      <div style={{ position: 'relative' as const, marginBottom: 14 }}>
-        <input
-          type={showPassword ? 'text' : 'password'}
-          value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
-          placeholder="Your password"
-          autoComplete="current-password"
-          onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
-          style={{
-            width: '100%', boxSizing: 'border-box' as const,
-            padding: '12px 52px 12px 16px', borderRadius: 10,
-            border: '1px solid #EDE8E0', background: '#FFFFFF',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#2C2420', outline: 'none',
-          }}
-        />
-        <button
-          onClick={() => setShowPassword(v => !v)}
-          type="button"
-          style={{
-            position: 'absolute' as const, right: 8, top: '50%', transform: 'translateY(-50%)',
-            padding: '6px 10px', borderRadius: 8,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#8C7B6E', fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-          }}
-        >{showPassword ? 'Hide' : 'Show'}</button>
-      </div>
-
-      {error && (
-        <div style={{
-          background: '#FBEEEE', border: '1px solid #F0CFCF',
-          borderRadius: 8, padding: '10px 12px',
-          fontSize: 12, color: '#C65757', fontFamily: "'DM Sans', sans-serif",
-          marginBottom: 14,
-        }}>{error}</div>
-      )}
-
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        style={{
-          width: '100%', padding: '14px 24px',
-          background: loading ? '#EDE8E0' : '#2C2420',
-          color: loading ? '#B8ADA4' : '#C9A84C',
-          border: 'none', borderRadius: 12,
-          fontSize: 12, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase' as const,
-          fontFamily: "'DM Sans', sans-serif",
-          cursor: loading ? 'not-allowed' : 'pointer',
-        }}
-      >{loading ? 'Signing in…' : 'Sign in'}</button>
-
-      <div style={{ textAlign: 'center' as const, margin: '14px 0 20px' }}>
-        <button
-          onClick={() => { window.location.href = '/vendor/login?mode=forgot'; }}
-          type="button"
-          style={{
-            background: 'none', border: 'none', color: '#8C7B6E',
-            fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >Forgot password?</button>
-      </div>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// CoupleLoginInline — inline login on marketing page
-// Mirrors VendorLoginInline. Smooth, no redirect, no reload.
-// ══════════════════════════════════════════════════════════════
-
-function CoupleLoginInline() {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleLogin = async () => {
-    const clean = phone.replace(/\D/g, '').slice(-10);
-    if (clean.length !== 10) { setError('Enter a valid 10-digit phone'); return; }
-    if (password.length < 1) { setError('Enter your password'); return; }
-    setLoading(true); setError('');
-    try {
-      const res = await fetch(`${API_URL}/api/couple/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '+91' + clean, password }),
-      });
-      const d = await res.json();
-      if (!d.success) { setError(d.error || 'Could not sign in'); setLoading(false); return; }
-      try {
-        localStorage.setItem('couple_session', JSON.stringify({
-          id: d.data.id,
-          name: d.data.name || '',
-          partnerName: d.data.partner_name || '',
-          weddingDate: d.data.wedding_date || '',
-          events: d.data.events || [],
-          couple_tier: d.data.couple_tier || 'free',
-          coShareRole: 'owner',
-          foundingBride: !!d.data.founding_bride,
-          token_balance: d.data.token_balance || 0,
-        }));
-      } catch {}
-      window.location.href = '/couple';
-    } catch { setError('Network error'); setLoading(false); }
-  };
-
-  return (
-    <div style={{ animation: 'tdwFadeUp 0.5s ease forwards' }}>
-      <p style={{
-        margin: '0 0 12px', fontSize: 10, color: '#8C7B6E', fontWeight: 500,
-        letterSpacing: '2px', textTransform: 'uppercase' as const, fontFamily: "'DM Sans', sans-serif",
-      }}>Sign in</p>
-
-      <label style={{
-        display: 'block', fontSize: 11, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
-        fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-      }}>Phone</label>
-      <div style={{ position: 'relative' as const, marginBottom: 14 }}>
-        <span style={{
-          position: 'absolute' as const, left: 14, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 15, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
-        }}>+91</span>
-        <input
-          type="tel" value={phone} onChange={e => { setPhone(e.target.value); setError(''); }}
-          placeholder="98765 43210"
-          autoComplete="tel"
-          inputMode="numeric"
-          autoFocus
-          style={{
-            width: '100%', boxSizing: 'border-box' as const,
-            padding: '12px 16px 12px 46px', borderRadius: 10,
-            border: '1px solid #EDE8E0', background: '#FFFFFF',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#2C2420', outline: 'none',
-          }}
-        />
-      </div>
-
-      <label style={{
-        display: 'block', fontSize: 11, color: '#8C7B6E', fontFamily: "'DM Sans', sans-serif",
-        fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase' as const, marginBottom: 6,
-      }}>Password</label>
-      <div style={{ position: 'relative' as const, marginBottom: 14 }}>
-        <input
-          type={showPassword ? 'text' : 'password'}
-          value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
-          placeholder="Your password"
-          autoComplete="current-password"
-          onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
-          style={{
-            width: '100%', boxSizing: 'border-box' as const,
-            padding: '12px 52px 12px 16px', borderRadius: 10,
-            border: '1px solid #EDE8E0', background: '#FFFFFF',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#2C2420', outline: 'none',
-          }}
-        />
-        <button
-          onClick={() => setShowPassword(v => !v)}
-          type="button"
-          style={{
-            position: 'absolute' as const, right: 8, top: '50%', transform: 'translateY(-50%)',
-            padding: '6px 10px', borderRadius: 8,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#8C7B6E', fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-          }}
-        >{showPassword ? 'Hide' : 'Show'}</button>
-      </div>
-
-      {error && (
-        <div style={{
-          background: '#FBEEEE', border: '1px solid #F0CFCF',
-          borderRadius: 8, padding: '10px 12px',
-          fontSize: 12, color: '#C65757', fontFamily: "'DM Sans', sans-serif",
-          marginBottom: 14,
-        }}>{error}</div>
-      )}
-
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        style={{
-          width: '100%', padding: '14px 24px',
-          background: loading ? '#EDE8E0' : '#2C2420',
-          color: loading ? '#B8ADA4' : '#C9A84C',
-          border: 'none', borderRadius: 12,
-          fontSize: 12, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase' as const,
-          fontFamily: "'DM Sans', sans-serif",
-          cursor: loading ? 'not-allowed' : 'pointer',
-        }}
-      >{loading ? 'Signing in…' : 'Sign in'}</button>
-
-      <div style={{ textAlign: 'center' as const, margin: '14px 0 0' }}>
-        <button
-          onClick={() => { window.location.href = '/couple'; }}
-          type="button"
-          style={{
-            background: 'none', border: 'none', color: '#8C7B6E',
-            fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >Forgot password?</button>
-      </div>
-    </div>
+    </>
   );
 }
