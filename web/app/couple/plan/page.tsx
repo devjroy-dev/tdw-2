@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
 const RAILWAY_URL = process.env.NEXT_PUBLIC_RAILWAY_URL || 'https://dream-wedding-production-89ae.up.railway.app';
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const DEMO_USER_ID = 'demo';
 
 type Tab = 'tasks' | 'money' | 'people' | 'events';
