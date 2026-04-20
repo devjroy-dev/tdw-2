@@ -13847,9 +13847,16 @@ function DiscoveryOnboardingWall({ session, modeState, onDone }: {
       });
       const d = await res.json();
       if (d.success) {
+        if (d.skipped && d.skipped.length > 0) {
+          console.warn('[onboard] Some columns skipped (DB missing migration):', d.skipped);
+        }
         onDone();
+      } else {
+        alert('Could not save: ' + (d.error || 'unknown error'));
       }
-    } catch {}
+    } catch (e: any) {
+      alert('Network error: ' + (e?.message || 'failed to reach server'));
+    }
     setSubmitting(false);
   };
 

@@ -9250,33 +9250,76 @@ app.get('/api/vendor-discover/mode-state/:vendor_id', async (req, res) => {
 app.post('/api/vendor-discover/onboard/:vendor_id', async (req, res) => {
   try {
     const { phone, email, category, city, instagram, starting_price, response_time_commitment } = req.body || {};
-    const { data: v } = await supabase.from('vendors').select('id, tier').eq('id', req.params.vendor_id).maybeSingle();
-    if (!v) return res.status(404).json({ success: false, error: 'vendor not found' });
+    const vendorId = req.params.vendor_id;
+    console.log('[onboard] Starting for vendor:', vendorId, 'payload keys:', Object.keys(req.body || {}));
 
-    const updates = { discovery_basics_completed_at: new Date().toISOString() };
-    if (phone) updates.phone = phone;
-    if (email) updates.email = email;
-    if (category) updates.category = category;
-    if (city) updates.city = city;
-    if (instagram) updates.instagram = instagram;
-    if (starting_price) updates.starting_price = starting_price;
-    if (response_time_commitment) updates.response_time_commitment = response_time_commitment;
-
-    // If trial not started, start it now
-    const { data: cur } = await supabase.from('vendors').select('discovery_trial_started_at, tier').eq('id', v.id).maybeSingle();
-    if (!cur?.discovery_trial_started_at) {
-      const now = new Date().toISOString();
-      updates.discovery_trial_started_at = now;
-      updates.discovery_trial_deadline = computeTrialDeadline(now, cur?.tier || v.tier);
-      updates.discovery_trial_status = (cur?.tier || v.tier || '').toLowerCase() === 'prestige' ? 'exempt' : 'active';
+    const { data: v } = await supabase.from('vendors').select('*').eq('id', vendorId).maybeSingle();
+    if (!v) {
+      console.error('[onboard] Vendor not found:', vendorId);
+      return res.status(404).json({ success: false, error: 'vendor not found' });
     }
 
-    const { error } = await supabase.from('vendors').update(updates).eq('id', v.id);
-    if (error) throw error;
+    // Tier from subscriptions (NOT from vendors)
+    let tier = 'essential';
+    try {
+      const { data: sub } = await supabase.from('vendor_subscriptions')
+        .select('tier').eq('vendor_id', vendorId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (sub?.tier) tier = sub.tier;
+    } catch {}
 
-    logActivity('vendor_discovery_onboarded', `Vendor ${v.id} completed Discovery onboarding`);
-    res.json({ success: true });
-  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+    // Build base updates (always-safe columns)
+    const baseUpdates = {};
+    if (phone) baseUpdates.phone = phone;
+    if (email) baseUpdates.email = email;
+    if (category) baseUpdates.category = category;
+    if (city) baseUpdates.city = city;
+    if (instagram) baseUpdates.instagram = instagram;
+    if (starting_price) baseUpdates.starting_price = starting_price;
+
+    // Try base updates first
+    if (Object.keys(baseUpdates).length > 0) {
+      const { error: baseErr } = await supabase.from('vendors').update(baseUpdates).eq('id', vendorId);
+      if (baseErr) {
+        console.error('[onboard] Base updates failed:', baseErr.message);
+        return res.status(500).json({ success: false, error: 'Could not save basics: ' + baseErr.message });
+      }
+      console.log('[onboard] Base updates saved:', Object.keys(baseUpdates).join(','));
+    }
+
+    // Now try the discovery-specific columns ONE BY ONE so a missing column doesn't fail the whole batch
+    const trialStartedAt = v.discovery_trial_started_at || null;
+    const optionalUpdates = [
+      { col: 'discovery_basics_completed_at', val: new Date().toISOString() },
+    ];
+    if (response_time_commitment) {
+      optionalUpdates.push({ col: 'response_time_commitment', val: response_time_commitment });
+    }
+    if (!trialStartedAt) {
+      const now = new Date().toISOString();
+      optionalUpdates.push({ col: 'discovery_trial_started_at', val: now });
+      optionalUpdates.push({ col: 'discovery_trial_deadline', val: computeTrialDeadline(now, tier) });
+      optionalUpdates.push({ col: 'discovery_trial_status', val: tier.toLowerCase() === 'prestige' ? 'exempt' : 'active' });
+    }
+
+    const skippedCols = [];
+    for (const u of optionalUpdates) {
+      try {
+        const { error } = await supabase.from('vendors').update({ [u.col]: u.val }).eq('id', vendorId);
+        if (error) {
+          console.error(`[onboard] Skipping column ${u.col}: ${error.message}`);
+          skippedCols.push(u.col);
+        }
+      } catch (e) {
+        skippedCols.push(u.col);
+      }
+    }
+
+    console.log('[onboard] DONE for vendor:', vendorId, '. Skipped cols:', skippedCols.join(',') || 'none');
+    res.json({ success: true, skipped: skippedCols });
+  } catch (error) {
+    console.error('[onboard] Unhandled error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ── Vendor Images (Image Hub CRUD) ──────────────────────────────────────
