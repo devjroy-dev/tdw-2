@@ -77,16 +77,6 @@ export default function MomentsNeedYou({ nudges = [], loading = false }: Moments
           margin: '0 0 6px',
         }}>NEEDS YOUR ATTENTION</p>
 
-        {/* Title */}
-        <h2 style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 28,
-          fontWeight: 300,
-          letterSpacing: '-0.01em',
-          color: '#0C0A09',
-          margin: '0 0 20px',
-        }}>Three moments</h2>
-
         {loading ? <SkeletonCards /> : capped.length === 0 ? (
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -98,6 +88,15 @@ export default function MomentsNeedYou({ nudges = [], loading = false }: Moments
             lineHeight: 1.6,
           }}>Your journey is on track.<br />Quiet days are part of the plan.</p>
         ) : (
+          <>
+            <h2 style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 28,
+              fontWeight: 300,
+              letterSpacing: '-0.01em',
+              color: '#0C0A09',
+              margin: '0 0 20px',
+            }}>Three moments</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {capped.map((nudge, i) => (
               <div
@@ -132,6 +131,7 @@ export default function MomentsNeedYou({ nudges = [], loading = false }: Moments
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
     </>
