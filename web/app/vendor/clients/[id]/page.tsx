@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, Mail, Instagram, ChevronLeft } from "lucide-react";
+import { Phone, Mail,  ChevronLeft } from "lucide-react";
 
 const CLIENT_DATA = {
   "1": {
@@ -148,7 +148,7 @@ export default function ClientDetailPage({
         <Section title="CONTACT">
           <ContactRow icon={<Phone size={16} color="#8C8480" strokeWidth={1.5} />} label={client.phone} />
           <ContactRow icon={<Mail size={16} color="#8C8480" strokeWidth={1.5} />} label={client.email} />
-          <ContactRow icon={<Instagram size={16} color="#8C8480" strokeWidth={1.5} />} label={client.instagram} />
+          <ContactRow icon={<Star size={16} color="#8C8480" strokeWidth={1.5} />} label={client.instagram} />
           <button
             style={{
               marginTop: "14px",
