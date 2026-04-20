@@ -783,10 +783,26 @@ function buildCoupleVars(session: CoupleSession): Record<string, string> {
 }
 
 // Open WhatsApp with a rendered template
+// Uses api.whatsapp.com/send (works correctly on PWA, mobile, and desktop)
+// Adds &lang=en to prevent random localized WhatsApp Web (Brazilian Portuguese, etc.)
+// Uses anchor-click instead of window.open to respect OS handler properly on PWAs
 function openWhatsApp(phone: string | null, message: string) {
   const p = phoneForWhatsApp(phone);
-  const base = p ? `https://wa.me/${p}` : `https://wa.me/`;
-  window.open(`${base}?text=${encodeURIComponent(message)}`, '_blank');
+  const params = new URLSearchParams();
+  if (p) params.set('phone', p);
+  params.set('text', message);
+  const url = `https://api.whatsapp.com/send?${params.toString()}&lang=en`;
+  // Use anchor click — this lets the OS handler intercept (opens app on mobile)
+  // window.open() can be blocked or open inside the PWA's WebView
+  if (typeof window !== 'undefined') {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2504,63 +2520,73 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
   }
 
   if (accessStatus !== 'granted') {
+    const isPending = accessStatus === 'pending' || requestSent;
     return (
-      <div style={{ padding: '80px 28px 100px', textAlign: 'center' }}>
+      <div style={{ padding: '40px 20px 100px' }}>
         <div style={{
-          width: 64, height: 64, borderRadius: 20,
-          background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px',
+          background: C.ivory, border: `1px solid ${C.goldBorder}`, borderRadius: 16,
+          padding: '24px 22px',
         }}>
-          <Compass size={28} color={C.gold} />
-        </div>
-        <h2 style={{
-          fontFamily: 'Playfair Display, serif', fontSize: 26,
-          color: C.dark, margin: '0 0 10px', fontWeight: 400,
-        }}>Discover is in beta.</h2>
-        <p style={{
-          fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: C.muted,
-          fontWeight: 300, lineHeight: '22px', margin: '0 0 28px',
-        }}>
-          A curated marketplace for your wedding. Book India's finest photographers,
-          decorators, and artists — handpicked by us. Currently available by invitation.
-        </p>
+          {/* Eyebrow + Title row */}
+          <p style={{ margin: '0 0 6px', fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase' as const }}>
+            Discover · Beta
+          </p>
+          <h2 style={{ margin: '0 0 16px', fontSize: 22, color: C.dark, fontFamily: "'Playfair Display', serif", fontWeight: 500, lineHeight: '28px' }}>
+            {isPending ? 'Request received' : 'Request access to Discover'}
+          </h2>
 
-        {accessStatus === 'pending' || requestSent ? (
-          <div style={{
-            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
-            borderRadius: 12, padding: '14px 20px', maxWidth: 300, margin: '0 auto',
-          }}>
-            <p style={{ margin: 0, fontSize: 14, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 400 }}>
-              You're on the list. We'll notify you when your access is ready.
-            </p>
-          </div>
-        ) : (
-          <div style={{ maxWidth: 320, margin: '0 auto' }}>
-            <textarea
-              value={requestReason}
-              onChange={e => setRequestReason(e.target.value)}
-              placeholder="Tell us about your wedding (optional)"
-              rows={2}
-              style={{
-                width: '100%', padding: '12px 14px', borderRadius: 10,
-                border: `1px solid ${C.border}`, background: C.ivory,
-                fontFamily: 'DM Sans, sans-serif', fontSize: 13,
-                color: C.dark, outline: 'none', resize: 'none', marginBottom: 12,
-                boxSizing: 'border-box' as const,
-              }}
-            onFocus={scrollIntoViewOnFocus} />
-            <button onClick={submitAccessRequest} style={{
-              width: '100%', padding: '14px', borderRadius: 10, background: C.dark,
-              border: 'none', cursor: 'pointer', color: C.gold,
-              fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 500,
-              letterSpacing: '0.5px',
-            }}>Request Early Access</button>
-            <p style={{ margin: '10px 0 0', fontSize: 11, color: C.mutedLight, fontFamily: 'DM Sans, sans-serif' }}>
-              No spam. Just a message when we're ready.
-            </p>
-          </div>
-        )}
+          {isPending ? (
+            <div style={{
+              padding: '14px 16px', borderRadius: 12,
+              background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
+            }}>
+              <div style={{
+                fontFamily: "'Playfair Display', serif", fontSize: 15,
+                color: C.dark, fontWeight: 500, marginBottom: 4,
+              }}>You're on the list.</div>
+              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, fontFamily: 'DM Sans, sans-serif' }}>
+                Discover is currently invite-only. We're rolling out access to a small group of founding couples during the beta. We'll notify you when your access is ready.
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 16, fontSize: 13, color: C.muted, lineHeight: 1.6, fontFamily: 'DM Sans, sans-serif' }}>
+                <strong style={{ color: C.dark }}>Discover</strong> is a curated marketplace for your wedding. Book India's finest photographers, decorators, MUAs, and artists — all handpicked by us.
+                <br /><br />
+                It's invite-only during beta. Tell us about your wedding to get early access.
+              </div>
+
+              <p style={{ margin: '0 0 6px', fontSize: 11, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '0.3px' }}>
+                Tell us about your wedding
+              </p>
+              <textarea
+                value={requestReason}
+                onChange={e => setRequestReason(e.target.value)}
+                placeholder="Wedding date, city, vibe — anything you'd like to share (optional)"
+                rows={3}
+                style={{
+                  width: '100%', boxSizing: 'border-box' as const,
+                  padding: '12px 14px', borderRadius: 10,
+                  border: `1px solid ${C.border}`, background: C.cream,
+                  fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
+                  outline: 'none', resize: 'none' as const, marginBottom: 14,
+                }}
+                onFocus={scrollIntoViewOnFocus} />
+
+              <button onClick={submitAccessRequest} style={{
+                width: '100%', padding: 14, borderRadius: 10,
+                background: C.dark, color: C.gold, border: 'none',
+                cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                letterSpacing: '2px', textTransform: 'uppercase' as const,
+                fontFamily: 'DM Sans, sans-serif',
+              }}>Request access</button>
+
+              <p style={{ margin: '12px 0 0', fontSize: 10, color: C.mutedLight, fontFamily: 'DM Sans, sans-serif', textAlign: 'center' as const }}>
+                No spam. Just a message when we're ready.
+              </p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
@@ -3189,7 +3215,7 @@ function DiscoverTeaser({ session, cNavPush, onBackToPlan }: { session: CoupleSe
           {canWhatsApp && v.phone && (
             <button onClick={() => {
               const phone = v.phone?.replace(/\D/g, '').slice(-10);
-              if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(whatsappPrefill)}`, '_blank');
+              if (phone) openWhatsApp(phone, whatsappPrefill);
             }} style={{
               padding: '6px 12px', borderRadius: 20, background: '#25D366',
               border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
@@ -4992,7 +5018,7 @@ function HomeScreen({ session, onNavTo, tasks, loading, onToggleComplete, budget
           </p>
         </div>
         <a
-          href="https://wa.me/14155238886?text=Hi%20DreamAi%2C%20I%20need%20help%20with%20my%20wedding%20planning"
+          href="https://api.whatsapp.com/send?phone=14155238886&text=Hi%20DreamAi%2C%20I%20need%20help%20with%20my%20wedding%20planning&lang=en"
           target="_blank" rel="noreferrer"
           style={{
             width: 32, height: 32, borderRadius: 16, background: C.dark,
@@ -7904,7 +7930,7 @@ function WhatsAppImportModal({ onClose, onRefresh }: {
   const openWhatsAppImport = () => {
     const msg = `I'd like to import contacts for my Guest Ledger.`;
     window.open(
-      `https://wa.me/${TWILIO_NUMBER}?text=${encodeURIComponent(msg)}`,
+      `https://api.whatsapp.com/send?phone=${TWILIO_NUMBER}&text=${encodeURIComponent(msg)}&lang=en`,
       '_blank'
     );
   };
@@ -11108,12 +11134,12 @@ function DreamAiSheet({ session, onClose }: {
   ];
 
   const openPrompt = (body: string) => {
-    window.open(`https://wa.me/${TWILIO_NUMBER}?text=${encodeURIComponent(body)}`, '_blank');
+    openWhatsApp(TWILIO_NUMBER, body);
     onClose();
   };
 
   const openFresh = () => {
-    window.open(`https://wa.me/${TWILIO_NUMBER}`, '_blank');
+    openWhatsApp(TWILIO_NUMBER, "");
     onClose();
   };
 

@@ -122,6 +122,32 @@ function scrollIntoViewOnFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAr
   }, 300);
 }
 
+// ── WhatsApp opener: works on PWA + mobile + desktop, forces English locale ──
+// Format: digits only, prepend 91 if 10-digit Indian
+function phoneForWhatsApp(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  if (digits.length === 10) return '91' + digits;
+  return digits;
+}
+function openWhatsApp(phone: string | null | undefined, message: string) {
+  const p = phoneForWhatsApp(phone);
+  const params = new URLSearchParams();
+  if (p) params.set('phone', p);
+  params.set('text', message);
+  const url = `https://api.whatsapp.com/send?${params.toString()}&lang=en`;
+  if (typeof window !== 'undefined') {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
+
 // ── Reusable SearchBar (pinned at top of list tools) ─────────────────────
 function SearchBar({ value, onChange, placeholder }: {
   value: string; onChange: (v: string) => void; placeholder: string;
@@ -1918,7 +1944,7 @@ function InquiriesTab({ session, leads, bookings, onRefresh }: any) {
               <div style={{ display: 'flex', gap: '8px' }}>
                 {(b.users?.phone || b.client_phone) && (
                   <a
-                    href={`https://wa.me/91${(b.users?.phone || b.client_phone).replace(/\D/g, '')}?text=${encodeURIComponent('Hi ' + (b.users?.name || b.client_name || '') + '! Thanks for your enquiry.')}`}
+                    href={`https://api.whatsapp.com/send?phone=91${(b.users?.phone || b.client_phone).replace(/\D/g, '')}&text=${encodeURIComponent('Hi ' + (b.users?.name || b.client_name || '') + '! Thanks for your enquiry.')}&lang=en`}
                     target="_blank" rel="noreferrer"
                     style={{ flex: 1, background: '#25D366', color: '#fff', textDecoration: 'none', borderRadius: '8px', padding: '10px', textAlign: 'center', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                   >
@@ -9664,7 +9690,7 @@ function QuickReminderSheet({
     const msg = item.is_overdue
       ? `Hi ${item.client_name}! Gentle reminder — ${item.label} totalling ₹${amountFmt} is pending. Please clear at your earliest convenience. — ${vendorName}`
       : `Hi ${item.client_name}! Gentle reminder regarding ${item.label} for ₹${amountFmt}. Please let me know once done! — ${vendorName}`;
-    window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    openWhatsApp(cleanPhone, msg);
   };
 
   // ── EVENT items: upcoming events from vendor_calendar_events + booked events ──
@@ -9718,7 +9744,7 @@ function QuickReminderSheet({
     } else {
       msg = `Hi ${item.client_name}! Reminder regarding your ${item.event_title} on ${dateFmt}. Looking forward to it! — ${vendorName}`;
     }
-    window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    openWhatsApp(cleanPhone, msg);
     setEventTemplateOpen(null);
   };
 
@@ -9727,7 +9753,7 @@ function QuickReminderSheet({
     const c = clients.find((x: any) => x.id === customClientId);
     if (!c || !c.phone || !customMessage.trim()) return;
     const cleanPhone = String(c.phone).replace(/\D/g, '');
-    window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(customMessage.trim())}`, '_blank');
+    openWhatsApp(cleanPhone, customMessage.trim());
   };
 
   return (
@@ -10837,7 +10863,7 @@ function PaymentSchedulesPanel({ session, paymentSchedules, clients, onSavePayme
                   </div>
                   {s.client_phone && (
                     <a
-                      href={`https://wa.me/91${s.client_phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hi ' + (s.client_name || 'there') + '! Gentle reminder about pending payment.')}`}
+                      href={`https://api.whatsapp.com/send?phone=91${s.client_phone.replace(/\D/g, '')}&text=${encodeURIComponent('Hi ' + (s.client_name || 'there') + '! Gentle reminder about pending payment.')}&lang=en`}
                       target="_blank" rel="noreferrer"
                       style={{
                         background: '#25D366', borderRadius: '50%',
@@ -13482,11 +13508,22 @@ function DiscoveryRouter({ session }: { session: VendorSession }) {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`${API}/api/vendor-discover/access/${session.vendorId}`);
+        const res = await fetch(`${API}/api/vendor-discover/status?vendor_id=${session.vendorId}`);
         const d = await res.json();
         if (!mounted) return;
-        if (d.success) setAccessStatus(d.status);
-        else setAccessStatus('denied');
+        if (d.success) {
+          if (d.enabled) {
+            setAccessStatus('granted');
+          } else if (d.reason === 'expired') {
+            setAccessStatus('expired');
+          } else if (d.pending_request) {
+            setAccessStatus('pending');
+          } else {
+            setAccessStatus('denied');
+          }
+        } else {
+          setAccessStatus('denied');
+        }
       } catch {
         if (mounted) setAccessStatus('denied');
       }
@@ -13518,50 +13555,60 @@ function DiscoveryRouter({ session }: { session: VendorSession }) {
     );
   }
 
-  // Access not granted — show the request screen (similar to old DiscoveryComingSoon access wall)
+  // Access not granted — show the request screen (DreamAi-pattern unified design)
   if (accessStatus !== 'granted') {
+    const isPending = accessStatus === 'pending' || requestSent;
     return (
       <div style={{ minHeight: 'calc(100vh - 200px)', padding: '28px 20px', background: C.cream }}>
         <div style={{
           background: C.ivory, border: `1px solid ${C.goldBorder}`, borderRadius: 16,
-          padding: '24px 20px', textAlign: 'center' as const,
+          padding: '24px 22px',
         }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 16,
-            background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
-            display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
-            margin: '0 auto 14px',
-          }}>
-            <Sparkles size={22} color={C.gold} />
-          </div>
-          <p style={{ margin: '0 0 4px', fontSize: 11, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase' as const }}>
-            Discovery
+          {/* Eyebrow + Title row (DreamAi pattern) */}
+          <p style={{ margin: '0 0 6px', fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase' as const }}>
+            Discovery · Beta
           </p>
-          <h2 style={{ margin: '0 0 10px', fontSize: 22, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 400, lineHeight: '28px' }}>
-            Get discovered by couples.
+          <h2 style={{ margin: '0 0 16px', fontSize: 22, color: C.dark, fontFamily: "'Playfair Display', serif", fontWeight: 500, lineHeight: '28px' }}>
+            {isPending ? 'Request received' : 'Request access to Discovery'}
           </h2>
-          <p style={{ margin: '0 0 18px', fontSize: 13, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '20px' }}>
-            Invite-only during beta. Request access and our team will review your business.
-          </p>
 
-          {accessStatus === 'pending' || requestSent ? (
-            <div style={{ padding: '10px 14px', background: C.goldSoft, border: `1px solid ${C.goldBorder}`, borderRadius: 10 }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500 }}>
-                Access request received. We'll review soon.
-              </p>
-            </div>
+          {isPending ? (
+            <>
+              <div style={{
+                padding: '14px 16px', borderRadius: 12, marginBottom: 14,
+                background: C.champagne || C.goldSoft, border: `1px solid ${C.goldBorder}`,
+              }}>
+                <div style={{
+                  fontFamily: "'Playfair Display', serif", fontSize: 15,
+                  color: C.dark, fontWeight: 500, marginBottom: 4,
+                }}>Thanks — we'll be in touch.</div>
+                <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, fontFamily: 'DM Sans, sans-serif' }}>
+                  Discovery is currently invite-only. We're granting access to a small group of founding vendors during the beta.
+                </div>
+              </div>
+            </>
           ) : (
             <>
+              <div style={{ marginBottom: 16, fontSize: 13, color: C.muted, lineHeight: 1.6, fontFamily: 'DM Sans, sans-serif' }}>
+                <strong style={{ color: C.dark }}>Discovery</strong> puts you in front of couples actively searching for vendors. Your profile, photos, and availability live in our curated marketplace.
+                <br /><br />
+                It's invite-only during beta. Tell us why you'd like early access.
+              </div>
+
+              <p style={{ margin: '0 0 6px', fontSize: 11, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '0.3px' }}>
+                Why you'd like Discovery
+              </p>
               <textarea value={requestReason} onChange={e => setRequestReason(e.target.value)}
                 placeholder="Briefly tell us about your business (optional)"
-                rows={4}
+                rows={3}
                 style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 10,
-                  border: `1px solid ${C.border}`, background: C.cream,
+                  width: '100%', boxSizing: 'border-box' as const,
+                  padding: '12px 14px', borderRadius: 10,
+                  border: `1px solid ${C.border}`, background: C.pearl || C.cream,
                   fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: C.dark,
-                  outline: 'none', resize: 'none' as const, marginBottom: 10,
-                  boxSizing: 'border-box' as const,
+                  outline: 'none', resize: 'none' as const, marginBottom: 14,
                 }} onFocus={scrollIntoViewOnFocus} />
+
               <button onClick={async () => {
                 if (!session?.vendorId) { alert('Session error. Please refresh.'); return; }
                 try {
@@ -13580,9 +13627,11 @@ function DiscoveryRouter({ session }: { session: VendorSession }) {
                   alert('Network error. Please try again.');
                 }
               }} style={{
-                width: '100%', padding: '12px', borderRadius: 10, background: C.dark,
-                border: 'none', color: C.gold, fontSize: 13,
-                fontFamily: 'DM Sans, sans-serif', fontWeight: 500, cursor: 'pointer',
+                width: '100%', padding: 14, borderRadius: 10,
+                background: C.dark, color: C.gold, border: 'none',
+                cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                letterSpacing: '2px', textTransform: 'uppercase' as const,
+                fontFamily: 'DM Sans, sans-serif',
               }}>Request access</button>
             </>
           )}
@@ -14283,7 +14332,7 @@ function DiscoveryLeads({ session }: { session: VendorSession }) {
             <button onClick={() => {
               const phone = threadCouple.phone?.replace(/\D/g, '').slice(-10);
               const prefill = `Hi ${coupleName}, reaching out from The Dream Wedding. Your Lock Date is confirmed — let's finalise the details for ${weddingDate ? new Date(weddingDate).toLocaleDateString('en-GB') : 'your wedding'}.`;
-              if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(prefill)}`, '_blank');
+              if (phone) openWhatsApp(phone, prefill);
             }} style={{
               padding: '6px 12px', borderRadius: 20, background: '#25D366',
               border: 'none', cursor: 'pointer',
@@ -15101,29 +15150,35 @@ function DiscoveryPower({ session, modeState, onReload }: { session: VendorSessi
         ))}
       </div>
 
-      {/* Collab Hub teaser card — full width, coming soon */}
+      {/* Collab Hub teaser — DreamAi access pattern */}
       <div style={{
-        padding: '18px 18px', borderRadius: 14,
-        background: `linear-gradient(135deg, ${C.goldSoft} 0%, ${C.ivory} 100%)`,
-        border: `1px dashed ${C.goldBorder}`,
-        marginBottom: 24, position: 'relative' as const, overflow: 'hidden' as const,
+        background: C.ivory, border: `1px solid ${C.goldBorder}`, borderRadius: 16,
+        padding: '20px 22px', marginBottom: 24, position: 'relative' as const,
       }}>
+        {/* Coming Soon badge top-right */}
         <div style={{
-          position: 'absolute' as const, top: 12, right: 14,
+          position: 'absolute' as const, top: 16, right: 18,
+          padding: '3px 10px', borderRadius: 20,
+          background: C.goldSoft, border: `1px solid ${C.goldBorder}`,
           fontSize: 8, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
           letterSpacing: '1.8px', textTransform: 'uppercase' as const,
         }}>
           Coming Soon
         </div>
-        <p style={{ margin: '0 0 6px', fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '2.5px', textTransform: 'uppercase' as const }}>
-          Collab Hub
+
+        {/* Eyebrow + Title */}
+        <p style={{ margin: '0 0 6px', fontSize: 10, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase' as const }}>
+          Collab · Hub
         </p>
-        <h3 style={{ margin: '0 0 6px', fontSize: 16, color: C.dark, fontFamily: 'Playfair Display, serif', fontWeight: 500, letterSpacing: '-0.1px' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 18, color: C.dark, fontFamily: "'Playfair Display', serif", fontWeight: 500, lineHeight: '24px' }}>
           Collaborate with other vendors.
         </h3>
-        <p style={{ margin: 0, fontSize: 12, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontWeight: 300, lineHeight: '17px' }}>
-          Post a brief — "Looking for an MUA in Jaipur, Rs. 40K" — and get matched with the right people. A marketplace built by vendors, for vendors.
-        </p>
+
+        <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, fontFamily: 'DM Sans, sans-serif' }}>
+          Post a brief — <strong style={{ color: C.dark }}>"Looking for an MUA in Jaipur, Rs. 40K"</strong> — and get matched with the right people.
+          <br /><br />
+          A marketplace built by vendors, for vendors.
+        </div>
       </div>
     </div>
   );

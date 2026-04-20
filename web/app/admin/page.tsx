@@ -496,6 +496,64 @@ export default function AdminPage() {
   const [coupleNewCode, setCoupleNewCode] = useState<any>(null);
   const [coupleCodes, setCoupleCodes] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  // ── Admin Create Profile (vendor + couple) modals ──
+  const [createVendorOpen, setCreateVendorOpen] = useState(false);
+  const [createCoupleOpen, setCreateCoupleOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createPhone, setCreatePhone] = useState('');
+  const [createPwd, setCreatePwd] = useState('');
+  const [createPwd2, setCreatePwd2] = useState('');
+  const [createTier, setCreateTier] = useState('essential');
+  const [createBusy, setCreateBusy] = useState(false);
+
+  const resetCreateForm = () => {
+    setCreateName(''); setCreatePhone(''); setCreatePwd(''); setCreatePwd2('');
+    setCreateTier('essential'); setCreateBusy(false);
+  };
+
+  const submitCreateVendor = async () => {
+    if (createPwd.length < 6) { alert('Password must be at least 6 characters'); return; }
+    if (createPwd !== createPwd2) { alert('Passwords do not match'); return; }
+    const cleanPhone = createPhone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) { alert('Phone must be 10 digits'); return; }
+    setCreateBusy(true);
+    try {
+      const r = await fetch(API + '/api/admin/create-vendor', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: createName, phone: cleanPhone, password: createPwd, tier: createTier }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        alert(`Vendor created: ${d.data.name} (${d.data.phone}, ${d.data.tier})`);
+        setCreateVendorOpen(false); resetCreateForm(); loadAll();
+      } else {
+        alert(d.error || 'Could not create vendor');
+      }
+    } catch { alert('Network error'); }
+    finally { setCreateBusy(false); }
+  };
+
+  const submitCreateCouple = async () => {
+    if (createPwd.length < 6) { alert('Password must be at least 6 characters'); return; }
+    if (createPwd !== createPwd2) { alert('Passwords do not match'); return; }
+    const cleanPhone = createPhone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) { alert('Phone must be 10 digits'); return; }
+    setCreateBusy(true);
+    try {
+      const r = await fetch(API + '/api/admin/create-couple', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: createName, phone: cleanPhone, password: createPwd, tier: createTier }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        alert(`Couple created: ${d.data.name} (${d.data.phone}, ${d.data.tier})`);
+        setCreateCoupleOpen(false); resetCreateForm(); loadUsers();
+      } else {
+        alert(d.error || 'Could not create couple');
+      }
+    } catch { alert('Network error'); }
+    finally { setCreateBusy(false); }
+  };
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastBody, setBroadcastBody] = useState('');
   const [broadcastSending, setBroadcastSending] = useState(false);
@@ -1124,8 +1182,9 @@ export default function AdminPage() {
 
         {/* VENDORS */}
         {activeTab === 'vendors' && (<>
-          <div style={{ marginBottom: 14 }}>
-            <input placeholder="Search by name, city, category..." value={search} onChange={e => setSearch(e.target.value)} style={s.input} />
+          <div style={{ marginBottom: 14, display: 'flex' as const, gap: 10, alignItems: 'center' as const }}>
+            <input placeholder="Search by name, city, category..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...s.input, flex: 1 }} />
+            <button onClick={() => { resetCreateForm(); setCreateTier('essential'); setCreateVendorOpen(true); }} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as const }}>+ Create Vendor</button>
           </div>
           <div style={s.card}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#2C2420' }}>
@@ -1179,6 +1238,7 @@ export default function AdminPage() {
         {activeTab === 'users' && (<>
           <div style={{ marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
             <input placeholder="Search users by name, phone, email, Instagram..." value={userSearch} onChange={e => setUserSearch(e.target.value)} style={{ ...s.input, flex: 1 }} />
+            <button onClick={() => { resetCreateForm(); setCreateTier('basic'); setCreateCoupleOpen(true); }} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as const }}>+ Create Couple</button>
             <button onClick={loadUsers} style={s.btnSm('transparent', '#8C7B6E', '#8C7B6E')}>↻ Refresh</button>
           </div>
           <div style={s.card}>
@@ -2890,6 +2950,105 @@ export default function AdminPage() {
 
       </div>
       </main>
+
+      {/* ─── Create Vendor modal ─── */}
+      {createVendorOpen && (
+        <div onClick={() => setCreateVendorOpen(false)} style={{
+          position: 'fixed' as const, inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.55)', display: 'flex' as const,
+          alignItems: 'center' as const, justifyContent: 'center' as const, padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 14, padding: '22px 22px',
+            maxWidth: 420, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+          }}>
+            <div style={{ fontSize: 9, color: '#C9A84C', letterSpacing: 3, textTransform: 'uppercase' as const, marginBottom: 4 }}>Admin · Create</div>
+            <div style={{ fontSize: 19, color: '#2C2420', fontWeight: 500, fontFamily: 'Playfair Display, serif', marginBottom: 18 }}>New Vendor Profile</div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Name (optional)</div>
+              <input value={createName} onChange={e => setCreateName(e.target.value)} placeholder="e.g. Aakash Kapoor" style={{ ...s.input, width: '100%' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Phone (10 digits, India)</div>
+              <input value={createPhone} onChange={e => setCreatePhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="9876543210" style={{ ...s.input, width: '100%' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Tier</div>
+              <select value={createTier} onChange={e => setCreateTier(e.target.value)} style={{ ...s.input, width: '100%' }}>
+                <option value="essential">Essential</option>
+                <option value="signature">Signature</option>
+                <option value="prestige">Prestige</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Password (min 6 chars)</div>
+              <input type="password" value={createPwd} onChange={e => setCreatePwd(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Confirm Password</div>
+              <input type="password" value={createPwd2} onChange={e => setCreatePwd2(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
+            </div>
+
+            <div style={{ display: 'flex' as const, gap: 10 }}>
+              <button onClick={() => setCreateVendorOpen(false)} disabled={createBusy} style={{ ...s.btnSm('transparent', '#8C7B6E', '#E8E0D5'), flex: 1, padding: '12px' }}>Cancel</button>
+              <button onClick={submitCreateVendor} disabled={createBusy} style={{ ...s.primaryBtn, flex: 2, opacity: createBusy ? 0.6 : 1 }}>
+                {createBusy ? 'Creating…' : 'Create Vendor'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Create Couple modal ─── */}
+      {createCoupleOpen && (
+        <div onClick={() => setCreateCoupleOpen(false)} style={{
+          position: 'fixed' as const, inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.55)', display: 'flex' as const,
+          alignItems: 'center' as const, justifyContent: 'center' as const, padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 14, padding: '22px 22px',
+            maxWidth: 420, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+          }}>
+            <div style={{ fontSize: 9, color: '#C9A84C', letterSpacing: 3, textTransform: 'uppercase' as const, marginBottom: 4 }}>Admin · Create</div>
+            <div style={{ fontSize: 19, color: '#2C2420', fontWeight: 500, fontFamily: 'Playfair Display, serif', marginBottom: 18 }}>New Couple Profile</div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Name (optional)</div>
+              <input value={createName} onChange={e => setCreateName(e.target.value)} placeholder="e.g. Priya & Aakash" style={{ ...s.input, width: '100%' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Phone (10 digits, India)</div>
+              <input value={createPhone} onChange={e => setCreatePhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="9876543210" style={{ ...s.input, width: '100%' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Tier</div>
+              <select value={createTier} onChange={e => setCreateTier(e.target.value)} style={{ ...s.input, width: '100%' }}>
+                <option value="basic">Basic (Free)</option>
+                <option value="gold">Gold</option>
+                <option value="platinum">Platinum</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Password (min 6 chars)</div>
+              <input type="password" value={createPwd} onChange={e => setCreatePwd(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Confirm Password</div>
+              <input type="password" value={createPwd2} onChange={e => setCreatePwd2(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
+            </div>
+
+            <div style={{ display: 'flex' as const, gap: 10 }}>
+              <button onClick={() => setCreateCoupleOpen(false)} disabled={createBusy} style={{ ...s.btnSm('transparent', '#8C7B6E', '#E8E0D5'), flex: 1, padding: '12px' }}>Cancel</button>
+              <button onClick={submitCreateCouple} disabled={createBusy} style={{ ...s.primaryBtn, flex: 2, opacity: createBusy ? 0.6 : 1 }}>
+                {createBusy ? 'Creating…' : 'Create Couple'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       </div>
     </div>
   );

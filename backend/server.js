@@ -4310,24 +4310,50 @@ app.post('/api/auth/send-otp', async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
 
-    // Use Twilio Verify — sends real OTP via SMS + WhatsApp
-    if (twilioClient) try {
+    // Diagnostic: log exactly what's missing so we can see in Railway logs
+    if (!twilioClient) {
+      console.error('[OTP] Twilio client not initialized. Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN env vars.');
+    }
+    if (twilioClient && !TWILIO_VERIFY_SID) {
+      console.error('[OTP] TWILIO_VERIFY_SID env var missing — needed for Verify service.');
+    }
+
+    // Use Twilio Verify — sends real OTP via SMS
+    if (twilioClient && TWILIO_VERIFY_SID) try {
       const verification = await twilioClient.verify.v2
         .services(TWILIO_VERIFY_SID)
         .verifications.create({ to: '+91' + phone, channel: 'sms' });
-      console.log('Twilio OTP sent:', verification.status);
+      console.log('[OTP] Twilio sent:', verification.status, 'to +91' + phone);
       return res.json({ success: true, sessionInfo: 'twilio_' + phone });
     } catch (twilioErr) {
-      console.error('Twilio send error:', twilioErr.message);
+      // Surface the actual Twilio error code so we know if it's quota, geo block, invalid number, etc.
+      console.error('[OTP] Twilio send error:', twilioErr.code, twilioErr.message);
+      // Common error codes: 60200 = invalid params, 60203 = max attempts, 20003 = auth fail, 21408 = unverified region
+      const knownErrors = {
+        60200: 'Invalid phone number format.',
+        60203: 'Too many OTP attempts. Wait 10 minutes and try again.',
+        60212: 'Too many OTP attempts on this number. Try later.',
+        20003: 'Server config issue (Twilio auth). Please contact support.',
+        21408: 'OTP service not enabled for India. Please contact support.',
+      };
+      const userMsg = knownErrors[twilioErr.code] || `OTP send failed (${twilioErr.code || 'unknown'}). Please try again.`;
+      // Don't fall back if the error is user-facing (like wrong number)
+      if (twilioErr.code === 60200 || twilioErr.code === 60203 || twilioErr.code === 60212) {
+        return res.status(400).json({ success: false, error: userMsg });
+      }
+      // Otherwise fall through to Firebase fallback
     }
 
     // Fallback: Firebase Admin SDK session for test numbers
     if (admin.apps && admin.apps.length > 0) {
+      console.log('[OTP] Falling back to Firebase test-number flow for +91' + phone);
       return res.json({ success: true, sessionInfo: 'admin_sdk_' + phone, note: 'Using Firebase fallback' });
     }
 
-    return res.status(400).json({ success: false, error: 'Could not send OTP. Please try again.' });
+    console.error('[OTP] All OTP methods failed. Twilio: ' + (twilioClient ? 'configured' : 'not configured') + '. Firebase: ' + (admin.apps?.length > 0 ? 'configured' : 'not configured'));
+    return res.status(500).json({ success: false, error: 'OTP service unavailable. Please try email signup or contact support.' });
   } catch (error) {
+    console.error('[OTP] Unhandled send-otp error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -5566,23 +5592,181 @@ app.post('/api/vendor-discover/flex-leads', async (req, res) => {
 // Admin: delete user
 app.delete('/api/admin/users/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('users').delete().eq('id', req.params.id);
+    const userId = req.params.id;
+    // Fetch user to log + get phone for hard cleanup
+    const { data: user } = await supabase.from('users').select('id, phone, email, name').eq('id', userId).maybeSingle();
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    // Cascade delete all couple-related rows (best-effort, ignore errors per table)
+    const childTables = [
+      'couple_events', 'couple_event_category_budgets', 'couple_checklist',
+      'couple_guests', 'couple_moodboard_pins', 'couple_shagun', 'couple_vendors',
+      'guests', 'moodboard_items', 'co_planners',
+      'vendor_enquiries', 'vendor_enquiry_messages',
+      'lock_date_holds', 'lock_date_interest', 'luxury_appointments',
+      'couple_discover_waitlist', 'couple_waitlist',
+      'discover_access_requests', 'pai_access_requests', 'pai_events',
+      'ai_token_purchases', 'notifications', 'messages',
+    ];
+    for (const t of childTables) {
+      try {
+        // Try multiple possible foreign key names
+        await supabase.from(t).delete().eq('user_id', userId);
+        await supabase.from(t).delete().eq('couple_id', userId);
+      } catch {}
+    }
+
+    // Finally delete the user row
+    const { error } = await supabase.from('users').delete().eq('id', userId);
     if (error) throw error;
-    logActivity('user_deleted', 'Deleted user ' + req.params.id);
-    res.json({ success: true });
+    logActivity('user_deleted', `Deleted user ${user.name || ''} (${user.phone || user.email || userId})`);
+    res.json({ success: true, deleted: { id: userId, phone: user.phone, email: user.email } });
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// Admin: delete vendor
+// Admin: delete vendor (hard cascade — clears credentials AND every child table)
 app.delete('/api/admin/vendors/:id', async (req, res) => {
   try {
-    // Delete subscription first
-    await supabase.from('vendor_subscriptions').delete().eq('vendor_id', req.params.id);
-    await supabase.from('vendor_logins').delete().eq('vendor_id', req.params.id);
-    const { error } = await supabase.from('vendors').delete().eq('id', req.params.id);
+    const vendorId = req.params.id;
+    const { data: vendor } = await supabase.from('vendors').select('id, name, phone, email').eq('id', vendorId).maybeSingle();
+    if (!vendor) return res.status(404).json({ success: false, error: 'Vendor not found' });
+
+    // ALL vendor-related tables (must clear before deleting vendors row)
+    const childTables = [
+      'vendor_subscriptions', 'vendor_logins', 'vendor_credentials', 'vendor_login_codes',
+      'vendor_images', 'vendor_packages', 'vendor_availability_blocks', 'vendor_calendar_events',
+      'vendor_clients', 'vendor_contracts', 'vendor_invoices', 'vendor_payment_schedules',
+      'vendor_leads', 'vendor_enquiries', 'vendor_enquiry_messages', 'vendor_assistants',
+      'vendor_team_members', 'vendor_todos', 'vendor_reminders', 'vendor_referrals',
+      'vendor_offers', 'vendor_boosts', 'vendor_featured_applications', 'vendor_photo_approvals',
+      'vendor_wedding_albums', 'vendor_tds_ledger', 'vendor_activity_log', 'vendor_analytics_daily',
+      'vendor_discover_access_requests', 'vendor_discover_submissions',
+      'blocked_dates', 'bookings', 'lock_date_holds', 'lock_date_interest', 'luxury_appointments',
+      'photo_approvals', 'team_tasks', 'team_messages', 'team_checkins',
+      'procurement_items', 'delivery_items', 'trial_schedule', 'client_sentiment',
+      'delegation_templates', 'destination_packages', 'featured_boards', 'discover_access_requests',
+    ];
+    for (const t of childTables) {
+      try { await supabase.from(t).delete().eq('vendor_id', vendorId); } catch {}
+    }
+
+    // Now delete the vendor row itself
+    const { error } = await supabase.from('vendors').delete().eq('id', vendorId);
     if (error) throw error;
-    logActivity('vendor_deleted', 'Deleted vendor ' + req.params.id);
-    res.json({ success: true });
+    logActivity('vendor_deleted', `Deleted vendor ${vendor.name} (${vendor.phone || vendor.email || vendorId})`);
+    res.json({ success: true, deleted: { id: vendorId, name: vendor.name, phone: vendor.phone, email: vendor.email } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: cleanup orphan login rows by phone/email (use to fix legacy delete remnants)
+app.post('/api/admin/cleanup-credentials', async (req, res) => {
+  try {
+    const { phone, email } = req.body || {};
+    if (!phone && !email) return res.status(400).json({ success: false, error: 'phone or email required' });
+    const cleanPhone = phone ? ('+91' + ('' + phone).replace(/\D/g, '').slice(-10)) : null;
+    const cleanEmail = email ? email.toLowerCase().trim() : null;
+    let removed = { vendor_credentials: 0, vendor_logins: 0, users: 0 };
+
+    if (cleanPhone) {
+      const { count: vc } = await supabase.from('vendor_credentials').delete({ count: 'exact' }).eq('phone_number', cleanPhone);
+      removed.vendor_credentials += vc || 0;
+      const { count: vl } = await supabase.from('vendor_logins').delete({ count: 'exact' }).eq('phone', cleanPhone);
+      removed.vendor_logins += vl || 0;
+      const { count: u } = await supabase.from('users').delete({ count: 'exact' }).eq('phone', cleanPhone);
+      removed.users += u || 0;
+    }
+    if (cleanEmail) {
+      const { count: vc } = await supabase.from('vendor_credentials').delete({ count: 'exact' }).eq('username', cleanEmail);
+      removed.vendor_credentials += vc || 0;
+      const { count: u } = await supabase.from('users').delete({ count: 'exact' }).eq('email', cleanEmail);
+      removed.users += u || 0;
+    }
+    logActivity('credentials_cleanup', `Cleanup for ${cleanPhone || cleanEmail}: ${JSON.stringify(removed)}`);
+    res.json({ success: true, removed });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: create vendor profile directly (phone + password + tier)
+app.post('/api/admin/create-vendor', async (req, res) => {
+  try {
+    const { name, phone, password, tier } = req.body || {};
+    if (!phone || !password) return res.status(400).json({ success: false, error: 'phone + password required' });
+    if (password.length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    const allowedTiers = ['essential', 'signature', 'prestige'];
+    const finalTier = allowedTiers.includes(tier) ? tier : 'essential';
+
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) return res.status(400).json({ success: false, error: 'Phone must be 10 digits' });
+    const fullPhone = '+91' + cleanPhone;
+
+    // Check no existing
+    const { data: existing } = await supabase.from('vendor_credentials')
+      .select('id').eq('phone_number', fullPhone).maybeSingle();
+    if (existing) return res.status(409).json({ success: false, error: 'Vendor with this phone already exists' });
+
+    // Create vendor row
+    const { data: vendor, error: vErr } = await supabase.from('vendors').insert([{
+      name: name || ('Vendor ' + cleanPhone), category: 'photographers', city: 'Delhi NCR',
+      phone: cleanPhone, ig_verified: false, subscription_active: true,
+    }]).select().single();
+    if (vErr) throw vErr;
+
+    // Create subscription
+    const threeMonths = new Date(Date.now() + 90 * 86400000);
+    const aug1 = new Date('2026-08-01T00:00:00Z');
+    const trial_end = threeMonths < aug1 ? threeMonths : aug1;
+    await supabase.from('vendor_subscriptions').insert([{
+      vendor_id: vendor.id, tier: finalTier, status: 'trial',
+      trial_start_date: new Date().toISOString(), trial_end_date: trial_end.toISOString(),
+      activated_by_code: 'ADMIN_CREATED', is_founding_vendor: false, founding_badge: false,
+    }]);
+
+    // Create credentials (use phone as username for admin-created accounts)
+    const hashedPwd = await bcrypt.hash(password, 10);
+    await supabase.from('vendor_credentials').insert([{
+      vendor_id: vendor.id, username: cleanPhone, password_hash: hashedPwd,
+      phone_number: fullPhone, phone_verified: true, email_verified: false,
+    }]);
+
+    logActivity('admin_vendor_created', `Admin created vendor ${vendor.name} (${fullPhone}, ${finalTier})`);
+    res.json({ success: true, data: { id: vendor.id, name: vendor.name, phone: fullPhone, tier: finalTier } });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// ── Admin: create couple profile directly
+app.post('/api/admin/create-couple', async (req, res) => {
+  try {
+    const { name, phone, password, tier } = req.body || {};
+    if (!phone || !password) return res.status(400).json({ success: false, error: 'phone + password required' });
+    if (password.length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    const allowedTiers = ['basic', 'gold', 'platinum'];
+    const finalTier = allowedTiers.includes(tier) ? tier : 'basic';
+
+    const cleanPhone = ('' + phone).replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) return res.status(400).json({ success: false, error: 'Phone must be 10 digits' });
+    const fullPhone = '+91' + cleanPhone;
+
+    const { data: existing } = await supabase.from('users')
+      .select('id').eq('phone', fullPhone).maybeSingle();
+    if (existing) return res.status(409).json({ success: false, error: 'Couple with this phone already exists' });
+
+    const tierMap = { basic: 'free', gold: 'premium', platinum: 'elite' };
+    const tokenMap = { basic: 3, gold: 15, platinum: 999 };
+    const coupleTier = tierMap[finalTier];
+    const tokens = tokenMap[finalTier];
+
+    const hashedPwd = await bcrypt.hash(password, 10);
+    const { data: user, error: uErr } = await supabase.from('users').insert([{
+      name: name || ('Couple ' + cleanPhone),
+      phone: fullPhone,
+      couple_tier: coupleTier, token_balance: tokens,
+      password_hash: hashedPwd, email_verified: false,
+      dreamer_type: 'couple',
+    }]).select().single();
+    if (uErr) throw uErr;
+
+    logActivity('admin_couple_created', `Admin created couple ${user.name} (${fullPhone}, ${finalTier})`);
+    res.json({ success: true, data: { id: user.id, name: user.name, phone: fullPhone, tier: finalTier, tokens } });
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
