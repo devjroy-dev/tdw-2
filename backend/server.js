@@ -9938,3 +9938,146 @@ app.get('/api/vendor-featured/admin/all', async (req, res) => {
     res.json({ success: true, data: enriched });
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
+
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/v2/couple/today/:userId
+// Returns: { wedding_date, event_label, nudges[], thisWeek[], muse[], activity[] }
+// ─────────────────────────────────────────────────────────────
+app.get('/api/v2/couple/today/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    // 1. Wedding date from users table
+    let wedding_date = null;
+    let event_label = 'wedding';
+    if (userId && userId !== 'demo') {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('wedding_date, dreamer_type')
+        .eq('id', userId)
+        .single();
+      if (userRow) {
+        wedding_date = userRow.wedding_date || null;
+        if (userRow.dreamer_type) event_label = userRow.dreamer_type;
+      }
+    }
+
+    // 2. Nudges: pending tasks due within 30 days
+    let nudges = [];
+    const now = new Date();
+    const in30 = new Date(now); in30.setDate(in30.getDate() + 30);
+    if (userId && userId !== 'demo') {
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('id, title, description, due_date, vendor_id')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .lte('due_date', in30.toISOString())
+        .gte('due_date', now.toISOString())
+        .order('due_date', { ascending: true })
+        .limit(3);
+      nudges = (tasks || []).map(t => ({
+        id: t.id,
+        title: t.title,
+        context: t.description || 'This needs your attention before your big day.',
+        cta: 'Review',
+        vendor_name: null,
+      }));
+    }
+
+    // 3. This week: events/tasks Mon–Sun
+    let thisWeek = [];
+    const weekStart = new Date(now);
+    const dayOfWeek = weekStart.getDay();
+    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    weekStart.setDate(weekStart.getDate() + diffToMon);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
+    const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    if (userId && userId !== 'demo') {
+      const { data: weekTasks } = await supabase
+        .from('tasks')
+        .select('id, title, due_date')
+        .eq('user_id', userId)
+        .gte('due_date', weekStart.toISOString())
+        .lt('due_date', weekEnd.toISOString())
+        .order('due_date', { ascending: true });
+      thisWeek = (weekTasks || []).map(t => ({
+        id: t.id,
+        day: DAYS_SHORT[new Date(t.due_date).getDay()],
+        label: t.title,
+      }));
+    }
+
+    // 4. Muse: up to 3 vendor saves
+    let muse = [];
+    if (userId && userId !== 'demo') {
+      const { data: saves } = await supabase
+        .from('saves')
+        .select('id, vendor_id, vendors(name, category, featured_photos)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      muse = (saves || []).map(s => {
+        const v = s.vendors || {};
+        const photos = v.featured_photos || [];
+        return {
+          id: s.id,
+          vendor_name: v.name || 'Vendor',
+          category: v.category || '',
+          thumbnail_url: photos[0] || null,
+        };
+      });
+    }
+
+    // 5. Activity: last 10 entries
+    let activity = [];
+    if (userId && userId !== 'demo') {
+      const { data: logs } = await supabase
+        .from('activity_log')
+        .select('id, text, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      activity = (logs || []).map(l => ({
+        id: l.id,
+        text: l.text,
+        timestamp: l.created_at,
+      }));
+    }
+
+    // 6. Seed demo data if nothing returned (first load / demo user)
+    const isEmpty = nudges.length === 0 && thisWeek.length === 0 && muse.length === 0 && activity.length === 0;
+    if (isEmpty) {
+      const today = new Date();
+      const DEMO_DAYS = ['Mon','Tue','Wed'];
+      nudges = [
+        { id: 'demo-n1', title: 'Confirm your mehendi artist', context: 'You have an open enquiry from 3 days ago. A quick reply keeps your slot.', cta: 'View enquiry', vendor_name: null },
+        { id: 'demo-n2', title: 'Share your moodboard with your photographer', context: 'Your photographer is waiting on a reference — share it before your pre-shoot call.', cta: 'Open Moodboard', vendor_name: null },
+        { id: 'demo-n3', title: 'Finalise your catering menu', context: 'Selections are due this week. Your caterer has shared the tasting notes.', cta: 'Review menu', vendor_name: null },
+      ];
+      thisWeek = [
+        { id: 'demo-w1', day: 'Tue', label: 'Catering call' },
+        { id: 'demo-w2', day: 'Thu', label: 'Venue visit' },
+        { id: 'demo-w3', day: 'Sat', label: 'Trial run' },
+      ];
+      muse = [
+        { id: 'demo-m1', vendor_name: 'Studio Nidaan', category: 'Photography', thumbnail_url: null },
+        { id: 'demo-m2', vendor_name: 'Weddingscapes', category: 'Décor', thumbnail_url: null },
+        { id: 'demo-m3', vendor_name: 'Ritu Kumar Bridal', category: 'Couture', thumbnail_url: null },
+      ];
+      activity = [
+        { id: 'demo-a1', text: 'You saved Studio Nidaan to your Muse', timestamp: new Date(today.getTime() - 1*3600000).toISOString() },
+        { id: 'demo-a2', text: 'Enquiry sent to Weddingscapes Décor', timestamp: new Date(today.getTime() - 5*3600000).toISOString() },
+        { id: 'demo-a3', text: 'You added 3 photos to your Moodboard', timestamp: new Date(today.getTime() - 26*3600000).toISOString() },
+        { id: 'demo-a4', text: 'Venue confirmed for Dec 14', timestamp: new Date(today.getTime() - 50*3600000).toISOString() },
+        { id: 'demo-a5', text: 'Guest list updated — 240 total', timestamp: new Date(today.getTime() - 74*3600000).toISOString() },
+      ];
+      wedding_date = wedding_date || new Date(today.getTime() + 143*86400000).toISOString().split('T')[0];
+    }
+
+    res.json({ wedding_date, event_label, nudges, thisWeek, muse, activity });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});

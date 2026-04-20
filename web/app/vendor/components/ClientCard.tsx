@@ -38,8 +38,9 @@ const STATUS_STYLE: Record<ClientStatus, React.CSSProperties> = {
     border: "1px solid #E8E4DE",
   },
   DELIVERED: {
-    backgroundColor: "#E8F5E9",
-    color: "#1B5E20",
+    backgroundColor: "#F4F1EC",
+    color: "#8C8480",
+    border: "1px solid #E8E4DE",
   },
   ARCHIVED: {
     backgroundColor: "#F4F1EC",
