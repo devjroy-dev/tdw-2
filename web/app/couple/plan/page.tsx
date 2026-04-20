@@ -198,9 +198,11 @@ type Expense = {
   vendor_name?: string;
   purpose?: string;
   amount: number;
+  actual_amount?: number;
   due_date?: string;
   status?: string;
   event_name?: string;
+  bucket?: string;
 };
 
 type PaymentFilter = 'week' | 'next30';
