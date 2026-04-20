@@ -47,7 +47,7 @@ const NAV_GROUPS: { group: string; items: { id: string; label: string; badge?: s
     items: [
       { id: 'discover',         label: 'Access' },
       { id: 'settings',         label: 'Featured Boards' },
-      { id: 'featured',         label: 'Featured Photos' },
+      { id: 'featured',         label: 'Photos' },
       { id: 'hot-dates',        label: 'Hot Dates' },
       { id: 'profile-tracking', label: 'Profile Completion' },
     ],
@@ -581,7 +581,9 @@ export default function AdminPage() {
   const [pendingPackages, setPendingPackages] = useState<any[]>([]);
   const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
   const [photoLoading, setPhotoLoading] = useState(false);
-  const [coupleSearch, setCoupleSearch] = useState('');
+  // Photos folder: which category sub-tab is active + counts per category
+  const [photoCategory, setPhotoCategory] = useState<string>('carousel');
+  const [photoCounts, setPhotoCounts] = useState<Record<string, number>>({});  const [coupleSearch, setCoupleSearch] = useState('');
   const [coupleResults, setCoupleResults] = useState<any[]>([]);
   const [coupleSearching, setCoupleSearching] = useState(false);
   const [coupleUpdating, setCoupleUpdating] = useState('');
@@ -688,23 +690,37 @@ export default function AdminPage() {
     } catch (e) { alert('Failed'); }
   };
 
-  const loadPendingPhotos = async () => {
+  const loadPendingPhotos = async (category?: string) => {
     setPhotoLoading(true);
     try {
-      const res = await fetch(API + '/api/ds/photos/pending');
+      const cat = category ?? photoCategory;
+      const res = await fetch(API + '/api/ds/photos/pending?category=' + encodeURIComponent(cat));
       const data = await res.json();
       if (data.success) setPendingPhotos(data.data || []);
+      // Also refresh counts
+      const cRes = await fetch(API + '/api/ds/photos/pending-counts');
+      const cData = await cRes.json();
+      if (cData.success) setPhotoCounts(cData.counts || {});
     } catch (e) {}
     setPhotoLoading(false);
   };
 
   const handlePhotoApproval = async (photoId: string, status: string, vendorId?: string) => {
     try {
-      await fetch(API + '/api/ds/photos/' + photoId, {
+      const r = await fetch(API + '/api/ds/photos/' + photoId, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      setPendingPhotos(prev => prev.filter(p => p.id !== photoId));
+      const d = await r.json();
+      if (d.success) {
+        setPendingPhotos(prev => prev.filter(p => p.id !== photoId));
+        // Refresh counts after approval
+        try {
+          const cRes = await fetch(API + '/api/ds/photos/pending-counts');
+          const cData = await cRes.json();
+          if (cData.success) setPhotoCounts(cData.counts || {});
+        } catch {}
+      } else alert('Failed: ' + (d.error || 'unknown'));
     } catch (e) { alert('Failed to update photo status'); }
   };
 
@@ -1336,42 +1352,102 @@ export default function AdminPage() {
           </div>
         </>)}
 
-        {/* FEATURED */}
+        {/* PHOTOS — categorized approval queue */}
         {activeTab === 'featured' && (<>
           <div style={s.cardPad}>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 6 }}>Editorial Featured Slots (4 max)</div>
-            <div style={{ fontSize: 13, color: '#8C7B6E', marginBottom: 20 }}>These 4 vendors appear on the couple home screen as full-width editorial cards. Rs.4,999/month each.</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-              {featuredVendors.slice(0, 4).map((v, i) => (
-                <div key={v.id} style={{ background: '#2C2420', borderRadius: 12, padding: 20 }}>
-                  <div style={{ fontSize: 10, color: '#C9A84C', letterSpacing: 2, marginBottom: 4 }}>SLOT {i + 1}</div>
-                  <div style={{ fontSize: 18, color: '#F5F0E8', fontWeight: 300 }}>{v.name}</div>
-                  <div style={{ fontSize: 12, color: '#8C7B6E', marginTop: 4, marginBottom: 12 }}>{v.category} · {v.city}</div>
-                  <button onClick={() => updateVendor(v.id, { is_featured: false })} style={s.btnSm('transparent', '#E57373', '#E57373')}>Remove from featured</button>
-                </div>
-              ))}
-              {Array.from({ length: Math.max(0, 4 - featuredVendors.length) }).map((_, i) => (
-                <div key={i} style={{ borderRadius: 12, padding: 20, border: '1px dashed #E8E0D5', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 100 }}>
-                  <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center' }}>Empty slot<br /><span style={{ fontSize: 11 }}>Go to Vendors → click Feature</span></div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={s.cardPad}>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 16 }}>Spotlight Score Leaderboard</div>
-            {[...vendors].sort((a, b) => (b.review_count || 0) - (a.review_count || 0)).slice(0, 10).map((v, i) => (
-              <div key={v.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F5F0E8', gap: 14 }}>
-                <div style={{ fontSize: 20, color: i < 3 ? '#C9A84C' : '#8C7B6E', fontWeight: 300, width: 28 }}>#{i + 1}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, color: '#2C2420', fontWeight: 500 }}>{v.name}</div>
-                  <div style={{ fontSize: 12, color: '#8C7B6E' }}>{v.category} · {v.city}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, color: '#C9A84C' }}>★ {v.rating}</div>
-                  <div style={{ fontSize: 11, color: '#8C7B6E' }}>{v.review_count} reviews</div>
-                </div>
+            <div style={{ display: 'flex' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 500, color: '#2C2420' }}>Photos</div>
+                <div style={{ fontSize: 12, color: '#8C7B6E', marginTop: 2 }}>Approve vendor-submitted photos for each Discover board.</div>
               </div>
-            ))}
+              <button onClick={() => loadPendingPhotos(photoCategory)} style={s.btnSm('transparent', '#8C7B6E', '#8C7B6E')}>↻ Refresh</button>
+            </div>
+
+            {/* Category sub-tabs */}
+            <div style={{ display: 'flex' as const, gap: 8, flexWrap: 'wrap' as const, marginBottom: 20, borderBottom: '1px solid #E8E0D5', paddingBottom: 14 }}>
+              {[
+                { id: 'carousel', label: 'Carousel' },
+                { id: 'spotlight', label: 'Spotlight' },
+                { id: 'style_file', label: 'Style File' },
+                { id: 'look_book', label: 'Look Book' },
+                { id: 'this_weeks_pricing', label: 'Pricing' },
+              ].map(cat => {
+                const count = photoCounts[cat.id] || 0;
+                const active = photoCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setPhotoCategory(cat.id)}
+                    style={{
+                      padding: '8px 14px', borderRadius: 50, border: '1px solid ' + (active ? '#2C2420' : '#E8E0D5'),
+                      background: active ? '#2C2420' : '#FFFFFF',
+                      color: active ? '#C9A84C' : '#2C2420',
+                      fontSize: 12, fontWeight: 500, cursor: 'pointer' as const,
+                      display: 'flex' as const, alignItems: 'center' as const, gap: 6,
+                    }}
+                  >
+                    {cat.label}
+                    {count > 0 && (
+                      <span style={{
+                        display: 'inline-flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+                        minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+                        background: active ? '#C9A84C' : '#E57373',
+                        color: active ? '#2C2420' : '#FFFFFF',
+                        fontSize: 10, fontWeight: 700,
+                      }}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Heading for current category */}
+            <div style={{ fontSize: 14, color: '#2C2420', fontWeight: 500, marginBottom: 4 }}>
+              {photoCategory === 'carousel' && 'Carousel — additional photos for vendor profile (shown when couples open profile)'}
+              {photoCategory === 'spotlight' && 'Spotlight — premium editorial picks on Discover Dash'}
+              {photoCategory === 'style_file' && 'Style File — MUAs, jewellers, designers (looks worn on a model)'}
+              {photoCategory === 'look_book' && 'Look Book — photographers, decorators, environments'}
+              {photoCategory === 'this_weeks_pricing' && "This Week's Pricing — promotional pricing surfaced on Discover Dash"}
+            </div>
+            <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16 }}>
+              {pendingPhotos.length} pending review
+            </div>
+
+            {/* Pending grid */}
+            {photoLoading ? (
+              <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center' as const, padding: 30 }}>Loading…</div>
+            ) : pendingPhotos.length === 0 ? (
+              <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center' as const, padding: 30, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending photos in this category.</div>
+            ) : (
+              <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+                {pendingPhotos.map((photo: any) => {
+                  const url = photo.file_url || photo.photo_url;
+                  const vendor = vendors.find((v: any) => v.id === photo.vendor_id);
+                  return (
+                    <div key={photo.id} style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' as const, background: '#FFF' }}>
+                      {url && <img src={url} alt="" style={{ width: '100%', height: 200, objectFit: 'cover' as const, display: 'block' as const }} />}
+                      <div style={{ padding: 12 }}>
+                        <div style={{ fontSize: 13, color: '#2C2420', fontWeight: 500, marginBottom: 2 }}>
+                          {vendor?.name || `Vendor ${photo.vendor_id?.slice(0, 8)}`}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 8 }}>
+                          {vendor ? `${vendor.category} · ${vendor.city}` : 'Unknown vendor'}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#C9A84C', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 10, fontWeight: 500 }}>
+                          Submitted {photo.created_at ? new Date(photo.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
+                        </div>
+                        <div style={{ display: 'flex' as const, gap: 6 }}>
+                          <button onClick={() => handlePhotoApproval(photo.id, 'approved', photo.vendor_id)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', backgroundColor: '#4CAF50', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer' as const, letterSpacing: '0.3px' }}>Approve</button>
+                          <button onClick={() => handlePhotoApproval(photo.id, 'revision_needed', photo.vendor_id)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid #E57373', backgroundColor: '#fff', color: '#E57373', fontSize: 12, fontWeight: 500, cursor: 'pointer' as const, letterSpacing: '0.3px' }}>Reject</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </>)}
 
@@ -2001,7 +2077,7 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
-              <button onClick={loadPendingPhotos} style={{ ...s.primaryBtn, width: '100%', textAlign: 'center', marginTop: 12 }}>{photoLoading ? 'Loading...' : 'REFRESH'}</button>
+              <button onClick={() => loadPendingPhotos()} style={{ ...s.primaryBtn, width: '100%', textAlign: 'center', marginTop: 12 }}>{photoLoading ? 'Loading...' : 'REFRESH'}</button>
             </div>
 
             <div style={{ ...s.cardPad, gridColumn: '1 / -1' }}>

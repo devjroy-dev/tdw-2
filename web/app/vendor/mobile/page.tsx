@@ -14549,9 +14549,20 @@ function DiscoveryImageHub({ session, onReload }: { session: VendorSession; onRe
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  // Mode: 'view' = tap photo to delete, 'hero' = tap photo to set as hero, 'carousel' = tap photo to toggle carousel
-  const [mode, setMode] = useState<'view' | 'hero' | 'carousel'>('view');
+  // Mode types:
+  // - 'view'      = tap photo to open viewer (delete option)
+  // - 'hero'      = tap photo to instantly set as hero (single, auto-approved)
+  // - 'carousel'  = toggle pending carousel selection (then Submit)
+  // - 'spotlight' = toggle pending spotlight (then Submit)
+  // - 'style_file', 'look_book', 'this_weeks_pricing' = same pattern
+  type ImageMode = 'view' | 'hero' | 'carousel' | 'spotlight' | 'style_file' | 'look_book' | 'this_weeks_pricing';
+  const [mode, setMode] = useState<ImageMode>('view');
   const [editingImage, setEditingImage] = useState<any>(null);
+  // Pending selections per board category — image_ids that user has tapped but not yet submitted
+  const [pendingByCat, setPendingByCat] = useState<Record<string, Set<string>>>({});
+  // Submitted state per image_id -> {category: status}, loaded from backend
+  const [submittedByImage, setSubmittedByImage] = useState<Record<string, Record<string, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const loadImages = async () => {
     setLoading(true);
@@ -14563,7 +14574,15 @@ function DiscoveryImageHub({ session, onReload }: { session: VendorSession; onRe
     setLoading(false);
   };
 
-  useEffect(() => { loadImages(); /* eslint-disable-next-line */ }, []);
+  const loadSubmitted = async () => {
+    try {
+      const res = await fetch(`${API}/api/ds/photos/submitted/${session.vendorId}`);
+      const d = await res.json();
+      if (d.success) setSubmittedByImage(d.by_image || {});
+    } catch {}
+  };
+
+  useEffect(() => { loadImages(); loadSubmitted(); /* eslint-disable-next-line */ }, []);
 
   // Pre-upload quality check
   const inspectFile = (file: File): Promise<{ ok: boolean; reason?: string; width?: number; height?: number }> => new Promise(resolve => {
@@ -14659,6 +14678,54 @@ function DiscoveryImageHub({ session, onReload }: { session: VendorSession; onRe
     } catch {}
   };
 
+  // Board mode helpers — toggle pending selection (not API call yet)
+  const togglePending = (cat: string, imageId: string) => {
+    setPendingByCat(prev => {
+      const next = { ...prev };
+      const set = new Set(next[cat] || []);
+      if (set.has(imageId)) set.delete(imageId);
+      else set.add(imageId);
+      next[cat] = set;
+      return next;
+    });
+  };
+
+  // Submit pending photos for current board category to admin queue
+  const submitPending = async (cat: string) => {
+    const ids = Array.from(pendingByCat[cat] || []);
+    if (ids.length === 0) {
+      alert('Select at least one photo first.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const r = await fetch(`${API}/api/ds/photos/submit-batch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: session.vendorId, category: cat, image_ids: ids }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        const msg = d.auto_approved
+          ? `${d.submitted} photos approved (Prestige auto-approval) and live on ${cat.replace(/_/g, ' ')}.`
+          : `${d.submitted} photos submitted for ${cat.replace(/_/g, ' ')} approval. We'll review within 24 hours.`;
+        alert(msg);
+        setPendingByCat(prev => ({ ...prev, [cat]: new Set() }));
+        await loadSubmitted();
+        setMode('view');
+      } else {
+        alert('Submit failed: ' + (d.error || 'unknown error'));
+      }
+    } catch (e: any) {
+      alert('Network error: ' + (e?.message || 'failed'));
+    }
+    setSubmitting(false);
+  };
+
+  // Is this image already submitted for the current board category?
+  const isSubmittedForCat = (imageId: string, cat: string): string | null => {
+    return submittedByImage[imageId]?.[cat] || null;
+  };
+
   // Detail sheet — only for delete now (no tag editing)
   if (editingImage) {
     return (
@@ -14715,36 +14782,71 @@ function DiscoveryImageHub({ session, onReload }: { session: VendorSession; onRe
         </p>
       </div>
 
-      {/* TWO MODE BUTTONS */}
-      <div style={{ display: 'flex' as const, gap: 10, marginBottom: 14 }}>
-        <button onClick={() => setMode(mode === 'hero' ? 'view' : 'hero')} style={{
-          flex: 1, padding: '14px 12px', borderRadius: 12,
-          background: mode === 'hero' ? C.gold : C.ivory,
-          color: mode === 'hero' ? C.dark : C.dark,
-          border: `1px solid ${mode === 'hero' ? C.gold : C.goldBorder}`,
-          fontSize: 13, fontFamily: 'DM Sans, sans-serif', fontWeight: 600,
-          letterSpacing: '0.5px', cursor: 'pointer' as const,
-        }}>
-          {mode === 'hero' ? '★ Tap a photo to set as Hero' : '★ Set Hero'}
-        </button>
-        <button onClick={() => setMode(mode === 'carousel' ? 'view' : 'carousel')} style={{
-          flex: 1, padding: '14px 12px', borderRadius: 12,
-          background: mode === 'carousel' ? C.dark : C.ivory,
-          color: mode === 'carousel' ? C.gold : C.dark,
-          border: `1px solid ${mode === 'carousel' ? C.dark : C.goldBorder}`,
-          fontSize: 13, fontFamily: 'DM Sans, sans-serif', fontWeight: 600,
-          letterSpacing: '0.5px', cursor: 'pointer' as const,
-        }}>
-          {mode === 'carousel' ? '✓ Tap photos for Carousel' : '+ Carousel'}
-        </button>
+      {/* MODE BAR — 6 modes (Hero + Carousel + 4 boards) */}
+      <div style={{ display: 'flex' as const, gap: 6, marginBottom: 12, overflowX: 'auto' as const, paddingBottom: 4, scrollbarWidth: 'none' as const }}>
+        {([
+          { id: 'hero', label: '★ Hero', isPrimary: true },
+          { id: 'carousel', label: '+ Carousel', isPrimary: false },
+          { id: 'spotlight', label: '+ Spotlight', isPrimary: false },
+          { id: 'style_file', label: '+ Style File', isPrimary: false },
+          { id: 'look_book', label: '+ Look Book', isPrimary: false },
+          { id: 'this_weeks_pricing', label: '+ Pricing', isPrimary: false },
+        ] as const).map(m => {
+          const active = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => setMode((mode === m.id ? 'view' : m.id) as ImageMode)}
+              style={{
+                padding: '11px 14px', borderRadius: 10, whiteSpace: 'nowrap' as const,
+                background: active ? (m.isPrimary ? C.gold : C.dark) : C.ivory,
+                color: active ? (m.isPrimary ? C.dark : C.gold) : C.dark,
+                border: `1px solid ${active ? (m.isPrimary ? C.gold : C.dark) : C.goldBorder}`,
+                fontSize: 12, fontFamily: 'DM Sans, sans-serif', fontWeight: 600,
+                letterSpacing: '0.3px', cursor: 'pointer' as const, flexShrink: 0,
+              }}
+            >
+              {m.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Helper text — what tap does in current mode */}
-      <p style={{ margin: '0 0 14px', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontStyle: 'italic' as const, textAlign: 'center' as const }}>
+      {/* Helper text per mode */}
+      <p style={{ margin: '0 0 12px', fontSize: 11, color: C.muted, fontFamily: 'DM Sans, sans-serif', fontStyle: 'italic' as const, textAlign: 'center' as const, lineHeight: 1.5 }}>
         {mode === 'view' && 'Tap a photo to view or delete.'}
-        {mode === 'hero' && 'Hero is what couples see first on Discover. Choose one.'}
-        {mode === 'carousel' && `Carousel shows when couples open your profile. Tap to add or remove. (${carouselCount}/${cap - 1} used)`}
+        {mode === 'hero' && 'Hero is what couples see first on Discover. Tap one photo. Live instantly.'}
+        {mode === 'carousel' && `Carousel shows when couples open your profile. Tap to select, then Submit. (${carouselCount}/${cap - 1} live)`}
+        {mode === 'spotlight' && 'Spotlight is our premium editorial board. Select your best work and Submit for review.'}
+        {mode === 'style_file' && 'Style File showcases makeup, jewellery, designers — looks worn on a model. Select and Submit.'}
+        {mode === 'look_book' && 'Look Book shows photographers, decorators, environments. Select and Submit.'}
+        {mode === 'this_weeks_pricing' && 'This Week\'s Pricing surfaces special offers. Select photos with promo pricing and Submit.'}
       </p>
+
+      {/* SUBMIT BUTTON — visible only in board modes (not hero, not view) */}
+      {mode !== 'view' && mode !== 'hero' && (
+        (() => {
+          const pendingCount = (pendingByCat[mode] || new Set()).size;
+          return (
+            <button
+              onClick={() => submitPending(mode)}
+              disabled={submitting || pendingCount === 0}
+              style={{
+                width: '100%', padding: '13px 16px', borderRadius: 10,
+                background: pendingCount > 0 ? C.dark : '#E8E0D5',
+                color: pendingCount > 0 ? C.gold : C.muted,
+                border: 'none' as const, fontSize: 13,
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 600,
+                letterSpacing: '1.5px', textTransform: 'uppercase' as const,
+                cursor: pendingCount > 0 ? 'pointer' as const : 'not-allowed' as const,
+                marginBottom: 14, opacity: submitting ? 0.6 : 1,
+              }}
+            >
+              {submitting ? 'Submitting…' : pendingCount === 0 ? 'Select photos first' : `Submit ${pendingCount} for ${mode.replace(/_/g, ' ')}`}
+            </button>
+          );
+        })()
+      )}
 
       {/* Upload button */}
       <label style={{
@@ -14779,46 +14881,78 @@ function DiscoveryImageHub({ session, onReload }: { session: VendorSession; onRe
             const tags = Array.isArray(img.tags) ? img.tags : [];
             const isHero = tags.includes('hero');
             const inCarousel = tags.includes('carousel');
+            const boardModes = ['carousel', 'spotlight', 'style_file', 'look_book', 'this_weeks_pricing'];
+            const isBoardMode = boardModes.includes(mode);
+            // For board modes: pending = currently selected (not yet submitted), submitted = already in queue/approved
+            const isPending = isBoardMode && (pendingByCat[mode] || new Set()).has(img.id);
+            const submittedStatus = isBoardMode ? isSubmittedForCat(img.id, mode) : null;
             const handleTap = () => {
               if (mode === 'hero') setAsHero(img.id);
-              else if (mode === 'carousel') toggleCarousel(img.id);
-              else setEditingImage(img);
+              else if (isBoardMode) {
+                // Block re-submit if already approved
+                if (submittedStatus === 'approved') {
+                  alert(`This photo is already live on ${mode.replace(/_/g, ' ')}.`);
+                  return;
+                }
+                if (submittedStatus === 'pending') {
+                  alert(`This photo is awaiting review for ${mode.replace(/_/g, ' ')}.`);
+                  return;
+                }
+                togglePending(mode, img.id);
+              } else setEditingImage(img);
             };
+            // Border priority: pending (in current mode) > hero > carousel-live > submittedStatus > default
+            let borderStyle = `1px solid ${C.border}`;
+            if (isPending) borderStyle = `3px solid ${C.gold}`;
+            else if (isHero) borderStyle = `3px solid ${C.gold}`;
+            else if (inCarousel && mode !== 'carousel') borderStyle = `2px solid ${C.dark}`;
+            else if (submittedStatus === 'approved') borderStyle = `2px solid #4CAF50`;
+            else if (submittedStatus === 'pending') borderStyle = `2px dashed ${C.gold}`;
             return (
               <div key={img.id} onClick={handleTap} style={{
                 aspectRatio: '1', position: 'relative' as const, cursor: 'pointer' as const,
                 background: `url(${img.url}) center/cover`,
-                border: isHero
-                  ? `3px solid ${C.gold}`
-                  : (inCarousel ? `2px solid ${C.dark}` : `1px solid ${C.border}`),
+                border: borderStyle,
                 borderRadius: 8, overflow: 'hidden' as const,
               }}>
-                {/* Status badges in corner */}
+                {/* Persistent status badges (always visible regardless of mode) */}
                 <div style={{ position: 'absolute' as const, top: 4, left: 4, display: 'flex' as const, gap: 3, flexDirection: 'column' as const }}>
                   {isHero && (
                     <div style={{ background: C.gold, borderRadius: 4, padding: '2px 6px', fontSize: 8, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, letterSpacing: '0.5px' }}>★ HERO</div>
                   )}
                   {inCarousel && !isHero && (
-                    <div style={{ background: 'rgba(44,36,32,0.85)', borderRadius: 4, padding: '2px 6px', fontSize: 8, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, letterSpacing: '0.5px', backdropFilter: 'blur(4px)' as const }}>CAROUSEL</div>
+                    <div style={{ background: 'rgba(44,36,32,0.85)', borderRadius: 4, padding: '2px 6px', fontSize: 8, color: C.gold, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, letterSpacing: '0.5px', backdropFilter: 'blur(4px)' as const }}>LIVE</div>
                   )}
                 </div>
-                {/* Mode-active overlay hint */}
+                {/* Mode-active overlay: shows when in any non-view mode */}
                 {mode !== 'view' && (
                   <div style={{
                     position: 'absolute' as const, inset: 0,
-                    background: mode === 'hero'
-                      ? (isHero ? 'rgba(201,168,76,0.25)' : 'rgba(255,255,255,0.15)')
-                      : (inCarousel ? 'rgba(44,36,32,0.4)' : 'rgba(255,255,255,0.15)'),
+                    background: isPending
+                      ? 'rgba(201,168,76,0.35)'
+                      : (mode === 'hero' && isHero)
+                        ? 'rgba(201,168,76,0.25)'
+                        : submittedStatus === 'approved'
+                          ? 'rgba(76,175,80,0.18)'
+                          : submittedStatus === 'pending'
+                            ? 'rgba(201,168,76,0.18)'
+                            : 'rgba(255,255,255,0.10)',
                     display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
                   }}>
+                    {isPending && (
+                      <div style={{ background: C.gold, borderRadius: '50%', width: 36, height: 36, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+                        <CheckCircle size={20} color={C.dark} />
+                      </div>
+                    )}
+                    {!isPending && submittedStatus === 'pending' && (
+                      <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: '3px 8px', fontSize: 9, color: C.dark, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, letterSpacing: '0.5px' }}>PENDING</div>
+                    )}
+                    {!isPending && submittedStatus === 'approved' && (
+                      <div style={{ background: '#4CAF50', borderRadius: 12, padding: '3px 8px', fontSize: 9, color: '#FFF', fontFamily: 'DM Sans, sans-serif', fontWeight: 600, letterSpacing: '0.5px' }}>LIVE</div>
+                    )}
                     {mode === 'hero' && isHero && (
                       <div style={{ background: C.gold, borderRadius: '50%', width: 32, height: 32, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const }}>
                         <span style={{ fontSize: 18, color: C.dark }}>★</span>
-                      </div>
-                    )}
-                    {mode === 'carousel' && inCarousel && (
-                      <div style={{ background: C.dark, borderRadius: '50%', width: 32, height: 32, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const }}>
-                        <CheckCircle size={18} color={C.gold} />
                       </div>
                     )}
                   </div>

@@ -5012,6 +5012,41 @@ app.put('/api/ds/photos/:id', async (req, res) => {
     if (updates.status === 'approved' || updates.status === 'revision_requested') updates.reviewed_at = new Date().toISOString();
     const { data, error } = await supabase.from('photo_approvals').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;
+
+    // Side effects on approval
+    if (data && updates.status === 'approved') {
+      const { category, image_id, vendor_id, file_url, photo_url } = data;
+      const url = file_url || photo_url;
+
+      // Carousel approval → add 'carousel' tag to vendor_images row
+      if (category === 'carousel' && image_id) {
+        try {
+          const { data: img } = await supabase.from('vendor_images').select('tags').eq('id', image_id).maybeSingle();
+          const newTags = Array.from(new Set([...((img?.tags || [])), 'carousel']));
+          await supabase.from('vendor_images').update({ tags: newTags }).eq('id', image_id);
+          await syncVendorImagesToVendorColumns(vendor_id);
+        } catch (e) { console.error('[photo-approve] carousel side effect:', e.message); }
+      }
+
+      // Board approvals (spotlight/style_file/look_book/this_weeks_pricing) → insert into featured_boards
+      const boardCategories = ['spotlight', 'style_file', 'look_book', 'this_weeks_pricing'];
+      if (boardCategories.includes(category) && url) {
+        try {
+          // Check if already on board to avoid duplicates
+          const { data: existing } = await supabase.from('featured_boards')
+            .select('id').eq('vendor_id', vendor_id).eq('board', category).eq('image_url', url).limit(1).maybeSingle();
+          if (!existing) {
+            await supabase.from('featured_boards').insert([{
+              vendor_id, board: category, image_url: url,
+              image_id: image_id || null,
+              title: data.title || null, description: data.description || null,
+              created_at: new Date().toISOString(),
+            }]);
+          }
+        } catch (e) { console.error('[photo-approve] board side effect:', e.message); }
+      }
+    }
+
     res.json({ success: true, data });
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
@@ -5352,15 +5387,108 @@ app.post('/api/ds/photos', async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
+// Pending photos — supports filtering by category for admin Photos folder
 app.get('/api/ds/photos/pending', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { category } = req.query;
+    let q = supabase
       .from('photo_approvals')
       .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
+    if (category) q = q.eq('category', category);
+    const { data, error } = await q;
     if (error) throw error;
     res.json({ success: true, data: data || [] });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// Pending photo counts grouped by category — for admin Photos folder badges
+app.get('/api/ds/photos/pending-counts', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('photo_approvals')
+      .select('category')
+      .eq('status', 'pending');
+    if (error) throw error;
+    const counts = {};
+    for (const row of (data || [])) {
+      const c = row.category || 'uncategorized';
+      counts[c] = (counts[c] || 0) + 1;
+    }
+    res.json({ success: true, counts });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
+// Vendor: submit a batch of photos for a specific board category
+// Body: {vendor_id, category, image_ids: [...]}
+// Categories: 'carousel' | 'spotlight' | 'style_file' | 'look_book' | 'this_weeks_pricing'
+app.post('/api/ds/photos/submit-batch', async (req, res) => {
+  try {
+    const { vendor_id, category, image_ids } = req.body || {};
+    if (!vendor_id || !category || !Array.isArray(image_ids) || image_ids.length === 0) {
+      return res.status(400).json({ success: false, error: 'vendor_id, category, image_ids[] required' });
+    }
+    const allowedCats = ['carousel', 'spotlight', 'style_file', 'look_book', 'this_weeks_pricing'];
+    if (!allowedCats.includes(category)) {
+      return res.status(400).json({ success: false, error: 'Invalid category' });
+    }
+
+    // Determine if vendor is Prestige (auto-approve)
+    let isPrestige = false;
+    try {
+      const { data: sub } = await supabase.from('vendor_subscriptions')
+        .select('tier').eq('vendor_id', vendor_id).maybeSingle();
+      isPrestige = (sub?.tier || '').toLowerCase() === 'prestige';
+    } catch {}
+
+    // For each image_id, fetch the URL + create a photo_approvals row
+    const created = [];
+    for (const imageId of image_ids) {
+      try {
+        const { data: img } = await supabase.from('vendor_images')
+          .select('url').eq('id', imageId).maybeSingle();
+        if (!img?.url) continue;
+        // Check if already pending for this category to avoid duplicates
+        const { data: existing } = await supabase.from('photo_approvals')
+          .select('id').eq('vendor_id', vendor_id).eq('image_id', imageId).eq('category', category)
+          .in('status', ['pending', 'approved']).limit(1).maybeSingle();
+        if (existing) continue;
+
+        const { data: row, error } = await supabase.from('photo_approvals').insert([{
+          vendor_id, image_id: imageId, category,
+          file_url: img.url, photo_url: img.url, file_type: 'image',
+          status: isPrestige ? 'approved' : 'pending',
+          description: `Submitted for ${category.replace(/_/g, ' ')}`,
+        }]).select().single();
+        if (!error && row) created.push(row.id);
+      } catch (e) { /* per-image best-effort */ }
+    }
+
+    logActivity('photos_submitted', `Vendor ${vendor_id} submitted ${created.length} photos for ${category}` + (isPrestige ? ' (auto-approved Prestige)' : ''));
+    res.json({ success: true, submitted: created.length, auto_approved: isPrestige });
+  } catch (error) {
+    console.error('[submit-batch] error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Vendor: get current submission status per image+category (for showing "Submitted" badges in Image Hub)
+app.get('/api/ds/photos/submitted/:vendor_id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('photo_approvals')
+      .select('image_id, category, status')
+      .eq('vendor_id', req.params.vendor_id)
+      .in('status', ['pending', 'approved', 'revision_needed']);
+    if (error) throw error;
+    // Group by image_id -> {category: status}
+    const byImage = {};
+    for (const r of (data || [])) {
+      if (!r.image_id) continue;
+      if (!byImage[r.image_id]) byImage[r.image_id] = {};
+      byImage[r.image_id][r.category] = r.status;
+    }
+    res.json({ success: true, by_image: byImage });
   } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
