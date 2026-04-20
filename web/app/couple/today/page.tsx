@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+
 import TodayHero from '../../components/couple/TodayHero';
 import MomentsNeedYou from '../../components/couple/MomentsNeedYou';
 import ThisWeek from '../../components/couple/ThisWeek';
@@ -22,7 +22,6 @@ interface TodayData {
 const EMPTY: TodayData = { nudges: [], thisWeek: [], muse: [], activity: [] };
 
 export default function CoupleTodayPage() {
-  const router = useRouter();
   const [userId, setUserId]   = useState<string | null>(null);
   const [data, setData]       = useState<TodayData>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -30,11 +29,11 @@ export default function CoupleTodayPage() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('couple_session');
-      if (!raw) { router.replace('/couple/login'); return; }
+      if (!raw) { window.location.replace('/couple/login'); return; }
       const session = JSON.parse(raw);
-      if (!session?.id) { router.replace('/couple/login'); return; }
+      if (!session?.id) { window.location.replace('/couple/login'); return; }
       setUserId(session.id);
-    } catch { router.replace('/couple/login'); }
+    } catch { window.location.replace('/couple/login'); }
   }, []);
 
   useEffect(() => {
