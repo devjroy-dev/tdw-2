@@ -44,7 +44,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Never cache: API calls
+  // Never cache: API calls or admin routes
+  if (url.pathname.startsWith('/admin')) {
+    event.respondWith(fetch(request));
+    return;
+  }
   if (
     url.hostname.includes('railway.app') ||
     url.pathname.startsWith('/api/')
