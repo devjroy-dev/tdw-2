@@ -60,24 +60,21 @@ async function uploadToSupabase(file: File, onProgress: (p: number) => void): Pr
   onProgress(10);
   const compressed = await compressImage(file);
   onProgress(40);
-  const filename = `cover_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-  const uploadUrl = `${SUPABASE_URL}/storage/v1/object/cover-photos/${filename}`;
-  const res = await fetch(uploadUrl, {
+  const formData = new FormData();
+  formData.append('file', new Blob([compressed], { type: 'image/jpeg' }), `cover_${Date.now()}.jpg`);
+  const res = await fetch(`${BACKEND}/api/v2/admin/cover-photos/upload`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'image/jpeg',
-      'x-upsert': 'true',
-    },
-    body: compressed,
+    headers: { 'x-admin-password': ADMIN_PASSWORD },
+    body: formData,
   });
   onProgress(90);
   if (!res.ok) {
     const err = await res.text();
     throw new Error('Upload failed: ' + err);
   }
+  const d = await res.json();
   onProgress(100);
-  return `${SUPABASE_URL}/storage/v1/object/public/cover-photos/${filename}`;
+  return d.url;
 }
 
 export default function AdminCoverPage() {
