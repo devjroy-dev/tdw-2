@@ -37,17 +37,17 @@ export default function AdminRevenuePage() {
       paid: ['#2A7A4B', '#E8F5EE'],
       captured: ['#2A7A4B', '#E8F5EE'],
       failed: ['#C0392B', '#FFF0EE'],
-      created: ['#888580', '#F0EEE8'],
-      pending: ['#888580', '#F0EEE8'],
+      created: ['#555250', '#F0EEE8'],
+      pending: ['#555250', '#F0EEE8'],
     };
-    const [color, bg] = map[s] || ['#888580', '#F0EEE8'];
+    const [color, bg] = map[s] || ['#555250', '#F0EEE8'];
     return <span style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color, background: bg, padding: '3px 8px', borderRadius: 20 }}>{s}</span>;
   };
 
   const metricCard = (label: string, value: string) => (
     <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, padding: '20px 24px' }}>
       <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111', marginBottom: 4 }}>{value}</div>
-      <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase' }}>{label}</div>
     </div>
   );
 
@@ -78,13 +78,13 @@ export default function AdminRevenuePage() {
         {/* Vendor subscription table */}
         <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2DED8' }}>
-            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Maker Subscriptions</div>
+            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Maker Subscriptions</div>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F8F7F5' }}>
                 {['Tier', 'Count', 'Unit Price', 'Monthly Revenue'].map(col => (
-                  <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.18em', textTransform: 'uppercase' }}>{col}</th>
+                  <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#555250', letterSpacing: '0.18em', textTransform: 'uppercase' }}>{col}</th>
                 ))}
               </tr>
             </thead>
@@ -116,13 +116,13 @@ export default function AdminRevenuePage() {
         {/* Couple tier table */}
         <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2DED8' }}>
-            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Dreamer Tiers</div>
+            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Dreamer Tiers</div>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F8F7F5' }}>
                 {['Tier', 'Count', 'Price', 'Revenue'].map(col => (
-                  <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.18em', textTransform: 'uppercase' }}>{col}</th>
+                  <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#555250', letterSpacing: '0.18em', textTransform: 'uppercase' }}>{col}</th>
                 ))}
               </tr>
             </thead>
@@ -147,27 +147,27 @@ export default function AdminRevenuePage() {
       {/* Recent payments */}
       <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2DED8' }}>
-          <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Recent Payments</div>
+          <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Recent Payments</div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#F8F7F5' }}>
               {['Type', 'Amount', 'Status', 'Date'].map(col => (
-                <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.18em', textTransform: 'uppercase' }}>{col}</th>
+                <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#555250', letterSpacing: '0.18em', textTransform: 'uppercase' }}>{col}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading && <tr><td colSpan={4} style={{ padding: 20 }}><div style={{ height: 40, backgroundImage: 'linear-gradient(90deg, #F8F7F5 25%, #F0EEE8 50%, #F8F7F5 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' }} /></td></tr>}
             {!loading && (data?.recent_payments || []).length === 0 && (
-              <tr><td colSpan={4} style={{ padding: '32px 14px', textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#888580' }}>The ledger begins with the first dream that paid for itself.</td></tr>
+              <tr><td colSpan={4} style={{ padding: '32px 14px', textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>The ledger begins with the first dream that paid for itself.</td></tr>
             )}
             {(data?.recent_payments || []).map(p => (
               <tr key={p.id} style={{ borderTop: '1px solid #F0EEE8' }}>
                 <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 12, color: '#111111', textTransform: 'capitalize' }}>{(p.payment_type || 'unknown').replace(/_/g, ' ')}</td>
                 <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 400, fontSize: 13, color: '#111111' }}>{fmt(p.amount / 100)}</td>
                 <td style={{ padding: '10px 14px' }}>{statusPill(p.status)}</td>
-                <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580' }}>{new Date(p.created_at).toLocaleDateString('en-IN')}</td>
+                <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#555250' }}>{new Date(p.created_at).toLocaleDateString('en-IN')}</td>
               </tr>
             ))}
           </tbody>

@@ -82,9 +82,9 @@ export default function AdminInvitesPage() {
     return s === filter;
   });
 
-  const lbl: React.CSSProperties = { fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase', display: 'block', marginBottom: 4 };
+  const lbl: React.CSSProperties = { fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase', display: 'block', marginBottom: 4 };
   const chip = (active: boolean, onClick: () => void, label: string) => (
-    <button onClick={onClick} style={{ border: `0.5px solid ${active ? '#C9A84C' : '#E2DED8'}`, background: active ? 'rgba(201,168,76,0.08)' : 'transparent', color: active ? '#C9A84C' : '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '5px 14px', borderRadius: 20, cursor: 'pointer' }}>{label}</button>
+    <button onClick={onClick} style={{ border: `0.5px solid ${active ? '#C9A84C' : '#E2DED8'}`, background: active ? 'rgba(201,168,76,0.08)' : 'transparent', color: active ? '#C9A84C' : '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '5px 14px', borderRadius: 20, cursor: 'pointer' }}>{label}</button>
   );
 
   return (
@@ -96,7 +96,7 @@ export default function AdminInvitesPage() {
 
       {/* Header */}
       <div style={{ marginBottom: 36 }}>
-        <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Vendors + Dreamers</div>
+        <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Vendors + Dreamers</div>
         <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111' }}>Invite Codes</div>
       </div>
 
@@ -107,14 +107,14 @@ export default function AdminInvitesPage() {
         <label style={lbl}>Role</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {(['vendor', 'dreamer'] as const).map(r => (
-            <button key={r} onClick={() => setRole(r)} style={{ padding: '7px 18px', border: `0.5px solid ${role === r ? '#C9A84C' : '#E2DED8'}`, background: role === r ? '#111111' : 'transparent', color: role === r ? '#F8F7F5' : '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 3, cursor: 'pointer' }}>{r === 'vendor' ? 'Maker' : 'Dreamer'}</button>
+            <button key={r} onClick={() => setRole(r)} style={{ padding: '7px 18px', border: `0.5px solid ${role === r ? '#C9A84C' : '#E2DED8'}`, background: role === r ? '#111111' : 'transparent', color: role === r ? '#F8F7F5' : '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 3, cursor: 'pointer' }}>{r === 'vendor' ? 'Maker' : 'Dreamer'}</button>
           ))}
         </div>
 
         <label style={lbl}>Tier</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           {tiers.map(t => (
-            <button key={t} onClick={() => setTier(t)} style={{ padding: '7px 14px', border: `0.5px solid ${tier === t ? '#C9A84C' : '#E2DED8'}`, background: tier === t ? '#111111' : 'transparent', color: tier === t ? '#F8F7F5' : '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 3, cursor: 'pointer' }}>{t}</button>
+            <button key={t} onClick={() => setTier(t)} style={{ padding: '7px 14px', border: `0.5px solid ${tier === t ? '#C9A84C' : '#E2DED8'}`, background: tier === t ? '#111111' : 'transparent', color: tier === t ? '#F8F7F5' : '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 3, cursor: 'pointer' }}>{t}</button>
           ))}
         </div>
 
@@ -128,7 +128,7 @@ export default function AdminInvitesPage() {
         {generated && (
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 36, color: '#C9A84C', letterSpacing: '0.15em', marginBottom: 10 }}>{generated}</div>
-            <button onClick={copy} style={{ background: 'none', border: '0.5px solid #E2DED8', padding: '6px 16px', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', borderRadius: 20 }}>{copied ? 'Copied!' : 'Copy Code'}</button>
+            <button onClick={copy} style={{ background: 'none', border: '0.5px solid #E2DED8', padding: '6px 16px', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#555250', cursor: 'pointer', borderRadius: 20 }}>{copied ? 'Copied!' : 'Copy Code'}</button>
           </div>
         )}
       </div>
@@ -150,13 +150,13 @@ export default function AdminInvitesPage() {
             <thead>
               <tr style={{ background: '#F8F7F5' }}>
                 {['Code', 'Role', 'Tier', 'Status', 'Created', 'Expires', ''].map(col => (
-                  <th key={col} style={{ padding: '10px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase' }}>{col}</th>
+                  <th key={col} style={{ padding: '10px 14px', textAlign: 'left', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase' }}>{col}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: '32px 14px', textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#888580' }}>Every code here is a door someone will walk through.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '32px 14px', textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>Every code here is a door someone will walk through.</td></tr>
               )}
               {filtered.map(c => {
                 const s = codeStatus(c);
@@ -167,14 +167,14 @@ export default function AdminInvitesPage() {
                     <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 12, color: '#111111', textTransform: 'capitalize' }}>{c.tier || '—'}</td>
                     <td style={{ padding: '10px 14px' }}>
                       {s === 'unused' && pill('Unused', '#2A7A4B', '#E8F5EE')}
-                      {s === 'used' && pill('Used', '#888580', '#F0EEE8')}
+                      {s === 'used' && pill('Used', '#555250', '#F0EEE8')}
                       {s === 'expired' && pill('Expired', '#C0392B', '#FFF0EE')}
                     </td>
-                    <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580' }}>{new Date(c.created_at).toLocaleDateString('en-IN')}</td>
-                    <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580' }}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('en-IN') : '—'}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#555250' }}>{new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#555250' }}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('en-IN') : '—'}</td>
                     <td style={{ padding: '10px 14px' }}>
                       {s === 'unused' && (
-                        <button onClick={() => revoke(c.id)} style={{ background: 'none', border: 'none', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', textDecoration: 'underline' }}>Revoke</button>
+                        <button onClick={() => revoke(c.id)} style={{ background: 'none', border: 'none', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#555250', cursor: 'pointer', textDecoration: 'underline' }}>Revoke</button>
                       )}
                     </td>
                   </tr>

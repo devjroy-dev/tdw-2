@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
             }}>The Dream Wedding</p>
             <p style={{
               fontFamily: "'Jost', sans-serif", fontWeight: 200,
-              fontSize: 9, color: '#888580',
+              fontSize: 9, color: '#555250',
               letterSpacing: '0.25em', textTransform: 'uppercase',
             }}>Admin</p>
           </div>
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
           <div style={{ marginBottom: 16 }}>
             <label style={{
               fontFamily: "'Jost', sans-serif", fontWeight: 200,
-              fontSize: 8, color: '#888580',
+              fontSize: 8, color: '#555250',
               letterSpacing: '0.22em', textTransform: 'uppercase',
               display: 'block', marginBottom: 8,
             }}>Password</label>

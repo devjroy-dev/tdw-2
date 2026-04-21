@@ -21,7 +21,7 @@ interface CoverPhoto {
 
 const labelStyle: React.CSSProperties = {
   fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7,
-  color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase',
+  color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase',
   display: 'block', marginBottom: 3,
 };
 
@@ -105,7 +105,7 @@ export default function AdminCoverPage() {
     display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
     fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8,
     letterSpacing: '0.18em', textTransform: 'uppercase',
-    color: on ? '#C9A84C' : '#888580',
+    color: on ? '#C9A84C' : '#555250',
     border: `0.5px solid ${on ? '#C9A84C' : '#E2DED8'}`,
     padding: '4px 10px', borderRadius: 20, transition: 'all 0.2s ease',
     background: on ? 'rgba(201,168,76,0.06)' : 'transparent',
@@ -120,13 +120,13 @@ export default function AdminCoverPage() {
 
         <div style={{ flex: 1, padding: '48px 40px', overflowY: 'auto' }}>
           <div style={{ marginBottom: 40 }}>
-            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Discovery</div>
+            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Discovery</div>
             <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111', marginBottom: 4 }}>Cover Placement</div>
-            <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#888580' }}>5 slots. Weekly rotation. Curated by TDW.</div>
+            <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>5 slots. Weekly rotation. Curated by TDW.</div>
           </div>
 
           {loading ? (
-            <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#888580' }}>Loading…</div>
+            <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>Loading…</div>
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 24 }}>
@@ -191,12 +191,12 @@ export default function AdminCoverPage() {
                           </div>
                         ) : (
                           <button onClick={() => { setEditingUrl(photo.id); setNewUrl(photo.image_url); }}
-                            style={{ background: 'none', border: 'none', color: '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', textDecoration: 'underline' }}>Update URL</button>
+                            style={{ background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', textDecoration: 'underline' }}>Update URL</button>
                         )}
                       </div>
 
                       <button onClick={() => remove(photo.id)}
-                        style={{ marginTop: 12, background: 'none', border: 'none', color: '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: 0.6 }}>Remove</button>
+                        style={{ marginTop: 12, background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: 0.6 }}>Remove</button>
                     </div>
                   </div>
                 ))}
@@ -204,7 +204,7 @@ export default function AdminCoverPage() {
                 {photos.length < 10 && !showAdd && (
                   <button onClick={() => setShowAdd(true)}
                     style={{ border: '1px dashed #E2DED8', borderRadius: 6, background: 'transparent', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <span style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 10, color: '#888580', letterSpacing: '0.2em', textTransform: 'uppercase' }}>+ Add cover photo</span>
+                    <span style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 10, color: '#555250', letterSpacing: '0.2em', textTransform: 'uppercase' }}>+ Add cover photo</span>
                   </button>
                 )}
               </div>
@@ -240,7 +240,7 @@ export default function AdminCoverPage() {
                     <button onClick={addPhoto} disabled={saving}
                       style={{ background: '#111111', color: '#F8F7F5', border: 'none', padding: '12px 24px', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 2 }}>{saving ? 'Saving…' : 'Add photo'}</button>
                     <button onClick={() => setShowAdd(false)}
-                      style={{ background: 'none', border: 'none', color: '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, cursor: 'pointer' }}>Cancel</button>
+                      style={{ background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, cursor: 'pointer' }}>Cancel</button>
                   </div>
                 </div>
               )}

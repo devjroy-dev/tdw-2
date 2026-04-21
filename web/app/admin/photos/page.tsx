@@ -67,14 +67,14 @@ export default function AdminPhotosPage() {
             />
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={reject} style={{ background: '#111111', color: '#F8F7F5', border: 'none', padding: '11px 20px', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 2 }}>Reject</button>
-              <button onClick={() => setRejectId(null)} style={{ background: 'none', border: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#888580', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setRejectId(null)} style={{ background: 'none', border: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250', cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Discovery</div>
+        <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Discovery</div>
         <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111' }}>Photo Approvals</div>
       </div>
 
@@ -88,7 +88,7 @@ export default function AdminPhotosPage() {
               background: 'none', border: 'none', borderBottom: `2px solid ${active ? '#C9A84C' : 'transparent'}`,
               padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
               fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase',
-              color: active ? '#111111' : '#888580', whiteSpace: 'nowrap', flexShrink: 0,
+              color: active ? '#111111' : '#555250', whiteSpace: 'nowrap', flexShrink: 0,
             }}>
               {CAT_LABELS[cat]}
               {count > 0 && (
@@ -104,7 +104,7 @@ export default function AdminPhotosPage() {
           {[1,2,3,4].map(i => <div key={i} style={{ height: 280, background: '#FFFFFF', borderRadius: 6, border: '1px solid #E2DED8', backgroundImage: 'linear-gradient(90deg, #F8F7F5 25%, #F0EEE8 50%, #F8F7F5 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' }} />)}
         </div>
       ) : photos.length === 0 ? (
-        <div style={{ padding: '60px 0', textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#888580' }}>
+        <div style={{ padding: '60px 0', textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>
           This gallery is waiting for its first dream. Check back soon.
         </div>
       ) : (
@@ -116,10 +116,10 @@ export default function AdminPhotosPage() {
               </div>
               <div style={{ padding: '14px 16px' }}>
                 <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 400, fontSize: 13, color: '#111111', marginBottom: 4 }}>{photo.vendors?.name || 'Unknown Maker'}</div>
-                <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580', marginBottom: 14 }}>{new Date(photo.created_at).toLocaleDateString('en-IN')}</div>
+                <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#555250', marginBottom: 14 }}>{new Date(photo.created_at).toLocaleDateString('en-IN')}</div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => approve(photo.id)} style={{ flex: 1, background: 'rgba(201,168,76,0.1)', border: '0.5px solid #C9A84C', color: '#C9A84C', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '9px 0', cursor: 'pointer', borderRadius: 2 }}>Approve</button>
-                  <button onClick={() => setRejectId(photo.id)} style={{ flex: 1, background: 'transparent', border: '0.5px solid #E2DED8', color: '#888580', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '9px 0', cursor: 'pointer', borderRadius: 2 }}>Reject</button>
+                  <button onClick={() => setRejectId(photo.id)} style={{ flex: 1, background: 'transparent', border: '0.5px solid #E2DED8', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '9px 0', cursor: 'pointer', borderRadius: 2 }}>Reject</button>
                 </div>
               </div>
             </div>
