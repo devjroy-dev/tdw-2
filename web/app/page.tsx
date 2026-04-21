@@ -116,7 +116,7 @@ export default function Home() {
 
   const verifyOtp = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/v2/couple/auth/verify-otp`, {
+      const res = await fetch(`${BACKEND}/api/auth/verify-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone.replace(/\D/g, ''), code: otp.join('') })
       });
