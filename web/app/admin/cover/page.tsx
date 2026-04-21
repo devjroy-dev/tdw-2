@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 const BACKEND = 'https://dream-wedding-production-89ae.up.railway.app';
 const ADMIN_PASSWORD = 'Mira@2551354';
 const SUPABASE_URL = 'https://nqcdfzbvlrcrjineoudp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xY2RmemJ2bHJjcmppbmVvdWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk4MzQ0MDAsImV4cCI6MjAyNTQxMDQwMH0.Wh1BNPqpNOHLGEPkMnMFJ9dD1JdQfxOiJLs1uMFBHqU';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xY2RmemJ2bHJjcmppbmVvdWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3Mjg3ODksImV4cCI6MjA5MTMwNDc4OX0.s01R0eSn67jKTevL_HGAubyXB2gXM_OlRTt2LBCMMA8';
 
 interface CoverPhoto {
   id: string;
@@ -61,14 +61,16 @@ async function uploadToSupabase(file: File, onProgress: (p: number) => void): Pr
   const compressed = await compressImage(file);
   onProgress(40);
   const filename = `cover_${Date.now()}.jpg`;
+  const arrayBuffer = await compressed.arrayBuffer();
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/cover-photos/${filename}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'image/jpeg',
       'x-upsert': 'true',
+      'Content-Length': String(arrayBuffer.byteLength),
     },
-    body: compressed,
+    body: arrayBuffer,
   });
   onProgress(90);
   if (!res.ok) {
