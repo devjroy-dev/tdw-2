@@ -1,10 +1,11 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const BACKEND = 'https://dream-wedding-production-89ae.up.railway.app';
 const ADMIN_PASSWORD = 'Mira@2551354';
+const SUPABASE_URL = 'https://nqcdfzbvlrcrjineoudp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xY2RmemJ2bHJjcmppbmVvdWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk4MzQ0MDAsImV4cCI6MjAyNTQxMDQwMH0.Wh1BNPqpNOHLGEPkMnMFJ9dD1JdQfxOiJLs1uMFBHqU';
 
 interface CoverPhoto {
   id: string;
@@ -32,15 +33,68 @@ const fieldStyle: React.CSSProperties = {
   color: '#111111', padding: '6px 0', marginBottom: 10,
 };
 
+// Compress image client-side before upload
+async function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 1200;
+      let { width, height } = img;
+      if (width > MAX) { height = (height * MAX) / width; width = MAX; }
+      if (height > MAX) { width = (width * MAX) / height; height = MAX; }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.85);
+    };
+    img.src = url;
+  });
+}
+
+// Upload to Supabase Storage cover-photos bucket
+async function uploadToSupabase(file: File, onProgress: (p: number) => void): Promise<string> {
+  onProgress(10);
+  const compressed = await compressImage(file);
+  onProgress(40);
+  const filename = `cover_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+  const uploadUrl = `${SUPABASE_URL}/storage/v1/object/cover-photos/${filename}`;
+  const res = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true',
+    },
+    body: compressed,
+  });
+  onProgress(90);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Upload failed: ' + err);
+  }
+  onProgress(100);
+  return `${SUPABASE_URL}/storage/v1/object/public/cover-photos/${filename}`;
+}
+
 export default function AdminCoverPage() {
   const router = useRouter();
   const [photos, setPhotos] = useState<CoverPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ image_url: '', photographer_name: '', is_paid: false, amount_paid: 0, valid_from: '', valid_to: '' });
+  const [addForm, setAddForm] = useState({
+    image_url: '', photographer_name: '',
+    is_paid: false, amount_paid: 0, valid_from: '', valid_to: '',
+  });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editingUrl, setEditingUrl] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState('');
-  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const session = localStorage.getItem('admin_session');
@@ -84,6 +138,21 @@ export default function AdminCoverPage() {
     await fetchPhotos();
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const url = await uploadToSupabase(file, setUploadProgress);
+      setAddForm(f => ({ ...f, image_url: url }));
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const addPhoto = async () => {
     if (!addForm.image_url) return;
     setSaving(true);
@@ -95,6 +164,7 @@ export default function AdminCoverPage() {
       });
       setShowAdd(false);
       setAddForm({ image_url: '', photographer_name: '', is_paid: false, amount_paid: 0, valid_from: '', valid_to: '' });
+      setUploadProgress(0);
       await fetchPhotos();
     } finally {
       setSaving(false);
@@ -113,16 +183,19 @@ export default function AdminCoverPage() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+      `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#F8F7F5', display: 'flex' }}>
-        <div style={{ width: 220, background: '#111111', flexShrink: 0 }} />
+      <div style={{ minHeight: '100vh', background: '#F8F7F5' }}>
+        <div style={{ padding: '48px 40px', overflowY: 'auto' }}>
 
-        <div style={{ flex: 1, padding: '48px 40px', overflowY: 'auto' }}>
+          {/* Header */}
           <div style={{ marginBottom: 40 }}>
             <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#555250', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 6 }}>Discovery</div>
             <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111', marginBottom: 4 }}>Cover Placement</div>
-            <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>5 slots. Weekly rotation. Curated by TDW.</div>
+            <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#555250' }}>10 slots. Weekly rotation. Curated by TDW.</div>
           </div>
 
           {loading ? (
@@ -132,8 +205,15 @@ export default function AdminCoverPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 24 }}>
                 {photos.map((photo) => (
                   <div key={photo.id} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, overflow: 'hidden' }}>
-                    <div style={{ height: 120, backgroundImage: `url(${photo.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: 8, left: 10, fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#C9A84C', letterSpacing: '0.2em' }}>SLOT {photo.display_order}</div>
+                    <div style={{
+                      height: 160,
+                      backgroundImage: photo.image_url ? `url(${photo.image_url})` : 'none',
+                      background: photo.image_url ? undefined : '#F4F1EC',
+                      backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative',
+                    }}>
+                      <div style={{ position: 'absolute', top: 8, left: 10, fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#C9A84C', letterSpacing: '0.2em' }}>
+                        SLOT {photo.display_order}
+                      </div>
                     </div>
 
                     <div style={{ padding: '14px 16px' }}>
@@ -191,16 +271,21 @@ export default function AdminCoverPage() {
                           </div>
                         ) : (
                           <button onClick={() => { setEditingUrl(photo.id); setNewUrl(photo.image_url); }}
-                            style={{ background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', textDecoration: 'underline' }}>Update URL</button>
+                            style={{ background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', textDecoration: 'underline' }}>
+                            Update URL
+                          </button>
                         )}
                       </div>
 
                       <button onClick={() => remove(photo.id)}
-                        style={{ marginTop: 12, background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: 0.6 }}>Remove</button>
+                        style={{ marginTop: 12, background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: 0.6 }}>
+                        Remove
+                      </button>
                     </div>
                   </div>
                 ))}
 
+                {/* Add slot button */}
                 {photos.length < 10 && !showAdd && (
                   <button onClick={() => setShowAdd(true)}
                     style={{ border: '1px dashed #E2DED8', borderRadius: 6, background: 'transparent', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -209,38 +294,115 @@ export default function AdminCoverPage() {
                 )}
               </div>
 
+              {/* Add form */}
               {showAdd && (
-                <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, padding: '24px', maxWidth: 400, marginBottom: 24 }}>
-                  <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#111111', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16 }}>New Cover Photo</div>
-                  <label style={labelStyle}>Image URL</label>
-                  <input type="url" placeholder="https://…" value={addForm.image_url} onChange={e => setAddForm(f => ({ ...f, image_url: e.target.value }))} style={fieldStyle} />
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, padding: '24px', maxWidth: 440, marginBottom: 24 }}>
+                  <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#111111', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16 }}>
+                    New Cover Photo
+                  </div>
+
+                  {/* Upload area */}
+                  <label style={labelStyle}>Upload Photo</label>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      border: '1px dashed #E2DED8', borderRadius: 6,
+                      padding: '20px', marginBottom: 12, cursor: 'pointer',
+                      textAlign: 'center', background: '#F8F7F5',
+                      position: 'relative', overflow: 'hidden',
+                    }}
+                  >
+                    {addForm.image_url ? (
+                      <img src={addForm.image_url} alt="Preview"
+                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 4 }} />
+                    ) : uploading ? (
+                      <div>
+                        <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 12, color: '#555250', marginBottom: 8 }}>
+                          Uploading... {uploadProgress}%
+                        </div>
+                        <div style={{ height: 4, background: '#E2DED8', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${uploadProgress}%`, background: '#C9A84C', borderRadius: 2, transition: 'width 200ms ease' }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 10, color: '#555250', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 4 }}>
+                          Click to upload
+                        </div>
+                        <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580' }}>
+                          JPG, PNG — max 1200px, compressed to &lt;500KB
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+
+                  {/* OR divider */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ flex: 1, height: '0.5px', background: '#E2DED8' }} />
+                    <span style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.15em' }}>OR PASTE URL</span>
+                    <div style={{ flex: 1, height: '0.5px', background: '#E2DED8' }} />
+                  </div>
+
+                  <input
+                    type="url" placeholder="https://…"
+                    value={addForm.image_url}
+                    onChange={e => setAddForm(f => ({ ...f, image_url: e.target.value }))}
+                    style={fieldStyle}
+                  />
+
                   <label style={labelStyle}>Photographer Name</label>
-                  <input type="text" placeholder="Studio Name" value={addForm.photographer_name} onChange={e => setAddForm(f => ({ ...f, photographer_name: e.target.value }))} style={fieldStyle} />
+                  <input
+                    type="text" placeholder="Studio Name"
+                    value={addForm.photographer_name}
+                    onChange={e => setAddForm(f => ({ ...f, photographer_name: e.target.value }))}
+                    style={fieldStyle}
+                  />
+
                   <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                     <button onClick={() => setAddForm(f => ({ ...f, is_paid: !f.is_paid }))} style={pillStyle(addForm.is_paid)}>
                       {addForm.is_paid ? '● Paid' : '○ Organic'}
                     </button>
                     {addForm.is_paid && (
-                      <input type="number" placeholder="₹ Amount" value={addForm.amount_paid || ''}
+                      <input type="number" placeholder="₹ Amount"
+                        value={addForm.amount_paid || ''}
                         onChange={e => setAddForm(f => ({ ...f, amount_paid: Number(e.target.value) }))}
                         style={{ ...fieldStyle, width: 100, marginBottom: 0 }} />
                     )}
                   </div>
+
                   <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                     <div style={{ flex: 1 }}>
                       <label style={labelStyle}>Valid From</label>
-                      <input type="date" value={addForm.valid_from} onChange={e => setAddForm(f => ({ ...f, valid_from: e.target.value }))} style={{ ...fieldStyle, marginBottom: 0 }} />
+                      <input type="date" value={addForm.valid_from}
+                        onChange={e => setAddForm(f => ({ ...f, valid_from: e.target.value }))}
+                        style={{ ...fieldStyle, marginBottom: 0 }} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={labelStyle}>Valid To</label>
-                      <input type="date" value={addForm.valid_to} onChange={e => setAddForm(f => ({ ...f, valid_to: e.target.value }))} style={{ ...fieldStyle, marginBottom: 0 }} />
+                      <input type="date" value={addForm.valid_to}
+                        onChange={e => setAddForm(f => ({ ...f, valid_to: e.target.value }))}
+                        style={{ ...fieldStyle, marginBottom: 0 }} />
                     </div>
                   </div>
+
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={addPhoto} disabled={saving}
-                      style={{ background: '#111111', color: '#F8F7F5', border: 'none', padding: '12px 24px', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 2 }}>{saving ? 'Saving…' : 'Add photo'}</button>
-                    <button onClick={() => setShowAdd(false)}
-                      style={{ background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, cursor: 'pointer' }}>Cancel</button>
+                    <button
+                      onClick={addPhoto}
+                      disabled={saving || uploading || !addForm.image_url}
+                      style={{
+                        background: addForm.image_url ? '#111111' : '#E2DED8',
+                        color: addForm.image_url ? '#F8F7F5' : '#888580',
+                        border: 'none', padding: '12px 24px',
+                        fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9,
+                        letterSpacing: '0.2em', textTransform: 'uppercase',
+                        cursor: addForm.image_url ? 'pointer' : 'default', borderRadius: 2,
+                      }}
+                    >{saving ? 'Saving…' : 'Add photo'}</button>
+                    <button
+                      onClick={() => { setShowAdd(false); setAddForm({ image_url: '', photographer_name: '', is_paid: false, amount_paid: 0, valid_from: '', valid_to: '' }); setUploadProgress(0); }}
+                      style={{ background: 'none', border: 'none', color: '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, cursor: 'pointer' }}
+                    >Cancel</button>
                   </div>
                 </div>
               )}
