@@ -207,7 +207,7 @@ export default function Home() {
           position: 'absolute', bottom: 160, left: 0, right: 0,
           textAlign: 'center', padding: '0 32px', zIndex: 15,
           fontFamily: '"Cormorant Garamond", serif', fontStyle: 'italic',
-          fontWeight: 300, fontSize: 13, color: 'rgba(248,247,245,0.85)',
+          fontWeight: 300, fontSize: 16, color: '#C9A84C',
           letterSpacing: '0.04em', lineHeight: 1.6,
           opacity: taglineVisible ? 1 : 0,
           transition: `opacity 0.6s ease`,
