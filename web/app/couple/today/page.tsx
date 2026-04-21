@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -36,6 +36,18 @@ interface Session {
   id: string;
   name?: string;
   email?: string;
+}
+interface DreamAiContext {
+  overdue_tasks: { id: string; title: string; due_date: string; event_name: string }[];
+  upcoming_payments: { vendor_name: string; amount: number; due_date: string; purpose: string }[];
+  muse: { id: string; vendor_name: string; category: string }[];
+  budget: { total: number; committed: number; paid: number; remaining: number };
+  tasks: { id: string; title: string; status: string }[];
+  guests: { total: number; confirmed: number; pending: number };
+}
+interface ChatMessage {
+  role: 'user' | 'ai';
+  text: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -81,10 +93,10 @@ function getInitials(name?: string): string {
 }
 
 // ─── Shimmer ─────────────────────────────────────────────────────────────────
-function Shimmer({ height }: { height: number }) {
+function Shimmer({ height, width }: { height: number; width?: string | number }) {
   return (
     <div style={{
-      height, borderRadius: 8, marginBottom: 8,
+      height, width: width || '100%', borderRadius: 8, marginBottom: 8,
       background: 'linear-gradient(90deg, #F8F7F5 25%, #EEECE8 50%, #F8F7F5 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.4s infinite',
@@ -111,17 +123,249 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   );
 }
 
+// ─── DreamAi Sheet ────────────────────────────────────────────────────────────
+function DreamAiSheet({
+  visible,
+  onClose,
+  context,
+  userId,
+  prefill,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  context: DreamAiContext | null;
+  userId: string;
+  prefill?: string;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const QUICK_CHIPS = [
+    "What's overdue this week?",
+    "How much have I spent so far?",
+    "Find photographers under ₹1.5L",
+  ];
+
+  useEffect(() => {
+    if (visible && prefill) {
+      setInput(prefill);
+    }
+  }, [visible, prefill]);
+
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => inputRef.current?.focus(), 400);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  async function sendMessage(text: string) {
+    const msg = text.trim();
+    if (!msg || loading) return;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: msg }]);
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/v2/dreamai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userType: 'couple', message: msg, context }),
+      });
+      const json = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', text: json.reply || 'Something went wrong. Please try again.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Unable to reach DreamAi. Please check your connection.' }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(17,17,17,0.4)',
+          opacity: visible ? 1 : 0,
+          pointerEvents: visible ? 'auto' : 'none',
+          transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)',
+          willChange: 'opacity',
+        }}
+      />
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301,
+        height: '92dvh',
+        background: '#FFFFFF',
+        borderRadius: '24px 24px 0 0',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'transform',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 20px 12px', borderBottom: '0.5px solid #E2DED8',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>✦</span>
+            <span style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 22, fontWeight: 300, color: '#111111',
+            }}>DreamAi</span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+              color: '#888580', padding: 4, touchAction: 'manipulation',
+            }}
+          >✕</button>
+        </div>
+
+        {/* Quick chips */}
+        {messages.length === 0 && (
+          <div style={{
+            display: 'flex', gap: 8, padding: '12px 20px',
+            overflowX: 'auto', scrollbarWidth: 'none',
+          }}>
+            {QUICK_CHIPS.map(chip => (
+              <button
+                key={chip}
+                onClick={() => sendMessage(chip)}
+                style={{
+                  flexShrink: 0,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                  color: '#555250', background: '#FFFFFF',
+                  border: '0.5px solid #E2DED8', borderRadius: 100,
+                  padding: '6px 14px', cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  whiteSpace: 'nowrap',
+                }}
+              >{chip}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 16px' }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', marginTop: 48 }}>
+              <p style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: 18, fontWeight: 300, fontStyle: 'italic',
+                color: '#888580', margin: 0,
+              }}>Ask anything about your wedding.</p>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+                marginBottom: 12,
+              }}
+            >
+              <div style={{
+                maxWidth: '80%',
+                background: m.role === 'user' ? '#FFFFFF' : '#F8F7F5',
+                border: m.role === 'user' ? '0.5px solid #C9A84C' : '0.5px solid #E2DED8',
+                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                padding: '10px 14px',
+              }}>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 14, fontWeight: 300, color: '#111111',
+                  margin: 0, lineHeight: 1.5,
+                }}>{m.text}</p>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+              <div style={{
+                background: '#F8F7F5', border: '0.5px solid #E2DED8',
+                borderRadius: '16px 16px 16px 4px', padding: '10px 16px',
+              }}>
+                <Shimmer height={14} width={120} />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input bar */}
+        <div style={{
+          display: 'flex', gap: 10, padding: '12px 16px',
+          borderTop: '0.5px solid #E2DED8',
+          paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+          background: '#FFFFFF',
+        }}>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') sendMessage(input); }}
+            placeholder="Ask anything about your wedding..."
+            style={{
+              flex: 1, height: 44,
+              fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+              color: '#111111', background: '#F8F7F5',
+              border: '0.5px solid #E2DED8', borderRadius: 22,
+              padding: '0 16px', outline: 'none',
+            }}
+          />
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !input.trim()}
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: input.trim() ? '#C9A84C' : '#E2DED8',
+              border: 'none', cursor: input.trim() ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, touchAction: 'manipulation',
+              transition: 'background 200ms cubic-bezier(0.22,1,0.36,1)',
+              willChange: 'transform',
+            }}
+          >
+            <span style={{ color: '#FFFFFF', fontSize: 16 }}>↑</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CoupleTodayPage() {
-  const [session, setSession]   = useState<Session | null>(null);
-  const [data, setData]         = useState<TodayData | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [toast, setToast]       = useState<string | null>(null);
-  const [tasks, setTasks]       = useState<Task[]>([]);
+  const [session, setSession]         = useState<Session | null>(null);
+  const [data, setData]               = useState<TodayData | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [toast, setToast]             = useState<string | null>(null);
+  const [tasks, setTasks]             = useState<Task[]>([]);
+  const [dreamAiOpen, setDreamAiOpen] = useState(false);
+  const [dreamAiPrefill, setDreamAiPrefill] = useState('');
+  const [dreamAiContext, setDreamAiContext] = useState<DreamAiContext | null>(null);
+  const [nudge, setNudge]             = useState<{ text: string; query: string } | null>(null);
 
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-  }, []);
+  const showToast = useCallback((msg: string) => setToast(msg), []);
 
   // Auth guard
   useEffect(() => {
@@ -159,14 +403,47 @@ export default function CoupleTodayPage() {
     return () => { cancelled = true; };
   }, [session, showToast]);
 
+  // Fetch DreamAi context
+  useEffect(() => {
+    if (!session) return;
+    fetch(`${API}/api/v2/dreamai/couple-context/${session.id}`)
+      .then(r => r.json())
+      .then(json => {
+        setDreamAiContext(json);
+        // Build nudge from context
+        if (json.overdue_tasks?.length > 0) {
+          const n = json.overdue_tasks.length;
+          setNudge({
+            text: `You have ${n} overdue task${n > 1 ? 's' : ''}. Want me to help prioritise?`,
+            query: "What's overdue this week?",
+          });
+        } else if (json.upcoming_payments?.length > 0) {
+          const p = json.upcoming_payments[0];
+          setNudge({
+            text: `${formatINR(p.amount)} due to ${p.vendor_name || 'a vendor'} soon.`,
+            query: "What payments do I have coming up?",
+          });
+        } else if (json.muse?.length > 0) {
+          setNudge({
+            text: `Your Muse has ${json.muse.length} saves. Want suggestions based on them?`,
+            query: "Give me suggestions based on my Muse saves",
+          });
+        }
+      })
+      .catch(() => {});
+  }, [session]);
+
   // Mark task complete
   async function completeTask(id: string) {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, is_complete: true } : t));
     try {
       await fetch(`${API}/api/v2/couple/tasks/${id}/complete`, { method: 'PATCH' });
-    } catch {
-      // revert optimistically if needed — silently fail for now
-    }
+    } catch {}
+  }
+
+  function openDreamAi(prefill?: string) {
+    setDreamAiPrefill(prefill || '');
+    setDreamAiOpen(true);
   }
 
   const incompleteTasks = tasks.filter(t => !t.is_complete);
@@ -194,6 +471,14 @@ export default function CoupleTodayPage() {
       `}</style>
 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+
+      <DreamAiSheet
+        visible={dreamAiOpen}
+        onClose={() => setDreamAiOpen(false)}
+        context={dreamAiContext}
+        userId={session?.id || ''}
+        prefill={dreamAiPrefill}
+      />
 
       <div style={{
         minHeight: '100dvh', background: '#F8F7F5',
@@ -269,6 +554,36 @@ export default function CoupleTodayPage() {
                 )}
               </div>
 
+              {/* DreamAi Nudge */}
+              {nudge && (
+                <button
+                  onClick={() => openDreamAi(nudge.query)}
+                  style={{
+                    width: '100%', textAlign: 'left',
+                    background: '#FFFFFF',
+                    border: '0.5px solid #E2DED8',
+                    borderLeft: '3px solid #C9A84C',
+                    borderRadius: 8, padding: 14, marginBottom: 20,
+                    cursor: 'pointer', touchAction: 'manipulation',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 13, flexShrink: 0 }}>✦</span>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 14, fontWeight: 300, color: '#111111',
+                      margin: 0, lineHeight: 1.4,
+                    }}>{nudge.text}</p>
+                  </div>
+                  <span style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 9,
+                    fontWeight: 300, letterSpacing: '0.2em',
+                    color: '#C9A84C', flexShrink: 0,
+                  }}>ASK →</span>
+                </button>
+              )}
+
               {/* Section 1: Needs Your Attention */}
               <div style={{ marginBottom: 28 }}>
                 <p style={{
@@ -294,7 +609,6 @@ export default function CoupleTodayPage() {
                         display: 'flex', alignItems: 'flex-start', gap: 12,
                         touchAction: 'manipulation',
                       }}>
-                        {/* Checkbox */}
                         <button
                           onClick={() => completeTask(task.id)}
                           style={{
@@ -356,7 +670,6 @@ export default function CoupleTodayPage() {
                         borderRadius: 8, padding: 16, marginBottom: 8,
                         display: 'flex', alignItems: 'stretch', gap: 0, overflow: 'hidden',
                       }}>
-                        {/* Gold accent bar */}
                         <div style={{
                           width: 2, background: '#C9A84C', borderRadius: '2px 0 0 2px',
                           flexShrink: 0, marginRight: 14,
@@ -425,7 +738,6 @@ export default function CoupleTodayPage() {
                   ))}
                 </div>
 
-                {/* Gold progress bar */}
                 {(data?.budget.total ?? 0) > 0 && (
                   <div style={{
                     height: 1, background: '#E2DED8', borderRadius: 0, overflow: 'hidden',
@@ -442,6 +754,36 @@ export default function CoupleTodayPage() {
               </div>
             </>
           )}
+        </div>
+
+        {/* DreamAi Bar */}
+        <div style={{
+          position: 'fixed', bottom: 56, left: 0, right: 0, zIndex: 90,
+          padding: '0 16px 8px',
+        }}>
+          <button
+            onClick={() => openDreamAi()}
+            style={{
+              width: '100%', background: '#FFFFFF',
+              border: '0.5px solid #E2DED8',
+              borderRadius: '12px 12px 12px 12px',
+              padding: '12px 16px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              cursor: 'pointer', touchAction: 'manipulation',
+              boxShadow: '0 -1px 12px rgba(17,17,17,0.06)',
+            }}
+          >
+            <span style={{ fontSize: 13, color: '#C9A84C' }}>✦</span>
+            <span style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+              letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580',
+              marginRight: 4,
+            }}>DreamAi</span>
+            <span style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+              fontWeight: 300, color: '#C8C4BE', fontStyle: 'italic',
+            }}>Ask anything about your wedding...</span>
+          </button>
         </div>
 
         {/* Bottom Nav */}

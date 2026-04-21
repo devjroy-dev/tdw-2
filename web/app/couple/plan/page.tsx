@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
-const RAILWAY_URL = process.env.NEXT_PUBLIC_RAILWAY_URL || 'https://dream-wedding-production-89ae.up.railway.app';
+const RAILWAY_URL = 'https://dream-wedding-production-89ae.up.railway.app';
 
+// ─── Session ──────────────────────────────────────────────────────────────────
 interface CoupleSession {
   id: string;
-  name: string;
+  name?: string;
   dreamer_type?: string;
 }
 
@@ -18,31 +19,205 @@ function getSession(): CoupleSession | null {
   } catch { return null; }
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Tab = 'tasks' | 'money' | 'people' | 'events';
 
-const shimmer: React.CSSProperties = {
-  background: 'linear-gradient(90deg,#F4F1EC 25%,#FFF8EC 50%,#F4F1EC 75%)',
-  backgroundSize: '200% 100%',
-  animation: 'shimmer 1.4s infinite',
-  borderRadius: 12,
-};
-
-function Shimmer({ h, w = '100%', br = 12, mt = 0 }: { h: number; w?: string | number; br?: number; mt?: number }) {
-  return <div style={{ ...shimmer, height: h, width: w, borderRadius: br, marginTop: mt }} />;
-}
-
-// ─── Tasks ───────────────────────────────────────────────────────────────────
-
-type Task = {
+interface Task {
   id: string;
   title: string;
+  status: string;
+  priority: string;
+  due_date?: string;
   event_name?: string;
   events?: { name: string };
-  due_date?: string;
-  status: 'pending' | 'in_progress' | 'done';
-  priority: 'high' | 'medium' | 'low';
-};
+}
 
+// ─── Shimmer ──────────────────────────────────────────────────────────────────
+function Shimmer({ h, w = '100%', br = 8, mt = 0 }: { h: number; w?: string | number; br?: number; mt?: number }) {
+  return (
+    <div style={{
+      height: h, width: w, borderRadius: br, marginTop: mt,
+      background: 'linear-gradient(90deg,#EEECE8 25%,#F8F7F5 50%,#EEECE8 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s infinite',
+      willChange: 'background-position',
+    }} />
+  );
+}
+
+// ─── DreamAi Sheet (shared across tabs) ──────────────────────────────────────
+interface ChatMessage { role: 'user' | 'ai'; text: string; }
+
+function DreamAiSheet({
+  visible, onClose, userId, prefill,
+}: {
+  visible: boolean; onClose: () => void; userId: string; prefill?: string;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [context, setContext] = useState<object | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${RAILWAY_URL}/api/v2/dreamai/couple-context/${userId}`)
+      .then(r => r.json()).then(setContext).catch(() => {});
+  }, [userId]);
+
+  useEffect(() => {
+    if (visible && prefill) setInput(prefill);
+  }, [visible, prefill]);
+
+  useEffect(() => {
+    if (visible) setTimeout(() => inputRef.current?.focus(), 400);
+  }, [visible]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  async function sendMessage(text: string) {
+    const msg = text.trim();
+    if (!msg || loading) return;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: msg }]);
+    setLoading(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/v2/dreamai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userType: 'couple', message: msg, context }),
+      });
+      const json = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', text: json.reply || 'Something went wrong.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Unable to reach DreamAi.' }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        background: 'rgba(17,17,17,0.4)',
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'opacity',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301,
+        height: '92dvh', background: '#FFFFFF',
+        borderRadius: '24px 24px 0 0',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'transform',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 20px 12px', borderBottom: '0.5px solid #E2DED8',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>✦</span>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111' }}>DreamAi</span>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#888580',
+            padding: 4, touchAction: 'manipulation',
+          }}>✕</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 16px' }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', marginTop: 48 }}>
+              <p style={{
+                fontFamily: "'Cormorant Garamond', serif", fontSize: 18,
+                fontWeight: 300, fontStyle: 'italic', color: '#888580', margin: 0,
+              }}>Ask anything about your wedding.</p>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+              marginBottom: 12,
+            }}>
+              <div style={{
+                maxWidth: '80%',
+                background: m.role === 'user' ? '#FFFFFF' : '#F8F7F5',
+                border: m.role === 'user' ? '0.5px solid #C9A84C' : '0.5px solid #E2DED8',
+                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                padding: '10px 14px',
+              }}>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+                  fontWeight: 300, color: '#111111', margin: 0, lineHeight: 1.5,
+                }}>{m.text}</p>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+              <div style={{
+                background: '#F8F7F5', border: '0.5px solid #E2DED8',
+                borderRadius: '16px 16px 16px 4px', padding: '10px 16px',
+              }}>
+                <Shimmer h={14} w={120} br={4} />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+        <div style={{
+          display: 'flex', gap: 10, padding: '12px 16px',
+          borderTop: '0.5px solid #E2DED8',
+          paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+          background: '#FFFFFF',
+        }}>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') sendMessage(input); }}
+            placeholder="Ask anything about your wedding..."
+            style={{
+              flex: 1, height: 44,
+              fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+              color: '#111111', background: '#F8F7F5',
+              border: '0.5px solid #E2DED8', borderRadius: 22,
+              padding: '0 16px', outline: 'none',
+            }}
+          />
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !input.trim()}
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: input.trim() ? '#C9A84C' : '#E2DED8',
+              border: 'none', cursor: input.trim() ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, touchAction: 'manipulation',
+              transition: 'background 200ms cubic-bezier(0.22,1,0.36,1)',
+              willChange: 'transform',
+            }}
+          >
+            <span style={{ color: '#FFFFFF', fontSize: 16 }}>↑</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Tasks ────────────────────────────────────────────────────────────────────
 type TaskFilter = 'event' | 'phase' | 'priority';
 
 function formatDue(d?: string) {
@@ -102,7 +277,7 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
-function TasksTab({ userId }: { userId: string }) {
+function TasksTab({ userId, onOpenDreamAi }: { userId: string; onOpenDreamAi: (prefill: string) => void }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TaskFilter>('event');
@@ -146,18 +321,36 @@ function TasksTab({ userId }: { userId: string }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {filterChips.map(fc => (
-          <button key={fc.key} onClick={() => setFilter(fc.key)} style={{
-            fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
-            padding: '4px 10px', borderRadius: 100,
-            border: filter === fc.key ? 'none' : '1px solid #E2DED8',
-            background: filter === fc.key ? '#0C0A09' : 'transparent',
-            color: filter === fc.key ? '#FAFAF8' : '#8C8480',
-            cursor: 'pointer', letterSpacing: '0.1em',
-          }}>{fc.label}</button>
-        ))}
+      {/* Filter chips row + DreamAi button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {filterChips.map(fc => (
+            <button key={fc.key} onClick={() => setFilter(fc.key)} style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+              padding: '4px 10px', borderRadius: 100,
+              border: filter === fc.key ? 'none' : '1px solid #E2DED8',
+              background: filter === fc.key ? '#0C0A09' : 'transparent',
+              color: filter === fc.key ? '#FAFAF8' : '#8C8480',
+              cursor: 'pointer', letterSpacing: '0.1em',
+            }}>{fc.label}</button>
+          ))}
+        </div>
+        <button
+          onClick={() => onOpenDreamAi('Help me prioritise my tasks')}
+          style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+            letterSpacing: '0.15em', textTransform: 'uppercase',
+            color: '#888580', background: 'none',
+            border: '0.5px solid #E2DED8', borderRadius: 100,
+            padding: '4px 10px', cursor: 'pointer',
+            touchAction: 'manipulation',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <span style={{ fontSize: 10 }}>✦</span> Ask DreamAi
+        </button>
       </div>
+
       {tasks.length === 0 ? (
         <div style={{ marginTop: 64, textAlign: 'center' }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>No tasks yet.</p>
@@ -207,8 +400,6 @@ function fmtINR(n: number) {
   return '₹' + n.toLocaleString('en-IN');
 }
 
-// ─── Razorpay Checkout ────────────────────────────────────────────────────────
-
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise(resolve => {
     if ((window as any).Razorpay) { resolve(true); return; }
@@ -221,19 +412,10 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 async function openRazorpay({
-  userId,
-  paymentType,
-  amount,
-  label,
-  onSuccess,
-  onError,
+  userId, paymentType, amount, label, onSuccess, onError,
 }: {
-  userId: string;
-  paymentType: string;
-  amount: number;
-  label: string;
-  onSuccess: () => void;
-  onError: (msg: string) => void;
+  userId: string; paymentType: string; amount: number; label: string;
+  onSuccess: () => void; onError: (msg: string) => void;
 }) {
   const loaded = await loadRazorpayScript();
   if (!loaded) { onError('Payment service unavailable. Please try again.'); return; }
@@ -250,15 +432,9 @@ async function openRazorpay({
   }
 
   const { order_id, key_id } = orderRes;
-
   const rzp = new (window as any).Razorpay({
-    key: key_id,
-    amount: amount * 100,
-    currency: 'INR',
-    order_id,
-    name: 'The Dream Wedding',
-    description: label,
-    theme: { color: '#C9A84C' },
+    key: key_id, amount: amount * 100, currency: 'INR', order_id,
+    name: 'The Dream Wedding', description: label, theme: { color: '#C9A84C' },
     handler: async (response: any) => {
       const verifyRes = await fetch(`${RAILWAY_URL}/api/v2/razorpay/verify-payment`, {
         method: 'POST',
@@ -267,47 +443,29 @@ async function openRazorpay({
           razorpay_order_id: response.razorpay_order_id,
           razorpay_payment_id: response.razorpay_payment_id,
           razorpay_signature: response.razorpay_signature,
-          payment_type: paymentType,
-          user_id: userId,
+          payment_type: paymentType, user_id: userId,
         }),
       }).then(r => r.json()).catch(() => null);
-
-      if (verifyRes?.success) {
-        onSuccess();
-      } else {
-        onError('Payment verification failed. Contact support if amount was deducted.');
-      }
+      if (verifyRes?.success) onSuccess();
+      else onError('Payment verification failed. Contact support if amount was deducted.');
     },
     modal: { ondismiss: () => {} },
   });
   rzp.open();
 }
 
-// ─── Upgrade Card ─────────────────────────────────────────────────────────────
-
-function UpgradeCard({
-  userId,
-  currentTier,
-  onUpgraded,
-}: {
-  userId: string;
-  currentTier: string;
-  onUpgraded: () => void;
-}) {
+function UpgradeCard({ userId, currentTier, onUpgraded }: { userId: string; currentTier: string; onUpgraded: () => void }) {
   const [paying, setPaying] = useState(false);
   const [toast, setToast] = useState('');
 
   const isBasic = !currentTier || currentTier === 'basic';
   const isGold = currentTier === 'gold';
-
-  // Don't show card if already Platinum
   if (currentTier === 'platinum') return null;
 
   const target = isBasic ? (isGold ? 'platinum' : 'gold') : 'platinum';
   const label = target === 'gold' ? 'Gold — ₹999' : 'Platinum — ₹2,999';
   const amount = target === 'gold' ? 999 : 2999;
   const paymentType = target === 'gold' ? 'couple_gold' : 'couple_platinum';
-
   const benefits = target === 'gold'
     ? ['Priority discovery', 'Unlock full vendor profiles', 'Booking history']
     : ['DreamAi — your AI wedding planner', 'Couture appointments', 'Memory Box'];
@@ -315,10 +473,7 @@ function UpgradeCard({
   const handleUpgrade = async () => {
     setPaying(true);
     await openRazorpay({
-      userId,
-      paymentType,
-      amount,
-      label,
+      userId, paymentType, amount, label,
       onSuccess: () => {
         setPaying(false);
         setToast('Welcome to ' + (target === 'gold' ? 'Gold' : 'Platinum') + '!');
@@ -335,62 +490,40 @@ function UpgradeCard({
   return (
     <>
       <div style={{
-        background: '#0C0A09',
-        borderRadius: 16,
-        padding: 24,
-        marginBottom: 20,
-        position: 'relative',
-        overflow: 'hidden',
+        background: '#0C0A09', borderRadius: 16, padding: 24, marginBottom: 20,
+        position: 'relative', overflow: 'hidden',
       }}>
-        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 8px' }}>
-          UPGRADE
-        </p>
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 8px' }}>UPGRADE</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#F8F7F5', margin: '0 0 16px', lineHeight: 1.2 }}>
           {target === 'gold' ? 'Unlock the full journey.' : 'Your AI wedding planner awaits.'}
         </p>
         <div style={{ marginBottom: 20 }}>
           {benefits.map(b => (
-            <p key={b} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 4px' }}>
-              · {b}
-            </p>
+            <p key={b} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 4px' }}>· {b}</p>
           ))}
         </div>
-        <button
-          onClick={handleUpgrade}
-          disabled={paying}
-          style={{
-            fontFamily: "'Jost', sans-serif",
-            fontSize: 9,
-            fontWeight: 400,
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            color: '#0C0A09',
-            background: '#C9A84C',
-            border: 'none',
-            borderRadius: 100,
-            padding: '10px 20px',
-            cursor: paying ? 'not-allowed' : 'pointer',
-            opacity: paying ? 0.6 : 1,
-            touchAction: 'manipulation',
-          }}
-        >
-          {paying ? 'Opening...' : label}
-        </button>
+        <button onClick={handleUpgrade} disabled={paying} style={{
+          fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+          letterSpacing: '0.2em', textTransform: 'uppercase',
+          color: '#0C0A09', background: '#C9A84C', border: 'none',
+          borderRadius: 100, padding: '10px 20px',
+          cursor: paying ? 'not-allowed' : 'pointer',
+          opacity: paying ? 0.6 : 1, touchAction: 'manipulation',
+        }}>{paying ? 'Opening...' : label}</button>
       </div>
       {toast && (
         <div style={{
           position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
           background: '#0C0A09', color: '#F8F7F5',
           fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
-          padding: '12px 20px', borderRadius: 100, zIndex: 999,
-          whiteSpace: 'nowrap',
+          padding: '12px 20px', borderRadius: 100, zIndex: 999, whiteSpace: 'nowrap',
         }}>{toast}</div>
       )}
     </>
   );
 }
 
-function MoneyTab({ userId, dreamerType }: { userId: string; dreamerType: string }) {
+function MoneyTab({ userId, dreamerType, onOpenDreamAi }: { userId: string; dreamerType: string; onOpenDreamAi: (prefill: string) => void }) {
   const [data, setData] = useState<MoneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
@@ -421,15 +554,32 @@ function MoneyTab({ userId, dreamerType }: { userId: string; dreamerType: string
 
   return (
     <div>
-      {/* Upgrade card — shown above budget if not Platinum */}
       <UpgradeCard
         userId={userId}
         currentTier={currentTier}
         onUpgraded={() => setCurrentTier(currentTier === 'basic' ? 'gold' : 'platinum')}
       />
 
+      {/* Budget hero + DreamAi button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>TOTAL JOURNEY</p>
+        <button
+          onClick={() => onOpenDreamAi('Am I over budget on anything?')}
+          style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+            letterSpacing: '0.15em', textTransform: 'uppercase',
+            color: '#888580', background: 'none',
+            border: '0.5px solid #E2DED8', borderRadius: 100,
+            padding: '4px 10px', cursor: 'pointer',
+            touchAction: 'manipulation',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <span style={{ fontSize: 10 }}>✦</span> Ask DreamAi
+        </button>
+      </div>
+
       <div style={{ background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 16, padding: 24, marginBottom: 20 }}>
-        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 6px' }}>TOTAL JOURNEY</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: '#0C0A09', margin: '0 0 16px', lineHeight: 1 }}>{fmtINR(d.totalBudget)}</p>
         <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
           <div>
@@ -833,6 +983,8 @@ export default function CouplePlanPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [allGuests, setAllGuests] = useState<Guest[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  const [dreamAiOpen, setDreamAiOpen] = useState(false);
+  const [dreamAiPrefill, setDreamAiPrefill] = useState('');
 
   useEffect(() => { setSession(getSession()); }, []);
 
@@ -857,18 +1009,30 @@ export default function CouplePlanPage() {
   const dreamerType = session.dreamer_type || 'basic';
   const initial = (session.name?.[0] || 'D').toUpperCase();
 
+  function openDreamAi(prefill: string) {
+    setDreamAiPrefill(prefill);
+    setDreamAiOpen(true);
+  }
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
-        * { box-sizing: border-box; } body { margin: 0; background: #FAFAF8; }
+        * { box-sizing: border-box; } body { margin: 0; background: #F8F7F5; }
         ::-webkit-scrollbar { display: none; }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
 
-      <div style={{ background: '#FAFAF8', minHeight: '100dvh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
+      <DreamAiSheet
+        visible={dreamAiOpen}
+        onClose={() => setDreamAiOpen(false)}
+        userId={userId}
+        prefill={dreamAiPrefill}
+      />
+
+      <div style={{ background: '#F8F7F5', minHeight: '100dvh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: 0 }}>Plan</h1>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#111111', margin: 0 }}>Plan</h1>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initial}</span>
           </div>
@@ -881,25 +1045,25 @@ export default function CouplePlanPage() {
               letterSpacing: '0.15em', textTransform: 'uppercase',
               padding: '6px 14px', borderRadius: 100,
               border: activeTab === tab.key ? 'none' : '1px solid #E2DED8',
-              background: activeTab === tab.key ? '#0C0A09' : 'transparent',
-              color: activeTab === tab.key ? '#FAFAF8' : '#8C8480',
+              background: activeTab === tab.key ? '#111111' : 'transparent',
+              color: activeTab === tab.key ? '#F8F7F5' : '#888580',
               cursor: 'pointer', transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
             }}>{tab.label}</button>
           ))}
         </div>
 
         <div style={{ padding: '8px 16px 0' }}>
-          {activeTab === 'tasks' && <TasksTab userId={userId} />}
-          {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} />}
+          {activeTab === 'tasks' && <TasksTab userId={userId} onOpenDreamAi={openDreamAi} />}
+          {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} />}
           {activeTab === 'people' && <PeopleTab userId={userId} />}
           {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} />}
         </div>
       </div>
 
-      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#FAFAF8', borderTop: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'space-around', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100 }}>
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#F8F7F5', borderTop: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'space-around', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100 }}>
         {NAV_ITEMS.map(item => (
           <a key={item.key} href={item.href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', gap: 4, textDecoration: 'none' }}>
-            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: item.key === 'plan' ? 400 : 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: item.key === 'plan' ? '#0C0A09' : '#8C8480' }}>{item.label}</span>
+            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: item.key === 'plan' ? 400 : 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: item.key === 'plan' ? '#111111' : '#888580' }}>{item.label}</span>
             {item.key === 'plan' && <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#C9A84C', display: 'block' }} />}
           </a>
         ))}
