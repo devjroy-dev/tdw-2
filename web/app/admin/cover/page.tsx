@@ -204,8 +204,8 @@ export default function AdminCoverPage() {
                   <div key={photo.id} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 6, overflow: 'hidden' }}>
                     <div style={{
                       height: 160,
-                      backgroundImage: photo.image_url ? `url(${photo.image_url})` : 'none',
-                      background: photo.image_url ? undefined : '#F4F1EC',
+                      backgroundImage: photo.image_url ? `url(${photo.image_url})` : undefined,
+                      backgroundColor: photo.image_url ? undefined : '#F4F1EC',
                       backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative',
                     }}>
                       <div style={{ position: 'absolute', top: 8, left: 10, fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, color: '#C9A84C', letterSpacing: '0.2em' }}>
