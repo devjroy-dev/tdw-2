@@ -56,7 +56,7 @@ function StatCard({
   return (
     <div
       style={{
-        background: "#F4F1EC",
+        background: "#0C0A09",
         borderRadius: "12px",
         padding: "16px",
         border: "1px solid #E2DED8",
@@ -67,7 +67,7 @@ function StatCard({
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: "28px",
           fontWeight: 300,
-          color: "#0C0A09",
+          color: "#F8F7F5",
           margin: "0 0 4px",
           lineHeight: 1,
         }}
@@ -129,7 +129,7 @@ export default function DiscoveryDashPage() {
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: "28px",
             fontWeight: 300,
-            color: "#0C0A09",
+            color: "#F8F7F5",
             margin: 0,
             lineHeight: 1.1,
           }}
@@ -142,7 +142,7 @@ export default function DiscoveryDashPage() {
       <div style={{ padding: "0 24px 24px" }}>
         <div
           style={{
-            background: "#F4F1EC",
+            background: "#0C0A09",
             borderRadius: "16px",
             padding: "24px",
             border: "1px solid #E2DED8",
@@ -158,7 +158,7 @@ export default function DiscoveryDashPage() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: "18px",
                 fontWeight: 300,
-                color: "#0C0A09",
+                color: "#F8F7F5",
                 margin: "0 0 6px",
                 lineHeight: 1.2,
               }}
@@ -313,7 +313,7 @@ export default function DiscoveryDashPage() {
               fontFamily: "'DM Sans', sans-serif",
               fontSize: "14px",
               fontWeight: 300,
-              color: "#0C0A09",
+              color: "#F8F7F5",
               margin: "0 0 4px",
               lineHeight: 1.5,
             }}
