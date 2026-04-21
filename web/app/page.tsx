@@ -106,10 +106,12 @@ export default function Home() {
 
   const sendOtp = async () => {
     try {
-      await fetch(`${BACKEND}/api/v2/couple/auth/send-otp`, {
+      const r = await fetch(`${BACKEND}/api/auth/send-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone.replace(/\D/g, '') })
       });
+      const d = await r.json();
+      if (d.sessionInfo) localStorage.setItem('otp_session', d.sessionInfo);
       setScreen(screen === 'signin' ? 'signin2' : 'otp2');
     } catch { showToast('Could not send code. Try again.'); }
   };
@@ -118,7 +120,7 @@ export default function Home() {
     try {
       const res = await fetch(`${BACKEND}/api/auth/verify-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.replace(/\D/g, ''), code: otp.join('') })
+        body: JSON.stringify({ sessionInfo: localStorage.getItem('otp_session') || 'admin_sdk_' + phone.replace(/\D/g, ''), code: otp.join('') })
       });
       const d = await res.json();
       if (d.success) {
