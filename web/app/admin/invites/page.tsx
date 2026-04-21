@@ -40,7 +40,7 @@ export default function AdminInvitesPage() {
     try {
       const r = await fetch(`${API}/api/v2/admin/invites`, { headers: h });
       const d = await r.json();
-      setCodes(d.codes || []);
+      setCodes(Array.isArray(d) ? d : d.codes || []);
     } finally { setLoading(false); }
   };
 
