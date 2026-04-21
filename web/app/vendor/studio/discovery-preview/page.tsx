@@ -18,7 +18,7 @@ export default function DiscoveryPreviewPage() {
       <DiscoverFeed isSignedIn={true} profileComplete={true} vendorOverrideCards={vendorCards ?? undefined} isVendorPreview={true} />
       {vendorCards && vendorCards.length > 0 && (
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: "rgba(12,10,9,0.85)", backdropFilter: "blur(8px)", padding: "20px 24px 32px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 300, fontSize: 15, color: "#FAFAF8", margin: "0 0 6px", textAlign: "center" }}>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 300, fontSize: 15, color: "#F8F7F5", margin: "0 0 6px", textAlign: "center" }}>
             {stats.views} views · {stats.saves} saves · {stats.enquiry_ready} enquiry-ready
           </p>
           <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 300, fontSize: 13, color: "#8C8480", margin: 0, textAlign: "center" }}>

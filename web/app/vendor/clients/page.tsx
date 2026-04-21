@@ -125,7 +125,7 @@ export default function ClientsPage() {
             width: "100%",
             height: "48px",
             backgroundColor: "#F4F1EC",
-            border: "1px solid #E8E4DE",
+            border: "1px solid #E2DED8",
             borderRadius: "12px",
             paddingLeft: "42px",
             paddingRight: "16px",
@@ -164,12 +164,12 @@ export default function ClientsPage() {
                 textTransform: "uppercase",
                 padding: "8px 14px",
                 borderRadius: "999px",
-                border: isActive ? "none" : "1px solid #E8E4DE",
+                border: isActive ? "none" : "1px solid #E2DED8",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
                 backgroundColor: isActive ? "#0C0A09" : "#F4F1EC",
-                color: isActive ? "#FAFAF8" : "#8C8480",
+                color: isActive ? "#F8F7F5" : "#8C8480",
                 transition: "all 0.15s ease",
               }}
             >

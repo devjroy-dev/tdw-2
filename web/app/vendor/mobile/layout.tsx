@@ -9,7 +9,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#FAF6F0",
+  themeColor: "#F8F7F5",
 };
 
 export default function VendorMobileLayout({ children }: { children: React.ReactNode }) {

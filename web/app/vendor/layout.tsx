@@ -29,7 +29,7 @@ export default function VendorLayout({
     <ModeContext.Provider value={{ mode, setMode }}>
       <div
         style={{
-          backgroundColor: "#FAFAF8",
+          backgroundColor: "#F8F7F5",
           fontFamily: "'DM Sans', sans-serif",
           minHeight: "100vh",
         }}

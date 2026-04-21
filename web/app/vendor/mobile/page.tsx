@@ -74,22 +74,22 @@ const SIGNATURE_TOOLS = [
 
 const C = {
   // Surfaces (lightest → warmest)
-  cream: '#FAF6F0',          // page background
+  cream: '#F8F7F5',          // page background
   ivory: '#FFFFFF',          // card base
   card: '#FFFFFF',
-  pearl: '#FBF8F2',          // subtle off-ivory for layered cards
-  champagne: '#FFFDF7',      // whisper-warm gold-tinted cream
+  pearl: '#F8F7F5',          // subtle off-ivory for layered cards
+  champagne: '#FFFFFF',      // whisper-warm gold-tinted cream
   goldSoft: '#FFF8EC',       // soft gold-cream (primary accent surface)
   goldMist: '#FFF3DB',       // deeper gold-cream for hero moments
-  goldBorder: '#E8D9B5',     // warm gold border
+  goldBorder: '#E2DED8',     // warm gold border
   border: '#EDE8E0',         // neutral cream border
   borderSoft: '#F2EDE4',     // whisper border
   // Ink (text + deep accent)
-  dark: '#2C2420',           // primary text (espresso) — still used for text, rarely for backgrounds
+  dark: '#111111',           // primary text (espresso) — still used for text, rarely for backgrounds
   gold: '#C9A84C',           // warm gold accent
   goldDeep: '#B8963A',       // deeper gold for small dense text
-  muted: '#8C7B6E',          // muted brown-taupe
-  light: '#B8ADA4',          // light taupe
+  muted: '#888580',          // muted brown-taupe
+  light: '#C8C4BE',          // light taupe
   // Semantic
   green: '#4CAF50',
   greenSoft: 'rgba(76,175,80,0.08)',
@@ -164,7 +164,7 @@ function SearchBar({ value, onChange, placeholder }: {
         background: '#FFFFFF', border: '1px solid #E8E0D5', borderRadius: 10,
         padding: '8px 12px',
       }}>
-        <Search size={14} color="#8C7B6E" />
+        <Search size={14} color="#888580" />
         <input
           value={value}
           onChange={e => onChange(e.target.value)}
@@ -172,7 +172,7 @@ function SearchBar({ value, onChange, placeholder }: {
           placeholder={placeholder}
           style={{
             flex: 1, background: 'transparent', border: 'none', outline: 'none',
-            fontSize: 13, fontFamily: 'DM Sans, sans-serif', color: '#2C2420',
+            fontSize: 13, fontFamily: 'DM Sans, sans-serif', color: '#111111',
           }}
         />
         {value && (
@@ -180,7 +180,7 @@ function SearchBar({ value, onChange, placeholder }: {
             background: 'none', border: 'none', cursor: 'pointer', padding: 2,
             display: 'flex' as const, alignItems: 'center' as const,
           }}>
-            <X size={12} color="#8C7B6E" />
+            <X size={12} color="#888580" />
           </button>
         )}
       </div>
@@ -3321,7 +3321,7 @@ function MoreTab({ session, tier, vendorData, aiStatus, buyingTokens, setBuyingT
       {/* ── DREAM AI USAGE CARD (active users only) ── */}
       {vendorData?.ai_enabled && aiStatus && (
         <div style={{
-          background: 'linear-gradient(180deg, #FFFDF7 0%, #FFF8EC 100%)',
+          background: 'linear-gradient(180deg, #FFFFFF 0%, #FFF8EC 100%)',
           borderRadius: '14px',
           border: '1px solid rgba(201,168,76,0.3)',
           padding: '20px',
@@ -8321,7 +8321,7 @@ function DreamAiModal({ vendorData, aiRequestSent, onClose, onRequestSent }: any
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'linear-gradient(135deg, #1A1410 0%, #2C2420 50%, #1A1410 100%)',
+          background: 'linear-gradient(135deg, #1A1410 0%, #111111 50%, #1A1410 100%)',
           borderRadius: '20px',
           maxWidth: '480px', width: '100%',
           padding: '28px 24px',
@@ -8367,7 +8367,7 @@ function DreamAiModal({ vendorData, aiRequestSent, onClose, onRequestSent }: any
         }}>Dream Ai</div>
         <div style={{
           fontFamily: "'Playfair Display', serif",
-          fontSize: '18px', color: '#FAF6F0', fontWeight: 300,
+          fontSize: '18px', color: '#F8F7F5', fontWeight: 300,
           marginBottom: '24px', lineHeight: 1.3,
         }}>Run your business from WhatsApp.</div>
 
@@ -8400,7 +8400,7 @@ function DreamAiModal({ vendorData, aiRequestSent, onClose, onRequestSent }: any
               <div style={{ flex: 1 }}>
                 <div style={{
                   fontFamily: 'DM Sans, sans-serif', fontSize: '12px',
-                  color: '#FAF6F0', fontWeight: 400, marginBottom: '2px',
+                  color: '#F8F7F5', fontWeight: 400, marginBottom: '2px',
                 }}>{ex.cmd}</div>
                 <div style={{
                   fontFamily: 'DM Sans, sans-serif', fontSize: '11px',

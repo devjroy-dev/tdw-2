@@ -108,7 +108,7 @@ export default function MoneyPage() {
   return (
     <div
       style={{
-        backgroundColor: "#FAFAF8",
+        backgroundColor: "#F8F7F5",
         minHeight: "100vh",
         paddingTop: "56px",
         paddingBottom: "calc(64px + env(safe-area-inset-bottom) + 16px)",
@@ -161,7 +161,7 @@ export default function MoneyPage() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: "28px",
                 fontWeight: 300,
-                color: gold ? "#C9A84C" : "#FAFAF8",
+                color: gold ? "#C9A84C" : "#F8F7F5",
                 lineHeight: 1,
               }}
             >
@@ -177,8 +177,8 @@ export default function MoneyPage() {
           position: "sticky",
           top: "56px",
           zIndex: 40,
-          backgroundColor: "#FAFAF8",
-          borderBottom: "1px solid #E8E4DE",
+          backgroundColor: "#F8F7F5",
+          borderBottom: "1px solid #E2DED8",
           display: "flex",
           alignItems: "center",
           gap: "8px",
@@ -206,7 +206,7 @@ export default function MoneyPage() {
                 whiteSpace: "nowrap",
                 flexShrink: 0,
                 background: active ? "#0C0A09" : "#F4F1EC",
-                color:      active ? "#FAFAF8" : "#8C8480",
+                color:      active ? "#F8F7F5" : "#8C8480",
                 transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
             >
@@ -248,7 +248,7 @@ export default function MoneyPage() {
                     whiteSpace: "nowrap",
                     flexShrink: 0,
                     background: active ? "#0C0A09" : "#F4F1EC",
-                    color:      active ? "#FAFAF8" : "#8C8480",
+                    color:      active ? "#F8F7F5" : "#8C8480",
                     transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
                   }}
                 >
@@ -363,7 +363,7 @@ export default function MoneyPage() {
                         marginTop: "8px",
                         height: "2px",
                         borderRadius: "1px",
-                        backgroundColor: "#E8E4DE",
+                        backgroundColor: "#E2DED8",
                         overflow: "hidden",
                       }}
                     >

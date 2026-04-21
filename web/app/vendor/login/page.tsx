@@ -4,17 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
 const C = {
-  cream: '#FAF6F0',
+  cream: '#F8F7F5',
   ivory: '#FFFFFF',
-  pearl: '#FBF8F2',
+  pearl: '#F8F7F5',
   goldSoft: '#FFF8EC',
-  goldBorder: '#E8D9B5',
+  goldBorder: '#E2DED8',
   border: '#EDE8E0',
-  dark: '#2C2420',
+  dark: '#111111',
   gold: '#C9A84C',
   goldDeep: '#B8963A',
-  muted: '#8C7B6E',
-  mutedLight: '#B8ADA4',
+  muted: '#888580',
+  mutedLight: '#C8C4BE',
   red: '#C65757',
   redSoft: '#FBEEEE',
   redBorder: '#F0CFCF',
@@ -68,6 +68,7 @@ export default function VendorLoginPage() {
             margin: '0 0 4px', fontSize: 10, color: C.goldDeep, fontWeight: 500,
             letterSpacing: '3px', textTransform: 'uppercase',
           }}>The Dream Wedding</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, fontWeight: 300, fontStyle: 'italic', color: '#888580', textAlign: 'center', margin: '6px 0 0', letterSpacing: '0.04em' }}>Behind every dream, there is a Maker.</p>
           <h1 style={{
             margin: 0, fontSize: 28, color: C.dark,
             fontFamily: "'Playfair Display', serif", fontWeight: 400, lineHeight: '34px',

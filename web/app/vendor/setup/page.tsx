@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
 const C = {
-  cream: '#FAF6F0',
+  cream: '#F8F7F5',
   ivory: '#FFFFFF',
   border: '#EDE8E0',
-  dark: '#2C2420',
+  dark: '#111111',
   gold: '#C9A84C',
   goldDeep: '#B8963A',
-  goldBorder: '#E8D9B5',
+  goldBorder: '#E2DED8',
   goldSoft: '#FFF8EC',
-  muted: '#8C7B6E',
-  mutedLight: '#B8ADA4',
+  muted: '#888580',
+  mutedLight: '#C8C4BE',
   red: '#C65757',
   redSoft: '#FBEEEE',
   redBorder: '#F0CFCF',

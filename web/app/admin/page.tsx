@@ -13,9 +13,9 @@ const CODE_TYPES = [
 const PLANS = ['essential', 'signature', 'prestige'];
 
 const TIER_INFO: Record<string, { label: string; rec: string; color: string }> = {
-  essential: { label: 'Essential', rec: 'Recommended for Solo Vendors', color: '#8C7B6E' },
+  essential: { label: 'Essential', rec: 'Recommended for Solo Vendors', color: '#888580' },
   signature: { label: 'Signature', rec: 'Recommended for Established Businesses', color: '#C9A84C' },
-  prestige: { label: 'Prestige', rec: 'Invite Only', color: '#2C2420' },
+  prestige: { label: 'Prestige', rec: 'Invite Only', color: '#111111' },
 };
 
 // Grouped sidebar navigation
@@ -74,8 +74,8 @@ const TABS = NAV_GROUPS.flatMap(g => g.items);
 const s: any = {
   page: { minHeight: '100vh', background: '#F5F0E8', fontFamily: 'system-ui, -apple-system, sans-serif' },
   shell: { display: 'flex', minHeight: '100vh' },
-  sidebar: { width: 220, background: '#2C2420', padding: '18px 0 24px', color: '#C9A84C', position: 'sticky' as const, top: 0, height: '100vh', overflowY: 'auto' as const, flexShrink: 0 },
-  sidebarGroup: { fontSize: 9, color: '#8C7B6E', letterSpacing: 2, textTransform: 'uppercase' as const, fontWeight: 500, padding: '14px 20px 6px' },
+  sidebar: { width: 220, background: '#111111', padding: '18px 0 24px', color: '#C9A84C', position: 'sticky' as const, top: 0, height: '100vh', overflowY: 'auto' as const, flexShrink: 0 },
+  sidebarGroup: { fontSize: 9, color: '#888580', letterSpacing: 2, textTransform: 'uppercase' as const, fontWeight: 500, padding: '14px 20px 6px' },
   sidebarItem: (a: boolean) => ({
     display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const,
     padding: '9px 20px', fontSize: 13, cursor: 'pointer' as const, border: 'none',
@@ -86,20 +86,20 @@ const s: any = {
   }),
   sidebarBrand: { padding: '0 20px 20px', borderBottom: '1px solid rgba(201,168,76,0.15)', marginBottom: 8 },
   main: { flex: 1, minWidth: 0, display: 'flex' as const, flexDirection: 'column' as const },
-  header: { background: '#2C2420', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  header: { background: '#111111', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   tabBar: { background: '#fff', borderBottom: '1px solid #E8E0D5', padding: '0 12px', display: 'flex', gap: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
-  tab: (a: boolean) => ({ padding: '12px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap', color: a ? '#2C2420' : '#8C7B6E', borderBottom: a ? '2px solid #C9A84C' : '2px solid transparent', fontWeight: a ? 500 : 400, flexShrink: 0 }),
+  tab: (a: boolean) => ({ padding: '12px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap', color: a ? '#111111' : '#888580', borderBottom: a ? '2px solid #C9A84C' : '2px solid transparent', fontWeight: a ? 500 : 400, flexShrink: 0 }),
   content: { padding: '16px 20px', maxWidth: 1400, margin: '0 auto', width: '100%' as const, boxSizing: 'border-box' as const },
   card: { background: '#fff', borderRadius: 12, border: '1px solid #E8E0D5', overflow: 'hidden', marginBottom: 16 },
   cardPad: { background: '#fff', borderRadius: 12, border: '1px solid #E8E0D5', padding: '16px 14px', marginBottom: 16 },
-  th: { padding: '8px 10px', textAlign: 'left', fontSize: 10, color: '#8C7B6E', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500, background: '#FAFAFA', whiteSpace: 'nowrap' },
+  th: { padding: '8px 10px', textAlign: 'left', fontSize: 10, color: '#888580', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500, background: '#FAFAFA', whiteSpace: 'nowrap' },
   td: { padding: '9px 10px', borderTop: '1px solid #F5F0E8', fontSize: 12, verticalAlign: 'middle' },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 20 },
   statCard: { background: '#fff', borderRadius: 12, padding: '14px 16px', border: '1px solid #E8E0D5' },
   pill: (bg: string, color: string) => ({ fontSize: 11, padding: '3px 9px', borderRadius: 50, background: bg, color, fontWeight: 500, display: 'inline-block' }),
   btnSm: (bg: string, color: string, border: string) => ({ fontSize: 11, padding: '5px 10px', borderRadius: 6, cursor: 'pointer', border: `1px solid ${border}`, background: bg, color, fontWeight: 400 }),
   input: { width: '100%', padding: '11px 14px', borderRadius: 9, border: '1px solid #E8E0D5', fontSize: 14, boxSizing: 'border-box' as const, outline: 'none' },
-  primaryBtn: { padding: '12px 20px', background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: 13, letterSpacing: 1, fontWeight: 500 },
+  primaryBtn: { padding: '12px 20px', background: '#111111', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: 13, letterSpacing: 1, fontWeight: 500 },
 };
 
 export default function AdminPage() {
@@ -904,8 +904,8 @@ export default function AdminPage() {
     <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
       <div style={{ background: '#fff', borderRadius: 16, padding: 40, width: 360, boxShadow: '0 4px 40px rgba(0,0,0,0.08)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 10, color: '#8C7B6E', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 8 }}>The Dream Wedding</div>
-          <div style={{ fontSize: 30, color: '#2C2420', fontWeight: 300 }}>Admin Panel</div>
+          <div style={{ fontSize: 10, color: '#888580', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 8 }}>The Dream Wedding</div>
+          <div style={{ fontSize: 30, color: '#111111', fontWeight: 300 }}>Admin Panel</div>
           <div style={{ height: 1, width: 40, background: '#C9A84C', margin: '10px auto 0' }} />
         </div>
         <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
@@ -965,8 +965,8 @@ export default function AdminPage() {
           ))}
 
           <div style={{ padding: '20px', marginTop: 24, borderTop: '1px solid rgba(201,168,76,0.15)' }}>
-            <div style={{ fontSize: 10, color: '#8C7B6E', marginBottom: 8 }}>{loading ? '⟳ Loading...' : `${vendors.length} vendors`}</div>
-            <button onClick={loadAll} style={{ ...s.btnSm('transparent', '#8C7B6E', '#8C7B6E'), fontSize: 10, width: '100%', marginBottom: 6 }}>↻ Refresh</button>
+            <div style={{ fontSize: 10, color: '#888580', marginBottom: 8 }}>{loading ? '⟳ Loading...' : `${vendors.length} vendors`}</div>
+            <button onClick={loadAll} style={{ ...s.btnSm('transparent', '#888580', '#888580'), fontSize: 10, width: '100%', marginBottom: 6 }}>↻ Refresh</button>
             <button onClick={() => { setAuthed(false); setPassword(''); }} style={{ ...s.btnSm('transparent', '#E57373', '#E57373'), fontSize: 10, width: '100%' }}>Sign Out</button>
           </div>
         </aside>
@@ -981,7 +981,7 @@ export default function AdminPage() {
               <div style={{ fontSize: 17, color: '#F5F0E8', fontWeight: 300 }}>Admin</div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={loadAll} style={{ ...s.btnSm('transparent', '#8C7B6E', '#8C7B6E'), fontSize: 11 }}>↻</button>
+              <button onClick={loadAll} style={{ ...s.btnSm('transparent', '#888580', '#888580'), fontSize: 11 }}>↻</button>
               <button onClick={() => { setAuthed(false); setPassword(''); }} style={{ ...s.btnSm('transparent', '#E57373', '#E57373'), fontSize: 11 }}>Exit</button>
             </div>
           </div>
@@ -1013,25 +1013,25 @@ export default function AdminPage() {
               { l: 'Flagged', v: flaggedVendors.length, c: '#E57373' },
             ].map(stat => (
               <div key={stat.l} style={s.statCard}>
-                <div style={{ fontSize: 10, color: '#8C7B6E', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{stat.l}</div>
+                <div style={{ fontSize: 10, color: '#888580', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{stat.l}</div>
                 <div style={{ fontSize: 34, color: stat.c, fontWeight: 300 }}>{stat.v}</div>
               </div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: 16 }}>
             <div style={s.cardPad}>
-              <div style={{ fontSize: 14, fontWeight: 500, color: '#2C2420', marginBottom: 14 }}>Vendors by Category</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: '#111111', marginBottom: 14 }}>Vendors by Category</div>
               {['photographers', 'mua', 'venues', 'designers', 'dj', 'choreographers', 'event-managers', 'jewellery', 'content-creators'].map(cat => {
                 const count = vendors.filter(v => v.category === cat).length;
                 return count > 0 ? (
                   <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F5F0E8', fontSize: 13 }}>
-                    <span style={{ color: '#8C7B6E', textTransform: 'capitalize' }}>{cat.replace(/-/g, ' ')}</span>
-                    <span style={{ color: '#2C2420', fontWeight: 500 }}>{count}</span>
+                    <span style={{ color: '#888580', textTransform: 'capitalize' }}>{cat.replace(/-/g, ' ')}</span>
+                    <span style={{ color: '#111111', fontWeight: 500 }}>{count}</span>
                   </div>
                 ) : null;
               })}
             </div>
-            <div style={{ background: '#2C2420', borderRadius: 12, padding: 24 }}>
+            <div style={{ background: '#111111', borderRadius: 12, padding: 24 }}>
               <div style={{ fontSize: 10, color: '#C9A84C', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 14 }}>Platform Status</div>
               {[
                 ['Backend', 'Railway', '#4CAF50'],
@@ -1044,7 +1044,7 @@ export default function AdminPage() {
                 ['Play Store', 'Not Published Yet', '#C9A84C'],
               ].map(([label, val, color]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13 }}>
-                  <span style={{ color: '#8C7B6E' }}>{label}</span>
+                  <span style={{ color: '#888580' }}>{label}</span>
                   <span style={{ color }}>{val}</span>
                 </div>
               ))}
@@ -1055,60 +1055,60 @@ export default function AdminPage() {
         {/* ACCESS CODES */}
         {activeTab === 'codes' && (<>
           {/* Tier-Based Vendor Onboarding */}
-          <div style={{ ...s.cardPad, border: '2px solid #C9A84C', background: 'linear-gradient(135deg, #FFFDF7, #FFF8EC)' }}>
+          <div style={{ ...s.cardPad, border: '2px solid #C9A84C', background: 'linear-gradient(135deg, #FFFFFF, #FFF8EC)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, color: '#C9A84C', textTransform: 'uppercase' }}>Vendor Onboarding</span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Generate Tier Trial Code</div>
-            <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 20, lineHeight: 1.6 }}>Create a code for a vendor. They enter it at the login page to access their dashboard. Trial: 3 months or Aug 1, 2026.</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Generate Tier Trial Code</div>
+            <div style={{ fontSize: 12, color: '#888580', marginBottom: 20, lineHeight: 1.6 }}>Create a code for a vendor. They enter it at the login page to access their dashboard. Trial: 3 months or Aug 1, 2026.</div>
             <div className='admin-flex-col' style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <input placeholder="Nickname (optional)" value={tierVendorName} onChange={e => setTierVendorName(e.target.value)} style={{ ...s.input, flex: 1 }} />
               <input placeholder="Note (optional)" value={tierNote} onChange={e => setTierNote(e.target.value)} style={{ ...s.input, flex: 1 }} />
             </div>
             <div className='admin-flex-col' style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => generateTierCode('essential')} disabled={tierGenerating} style={{ flex: 1, padding: '14px 24px', background: '#8C7B6E', color: '#fff', border: 'none', borderRadius: 9, cursor: tierGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
+              <button onClick={() => generateTierCode('essential')} disabled={tierGenerating} style={{ flex: 1, padding: '14px 24px', background: '#888580', color: '#fff', border: 'none', borderRadius: 9, cursor: tierGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
                 {tierGenerating ? 'Generating...' : 'Generate Essential Code'}
               </button>
               <button onClick={() => generateTierCode('signature')} disabled={tierGenerating} style={{ flex: 1, padding: '14px 24px', background: '#C9A84C', color: '#fff', border: 'none', borderRadius: 9, cursor: tierGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
                 {tierGenerating ? 'Generating...' : 'Generate Signature Code'}
               </button>
-              <button onClick={() => generateTierCode('prestige')} disabled={tierGenerating} style={{ flex: 1, padding: '14px 24px', background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: tierGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
+              <button onClick={() => generateTierCode('prestige')} disabled={tierGenerating} style={{ flex: 1, padding: '14px 24px', background: '#111111', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: tierGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
                 {tierGenerating ? 'Generating...' : 'Generate Prestige Code'}
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Signature = Essential + GST, Payment Shield, exports, analytics</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>|</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Prestige = Everything + Deluxe Suite (team, tasks, procurement)</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>Signature = Essential + GST, Payment Shield, exports, analytics</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>|</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>Prestige = Everything + Deluxe Suite (team, tasks, procurement)</div>
             </div>
             {tierNewCode && (
-              <div style={{ marginTop: 16, background: '#2C2420', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginTop: 16, background: '#111111', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: '#8C7B6E', letterSpacing: 2, marginBottom: 4 }}>VENDOR TRIAL CODE — {(tierNewCode.tier || '').toUpperCase()}</div>
+                  <div style={{ fontSize: 10, color: '#888580', letterSpacing: 2, marginBottom: 4 }}>VENDOR TRIAL CODE — {(tierNewCode.tier || '').toUpperCase()}</div>
                   <div style={{ fontSize: 26, color: '#C9A84C', letterSpacing: 4, fontWeight: 300 }}>{tierNewCode.code}</div>
-                  <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 4 }}>For: {tierNewCode.vendor_name || 'Vendor'} · Expires {tierNewCode.expires_at ? new Date(tierNewCode.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</div>
+                  <div style={{ fontSize: 11, color: '#888580', marginTop: 4 }}>For: {tierNewCode.vendor_name || 'Vendor'} · Expires {tierNewCode.expires_at ? new Date(tierNewCode.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</div>
                 </div>
-                <button onClick={() => copyCode(tierNewCode.code)} style={{ background: copied === tierNewCode.code ? '#4CAF50' : '#C9A84C', color: '#2C2420', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
+                <button onClick={() => copyCode(tierNewCode.code)} style={{ background: copied === tierNewCode.code ? '#4CAF50' : '#C9A84C', color: '#111111', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
                   {copied === tierNewCode.code ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             )}
             {tierCodes.length > 0 && (
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: '#2C2420', marginBottom: 8 }}>Recent Tier Codes ({tierCodes.length})</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#111111', marginBottom: 8 }}>Recent Tier Codes ({tierCodes.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {tierCodes.slice(0, 10).map((tc: any) => {
                     const expired = tc.expires_at && new Date(tc.expires_at) < new Date();
                     return (
                       <div key={tc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 8, background: expired ? '#FFF5F5' : '#fff', border: '1px solid #E8E0D5' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, color: '#2C2420' }}>{tc.code}</span>
-                          <span style={s.pill(tc.tier === 'prestige' ? '#2C242015' : '#C9A84C15', tc.tier === 'prestige' ? '#2C2420' : '#C9A84C')}>{tc.tier}</span>
-                          <span style={{ fontSize: 12, color: '#8C7B6E' }}>{tc.vendor_name || ''}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, color: '#111111' }}>{tc.code}</span>
+                          <span style={s.pill(tc.tier === 'prestige' ? '#11111115' : '#C9A84C15', tc.tier === 'prestige' ? '#111111' : '#C9A84C')}>{tc.tier}</span>
+                          <span style={{ fontSize: 12, color: '#888580' }}>{tc.vendor_name || ''}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, color: expired ? '#E57373' : '#8C7B6E' }}>{tc.used ? 'Used' : 'Unused'}</span>
-                          <button onClick={() => copyCode(tc.code)} style={s.btnSm(copied === tc.code ? '#4CAF50' : '#fff', copied === tc.code ? '#fff' : '#2C2420', '#E8E0D5')}>{copied === tc.code ? 'Copied!' : 'Copy'}</button>
+                          <span style={{ fontSize: 11, color: expired ? '#E57373' : '#888580' }}>{tc.used ? 'Used' : 'Unused'}</span>
+                          <button onClick={() => copyCode(tc.code)} style={s.btnSm(copied === tc.code ? '#4CAF50' : '#fff', copied === tc.code ? '#fff' : '#111111', '#E8E0D5')}>{copied === tc.code ? 'Copied!' : 'Copy'}</button>
                         </div>
                       </div>
                     );
@@ -1119,60 +1119,60 @@ export default function AdminPage() {
           </div>
 
           {/* Couple Tier Invite Codes */}
-          <div style={{ ...s.cardPad, border: '2px solid #E8D9B5', background: 'linear-gradient(135deg, #FAF6F0, #FFF8EC)' }}>
+          <div style={{ ...s.cardPad, border: '2px solid #E2DED8', background: 'linear-gradient(135deg, #F8F7F5, #FFF8EC)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, color: '#C9A84C', textTransform: 'uppercase' }}>Couple Invites</span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Generate Couple Invite Code</div>
-            <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 20, lineHeight: 1.6 }}>Create a code for a couple. They enter it at thedreamwedding.in/couple/login to access the platform with their assigned tier.</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Generate Couple Invite Code</div>
+            <div style={{ fontSize: 12, color: '#888580', marginBottom: 20, lineHeight: 1.6 }}>Create a code for a couple. They enter it at thedreamwedding.in/couple/login to access the platform with their assigned tier.</div>
             <div className='admin-flex-col' style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <input placeholder="Nickname (optional)" value={coupleName} onChange={(e: any) => setCoupleName(e.target.value)} style={{ ...s.input, flex: 1 }} />
               <input placeholder="Note (optional)" value={coupleNote} onChange={(e: any) => setCoupleNote(e.target.value)} style={{ ...s.input, flex: 1 }} />
             </div>
             <div className='admin-flex-col' style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => generateCoupleCode('basic')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#8C7B6E', color: '#fff', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
+              <button onClick={() => generateCoupleCode('basic')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#888580', color: '#fff', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
                 {coupleGenerating ? 'Generating...' : 'Basic Access'}
               </button>
               <button onClick={() => generateCoupleCode('gold')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#C9A84C', color: '#fff', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
                 {coupleGenerating ? 'Generating...' : 'Gold Access'}
               </button>
-              <button onClick={() => generateCoupleCode('platinum')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
+              <button onClick={() => generateCoupleCode('platinum')} disabled={coupleGenerating} style={{ flex: 1, padding: '14px 24px', background: '#111111', color: '#C9A84C', border: 'none', borderRadius: 9, cursor: coupleGenerating ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>
                 {coupleGenerating ? 'Generating...' : 'Platinum Access'}
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Basic = free access</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>|</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Gold = paid features unlocked</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>|</div>
-              <div style={{ fontSize: 11, color: '#8C7B6E' }}>Platinum = full access incl. Couture & DreamAi</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>Basic = free access</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>|</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>Gold = paid features unlocked</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>|</div>
+              <div style={{ fontSize: 11, color: '#888580' }}>Platinum = full access incl. Couture & DreamAi</div>
             </div>
             {coupleNewCode && (
-              <div style={{ marginTop: 16, background: '#2C2420', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginTop: 16, background: '#111111', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: '#8C7B6E', letterSpacing: 2, marginBottom: 4 }}>COUPLE INVITE — {(coupleNewCode.tier || '').toUpperCase()}</div>
+                  <div style={{ fontSize: 10, color: '#888580', letterSpacing: 2, marginBottom: 4 }}>COUPLE INVITE — {(coupleNewCode.tier || '').toUpperCase()}</div>
                   <div style={{ fontSize: 26, color: '#C9A84C', letterSpacing: 4, fontWeight: 300 }}>{coupleNewCode.code}</div>
-                  <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 4 }}>For: {coupleNewCode.vendor_name || 'Couple'} · {(coupleNewCode.tier || 'basic').charAt(0).toUpperCase() + (coupleNewCode.tier || 'basic').slice(1)} access</div>
+                  <div style={{ fontSize: 11, color: '#888580', marginTop: 4 }}>For: {coupleNewCode.vendor_name || 'Couple'} · {(coupleNewCode.tier || 'basic').charAt(0).toUpperCase() + (coupleNewCode.tier || 'basic').slice(1)} access</div>
                 </div>
-                <button onClick={() => copyCode(coupleNewCode.code)} style={{ background: copied === coupleNewCode.code ? '#4CAF50' : '#C9A84C', color: '#2C2420', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
+                <button onClick={() => copyCode(coupleNewCode.code)} style={{ background: copied === coupleNewCode.code ? '#4CAF50' : '#C9A84C', color: '#111111', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
                   {copied === coupleNewCode.code ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             )}
             {coupleCodes.length > 0 && (
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: '#2C2420', marginBottom: 8 }}>Recent Couple Codes ({coupleCodes.length})</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#111111', marginBottom: 8 }}>Recent Couple Codes ({coupleCodes.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {coupleCodes.slice(0, 10).map((cc: any) => (
                     <div key={cc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 8, background: '#fff', border: '1px solid #E8E0D5' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, color: '#2C2420' }}>{cc.code}</span>
-                        <span style={s.pill(cc.tier === 'platinum' ? '#2C242015' : cc.tier === 'gold' ? '#C9A84C15' : '#8C7B6E15', cc.tier === 'platinum' ? '#2C2420' : cc.tier === 'gold' ? '#C9A84C' : '#8C7B6E')}>{cc.tier}</span>
-                        <span style={{ fontSize: 12, color: '#8C7B6E' }}>{cc.vendor_name || ''}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 13, letterSpacing: 2, color: '#111111' }}>{cc.code}</span>
+                        <span style={s.pill(cc.tier === 'platinum' ? '#11111115' : cc.tier === 'gold' ? '#C9A84C15' : '#88858015', cc.tier === 'platinum' ? '#111111' : cc.tier === 'gold' ? '#C9A84C' : '#888580')}>{cc.tier}</span>
+                        <span style={{ fontSize: 12, color: '#888580' }}>{cc.vendor_name || ''}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 11, color: '#8C7B6E' }}>{cc.used ? 'Used' : 'Unused'}</span>
-                        <button onClick={() => copyCode(cc.code)} style={s.btnSm(copied === cc.code ? '#4CAF50' : '#fff', copied === cc.code ? '#fff' : '#2C2420', '#E8E0D5')}>{copied === cc.code ? 'Copied!' : 'Copy'}</button>
+                        <span style={{ fontSize: 11, color: '#888580' }}>{cc.used ? 'Used' : 'Unused'}</span>
+                        <button onClick={() => copyCode(cc.code)} style={s.btnSm(copied === cc.code ? '#4CAF50' : '#fff', copied === cc.code ? '#fff' : '#111111', '#E8E0D5')}>{copied === cc.code ? 'Copied!' : 'Copy'}</button>
                       </div>
                     </div>
                   ))}
@@ -1182,12 +1182,12 @@ export default function AdminPage() {
           </div>
 
           <div style={s.cardPad}>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 18 }}>Generate New Code</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 18 }}>Generate New Code</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }} className='admin-grid-3'>
               {CODE_TYPES.map(type => (
                 <div key={type.value} onClick={() => setSelectedType(type.value)} style={{ padding: 16, borderRadius: 10, border: `2px solid ${selectedType === type.value ? type.color : '#E8E0D5'}`, background: selectedType === type.value ? type.color + '12' : '#FAFAFA', cursor: 'pointer' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#2C2420', marginBottom: 3 }}>{type.label}</div>
-                  <div style={{ fontSize: 12, color: '#8C7B6E' }}>{type.desc}</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#111111', marginBottom: 3 }}>{type.label}</div>
+                  <div style={{ fontSize: 12, color: '#888580' }}>{type.desc}</div>
                 </div>
               ))}
             </div>
@@ -1196,20 +1196,20 @@ export default function AdminPage() {
               <button onClick={generateCode} disabled={generating} style={s.primaryBtn}>{generating ? 'Generating...' : 'GENERATE'}</button>
             </div>
             {newCode && (
-              <div style={{ marginTop: 16, background: '#2C2420', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginTop: 16, background: '#111111', borderRadius: 10, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: '#8C7B6E', letterSpacing: 2, marginBottom: 4 }}>NEW CODE</div>
+                  <div style={{ fontSize: 10, color: '#888580', letterSpacing: 2, marginBottom: 4 }}>NEW CODE</div>
                   <div style={{ fontSize: 26, color: '#C9A84C', letterSpacing: 4, fontWeight: 300 }}>{newCode.code}</div>
-                  {newCode.expires_at && <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 4 }}>Expires {new Date(newCode.expires_at).toLocaleString('en-IN')}</div>}
+                  {newCode.expires_at && <div style={{ fontSize: 11, color: '#888580', marginTop: 4 }}>Expires {new Date(newCode.expires_at).toLocaleString('en-IN')}</div>}
                 </div>
-                <button onClick={() => copyCode(newCode.code)} style={{ background: copied === newCode.code ? '#4CAF50' : '#C9A84C', color: '#2C2420', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
+                <button onClick={() => copyCode(newCode.code)} style={{ background: copied === newCode.code ? '#4CAF50' : '#C9A84C', color: '#111111', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 500 }}>
                   {copied === newCode.code ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             )}
           </div>
           <div style={s.card}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#2C2420' }}>All Codes ({codes.length})</div>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#111111' }}>All Codes ({codes.length})</div>
             <div style={{ overflowX: 'auto' }}>
               <table className='admin-table-wrap' style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
                 <thead><tr>{['Code', 'Type', 'Note', 'Used', 'Expires', 'Action'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr></thead>
@@ -1218,12 +1218,12 @@ export default function AdminPage() {
                     const expired = code.expires_at && new Date(code.expires_at) < new Date();
                     return (
                       <tr key={code.id} style={{ background: expired ? '#FFF5F5' : '#fff' }}>
-                        <td style={s.td}><span style={{ fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, color: '#2C2420' }}>{code.code}</span></td>
+                        <td style={s.td}><span style={{ fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, color: '#111111' }}>{code.code}</span></td>
                         <td style={s.td}><span style={s.pill('#C9A84C20', '#C9A84C')}>{code.type?.replace(/_/g, ' ')}</span></td>
-                        <td style={{ ...s.td, color: '#8C7B6E', maxWidth: 200 }}>{code.note || '—'}</td>
-                        <td style={{ ...s.td, color: code.used_count > 0 ? '#4CAF50' : '#8C7B6E' }}>{code.used_count || 0}×</td>
-                        <td style={{ ...s.td, color: expired ? '#E57373' : '#8C7B6E', fontSize: 12 }}>{code.expires_at ? new Date(code.expires_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '∞ Never'}</td>
-                        <td style={s.td}><button onClick={() => copyCode(code.code)} style={s.btnSm(copied === code.code ? '#4CAF50' : '#fff', copied === code.code ? '#fff' : '#2C2420', '#E8E0D5')}>{copied === code.code ? 'Copied!' : 'Copy'}</button></td>
+                        <td style={{ ...s.td, color: '#888580', maxWidth: 200 }}>{code.note || '—'}</td>
+                        <td style={{ ...s.td, color: code.used_count > 0 ? '#4CAF50' : '#888580' }}>{code.used_count || 0}×</td>
+                        <td style={{ ...s.td, color: expired ? '#E57373' : '#888580', fontSize: 12 }}>{code.expires_at ? new Date(code.expires_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '∞ Never'}</td>
+                        <td style={s.td}><button onClick={() => copyCode(code.code)} style={s.btnSm(copied === code.code ? '#4CAF50' : '#fff', copied === code.code ? '#fff' : '#111111', '#E8E0D5')}>{copied === code.code ? 'Copied!' : 'Copy'}</button></td>
                       </tr>
                     );
                   })}
@@ -1240,7 +1240,7 @@ export default function AdminPage() {
             <button onClick={() => { resetCreateForm(); setCreateTier('essential'); setCreateVendorOpen(true); }} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as const }}>+ Create Vendor</button>
           </div>
           <div style={s.card}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#2C2420' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#111111' }}>
               Vendors ({filteredVendors.length} of {vendors.length})
             </div>
             <div style={{ overflowX: 'auto' }}>
@@ -1249,9 +1249,9 @@ export default function AdminPage() {
                 <tbody>
                   {filteredVendors.map(v => (
                     <tr key={v.id} style={{ opacity: v.subscription_active ? 1 : 0.55 }}>
-                      <td style={s.td}><div style={{ fontWeight: 500, color: '#2C2420' }}>{v.name}</div><div style={{ fontSize: 11, color: '#8C7B6E' }}>{v.review_count} reviews</div></td>
-                      <td style={{ ...s.td, color: '#8C7B6E', textTransform: 'capitalize' }}>{v.category?.replace(/-/g, ' ')}</td>
-                      <td style={{ ...s.td, color: '#8C7B6E' }}>{v.city}</td>
+                      <td style={s.td}><div style={{ fontWeight: 500, color: '#111111' }}>{v.name}</div><div style={{ fontSize: 11, color: '#888580' }}>{v.review_count} reviews</div></td>
+                      <td style={{ ...s.td, color: '#888580', textTransform: 'capitalize' }}>{v.category?.replace(/-/g, ' ')}</td>
+                      <td style={{ ...s.td, color: '#888580' }}>{v.city}</td>
                       <td style={{ ...s.td, color: '#C9A84C' }}>★ {v.rating || 0}</td>
                       <td style={s.td}>
                         <select value={v.tier || 'essential'} onChange={e => updateTier(v.id, e.target.value)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #E8E0D5', cursor: 'pointer', background: '#fff' }}>
@@ -1259,7 +1259,7 @@ export default function AdminPage() {
                         </select>
                       </td>
                       <td style={s.td}>
-                        <button onClick={() => toggleFoundingBadge(v.id, false)} style={s.btnSm('#FFF8EC', '#C9A84C', '#E8D9B5')}>Grant</button>
+                        <button onClick={() => toggleFoundingBadge(v.id, false)} style={s.btnSm('#FFF8EC', '#C9A84C', '#E2DED8')}>Grant</button>
                       </td>
                       <td style={s.td}>
                         <button onClick={() => updateVendor(v.id, { subscription_active: !v.subscription_active })} style={s.btnSm(v.subscription_active ? '#4CAF5015' : '#E5737315', v.subscription_active ? '#4CAF50' : '#E57373', 'transparent')}>
@@ -1267,12 +1267,12 @@ export default function AdminPage() {
                         </button>
                       </td>
                       <td style={s.td}>
-                        <button onClick={() => updateVendor(v.id, { is_verified: !v.is_verified })} style={s.btnSm(v.is_verified ? '#C9A84C15' : '#F5F0E8', v.is_verified ? '#C9A84C' : '#8C7B6E', 'transparent')}>
+                        <button onClick={() => updateVendor(v.id, { is_verified: !v.is_verified })} style={s.btnSm(v.is_verified ? '#C9A84C15' : '#F5F0E8', v.is_verified ? '#C9A84C' : '#888580', 'transparent')}>
                           {v.is_verified ? '✓ Verified' : 'Verify'}
                         </button>
                       </td>
                       <td style={s.td}>
-                        <button onClick={() => updateVendor(v.id, { is_featured: !v.is_featured })} style={s.btnSm(v.is_featured ? '#2196F315' : '#F5F0E8', v.is_featured ? '#2196F3' : '#8C7B6E', 'transparent')}>
+                        <button onClick={() => updateVendor(v.id, { is_featured: !v.is_featured })} style={s.btnSm(v.is_featured ? '#2196F315' : '#F5F0E8', v.is_featured ? '#2196F3' : '#888580', 'transparent')}>
                           {v.is_featured ? '★ Yes' : 'Feature'}
                         </button>
                       </td>
@@ -1292,10 +1292,10 @@ export default function AdminPage() {
           <div style={{ marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
             <input placeholder="Search users by name, phone, email, Instagram..." value={userSearch} onChange={e => setUserSearch(e.target.value)} style={{ ...s.input, flex: 1 }} />
             <button onClick={() => { resetCreateForm(); setCreateTier('basic'); setCreateCoupleOpen(true); }} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as const }}>+ Create Couple</button>
-            <button onClick={loadUsers} style={s.btnSm('transparent', '#8C7B6E', '#8C7B6E')}>↻ Refresh</button>
+            <button onClick={loadUsers} style={s.btnSm('transparent', '#888580', '#888580')}>↻ Refresh</button>
           </div>
           <div style={s.card}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#2C2420' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8E0D5', fontSize: 14, fontWeight: 500, color: '#111111' }}>
               Dreamers ({users.filter((u: any) => {
                 const q = userSearch.toLowerCase();
                 if (!q) return true;
@@ -1313,21 +1313,21 @@ export default function AdminPage() {
                   }).map((u: any) => (
                     <tr key={u.id}>
                       <td style={s.td}>
-                        <div style={{ fontWeight: 500, color: '#2C2420' }}>{u.name || '—'}</div>
-                        <div style={{ fontSize: 10, color: '#8C7B6E' }}>{u.user_type || 'couple'}</div>
+                        <div style={{ fontWeight: 500, color: '#111111' }}>{u.name || '—'}</div>
+                        <div style={{ fontSize: 10, color: '#888580' }}>{u.user_type || 'couple'}</div>
                       </td>
-                      <td style={{ ...s.td, color: '#8C7B6E', fontSize: 12 }}>{u.phone || '—'}</td>
-                      <td style={{ ...s.td, color: '#8C7B6E', fontSize: 12 }}>{u.email || '—'}</td>
-                      <td style={{ ...s.td, color: '#8C7B6E', fontSize: 12 }}>{u.instagram || '—'}</td>
+                      <td style={{ ...s.td, color: '#888580', fontSize: 12 }}>{u.phone || '—'}</td>
+                      <td style={{ ...s.td, color: '#888580', fontSize: 12 }}>{u.email || '—'}</td>
+                      <td style={{ ...s.td, color: '#888580', fontSize: 12 }}>{u.instagram || '—'}</td>
                       <td style={s.td}>
                         <select
                           value={u.couple_tier || 'free'}
                           onChange={e => updateCoupleTier(u.id, e.target.value)}
                           style={{
                             fontSize: 11, padding: '4px 8px', borderRadius: 6,
-                            border: '1px solid ' + (u.couple_tier === 'elite' ? '#C9A84C' : u.couple_tier === 'premium' ? '#E8D9B5' : '#E8E0D5'),
-                            background: u.couple_tier === 'elite' ? '#2C2420' : u.couple_tier === 'premium' ? '#FFF8EC' : '#fff',
-                            color: u.couple_tier === 'elite' ? '#C9A84C' : u.couple_tier === 'premium' ? '#B8963A' : '#8C7B6E',
+                            border: '1px solid ' + (u.couple_tier === 'elite' ? '#C9A84C' : u.couple_tier === 'premium' ? '#E2DED8' : '#E8E0D5'),
+                            background: u.couple_tier === 'elite' ? '#111111' : u.couple_tier === 'premium' ? '#FFF8EC' : '#fff',
+                            color: u.couple_tier === 'elite' ? '#C9A84C' : u.couple_tier === 'premium' ? '#B8963A' : '#888580',
                             cursor: 'pointer' as const, fontWeight: 500,
                           }}
                         >
@@ -1337,14 +1337,14 @@ export default function AdminPage() {
                         </select>
                       </td>
                       <td style={{ ...s.td, color: '#C9A84C', fontSize: 13 }}>{u.token_balance ?? 0}</td>
-                      <td style={{ ...s.td, color: '#8C7B6E', fontSize: 11 }}>{u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                      <td style={{ ...s.td, color: '#888580', fontSize: 11 }}>{u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN') : '—'}</td>
                       <td style={s.td}>
                         <button onClick={() => deleteUser(u.id, u.name || 'Unnamed')} style={s.btnSm('#FFF5F5', '#E57373', '#FFCDD2')}>Delete</button>
                       </td>
                     </tr>
                   ))}
                   {users.length === 0 && (
-                    <tr><td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#8C7B6E' }}>No users yet. They'll appear here as couples sign up.</td></tr>
+                    <tr><td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#888580' }}>No users yet. They'll appear here as couples sign up.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1357,10 +1357,10 @@ export default function AdminPage() {
           <div style={s.cardPad}>
             <div style={{ display: 'flex' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 500, color: '#2C2420' }}>Photos</div>
-                <div style={{ fontSize: 12, color: '#8C7B6E', marginTop: 2 }}>Approve vendor-submitted photos for each Discover board.</div>
+                <div style={{ fontSize: 18, fontWeight: 500, color: '#111111' }}>Photos</div>
+                <div style={{ fontSize: 12, color: '#888580', marginTop: 2 }}>Approve vendor-submitted photos for each Discover board.</div>
               </div>
-              <button onClick={() => loadPendingPhotos(photoCategory)} style={s.btnSm('transparent', '#8C7B6E', '#8C7B6E')}>↻ Refresh</button>
+              <button onClick={() => loadPendingPhotos(photoCategory)} style={s.btnSm('transparent', '#888580', '#888580')}>↻ Refresh</button>
             </div>
 
             {/* Category sub-tabs */}
@@ -1379,9 +1379,9 @@ export default function AdminPage() {
                     key={cat.id}
                     onClick={() => setPhotoCategory(cat.id)}
                     style={{
-                      padding: '8px 14px', borderRadius: 50, border: '1px solid ' + (active ? '#2C2420' : '#E8E0D5'),
-                      background: active ? '#2C2420' : '#FFFFFF',
-                      color: active ? '#C9A84C' : '#2C2420',
+                      padding: '8px 14px', borderRadius: 50, border: '1px solid ' + (active ? '#111111' : '#E8E0D5'),
+                      background: active ? '#111111' : '#FFFFFF',
+                      color: active ? '#C9A84C' : '#111111',
                       fontSize: 12, fontWeight: 500, cursor: 'pointer' as const,
                       display: 'flex' as const, alignItems: 'center' as const, gap: 6,
                     }}
@@ -1392,7 +1392,7 @@ export default function AdminPage() {
                         display: 'inline-flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
                         minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
                         background: active ? '#C9A84C' : '#E57373',
-                        color: active ? '#2C2420' : '#FFFFFF',
+                        color: active ? '#111111' : '#FFFFFF',
                         fontSize: 10, fontWeight: 700,
                       }}>
                         {count}
@@ -1404,22 +1404,22 @@ export default function AdminPage() {
             </div>
 
             {/* Heading for current category */}
-            <div style={{ fontSize: 14, color: '#2C2420', fontWeight: 500, marginBottom: 4 }}>
+            <div style={{ fontSize: 14, color: '#111111', fontWeight: 500, marginBottom: 4 }}>
               {photoCategory === 'carousel' && 'Carousel — additional photos for vendor profile (shown when couples open profile)'}
               {photoCategory === 'spotlight' && 'Spotlight — premium editorial picks on Discover Dash'}
               {photoCategory === 'style_file' && 'Style File — MUAs, jewellers, designers (looks worn on a model)'}
               {photoCategory === 'look_book' && 'Look Book — photographers, decorators, environments'}
               {photoCategory === 'this_weeks_pricing' && "This Week's Pricing — promotional pricing surfaced on Discover Dash"}
             </div>
-            <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: '#888580', marginBottom: 16 }}>
               {pendingPhotos.length} pending review
             </div>
 
             {/* Pending grid */}
             {photoLoading ? (
-              <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center' as const, padding: 30 }}>Loading…</div>
+              <div style={{ fontSize: 13, color: '#888580', textAlign: 'center' as const, padding: 30 }}>Loading…</div>
             ) : pendingPhotos.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center' as const, padding: 30, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending photos in this category.</div>
+              <div style={{ fontSize: 13, color: '#888580', textAlign: 'center' as const, padding: 30, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending photos in this category.</div>
             ) : (
               <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
                 {pendingPhotos.map((photo: any) => {
@@ -1429,10 +1429,10 @@ export default function AdminPage() {
                     <div key={photo.id} style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' as const, background: '#FFF' }}>
                       {url && <img src={url} alt="" style={{ width: '100%', height: 200, objectFit: 'cover' as const, display: 'block' as const }} />}
                       <div style={{ padding: 12 }}>
-                        <div style={{ fontSize: 13, color: '#2C2420', fontWeight: 500, marginBottom: 2 }}>
+                        <div style={{ fontSize: 13, color: '#111111', fontWeight: 500, marginBottom: 2 }}>
                           {vendor?.name || `Vendor ${photo.vendor_id?.slice(0, 8)}`}
                         </div>
-                        <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, color: '#888580', marginBottom: 8 }}>
                           {vendor ? `${vendor.category} · ${vendor.city}` : 'Unknown vendor'}
                         </div>
                         <div style={{ fontSize: 10, color: '#C9A84C', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 10, fontWeight: 500 }}>
@@ -1454,17 +1454,17 @@ export default function AdminPage() {
         {/* MESSAGES */}
         {activeTab === 'messages' && (
           <div style={s.cardPad}>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 8 }}>Message Moderation</div>
-            <div style={{ fontSize: 13, color: '#8C7B6E', lineHeight: 1.8, marginBottom: 20 }}>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 8 }}>Message Moderation</div>
+            <div style={{ fontSize: 13, color: '#888580', lineHeight: 1.8, marginBottom: 20 }}>
               The contact filter is active and running on every message. Phone numbers, email addresses, Instagram handles and WhatsApp links are automatically replaced with <strong>[ contact hidden ]</strong> before storage.
             </div>
-            <div style={{ background: '#2C2420', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+            <div style={{ background: '#111111', borderRadius: 12, padding: 20, marginBottom: 16 }}>
               <div style={{ fontSize: 10, color: '#C9A84C', letterSpacing: 2, marginBottom: 10 }}>CONTACT FILTER STATUS</div>
               {['Indian phone numbers (10 digit)', 'International format (+91...)', 'Email addresses', '@Instagram handles', 'WhatsApp links (wa.me)', 'Telegram mentions'].map(item => (
                 <div key={item} style={{ fontSize: 13, color: '#4CAF50', lineHeight: 2 }}>✓ {item} — filtered</div>
               ))}
             </div>
-            <div style={{ fontSize: 13, color: '#8C7B6E' }}>
+            <div style={{ fontSize: 13, color: '#888580' }}>
               Contact details are shared automatically when a booking is confirmed. Payment Shield protects the vendor's final payment before the wedding day.
             </div>
             <div style={{ marginTop: 16 }}>
@@ -1477,7 +1477,7 @@ export default function AdminPage() {
         {activeTab === 'flagged' && (<>
           <div style={{ ...s.cardPad, background: '#FFF5F5', border: '1px solid #FFCDD2', marginBottom: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 500, color: '#E57373', marginBottom: 8 }}>Auto-Flagging Criteria</div>
-            <div style={{ fontSize: 13, color: '#8C7B6E', lineHeight: 1.8 }}>
+            <div style={{ fontSize: 13, color: '#888580', lineHeight: 1.8 }}>
               • Rating below 3.5 with existing reviews<br />
               • Unverified vendor with more than 10 reviews (suspicious)<br />
               • Coming soon: high decline rate, slow response time, auto-refunded bookings
@@ -1492,15 +1492,15 @@ export default function AdminPage() {
                 <tbody>
                   {flaggedVendors.map(v => (
                     <tr key={v.id}>
-                      <td style={s.td}><div style={{ fontWeight: 500, color: '#2C2420' }}>{v.name}</div><div style={{ fontSize: 11, color: '#8C7B6E' }}>{v.category} · {v.city}</div></td>
+                      <td style={s.td}><div style={{ fontWeight: 500, color: '#111111' }}>{v.name}</div><div style={{ fontSize: 11, color: '#888580' }}>{v.category} · {v.city}</div></td>
                       <td style={{ ...s.td, color: '#E57373' }}>★ {v.rating}</td>
-                      <td style={{ ...s.td, color: '#8C7B6E' }}>{v.review_count}</td>
+                      <td style={{ ...s.td, color: '#888580' }}>{v.review_count}</td>
                       <td style={s.td}><span style={s.pill('#E5737320', '#E57373')}>{v.rating < 3.5 ? 'Low rating' : 'Review anomaly'}</span></td>
                       <td style={s.td}>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button onClick={() => updateVendor(v.id, { subscription_active: false })} style={s.btnSm('#FFF5F5', '#E57373', '#FFCDD2')}>Block</button>
-                          <button onClick={() => updateVendor(v.id, { plan: 'basic' })} style={s.btnSm('#fff', '#8C7B6E', '#E8E0D5')}>Downgrade</button>
-                          <button onClick={() => updateVendor(v.id, { is_verified: false })} style={s.btnSm('#fff', '#8C7B6E', '#E8E0D5')}>Unverify</button>
+                          <button onClick={() => updateVendor(v.id, { plan: 'basic' })} style={s.btnSm('#fff', '#888580', '#E8E0D5')}>Downgrade</button>
+                          <button onClick={() => updateVendor(v.id, { is_verified: false })} style={s.btnSm('#fff', '#888580', '#E8E0D5')}>Unverify</button>
                         </div>
                       </td>
                     </tr>
@@ -1515,25 +1515,25 @@ export default function AdminPage() {
         {activeTab === 'notifications' && (
           <div style={{ maxWidth: 560 }}>
             <div style={s.cardPad}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 20 }}>Broadcast Notification</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 20 }}>Broadcast Notification</div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, color: '#8C7B6E', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Title</label>
+                <label style={{ fontSize: 12, color: '#888580', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Title</label>
                 <input placeholder="e.g. New feature live!" value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} style={s.input} />
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: '#8C7B6E', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Message</label>
+                <label style={{ fontSize: 12, color: '#888580', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Message</label>
                 <textarea placeholder="Your message to all users..." value={broadcastBody} onChange={e => setBroadcastBody(e.target.value)} rows={4}
                   style={{ ...s.input, resize: 'vertical' as const, fontFamily: 'inherit' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
                 {['All Users', 'Vendors Only', 'Couples Only'].map(target => (
-                  <div key={target} style={{ padding: 12, borderRadius: 9, border: '1px solid #E8E0D5', textAlign: 'center', cursor: 'pointer', fontSize: 13, color: '#8C7B6E' }}>{target}</div>
+                  <div key={target} style={{ padding: 12, borderRadius: 9, border: '1px solid #E8E0D5', textAlign: 'center', cursor: 'pointer', fontSize: 13, color: '#888580' }}>{target}</div>
                 ))}
               </div>
               <button onClick={sendBroadcast} disabled={broadcastSending} style={{ ...s.primaryBtn, width: '100%', textAlign: 'center' }}>
                 {broadcastSending ? 'Sending...' : 'SEND BROADCAST'}
               </button>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginTop: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 12, color: '#888580', marginTop: 10, textAlign: 'center' }}>
                 Push notifications require Expo push token setup. Coming fully in Build 2.
               </div>
             </div>
@@ -1545,7 +1545,7 @@ export default function AdminPage() {
         {activeTab === 'dashboard' && activities.length > 0 && (
           <div style={{ ...s.cardPad, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420' }}>Recent Activity</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111' }}>Recent Activity</div>
               <button onClick={loadActivities} style={{ fontSize: 11, color: '#C9A84C', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>{activitiesLoading ? 'Loading...' : 'Refresh'}</button>
             </div>
             <div style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden', maxHeight: 400, overflowY: 'auto' }}>
@@ -1556,8 +1556,8 @@ export default function AdminPage() {
                   <div key={act.id || idx} style={{ padding: '12px 16px', borderBottom: idx < Math.min(activities.length, 20) - 1 ? '1px solid #F5F0E8' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{ fontSize: 18 }}>{icon}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: '#2C2420' }}>{act.description}</div>
-                      <div style={{ fontSize: 10, color: '#8C7B6E' }}>{time}</div>
+                      <div style={{ fontSize: 13, color: '#111111' }}>{act.description}</div>
+                      <div style={{ fontSize: 10, color: '#888580' }}>{time}</div>
                     </div>
                   </div>
                 );
@@ -1573,8 +1573,8 @@ export default function AdminPage() {
             background: '#FFF5F5', border: '1px solid #FFCDD2',
           }}>
             <div style={{ fontSize: 9, color: '#C62828', letterSpacing: 3, textTransform: 'uppercase' as const, marginBottom: 4, fontWeight: 600 }}>Danger Zone</div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 6, fontFamily: 'Playfair Display, serif' }}>Wipe all data</div>
-            <div style={{ fontSize: 12, color: '#8C7B6E', lineHeight: 1.6, marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 6, fontFamily: 'Playfair Display, serif' }}>Wipe all data</div>
+            <div style={{ fontSize: 12, color: '#888580', lineHeight: 1.6, marginBottom: 16 }}>
               Permanently deletes vendors and/or couples and ALL their related data (credentials, subscriptions, leads, photos, enquiries, moodboards, etc.). Use this to reset the database before launch. <strong style={{ color: '#C62828' }}>This cannot be undone.</strong>
             </div>
             <div style={{ display: 'flex' as const, gap: 10, flexWrap: 'wrap' as const }}>
@@ -1668,8 +1668,8 @@ export default function AdminPage() {
         {activeTab === 'waitlist' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: '#2C2420' }}>Waitlist ({waitlistData.length})</div>
-              <button onClick={async () => { setWaitlistLoading(true); try { const r = await fetch(`${API}/api/waitlist`).then(r => r.json()); if (r.success) setWaitlistData(r.data || []); } catch(e) {} setWaitlistLoading(false); }} style={{ ...s.btnSm('#2C2420', '#C9A84C', '#2C2420') }}>{waitlistLoading ? 'Loading...' : 'Refresh'}</button>
+              <div style={{ fontSize: 18, fontWeight: 600, color: '#111111' }}>Waitlist ({waitlistData.length})</div>
+              <button onClick={async () => { setWaitlistLoading(true); try { const r = await fetch(`${API}/api/waitlist`).then(r => r.json()); if (r.success) setWaitlistData(r.data || []); } catch(e) {} setWaitlistLoading(false); }} style={{ ...s.btnSm('#111111', '#C9A84C', '#111111') }}>{waitlistLoading ? 'Loading...' : 'Refresh'}</button>
             </div>
             <div style={s.card}>
               <div style={{ overflowX: 'auto' }}>
@@ -1680,7 +1680,7 @@ export default function AdminPage() {
                     <th style={s.th}>Source</th><th style={s.th}>Status</th><th style={s.th}>Date</th>
                   </tr></thead>
                   <tbody>
-                    {waitlistData.length === 0 && <tr><td colSpan={9} style={{ ...s.td, textAlign: 'center', color: '#8C7B6E', padding: '32px' }}>No waitlist entries yet</td></tr>}
+                    {waitlistData.length === 0 && <tr><td colSpan={9} style={{ ...s.td, textAlign: 'center', color: '#888580', padding: '32px' }}>No waitlist entries yet</td></tr>}
                     {waitlistData.map((w: any) => (
                       <tr key={w.id}>
                         <td style={s.td}>{w.name}</td>
@@ -1703,7 +1703,7 @@ export default function AdminPage() {
 
         {activeTab === 'profile-tracking' && (
           <div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: '#2C2420', marginBottom: 16 }}>Vendor Profile Completion</div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: '#111111', marginBottom: 16 }}>Vendor Profile Completion</div>
             <div style={s.card}>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1714,7 +1714,7 @@ export default function AdminPage() {
                     <th style={s.th}>Instagram</th><th style={s.th}>Completion</th>
                   </tr></thead>
                   <tbody>
-                    {vendors.length === 0 && <tr><td colSpan={11} style={{ ...s.td, textAlign: 'center', color: '#8C7B6E', padding: '32px' }}>No vendors yet</td></tr>}
+                    {vendors.length === 0 && <tr><td colSpan={11} style={{ ...s.td, textAlign: 'center', color: '#888580', padding: '32px' }}>No vendors yet</td></tr>}
                     {vendors.map((v: any) => {
                       const checks = [!!v.name, !!v.category, !!v.city, !!v.starting_price, (v.portfolio_images?.length || 0) >= 5, (v.portfolio_images?.length || 0) >= 15, !!v.about, (v.vibe_tags?.length || 0) > 0, !!v.instagram_url];
                       const pct = Math.round(checks.filter(Boolean).length / checks.length * 100);
@@ -1746,8 +1746,8 @@ export default function AdminPage() {
         {activeTab === 'founding' && (
           <div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: '#2C2420', fontWeight: 400, letterSpacing: 0.5, marginBottom: 4 }}>Founding Vendors</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 14 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: '#111111', fontWeight: 400, letterSpacing: 0.5, marginBottom: 4 }}>Founding Vendors</div>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 14 }}>
                 Live activation tracker for the founding cohort. Filter by status, click a vendor's notes to edit.
               </div>
               {/* Filter pills */}
@@ -1763,8 +1763,8 @@ export default function AdminPage() {
                   return (
                     <button key={f.k} onClick={() => setFoundingFilter(f.k as any)} style={{
                       padding: '6px 12px', borderRadius: 50,
-                      background: sel ? '#2C2420' : 'transparent',
-                      color: sel ? '#C9A84C' : '#8C7B6E',
+                      background: sel ? '#111111' : 'transparent',
+                      color: sel ? '#C9A84C' : '#888580',
                       border: sel ? '1px solid #C9A84C' : '1px solid rgba(140,123,110,0.3)',
                       fontSize: 12, cursor: 'pointer', fontWeight: sel ? 500 : 400,
                       letterSpacing: 0.3,
@@ -1789,7 +1789,7 @@ export default function AdminPage() {
                   </tr></thead>
                   <tbody>
                     {foundingVendors.length === 0 && (
-                      <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', color: '#8C7B6E', padding: '32px' }}>
+                      <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', color: '#888580', padding: '32px' }}>
                         No founding vendors yet. Grant the founding badge from the Vendors tab to start tracking.
                       </td></tr>
                     )}
@@ -1813,8 +1813,8 @@ export default function AdminPage() {
                           active: '#4CAF50',
                           stalled: '#E57373',
                           never_activated: '#FF9800',
-                          pending: '#8C7B6E',
-                        } as const)[v.status as 'active' | 'stalled' | 'never_activated' | 'pending'] || '#8C7B6E';
+                          pending: '#888580',
+                        } as const)[v.status as 'active' | 'stalled' | 'never_activated' | 'pending'] || '#888580';
                         const statusBg = ({
                           active: '#4CAF5015',
                           stalled: '#E5737315',
@@ -1830,19 +1830,19 @@ export default function AdminPage() {
                         return (
                           <tr key={v.id}>
                             <td style={s.td}>
-                              <div style={{ fontWeight: 500, color: '#2C2420' }}>{v.name || '—'}</div>
-                              <div style={{ fontSize: 11, color: '#8C7B6E' }}>{v.category?.replace(/-/g, ' ') || '—'} · {v.city || '—'}</div>
+                              <div style={{ fontWeight: 500, color: '#111111' }}>{v.name || '—'}</div>
+                              <div style={{ fontSize: 11, color: '#888580' }}>{v.category?.replace(/-/g, ' ') || '—'} · {v.city || '—'}</div>
                             </td>
                             <td style={s.td}>
                               {v.tier === 'prestige' ? (
                                 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: 13, color: '#C9A84C', borderBottom: '1px solid #C9A84C', paddingBottom: 1, letterSpacing: 0.3 }}>Prestige</span>
                               ) : (
-                                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', padding: '3px 10px', borderRadius: 50, background: 'transparent', color: v.tier === 'signature' ? '#A88B3A' : '#8C7B6E', border: v.tier === 'signature' ? '1px solid rgba(201,168,76,0.5)' : '1px solid rgba(140,123,110,0.3)' }}>
+                                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', padding: '3px 10px', borderRadius: 50, background: 'transparent', color: v.tier === 'signature' ? '#A88B3A' : '#888580', border: v.tier === 'signature' ? '1px solid rgba(201,168,76,0.5)' : '1px solid rgba(140,123,110,0.3)' }}>
                                   {v.tier === 'signature' ? 'Signature' : 'Essential'}
                                 </span>
                               )}
                             </td>
-                            <td style={{ ...s.td, color: '#8C7B6E' }}>{signedUp}</td>
+                            <td style={{ ...s.td, color: '#888580' }}>{signedUp}</td>
                             <td style={s.td}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <div style={{ width: 48, height: 5, background: '#F5F0E8', borderRadius: 3, overflow: 'hidden' }}>
@@ -1851,8 +1851,8 @@ export default function AdminPage() {
                                 <span style={{ fontSize: 11, color: profilePctColor, fontWeight: 500 }}>{v.profile_pct}%</span>
                               </div>
                             </td>
-                            <td style={{ ...s.td, color: lastWa === 'Never' ? '#8C7B6E' : '#2C2420', fontSize: 12 }}>{lastWa}</td>
-                            <td style={{ ...s.td, color: '#2C2420', fontSize: 12 }}>{v.ai_commands_used || 0}{v.ai_extra_tokens ? ' + ' + v.ai_extra_tokens : ''}</td>
+                            <td style={{ ...s.td, color: lastWa === 'Never' ? '#888580' : '#111111', fontSize: 12 }}>{lastWa}</td>
+                            <td style={{ ...s.td, color: '#111111', fontSize: 12 }}>{v.ai_commands_used || 0}{v.ai_extra_tokens ? ' + ' + v.ai_extra_tokens : ''}</td>
                             <td style={s.td}>
                               <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 50, background: statusBg, color: statusColor, fontWeight: 500, display: 'inline-block' }}>
                                 {statusLabel}
@@ -1872,7 +1872,7 @@ export default function AdminPage() {
                                 style={{
                                   width: '100%', padding: '6px 10px', fontSize: 12,
                                   border: '1px solid #E8E0D5', borderRadius: 6,
-                                  background: '#FFFDF7', color: '#2C2420',
+                                  background: '#FFFFFF', color: '#111111',
                                   outline: 'none',
                                 }}
                               />
@@ -1889,7 +1889,7 @@ export default function AdminPage() {
 
         {/* Dream Ai ACCESS */}
         {activeTab === 'tdw-ai' && (<>
-          <div style={{ marginBottom: 16, padding: 20, background: 'linear-gradient(135deg, #1A1410 0%, #2C2420 100%)', borderRadius: 14, border: '1px solid rgba(201,168,76,0.3)' }}>
+          <div style={{ marginBottom: 16, padding: 20, background: 'linear-gradient(135deg, #1A1410 0%, #111111 100%)', borderRadius: 14, border: '1px solid rgba(201,168,76,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
                 <div style={{ display: 'inline-block', background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 50, padding: '3px 10px', fontSize: 9, fontWeight: 600, letterSpacing: 2, color: '#C9A84C', marginBottom: 10 }}>BETA · CONTROL PANEL</div>
@@ -1904,7 +1904,7 @@ export default function AdminPage() {
                 { label: 'Active', value: aiVendors.filter((v: any) => v.ai_enabled).length, color: '#4CAF50' },
                 { label: 'Waitlist', value: aiVendors.filter((v: any) => v.ai_access_requested && !v.ai_enabled).length, color: '#C9A84C' },
                 { label: 'Total Commands', value: aiVendors.reduce((sum: number, v: any) => sum + (v.ai_commands_used || 0), 0), color: '#C9A84C' },
-                { label: 'Total Vendors', value: aiVendors.length, color: '#8C7B6E' },
+                { label: 'Total Vendors', value: aiVendors.length, color: '#888580' },
               ].map((stat, i) => (
                 <div key={i} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
                   <div style={{ fontSize: 20, fontWeight: 600, color: stat.color, fontFamily: "'Playfair Display', serif" }}>{stat.value}</div>
@@ -1922,11 +1922,11 @@ export default function AdminPage() {
                 {aiVendors.filter((v: any) => v.ai_access_requested && !v.ai_enabled).map((v: any, i: number, arr: any[]) => (
                   <div key={v.id} style={{ padding: 14, borderBottom: i < arr.length - 1 ? '1px solid #E8E0D5' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: '#2C2420' }}>{v.name}</div>
-                      <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 2 }}>{(v.category || '').replace(/-/g, ' ')} · {v.city} · {v.tier || 'Essential'}</div>
-                      {v.ai_use_case && <div style={{ fontSize: 10, color: '#8C7B6E', marginTop: 4, fontStyle: 'italic' }}>"{v.ai_use_case}"</div>}
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#111111' }}>{v.name}</div>
+                      <div style={{ fontSize: 11, color: '#888580', marginTop: 2 }}>{(v.category || '').replace(/-/g, ' ')} · {v.city} · {v.tier || 'Essential'}</div>
+                      {v.ai_use_case && <div style={{ fontSize: 10, color: '#888580', marginTop: 4, fontStyle: 'italic' }}>"{v.ai_use_case}"</div>}
                     </div>
-                    <button onClick={() => toggleAiAccess(v.id, true)} style={{ background: '#C9A84C', color: '#2C2420', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', letterSpacing: 1 }}>GRANT ACCESS</button>
+                    <button onClick={() => toggleAiAccess(v.id, true)} style={{ background: '#C9A84C', color: '#111111', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', letterSpacing: 1 }}>GRANT ACCESS</button>
                   </div>
                 ))}
               </div>
@@ -1937,14 +1937,14 @@ export default function AdminPage() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: '#4CAF50', fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>✓ Active Users</div>
             {aiVendors.filter((v: any) => v.ai_enabled).length === 0 ? (
-              <div style={{ padding: 24, background: '#fff', borderRadius: 12, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No active users yet. Grant access from the waitlist above or the vendor list below.</div>
+              <div style={{ padding: 24, background: '#fff', borderRadius: 12, textAlign: 'center', color: '#888580', fontSize: 13 }}>No active users yet. Grant access from the waitlist above or the vendor list below.</div>
             ) : (
               <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(76,175,80,0.3)' }}>
                 {aiVendors.filter((v: any) => v.ai_enabled).map((v: any, i: number, arr: any[]) => (
                   <div key={v.id} style={{ padding: 14, borderBottom: i < arr.length - 1 ? '1px solid #E8E0D5' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: '#2C2420' }}>{v.name}</div>
-                      <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 2 }}>{(v.category || '').replace(/-/g, ' ')} · {v.city} · {v.tier || 'Essential'}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#111111' }}>{v.name}</div>
+                      <div style={{ fontSize: 11, color: '#888580', marginTop: 2 }}>{(v.category || '').replace(/-/g, ' ')} · {v.city} · {v.tier || 'Essential'}</div>
                       <div style={{ fontSize: 10, color: '#4CAF50', marginTop: 4 }}>✓ Active · {v.ai_commands_used || 0} commands used</div>
                     </div>
                     <button onClick={() => { if (confirm('Revoke Dream Ai access for ' + v.name + '?')) toggleAiAccess(v.id, false); }} style={{ background: 'transparent', color: '#E57373', border: '1px solid #E57373', borderRadius: 8, padding: '8px 14px', fontSize: 11, fontWeight: 500, cursor: 'pointer', letterSpacing: 1 }}>REVOKE</button>
@@ -1956,15 +1956,15 @@ export default function AdminPage() {
 
           {/* All vendors - quick grant */}
           <div>
-            <div style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>All Vendors — Quick Grant</div>
+            <div style={{ fontSize: 11, color: '#888580', fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>All Vendors — Quick Grant</div>
             <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: '1px solid #E8E0D5' }}>
               {aiVendors.filter((v: any) => !v.ai_enabled && !v.ai_access_requested).length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>All vendors are either active or on the waitlist.</div>
+                <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>All vendors are either active or on the waitlist.</div>
               ) : aiVendors.filter((v: any) => !v.ai_enabled && !v.ai_access_requested).map((v: any, i: number, arr: any[]) => (
                 <div key={v.id} style={{ padding: 14, borderBottom: i < arr.length - 1 ? '1px solid #E8E0D5' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#2C2420' }}>{v.name}</div>
-                    <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 2 }}>{(v.category || '').replace(/-/g, ' ')} · {v.city} · {v.tier || 'Essential'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111111' }}>{v.name}</div>
+                    <div style={{ fontSize: 11, color: '#888580', marginTop: 2 }}>{(v.category || '').replace(/-/g, ' ')} · {v.city} · {v.tier || 'Essential'}</div>
                   </div>
                   <button onClick={() => toggleAiAccess(v.id, true)} style={{ background: 'transparent', color: '#C9A84C', border: '1px solid #C9A84C', borderRadius: 8, padding: '8px 14px', fontSize: 11, fontWeight: 500, cursor: 'pointer', letterSpacing: 1 }}>+ GRANT</button>
                 </div>
@@ -1978,8 +1978,8 @@ export default function AdminPage() {
             <div style={{ ...s.cardPad, gridColumn: '1 / -1' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Featured Boards</div>
-                  <div style={{ fontSize: 12, color: '#8C7B6E' }}>Manage Spotlight, Get Inspired, Look Book, Special Offers</div>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Featured Boards</div>
+                  <div style={{ fontSize: 12, color: '#888580' }}>Manage Spotlight, Get Inspired, Look Book, Special Offers</div>
                 </div>
                 <button onClick={() => setShowAddBoard(!showAddBoard)} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as any }}>{showAddBoard ? 'Cancel' : '+ Add Item'}</button>
               </div>
@@ -2020,8 +2020,8 @@ export default function AdminPage() {
                       <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F5F0E8' }}>
                         {item.image_url && <img src={item.image_url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />}
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{item.vendor_name || item.title}</div>
-                          <div style={{ fontSize: 11, color: '#8C7B6E' }}>{item.category}{item.city ? ' · ' + item.city : ''}</div>
+                          <div style={{ fontSize: 13, color: '#111111', fontWeight: 500 }}>{item.vendor_name || item.title}</div>
+                          <div style={{ fontSize: 11, color: '#888580' }}>{item.category}{item.city ? ' · ' + item.city : ''}</div>
                         </div>
                         <button onClick={() => handleDeleteBoardItem(item.id)} style={{ fontSize: 11, color: '#E57373', background: 'none', border: '1px solid #E57373', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Remove</button>
                       </div>
@@ -2032,18 +2032,18 @@ export default function AdminPage() {
             </div>
 
             <div style={{ ...s.cardPad, gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Destination Package Approvals</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16 }}>Review event manager destination wedding packages</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Destination Package Approvals</div>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16 }}>Review event manager destination wedding packages</div>
               {pendingPackages.length === 0 ? (
-                <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center', padding: 20, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending packages</div>
+                <div style={{ fontSize: 13, color: '#888580', textAlign: 'center', padding: 20, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending packages</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {pendingPackages.map((pkg: any) => (
                     <div key={pkg.id} style={{ border: '1px solid #E8E0D5', borderRadius: 12, padding: 16 }}>
-                      <div style={{ fontSize: 15, color: '#2C2420', fontWeight: 500, marginBottom: 4 }}>{pkg.package_name}</div>
-                      <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 4 }}>{pkg.destination} · Rs.{(pkg.base_price || 0).toLocaleString('en-IN')} for {pkg.base_guest_count || 100} guests</div>
-                      <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 4 }}>By: {pkg.vendor_name || pkg.vendor_id?.slice(0, 8)}</div>
-                      {pkg.description && <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>{pkg.description}</div>}
+                      <div style={{ fontSize: 15, color: '#111111', fontWeight: 500, marginBottom: 4 }}>{pkg.package_name}</div>
+                      <div style={{ fontSize: 12, color: '#888580', marginBottom: 4 }}>{pkg.destination} · Rs.{(pkg.base_price || 0).toLocaleString('en-IN')} for {pkg.base_guest_count || 100} guests</div>
+                      <div style={{ fontSize: 12, color: '#888580', marginBottom: 4 }}>By: {pkg.vendor_name || pkg.vendor_id?.slice(0, 8)}</div>
+                      {pkg.description && <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>{pkg.description}</div>}
                       {pkg.inclusions?.length > 0 && <div style={{ fontSize: 11, color: '#C9A84C', marginBottom: 8 }}>{pkg.inclusions.join(' · ')}</div>}
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={() => handlePackageApproval(pkg.id, 'approved')} style={{ flex: 1, padding: 8, borderRadius: 8, border: 'none', backgroundColor: '#4CAF50', color: '#fff', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>Approve</button>
@@ -2056,18 +2056,18 @@ export default function AdminPage() {
             </div>
 
             <div style={{ ...s.cardPad, gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Featured Photo Approvals</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16 }}>Review vendor photos submitted for the swipe deck</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Featured Photo Approvals</div>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16 }}>Review vendor photos submitted for the swipe deck</div>
               {pendingPhotos.length === 0 ? (
-                <div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center', padding: 20, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending photos to review</div>
+                <div style={{ fontSize: 13, color: '#888580', textAlign: 'center', padding: 20, border: '1px solid #E8E0D5', borderRadius: 12 }}>No pending photos to review</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className='admin-grid-2'>
                   {pendingPhotos.map((photo: any) => (
                     <div key={photo.id} style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' }}>
                       {photo.photo_url && <img src={photo.photo_url} alt="" style={{ width: '100%', height: 180, objectFit: 'cover' }} />}
                       <div style={{ padding: 12 }}>
-                        <div style={{ fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{photo.description || 'Featured photo'}</div>
-                        <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 8 }}>Vendor: {photo.vendor_id?.slice(0, 8)}</div>
+                        <div style={{ fontSize: 13, color: '#111111', fontWeight: 500 }}>{photo.description || 'Featured photo'}</div>
+                        <div style={{ fontSize: 11, color: '#888580', marginBottom: 8 }}>Vendor: {photo.vendor_id?.slice(0, 8)}</div>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button onClick={() => handlePhotoApproval(photo.id, 'approved', photo.vendor_id)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', backgroundColor: '#4CAF50', color: '#fff', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>Approve</button>
                           <button onClick={() => handlePhotoApproval(photo.id, 'revision_needed', photo.vendor_id)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: '1px solid #E57373', backgroundColor: '#fff', color: '#E57373', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>Reject</button>
@@ -2081,47 +2081,47 @@ export default function AdminPage() {
             </div>
 
             <div style={{ ...s.cardPad, gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Vendor Tier Management</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16 }}>Search vendor by name to change their subscription tier</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Vendor Tier Management</div>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16 }}>Search vendor by name to change their subscription tier</div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                 <input type="text" placeholder="Search vendor by name..." value={vendorTierSearch} onChange={(e: any) => setVendorTierSearch(e.target.value)} onKeyDown={(e: any) => e.key === 'Enter' && handleVendorTierSearch()} style={{ ...s.input, flex: 1 }} />
                 <button onClick={handleVendorTierSearch} disabled={vendorTierSearching} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as any }}>{vendorTierSearching ? 'Searching...' : 'SEARCH'}</button>
               </div>
-              {vendorTierResults.length > 0 && (<div style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' }}>{vendorTierResults.map((v: any, idx: number) => (<div key={v.id} style={{ padding: '14px 16px', borderBottom: idx < vendorTierResults.length - 1 ? '1px solid #F5F0E8' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ flex: 1 }}><div style={{ fontSize: 14, color: '#2C2420', fontWeight: 500 }}>{v.name || 'No Name'}</div><div style={{ fontSize: 12, color: '#8C7B6E' }}>{v.category || ''} / {v.city || ''}</div><div style={{ fontSize: 11, color: '#C9A84C', marginTop: 2 }}>Current: {v.currentTier || v.tier || 'essential'}</div></div><div style={{ display: 'flex', gap: 6 }}>{(['essential', 'signature', 'prestige'] as const).map(tier => { const isActive = (v.currentTier || v.tier || 'essential') === tier; return (<button key={tier} onClick={() => !isActive && handleVendorSetTier(v.id, tier)} disabled={isActive || vendorTierUpdating === v.id} style={{ padding: '6px 14px', borderRadius: 50, border: '1px solid ' + (isActive ? '#C9A84C' : '#E8E0D5'), backgroundColor: isActive ? (tier === 'prestige' ? '#2C2420' : '#C9A84C') : '#FFFFFF', color: isActive ? (tier === 'prestige' ? '#C9A84C' : '#2C2420') : '#8C7B6E', fontSize: 11, fontWeight: 500, cursor: isActive ? 'default' : 'pointer', textTransform: 'capitalize' }}>{tier}</button>); })}</div></div>))}</div>)}
-              {vendorTierResults.length === 0 && vendorTierSearch && !vendorTierSearching && (<div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center', padding: 20 }}>No vendors found</div>)}
+              {vendorTierResults.length > 0 && (<div style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' }}>{vendorTierResults.map((v: any, idx: number) => (<div key={v.id} style={{ padding: '14px 16px', borderBottom: idx < vendorTierResults.length - 1 ? '1px solid #F5F0E8' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ flex: 1 }}><div style={{ fontSize: 14, color: '#111111', fontWeight: 500 }}>{v.name || 'No Name'}</div><div style={{ fontSize: 12, color: '#888580' }}>{v.category || ''} / {v.city || ''}</div><div style={{ fontSize: 11, color: '#C9A84C', marginTop: 2 }}>Current: {v.currentTier || v.tier || 'essential'}</div></div><div style={{ display: 'flex', gap: 6 }}>{(['essential', 'signature', 'prestige'] as const).map(tier => { const isActive = (v.currentTier || v.tier || 'essential') === tier; return (<button key={tier} onClick={() => !isActive && handleVendorSetTier(v.id, tier)} disabled={isActive || vendorTierUpdating === v.id} style={{ padding: '6px 14px', borderRadius: 50, border: '1px solid ' + (isActive ? '#C9A84C' : '#E8E0D5'), backgroundColor: isActive ? (tier === 'prestige' ? '#111111' : '#C9A84C') : '#FFFFFF', color: isActive ? (tier === 'prestige' ? '#C9A84C' : '#111111') : '#888580', fontSize: 11, fontWeight: 500, cursor: isActive ? 'default' : 'pointer', textTransform: 'capitalize' }}>{tier}</button>); })}</div></div>))}</div>)}
+              {vendorTierResults.length === 0 && vendorTierSearch && !vendorTierSearching && (<div style={{ fontSize: 13, color: '#888580', textAlign: 'center', padding: 20 }}>No vendors found</div>)}
             </div>
 
             <div style={{ ...s.cardPad, gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 4 }}>Couple Tier Management</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16 }}>Search by phone, email, or name to change subscription tier</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 4 }}>Couple Tier Management</div>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16 }}>Search by phone, email, or name to change subscription tier</div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                 <input type="text" placeholder="Search by phone, email, or name..." value={coupleSearch} onChange={(e: any) => setCoupleSearch(e.target.value)} onKeyDown={(e: any) => e.key === 'Enter' && handleCoupleSearch()} style={{ ...s.input, flex: 1 }} />
                 <button onClick={handleCoupleSearch} disabled={coupleSearching} style={{ ...s.primaryBtn, whiteSpace: 'nowrap' as any }}>{coupleSearching ? 'Searching...' : 'SEARCH'}</button>
               </div>
-              {coupleResults.length > 0 && (<div style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' }}>{coupleResults.map((user: any, idx: number) => (<div key={user.id} style={{ padding: '14px 16px', borderBottom: idx < coupleResults.length - 1 ? '1px solid #F5F0E8' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ flex: 1 }}><div style={{ fontSize: 14, color: '#2C2420', fontWeight: 500 }}>{user.name || 'No Name'}</div><div style={{ fontSize: 12, color: '#8C7B6E' }}>{user.phone || ''}{user.email ? ' / ' + user.email : ''}</div><div style={{ fontSize: 11, color: '#C9A84C', marginTop: 2 }}>Current: {user.couple_tier === 'elite' ? 'Platinum' : user.couple_tier === 'premium' ? 'Gold' : 'Basic'} / {user.token_balance ?? 3} tokens</div></div><div style={{ display: 'flex', gap: 6 }}>{(['free', 'premium', 'elite'] as const).map(tier => { const label = tier === 'elite' ? 'Platinum' : tier === 'premium' ? 'Gold' : 'Basic'; const isActive = user.couple_tier === tier || (!user.couple_tier && tier === 'free'); return (<button key={tier} onClick={() => !isActive && handleCoupleSetTier(user.id, tier)} disabled={isActive || coupleUpdating === user.id} style={{ padding: '6px 14px', borderRadius: 50, border: '1px solid ' + (isActive ? '#C9A84C' : '#E8E0D5'), backgroundColor: isActive ? (tier === 'elite' ? '#2C2420' : '#C9A84C') : '#FFFFFF', color: isActive ? (tier === 'elite' ? '#C9A84C' : '#2C2420') : '#8C7B6E', fontSize: 11, fontWeight: 500, cursor: isActive ? 'default' : 'pointer' }}>{label}</button>); })}</div></div>))}</div>)}
-              {coupleResults.length === 0 && coupleSearch && !coupleSearching && (<div style={{ fontSize: 13, color: '#8C7B6E', textAlign: 'center', padding: 20 }}>No users found</div>)}
+              {coupleResults.length > 0 && (<div style={{ border: '1px solid #E8E0D5', borderRadius: 12, overflow: 'hidden' }}>{coupleResults.map((user: any, idx: number) => (<div key={user.id} style={{ padding: '14px 16px', borderBottom: idx < coupleResults.length - 1 ? '1px solid #F5F0E8' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><div style={{ flex: 1 }}><div style={{ fontSize: 14, color: '#111111', fontWeight: 500 }}>{user.name || 'No Name'}</div><div style={{ fontSize: 12, color: '#888580' }}>{user.phone || ''}{user.email ? ' / ' + user.email : ''}</div><div style={{ fontSize: 11, color: '#C9A84C', marginTop: 2 }}>Current: {user.couple_tier === 'elite' ? 'Platinum' : user.couple_tier === 'premium' ? 'Gold' : 'Basic'} / {user.token_balance ?? 3} tokens</div></div><div style={{ display: 'flex', gap: 6 }}>{(['free', 'premium', 'elite'] as const).map(tier => { const label = tier === 'elite' ? 'Platinum' : tier === 'premium' ? 'Gold' : 'Basic'; const isActive = user.couple_tier === tier || (!user.couple_tier && tier === 'free'); return (<button key={tier} onClick={() => !isActive && handleCoupleSetTier(user.id, tier)} disabled={isActive || coupleUpdating === user.id} style={{ padding: '6px 14px', borderRadius: 50, border: '1px solid ' + (isActive ? '#C9A84C' : '#E8E0D5'), backgroundColor: isActive ? (tier === 'elite' ? '#111111' : '#C9A84C') : '#FFFFFF', color: isActive ? (tier === 'elite' ? '#C9A84C' : '#111111') : '#888580', fontSize: 11, fontWeight: 500, cursor: isActive ? 'default' : 'pointer' }}>{label}</button>); })}</div></div>))}</div>)}
+              {coupleResults.length === 0 && coupleSearch && !coupleSearching && (<div style={{ fontSize: 13, color: '#888580', textAlign: 'center', padding: 20 }}>No users found</div>)}
             </div>
 
             <div style={s.cardPad}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 20 }}>Change Admin Password</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 20 }}>Change Admin Password</div>
               <input type="password" placeholder="New password (min 6 chars)" value={newPwd} onChange={e => setNewPwd(e.target.value)} style={{ ...s.input, marginBottom: 12 }} />
               <button onClick={() => {
                 if (newPwd.length < 6) { alert('Min 6 characters'); return; }
                 setAdminPassword(newPwd); setNewPwd('');
                 alert('Password updated for this session.');
               }} style={{ ...s.primaryBtn, width: '100%', textAlign: 'center' }}>UPDATE PASSWORD</button>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 8, textAlign: 'center' }}>Resets on server restart. For permanent change, update the code.</div>
+              <div style={{ fontSize: 11, color: '#888580', marginTop: 8, textAlign: 'center' }}>Resets on server restart. For permanent change, update the code.</div>
             </div>
 
             <div style={s.cardPad}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 20 }}>Freemium Limits</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 20 }}>Freemium Limits</div>
               {[
                 { label: 'Daily Swipe Limit', value: swipeLimit, set: setSwipeLimit },
                 { label: 'Moodboard Save Limit', value: saveLimit, set: setSaveLimit },
                 { label: 'Enquiry Limit', value: enquiryLimit, set: setEnquiryLimit },
               ].map(item => (
                 <div key={item.label} style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 12, color: '#8C7B6E', display: 'block', marginBottom: 5 }}>{item.label}</label>
+                  <label style={{ fontSize: 12, color: '#888580', display: 'block', marginBottom: 5 }}>{item.label}</label>
                   <input type="number" value={item.value} onChange={e => item.set(e.target.value)} style={{ ...s.input }} />
                 </div>
               ))}
@@ -2129,7 +2129,7 @@ export default function AdminPage() {
             </div>
 
             <div style={s.cardPad}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 20 }}>Platform Controls</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 20 }}>Platform Controls</div>
               {[
                 { label: 'Access Gate (Invite Only)', status: 'REMOVED', color: '#9E9E9E' },
                 { label: 'Contact Filter', status: 'ON', color: '#4CAF50' },
@@ -2138,14 +2138,14 @@ export default function AdminPage() {
                 { label: 'App Store / TestFlight', status: 'Not Configured', color: '#C9A84C' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F5F0E8' }}>
-                  <span style={{ fontSize: 13, color: '#2C2420' }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: '#111111' }}>{item.label}</span>
                   <span style={s.pill(item.color + '20', item.color)}>{item.status}</span>
                 </div>
               ))}
             </div>
 
             <div style={s.cardPad}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: '#2C2420', marginBottom: 20 }}>Quick Links</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#111111', marginBottom: 20 }}>Quick Links</div>
               {[
                 { label: 'Supabase Dashboard', url: 'https://supabase.com/dashboard', color: '#1C1C1C', textColor: '#4CAF50' },
                 { label: 'Firebase Console', url: 'https://console.firebase.google.com', color: '#FF6D00', textColor: '#fff' },
@@ -2166,14 +2166,14 @@ export default function AdminPage() {
           <>
             <div style={s.cardPad}>
               <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>🔥 Hot Dates</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16, lineHeight: 1.5 }}>
                 Auspicious wedding dates shown to vendors when they toggle Hot Dates on in their calendar.
                 Add, edit, or remove dates per year.
               </div>
 
               {/* Year selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <label style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 500, letterSpacing: 0.5 }}>YEAR</label>
+                <label style={{ fontSize: 11, color: '#888580', fontWeight: 500, letterSpacing: 0.5 }}>YEAR</label>
                 <select
                   value={hotYear}
                   onChange={e => setHotYear(e.target.value)}
@@ -2181,14 +2181,14 @@ export default function AdminPage() {
                 >
                   {['2025', '2026', '2027', '2028'].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
-                <span style={{ fontSize: 11, color: '#8C7B6E' }}>
+                <span style={{ fontSize: 11, color: '#888580' }}>
                   {hotDates.length} {hotDates.length === 1 ? 'date' : 'dates'}
                 </span>
               </div>
 
               {/* Add form */}
-              <div style={{ background: '#FAF6F0', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+              <div style={{ background: '#F8F7F5', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: '#888580', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
                   Add a hot date
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
@@ -2234,9 +2234,9 @@ export default function AdminPage() {
 
               {/* List */}
               {hotLoading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>Loading…</div>
+                <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>Loading…</div>
               ) : hotDates.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>
+                <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>
                   No hot dates for {hotYear}. Add some above.
                 </div>
               ) : (
@@ -2265,7 +2265,7 @@ export default function AdminPage() {
                             <td style={s.td}>{h.tradition}</td>
                             <td style={s.td}>{h.region}</td>
                             <td style={s.td}>
-                              {h.note ? <span style={{ fontSize: 11, color: flagged ? '#B8963A' : '#8C7B6E' }}>{h.note}</span> : <span style={{ color: '#B8ADA4' }}>—</span>}
+                              {h.note ? <span style={{ fontSize: 11, color: flagged ? '#B8963A' : '#888580' }}>{h.note}</span> : <span style={{ color: '#C8C4BE' }}>—</span>}
                             </td>
                             <td style={s.td}>
                               <button
@@ -2288,7 +2288,7 @@ export default function AdminPage() {
           <>
             <div style={s.cardPad}>
               <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>🤖 PAi Beta Management</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16, lineHeight: 1.5 }}>
                 PAi is invite-only during beta. Grant access for 5-day windows, review usage, deny requests.
                 <br />Target: 50 users max. Cost: ~₹0.12 per parse (Haiku 4.5 with prompt caching).
               </div>
@@ -2302,7 +2302,7 @@ export default function AdminPage() {
                     style={{
                       padding: '8px 14px', border: 'none', background: 'transparent',
                       cursor: 'pointer', fontSize: 12,
-                      color: paiView === v ? '#2C2420' : '#8C7B6E',
+                      color: paiView === v ? '#111111' : '#888580',
                       borderBottom: paiView === v ? '2px solid #C9A84C' : '2px solid transparent',
                       fontWeight: paiView === v ? 500 : 400, marginBottom: -1,
                     }}
@@ -2315,26 +2315,26 @@ export default function AdminPage() {
               </div>
 
               {/* Default days config */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#FAF6F0', borderRadius: 8 }}>
-                <label style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#F8F7F5', borderRadius: 8 }}>
+                <label style={{ fontSize: 11, color: '#888580', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
                 <input
                   type="number" min="1" max="30"
                   value={paiGrantDays}
                   onChange={e => setPaiGrantDays(e.target.value)}
                   style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid #E8E0D5', fontSize: 13 }}
                 />
-                <span style={{ fontSize: 11, color: '#8C7B6E' }}>days</span>
-                <span style={{ fontSize: 10, color: '#B8ADA4', marginLeft: 'auto' }}>Default: 5 days • Max: 30 days</span>
+                <span style={{ fontSize: 11, color: '#888580' }}>days</span>
+                <span style={{ fontSize: 10, color: '#C8C4BE', marginLeft: 'auto' }}>Default: 5 days • Max: 30 days</span>
               </div>
 
               {paiLoading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>Loading…</div>
+                <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>Loading…</div>
               ) : (
                 <>
                   {paiView === 'requests' && (
                     <>
                       {paiRequests.length === 0 ? (
-                        <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>
+                        <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>
                           No access requests yet.
                         </div>
                       ) : (
@@ -2361,11 +2361,11 @@ export default function AdminPage() {
                                   </td>
                                   <td style={s.td}>
                                     <strong>{r.user_name || 'Unknown'}</strong>
-                                    {r.user_phone && <div style={{ fontSize: 10, color: '#8C7B6E' }}>{r.user_phone}</div>}
+                                    {r.user_phone && <div style={{ fontSize: 10, color: '#888580' }}>{r.user_phone}</div>}
                                   </td>
                                   <td style={s.td}>
-                                    <span style={{ fontSize: 11, color: '#8C7B6E', maxWidth: 240, display: 'inline-block' }}>
-                                      {r.reason || <span style={{ color: '#B8ADA4' }}>—</span>}
+                                    <span style={{ fontSize: 11, color: '#888580', maxWidth: 240, display: 'inline-block' }}>
+                                      {r.reason || <span style={{ color: '#C8C4BE' }}>—</span>}
                                     </span>
                                   </td>
                                   <td style={s.td}>
@@ -2379,7 +2379,7 @@ export default function AdminPage() {
                                       <div style={{ display: 'flex', gap: 6 }}>
                                         <button
                                           onClick={() => paiGrant(r.user_type, r.user_id)}
-                                          style={s.btnSm('#2C2420', '#C9A84C', '#2C2420')}
+                                          style={s.btnSm('#111111', '#C9A84C', '#111111')}
                                         >Grant</button>
                                         <button
                                           onClick={() => paiDeny(r.id)}
@@ -2387,7 +2387,7 @@ export default function AdminPage() {
                                         >Deny</button>
                                       </div>
                                     ) : (
-                                      <span style={{ fontSize: 10, color: '#B8ADA4' }}>
+                                      <span style={{ fontSize: 10, color: '#C8C4BE' }}>
                                         {r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-IN') : ''}
                                       </span>
                                     )}
@@ -2404,7 +2404,7 @@ export default function AdminPage() {
                   {paiView === 'granted' && (
                     <>
                       {(paiGrantedV.length + paiGrantedC.length) === 0 ? (
-                        <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>
+                        <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>
                           No users have PAi access yet.
                         </div>
                       ) : (
@@ -2446,7 +2446,7 @@ export default function AdminPage() {
                                       <div style={{ display: 'flex', gap: 6 }}>
                                         <button
                                           onClick={() => paiGrant(u.user_type, u.id)}
-                                          style={s.btnSm('#FFF8EC', '#B8963A', '#E8D9B5')}
+                                          style={s.btnSm('#FFF8EC', '#B8963A', '#E2DED8')}
                                         >Extend</button>
                                         <button
                                           onClick={() => paiRevoke(u.user_type, u.id)}
@@ -2467,7 +2467,7 @@ export default function AdminPage() {
                   {paiView === 'events' && (
                     <>
                       {paiEvents.length === 0 ? (
-                        <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>
+                        <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>
                           No PAi activity yet.
                         </div>
                       ) : (
@@ -2490,7 +2490,7 @@ export default function AdminPage() {
                                     <div style={{ fontSize: 11 }}>
                                       {new Date(e.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                                     </div>
-                                    <div style={{ fontSize: 10, color: '#8C7B6E' }}>
+                                    <div style={{ fontSize: 10, color: '#888580' }}>
                                       {new Date(e.created_at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
                                     </div>
                                   </td>
@@ -2500,12 +2500,12 @@ export default function AdminPage() {
                                     </span>
                                   </td>
                                   <td style={s.td}>
-                                    <div style={{ fontSize: 11, color: '#2C2420', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <div style={{ fontSize: 11, color: '#111111', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                       "{e.input_text}"
                                     </div>
                                   </td>
                                   <td style={s.td}>
-                                    <span style={{ fontSize: 11, color: e.parsed_intent === 'unknown' ? '#C65757' : '#2C2420' }}>
+                                    <span style={{ fontSize: 11, color: e.parsed_intent === 'unknown' ? '#C65757' : '#111111' }}>
                                       {e.parsed_intent || '—'}
                                     </span>
                                   </td>
@@ -2517,11 +2517,11 @@ export default function AdminPage() {
                                     ) : e.user_confirmed ? (
                                       <span style={s.pill('#FFF3DB', '#B8963A')}>confirmed</span>
                                     ) : (
-                                      <span style={s.pill('#E8E0D5', '#8C7B6E')}>parsed</span>
+                                      <span style={s.pill('#E8E0D5', '#888580')}>parsed</span>
                                     )}
                                   </td>
                                   <td style={s.td}>
-                                    <span style={{ fontSize: 10, color: '#8C7B6E' }}>
+                                    <span style={{ fontSize: 10, color: '#888580' }}>
                                       {e.input_tokens || 0}→{e.output_tokens || 0}
                                     </span>
                                   </td>
@@ -2530,7 +2530,7 @@ export default function AdminPage() {
                             </tbody>
                           </table>
                           {paiEvents.length > 100 && (
-                            <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#8C7B6E' }}>
+                            <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#888580' }}>
                               Showing latest 100 of {paiEvents.length} events.
                             </div>
                           )}
@@ -2548,7 +2548,7 @@ export default function AdminPage() {
           <>
             <div style={s.cardPad}>
               <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>🧭 Discover Beta Management</div>
-              <div style={{ fontSize: 12, color: '#8C7B6E', marginBottom: 16, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: '#888580', marginBottom: 16, lineHeight: 1.5 }}>
                 Discover is invite-only. Grant access windows to couples (who browse) and to vendors (who list their storefront).
                 <br />Target: 50+ vendors live before global rollout.
               </div>
@@ -2561,8 +2561,8 @@ export default function AdminPage() {
                     onClick={() => setDiscAudience(a)}
                     style={{
                       flex: 1, padding: '8px 14px', border: 'none',
-                      background: discAudience === a ? '#2C2420' : 'transparent',
-                      color: discAudience === a ? '#C9A84C' : '#8C7B6E',
+                      background: discAudience === a ? '#111111' : 'transparent',
+                      color: discAudience === a ? '#C9A84C' : '#888580',
                       cursor: 'pointer', fontSize: 12, fontWeight: 500,
                       borderRadius: 8, transition: 'all 0.15s',
                     }}
@@ -2583,7 +2583,7 @@ export default function AdminPage() {
                     style={{
                       padding: '8px 14px', border: 'none', background: 'transparent',
                       cursor: 'pointer', fontSize: 12,
-                      color: discView === v ? '#2C2420' : '#8C7B6E',
+                      color: discView === v ? '#111111' : '#888580',
                       borderBottom: discView === v ? '2px solid #C9A84C' : '2px solid transparent',
                       fontWeight: discView === v ? 500 : 400, marginBottom: -1,
                     }}
@@ -2595,26 +2595,26 @@ export default function AdminPage() {
               </div>
 
               {/* Default days config */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#FAF6F0', borderRadius: 8 }}>
-                <label style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#F8F7F5', borderRadius: 8 }}>
+                <label style={{ fontSize: 11, color: '#888580', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
                 <input
                   type="number" min="1" max="365"
                   value={discGrantDays}
                   onChange={e => setDiscGrantDays(e.target.value)}
                   style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid #E8E0D5', fontSize: 13 }}
                 />
-                <span style={{ fontSize: 11, color: '#8C7B6E' }}>days</span>
-                <span style={{ fontSize: 10, color: '#B8ADA4', marginLeft: 'auto' }}>Default: 30 days • Max: 365 days</span>
+                <span style={{ fontSize: 11, color: '#888580' }}>days</span>
+                <span style={{ fontSize: 10, color: '#C8C4BE', marginLeft: 'auto' }}>Default: 30 days • Max: 365 days</span>
               </div>
 
               {discLoading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>Loading…</div>
+                <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>Loading…</div>
               ) : (
                 <>
                   {discView === 'requests' && (
                     <>
                       {discRequests.length === 0 ? (
-                        <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>
+                        <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>
                           No access requests yet.
                         </div>
                       ) : (
@@ -2635,11 +2635,11 @@ export default function AdminPage() {
                                   <td style={s.td}>{new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</td>
                                   <td style={s.td}>
                                     <strong>{r.user_name || 'Unknown'}</strong>
-                                    {r.user_phone && <div style={{ fontSize: 10, color: '#8C7B6E' }}>{r.user_phone}</div>}
+                                    {r.user_phone && <div style={{ fontSize: 10, color: '#888580' }}>{r.user_phone}</div>}
                                   </td>
                                   <td style={s.td}>
-                                    <span style={{ fontSize: 11, color: '#8C7B6E', maxWidth: 280, display: 'inline-block' }}>
-                                      {r.reason || <span style={{ color: '#B8ADA4' }}>—</span>}
+                                    <span style={{ fontSize: 11, color: '#888580', maxWidth: 280, display: 'inline-block' }}>
+                                      {r.reason || <span style={{ color: '#C8C4BE' }}>—</span>}
                                     </span>
                                   </td>
                                   <td style={s.td}>
@@ -2653,7 +2653,7 @@ export default function AdminPage() {
                                       <div style={{ display: 'flex', gap: 6 }}>
                                         <button
                                           onClick={() => discGrant(r.user_id)}
-                                          style={s.btnSm('#2C2420', '#C9A84C', '#2C2420')}
+                                          style={s.btnSm('#111111', '#C9A84C', '#111111')}
                                         >Grant</button>
                                         <button
                                           onClick={() => discDeny(r.id)}
@@ -2661,7 +2661,7 @@ export default function AdminPage() {
                                         >Deny</button>
                                       </div>
                                     ) : (
-                                      <span style={{ fontSize: 10, color: '#B8ADA4' }}>
+                                      <span style={{ fontSize: 10, color: '#C8C4BE' }}>
                                         {r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-IN') : ''}
                                       </span>
                                     )}
@@ -2678,7 +2678,7 @@ export default function AdminPage() {
                   {discView === 'granted' && (
                     <>
                       {discGranted.length === 0 ? (
-                        <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>
+                        <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>
                           No couples have Discover access yet.
                         </div>
                       ) : (
@@ -2749,7 +2749,7 @@ export default function AdminPage() {
                       style={{
                         padding: '8px 14px', border: 'none', background: 'transparent',
                         cursor: 'pointer', fontSize: 12,
-                        color: vendSubView === v ? '#2C2420' : '#8C7B6E',
+                        color: vendSubView === v ? '#111111' : '#888580',
                         borderBottom: vendSubView === v ? '2px solid #C9A84C' : '2px solid transparent',
                         fontWeight: vendSubView === v ? 500 : 400, marginBottom: -1,
                       }}
@@ -2764,48 +2764,48 @@ export default function AdminPage() {
                 </div>
 
                 {/* Default days config */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#FAF6F0', borderRadius: 8 }}>
-                  <label style={{ fontSize: 11, color: '#8C7B6E', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: '#F8F7F5', borderRadius: 8 }}>
+                  <label style={{ fontSize: 11, color: '#888580', fontWeight: 500, letterSpacing: 0.5 }}>GRANT FOR</label>
                   <input type="number" min="1" max="730" value={discGrantDays} onChange={e => setDiscGrantDays(e.target.value)}
                     style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid #E8E0D5', fontSize: 13 }} />
-                  <span style={{ fontSize: 11, color: '#8C7B6E' }}>days</span>
-                  <span style={{ fontSize: 10, color: '#B8ADA4', marginLeft: 'auto' }}>Default: 365 days for vendors • Max: 730 days</span>
+                  <span style={{ fontSize: 11, color: '#888580' }}>days</span>
+                  <span style={{ fontSize: 10, color: '#C8C4BE', marginLeft: 'auto' }}>Default: 365 days for vendors • Max: 730 days</span>
                 </div>
 
                 {discLoading ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>Loading…</div>
+                  <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>Loading…</div>
                 ) : (
                   <>
                     {vendSubView === 'requests' && (
                       <>
                         {vendDiscRequests.length === 0 ? (
-                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No vendor access requests yet.</div>
+                          <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>No vendor access requests yet.</div>
                         ) : (
                           <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Phone</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Reason</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Status</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Phone</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Reason</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Status</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#888580', fontWeight: 500 }}>Actions</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {vendDiscRequests.map(req => (
                                   <tr key={req.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
-                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{req.vendor_name || '—'}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E' }}>{req.vendor_phone || '—'}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#2C2420', maxWidth: 220 }}>{req.reason || '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#111111', fontWeight: 500 }}>{req.vendor_name || '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#888580' }}>{req.vendor_phone || '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#111111', maxWidth: 220 }}>{req.reason || '—'}</td>
                                     <td style={{ padding: '12px', fontSize: 11 }}>
                                       <span style={{ padding: '3px 8px', borderRadius: 4, background: req.status === 'pending' ? '#FFF3DB' : req.status === 'granted' ? '#E8F5E9' : '#FFEBEE', color: req.status === 'pending' ? '#B8963A' : req.status === 'granted' ? '#2E7D32' : '#C62828' }}>{req.status}</span>
                                     </td>
                                     <td style={{ padding: '12px', textAlign: 'right' }}>
                                       {req.status === 'pending' && (
                                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                                          <button onClick={() => vendDiscGrant(req.vendor_id)} style={{ padding: '6px 12px', fontSize: 11, background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}>Grant</button>
-                                          <button onClick={() => vendDiscDeny(req.id)} style={{ padding: '6px 12px', fontSize: 11, background: 'transparent', color: '#8C7B6E', border: '1px solid #E8E0D5', borderRadius: 6, cursor: 'pointer' }}>Deny</button>
+                                          <button onClick={() => vendDiscGrant(req.vendor_id)} style={{ padding: '6px 12px', fontSize: 11, background: '#111111', color: '#C9A84C', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}>Grant</button>
+                                          <button onClick={() => vendDiscDeny(req.id)} style={{ padding: '6px 12px', fontSize: 11, background: 'transparent', color: '#888580', border: '1px solid #E8E0D5', borderRadius: 6, cursor: 'pointer' }}>Deny</button>
                                         </div>
                                       )}
                                     </td>
@@ -2821,32 +2821,32 @@ export default function AdminPage() {
                     {vendSubView === 'granted' && (
                       <>
                         {vendDiscGranted.length === 0 ? (
-                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No vendors granted Discovery access yet.</div>
+                          <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>No vendors granted Discovery access yet.</div>
                         ) : (
                           <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Category</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Completion</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Listed?</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Expires</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Couture</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Trending</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Category</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Completion</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Listed?</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Expires</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Couture</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Trending</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#888580', fontWeight: 500 }}>Actions</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {vendDiscGranted.map(v => (
                                   <tr key={v.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
-                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{v.name}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E' }}>{v.category} · {v.city}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#2C2420' }}>{v.discover_completion_pct || 0}%</td>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#111111', fontWeight: 500 }}>{v.name}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#888580' }}>{v.category} · {v.city}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#111111' }}>{v.discover_completion_pct || 0}%</td>
                                     <td style={{ padding: '12px', fontSize: 11 }}>
                                       <span style={{ padding: '3px 8px', borderRadius: 4, background: v.discover_listed ? '#E8F5E9' : '#FFF3DB', color: v.discover_listed ? '#2E7D32' : '#B8963A' }}>{v.discover_listed ? 'Live' : 'Not listed'}</span>
                                     </td>
-                                    <td style={{ padding: '12px', fontSize: 11, color: '#8C7B6E' }}>{v.vendor_discover_expires_at ? new Date(v.vendor_discover_expires_at).toLocaleDateString() : '—'}</td>
+                                    <td style={{ padding: '12px', fontSize: 11, color: '#888580' }}>{v.vendor_discover_expires_at ? new Date(v.vendor_discover_expires_at).toLocaleDateString() : '—'}</td>
                                     <td style={{ padding: '12px', fontSize: 11 }}>
                                       <button onClick={async () => {
                                         const next = !v.couture_eligible;
@@ -2859,9 +2859,9 @@ export default function AdminPage() {
                                         } catch {}
                                       }} style={{
                                         padding: '4px 10px', fontSize: 10, borderRadius: 4,
-                                        background: v.couture_eligible ? '#2C2420' : 'transparent',
-                                        color: v.couture_eligible ? '#C9A84C' : '#8C7B6E',
-                                        border: `1px solid ${v.couture_eligible ? '#2C2420' : '#E8E0D5'}`,
+                                        background: v.couture_eligible ? '#111111' : 'transparent',
+                                        color: v.couture_eligible ? '#C9A84C' : '#888580',
+                                        border: `1px solid ${v.couture_eligible ? '#111111' : '#E8E0D5'}`,
                                         cursor: 'pointer', fontWeight: 500, letterSpacing: 0.5,
                                       }}>
                                         {v.couture_eligible ? '✓ COUTURE' : 'Mark Couture'}
@@ -2880,7 +2880,7 @@ export default function AdminPage() {
                                       }} style={{
                                         padding: '4px 10px', fontSize: 10, borderRadius: 4,
                                         background: v.trending_pinned ? '#C9A84C' : 'transparent',
-                                        color: v.trending_pinned ? '#2C2420' : '#8C7B6E',
+                                        color: v.trending_pinned ? '#111111' : '#888580',
                                         border: `1px solid ${v.trending_pinned ? '#C9A84C' : '#E8E0D5'}`,
                                         cursor: 'pointer', fontWeight: 500, letterSpacing: 0.5,
                                       }}>
@@ -2902,30 +2902,30 @@ export default function AdminPage() {
                     {vendSubView === 'submissions' && (
                       <>
                         {vendSubmissions.length === 0 ? (
-                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No submissions to review.</div>
+                          <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>No submissions to review.</div>
                         ) : (
                           <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Tier</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Submitted</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Status</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Tier</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Submitted</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Status</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#888580', fontWeight: 500 }}>Actions</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {vendSubmissions.map(sub => (
                                   <tr key={sub.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
-                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{sub.vendor_name}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E', textTransform: 'capitalize' as const }}>{sub.vendor_tier}</td>
-                                    <td style={{ padding: '12px', fontSize: 11, color: '#8C7B6E' }}>{new Date(sub.submitted_at).toLocaleString()}</td>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#111111', fontWeight: 500 }}>{sub.vendor_name}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#888580', textTransform: 'capitalize' as const }}>{sub.vendor_tier}</td>
+                                    <td style={{ padding: '12px', fontSize: 11, color: '#888580' }}>{new Date(sub.submitted_at).toLocaleString()}</td>
                                     <td style={{ padding: '12px', fontSize: 11 }}>
                                       <span style={{ padding: '3px 8px', borderRadius: 4, background: sub.status === 'pending' ? '#FFF3DB' : sub.status === 'approved' ? '#E8F5E9' : sub.status === 'partial' ? '#E3F2FD' : '#FFEBEE', color: sub.status === 'pending' ? '#B8963A' : sub.status === 'approved' ? '#2E7D32' : sub.status === 'partial' ? '#1565C0' : '#C62828' }}>{sub.status}</span>
                                     </td>
                                     <td style={{ padding: '12px', textAlign: 'right' }}>
-                                      <button onClick={() => openSubmissionReview(sub)} style={{ padding: '6px 12px', fontSize: 11, background: '#2C2420', color: '#C9A84C', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}>
+                                      <button onClick={() => openSubmissionReview(sub)} style={{ padding: '6px 12px', fontSize: 11, background: '#111111', color: '#C9A84C', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}>
                                         {sub.status === 'pending' ? 'Review' : 'View'}
                                       </button>
                                     </td>
@@ -2941,25 +2941,25 @@ export default function AdminPage() {
                     {vendSubView === 'featured' && (
                       <>
                         {featuredApps.length === 0 ? (
-                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No featured applications yet.</div>
+                          <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>No featured applications yet.</div>
                         ) : (
                           <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Board</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Pitch</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Status</th>
-                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Actions</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Vendor</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Board</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Pitch</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Status</th>
+                                  <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#888580', fontWeight: 500 }}>Actions</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {featuredApps.map(app => (
                                   <tr key={app.id} style={{ borderBottom: '1px solid #F2EDE4' }}>
-                                    <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{app.vendor?.name || 'Unknown'}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E', textTransform: 'capitalize' as const }}>{app.board_type?.replace(/_/g, ' ')}</td>
-                                    <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E', maxWidth: 240, overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const }}>
+                                    <td style={{ padding: '12px', fontSize: 13, color: '#111111', fontWeight: 500 }}>{app.vendor?.name || 'Unknown'}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#888580', textTransform: 'capitalize' as const }}>{app.board_type?.replace(/_/g, ' ')}</td>
+                                    <td style={{ padding: '12px', fontSize: 12, color: '#888580', maxWidth: 240, overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, whiteSpace: 'nowrap' as const }}>
                                       {app.pitch || <em>No pitch provided</em>}
                                     </td>
                                     <td style={{ padding: '12px', fontSize: 11 }}>
@@ -2996,7 +2996,7 @@ export default function AdminPage() {
                                         </>
                                       )}
                                       {app.status !== 'pending' && (
-                                        <span style={{ fontSize: 10, color: '#B8ADA4' }}>
+                                        <span style={{ fontSize: 10, color: '#C8C4BE' }}>
                                           {app.decided_at ? new Date(app.decided_at).toLocaleDateString() : ''}
                                         </span>
                                       )}
@@ -3013,50 +3013,50 @@ export default function AdminPage() {
                     {vendSubView === 'intent' && (
                       <>
                         {!lockIntentStats ? (
-                          <div style={{ padding: 24, textAlign: 'center', color: '#8C7B6E', fontSize: 13 }}>No Lock Date intent data yet.</div>
+                          <div style={{ padding: 24, textAlign: 'center', color: '#888580', fontSize: 13 }}>No Lock Date intent data yet.</div>
                         ) : (
                           <>
                             {/* Stats strip */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
-                              <div style={{ padding: '14px 16px', background: '#FAF6F0', border: '1px solid #E8E0D5', borderRadius: 10 }}>
-                                <div style={{ fontSize: 10, color: '#8C7B6E', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 4 }}>Total taps</div>
-                                <div style={{ fontSize: 22, color: '#2C2420', fontWeight: 500 }}>{lockIntentStats.total || 0}</div>
+                              <div style={{ padding: '14px 16px', background: '#F8F7F5', border: '1px solid #E8E0D5', borderRadius: 10 }}>
+                                <div style={{ fontSize: 10, color: '#888580', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 4 }}>Total taps</div>
+                                <div style={{ fontSize: 22, color: '#111111', fontWeight: 500 }}>{lockIntentStats.total || 0}</div>
                               </div>
-                              <div style={{ padding: '14px 16px', background: '#FAF6F0', border: '1px solid #E8E0D5', borderRadius: 10 }}>
-                                <div style={{ fontSize: 10, color: '#8C7B6E', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 4 }}>Unique couples</div>
-                                <div style={{ fontSize: 22, color: '#2C2420', fontWeight: 500 }}>{lockIntentStats.unique_couples || 0}</div>
+                              <div style={{ padding: '14px 16px', background: '#F8F7F5', border: '1px solid #E8E0D5', borderRadius: 10 }}>
+                                <div style={{ fontSize: 10, color: '#888580', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 4 }}>Unique couples</div>
+                                <div style={{ fontSize: 22, color: '#111111', fontWeight: 500 }}>{lockIntentStats.unique_couples || 0}</div>
                               </div>
-                              <div style={{ padding: '14px 16px', background: '#FAF6F0', border: '1px solid #E8E0D5', borderRadius: 10 }}>
-                                <div style={{ fontSize: 10, color: '#8C7B6E', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 4 }}>Explored Couture</div>
+                              <div style={{ padding: '14px 16px', background: '#F8F7F5', border: '1px solid #E8E0D5', borderRadius: 10 }}>
+                                <div style={{ fontSize: 10, color: '#888580', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 4 }}>Explored Couture</div>
                                 <div style={{ fontSize: 22, color: '#C9A84C', fontWeight: 500 }}>{lockIntentStats.explored_couture || 0}</div>
                               </div>
                             </div>
                             {/* Top vendors by intent */}
-                            <div style={{ fontSize: 12, color: '#8C7B6E', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 10 }}>Top vendors by intent</div>
+                            <div style={{ fontSize: 12, color: '#888580', fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 10 }}>Top vendors by intent</div>
                             {(!lockIntentStats.top_vendors || lockIntentStats.top_vendors.length === 0) ? (
-                              <div style={{ padding: 20, textAlign: 'center' as const, color: '#B8ADA4', fontSize: 12 }}>No vendor-level data yet.</div>
+                              <div style={{ padding: 20, textAlign: 'center' as const, color: '#C8C4BE', fontSize: 12 }}>No vendor-level data yet.</div>
                             ) : (
                               <div style={{ overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr style={{ borderBottom: '1px solid #E8E0D5' }}>
-                                      <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Vendor</th>
-                                      <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Category</th>
-                                      <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Couture?</th>
-                                      <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#8C7B6E', fontWeight: 500 }}>Taps</th>
+                                      <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Vendor</th>
+                                      <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Category</th>
+                                      <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, color: '#888580', fontWeight: 500 }}>Couture?</th>
+                                      <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#888580', fontWeight: 500 }}>Taps</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {lockIntentStats.top_vendors.map((row: any, i: number) => (
                                       <tr key={i} style={{ borderBottom: '1px solid #F2EDE4' }}>
-                                        <td style={{ padding: '12px', fontSize: 13, color: '#2C2420', fontWeight: 500 }}>{row.vendor?.name || '—'}</td>
-                                        <td style={{ padding: '12px', fontSize: 12, color: '#8C7B6E' }}>{row.vendor?.category} · {row.vendor?.city}</td>
+                                        <td style={{ padding: '12px', fontSize: 13, color: '#111111', fontWeight: 500 }}>{row.vendor?.name || '—'}</td>
+                                        <td style={{ padding: '12px', fontSize: 12, color: '#888580' }}>{row.vendor?.category} · {row.vendor?.city}</td>
                                         <td style={{ padding: '12px', fontSize: 11 }}>
                                           {row.vendor?.couture_eligible ? (
-                                            <span style={{ padding: '3px 8px', borderRadius: 4, background: '#2C2420', color: '#C9A84C', fontWeight: 500, letterSpacing: 0.5 }}>COUTURE</span>
-                                          ) : <span style={{ color: '#B8ADA4' }}>—</span>}
+                                            <span style={{ padding: '3px 8px', borderRadius: 4, background: '#111111', color: '#C9A84C', fontWeight: 500, letterSpacing: 0.5 }}>COUTURE</span>
+                                          ) : <span style={{ color: '#C8C4BE' }}>—</span>}
                                         </td>
-                                        <td style={{ padding: '12px', fontSize: 14, color: '#2C2420', fontWeight: 500, textAlign: 'right' as const }}>{row.count}</td>
+                                        <td style={{ padding: '12px', fontSize: 14, color: '#111111', fontWeight: 500, textAlign: 'right' as const }}>{row.count}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -3077,13 +3077,13 @@ export default function AdminPage() {
                   <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, maxWidth: 900, width: '100%', maxHeight: '92vh', overflow: 'auto', padding: 28 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                       <div>
-                        <div style={{ fontSize: 18, fontWeight: 600, color: '#2C2420', marginBottom: 4 }}>Review: {reviewDetail.vendor?.name}</div>
-                        <div style={{ fontSize: 12, color: '#8C7B6E' }}>{reviewDetail.vendor?.category} · {reviewDetail.vendor?.city} · Tier: {reviewingSubmission.vendor_tier}</div>
+                        <div style={{ fontSize: 18, fontWeight: 600, color: '#111111', marginBottom: 4 }}>Review: {reviewDetail.vendor?.name}</div>
+                        <div style={{ fontSize: 12, color: '#888580' }}>{reviewDetail.vendor?.category} · {reviewDetail.vendor?.city} · Tier: {reviewingSubmission.vendor_tier}</div>
                       </div>
-                      <button onClick={() => { setReviewingSubmission(null); setReviewDetail(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#8C7B6E' }}>×</button>
+                      <button onClick={() => { setReviewingSubmission(null); setReviewDetail(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#888580' }}>×</button>
                     </div>
 
-                    <div style={{ padding: 14, background: '#FAF6F0', borderRadius: 10, marginBottom: 18, fontSize: 12, color: '#2C2420', lineHeight: 1.6 }}>
+                    <div style={{ padding: 14, background: '#F8F7F5', borderRadius: 10, marginBottom: 18, fontSize: 12, color: '#111111', lineHeight: 1.6 }}>
                       <div><strong>Starting price:</strong> Rs {reviewDetail.vendor?.starting_price ? (reviewDetail.vendor.starting_price / 100000).toFixed(1) + 'L' : '—'}</div>
                       <div><strong>About:</strong> {reviewDetail.vendor?.about || '—'}</div>
                       <div><strong>Vibe tags:</strong> {(reviewDetail.vendor?.vibe_tags || []).join(', ') || '—'}</div>
@@ -3093,18 +3093,18 @@ export default function AdminPage() {
                       <div><strong>Packages:</strong> {reviewDetail.packages?.length || 0}</div>
                     </div>
 
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#2C2420' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#111111' }}>
                       Portfolio Photos ({reviewDetail.photo_approvals?.length || 0})
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, marginBottom: 20 }}>
                       {reviewDetail.photo_approvals?.map((pa: any) => (
                         <div key={pa.id} style={{
                           border: pa.approval_status === 'approved' ? '2px solid #4CAF50' : pa.approval_status === 'rejected' ? '2px solid #E57373' : '1px solid #E8E0D5',
-                          borderRadius: 10, overflow: 'hidden', background: '#FAF6F0',
+                          borderRadius: 10, overflow: 'hidden', background: '#F8F7F5',
                         }}>
                           <div style={{ aspectRatio: '1', background: `url(${pa.image_url}) center/cover` }} />
                           <div style={{ padding: 8 }}>
-                            <div style={{ fontSize: 10, color: '#8C7B6E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <div style={{ fontSize: 10, color: '#888580', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                               {pa.context} · {pa.approval_status}
                             </div>
                             {pa.approval_status === 'rejected' && pa.rejection_reason && (
@@ -3125,8 +3125,8 @@ export default function AdminPage() {
                                     { label: 'Brand', text: 'We avoid photos where another vendor or brand is visible' },
                                   ].map(c => (
                                     <button key={c.label} onClick={() => setRejectPhotoReason(prev => ({ ...prev, [pa.id]: c.text }))} style={{
-                                      padding: '2px 6px', fontSize: 9, background: '#FAF6F0', border: '1px solid #E8E0D5',
-                                      borderRadius: 3, cursor: 'pointer', color: '#8C7B6E', fontWeight: 500,
+                                      padding: '2px 6px', fontSize: 9, background: '#F8F7F5', border: '1px solid #E8E0D5',
+                                      borderRadius: 3, cursor: 'pointer', color: '#888580', fontWeight: 500,
                                     }} title={c.text}>{c.label}</button>
                                   ))}
                                 </div>
@@ -3146,8 +3146,8 @@ export default function AdminPage() {
                     </div>
 
                     {reviewingSubmission.status === 'pending' && (
-                      <div style={{ padding: 16, background: '#FAF6F0', borderRadius: 10, marginBottom: 16 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#2C2420' }}>Finalize submission</div>
+                      <div style={{ padding: 16, background: '#F8F7F5', borderRadius: 10, marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#111111' }}>Finalize submission</div>
                         <textarea
                           placeholder="Optional overall note (required if rejecting — e.g. 'Photo quality too low', 'Pricing missing')"
                           value={overallRejectReason}
@@ -3160,7 +3160,7 @@ export default function AdminPage() {
                           <button onClick={() => finalizeSubmission('partial')} style={{ flex: 1, minWidth: 100, padding: '10px 16px', fontSize: 12, background: '#1565C0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>◐ Partial Approve</button>
                           <button onClick={() => finalizeSubmission('rejected')} style={{ flex: 1, minWidth: 100, padding: '10px 16px', fontSize: 12, background: '#C62828', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>✗ Reject</button>
                         </div>
-                        <div style={{ fontSize: 11, color: '#8C7B6E', marginTop: 10, lineHeight: 1.5 }}>
+                        <div style={{ fontSize: 11, color: '#888580', marginTop: 10, lineHeight: 1.5 }}>
                           <strong>Approve:</strong> lists with all photos. <strong>Partial:</strong> lists but rejected photos hidden. <strong>Reject:</strong> vendor sees red mark and must re-submit.
                         </div>
                       </div>
@@ -3187,18 +3187,18 @@ export default function AdminPage() {
             maxWidth: 420, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
           }}>
             <div style={{ fontSize: 9, color: '#C9A84C', letterSpacing: 3, textTransform: 'uppercase' as const, marginBottom: 4 }}>Admin · Create</div>
-            <div style={{ fontSize: 19, color: '#2C2420', fontWeight: 500, fontFamily: 'Playfair Display, serif', marginBottom: 18 }}>New Vendor Profile</div>
+            <div style={{ fontSize: 19, color: '#111111', fontWeight: 500, fontFamily: 'Playfair Display, serif', marginBottom: 18 }}>New Vendor Profile</div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Name (optional)</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Name (optional)</div>
               <input value={createName} onChange={e => setCreateName(e.target.value)} placeholder="e.g. Aakash Kapoor" style={{ ...s.input, width: '100%' }} />
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Phone (10 digits, India)</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Phone (10 digits, India)</div>
               <input value={createPhone} onChange={e => setCreatePhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="9876543210" style={{ ...s.input, width: '100%' }} />
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Tier</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Tier</div>
               <select value={createTier} onChange={e => setCreateTier(e.target.value)} style={{ ...s.input, width: '100%' }}>
                 <option value="essential">Essential</option>
                 <option value="signature">Signature</option>
@@ -3206,16 +3206,16 @@ export default function AdminPage() {
               </select>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Password (min 6 chars)</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Password (min 6 chars)</div>
               <input type="password" value={createPwd} onChange={e => setCreatePwd(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
             </div>
             <div style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Confirm Password</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Confirm Password</div>
               <input type="password" value={createPwd2} onChange={e => setCreatePwd2(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
             </div>
 
             <div style={{ display: 'flex' as const, gap: 10 }}>
-              <button onClick={() => setCreateVendorOpen(false)} disabled={createBusy} style={{ ...s.btnSm('transparent', '#8C7B6E', '#E8E0D5'), flex: 1, padding: '12px' }}>Cancel</button>
+              <button onClick={() => setCreateVendorOpen(false)} disabled={createBusy} style={{ ...s.btnSm('transparent', '#888580', '#E8E0D5'), flex: 1, padding: '12px' }}>Cancel</button>
               <button onClick={submitCreateVendor} disabled={createBusy} style={{ ...s.primaryBtn, flex: 2, opacity: createBusy ? 0.6 : 1 }}>
                 {createBusy ? 'Creating…' : 'Create Vendor'}
               </button>
@@ -3236,18 +3236,18 @@ export default function AdminPage() {
             maxWidth: 420, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
           }}>
             <div style={{ fontSize: 9, color: '#C9A84C', letterSpacing: 3, textTransform: 'uppercase' as const, marginBottom: 4 }}>Admin · Create</div>
-            <div style={{ fontSize: 19, color: '#2C2420', fontWeight: 500, fontFamily: 'Playfair Display, serif', marginBottom: 18 }}>New Couple Profile</div>
+            <div style={{ fontSize: 19, color: '#111111', fontWeight: 500, fontFamily: 'Playfair Display, serif', marginBottom: 18 }}>New Couple Profile</div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Name (optional)</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Name (optional)</div>
               <input value={createName} onChange={e => setCreateName(e.target.value)} placeholder="e.g. Priya & Aakash" style={{ ...s.input, width: '100%' }} />
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Phone (10 digits, India)</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Phone (10 digits, India)</div>
               <input value={createPhone} onChange={e => setCreatePhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="9876543210" style={{ ...s.input, width: '100%' }} />
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Tier</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Tier</div>
               <select value={createTier} onChange={e => setCreateTier(e.target.value)} style={{ ...s.input, width: '100%' }}>
                 <option value="basic">Basic (Free)</option>
                 <option value="gold">Gold</option>
@@ -3255,16 +3255,16 @@ export default function AdminPage() {
               </select>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Password (min 6 chars)</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Password (min 6 chars)</div>
               <input type="password" value={createPwd} onChange={e => setCreatePwd(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
             </div>
             <div style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 11, color: '#8C7B6E', marginBottom: 4 }}>Confirm Password</div>
+              <div style={{ fontSize: 11, color: '#888580', marginBottom: 4 }}>Confirm Password</div>
               <input type="password" value={createPwd2} onChange={e => setCreatePwd2(e.target.value)} placeholder="••••••" style={{ ...s.input, width: '100%' }} />
             </div>
 
             <div style={{ display: 'flex' as const, gap: 10 }}>
-              <button onClick={() => setCreateCoupleOpen(false)} disabled={createBusy} style={{ ...s.btnSm('transparent', '#8C7B6E', '#E8E0D5'), flex: 1, padding: '12px' }}>Cancel</button>
+              <button onClick={() => setCreateCoupleOpen(false)} disabled={createBusy} style={{ ...s.btnSm('transparent', '#888580', '#E8E0D5'), flex: 1, padding: '12px' }}>Cancel</button>
               <button onClick={submitCreateCouple} disabled={createBusy} style={{ ...s.primaryBtn, flex: 2, opacity: createBusy ? 0.6 : 1 }}>
                 {createBusy ? 'Creating…' : 'Create Couple'}
               </button>

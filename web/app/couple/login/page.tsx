@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
 const fonts = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Playfair+Display:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
   * { box-sizing: border-box; }
   body { margin: 0; background: #F8F7F5; }
   ::-webkit-scrollbar { display: none; }
@@ -166,6 +166,7 @@ export default function CoupleLoginPage() {
         {step === 1 && (
           <div key={`s1-${stepKey}`} className="step-enter" style={{ width: '100%', maxWidth: 380 }}>
             <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 400, fontStyle: 'italic', color: '#C9A84C', textAlign: 'center', margin: '0 0 6px' }}>TDW</p>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 13, fontWeight: 300, fontStyle: 'italic', color: '#888580', textAlign: 'center', margin: '4px 0 44px', letterSpacing: '0.04em' }}>It&apos;s not just happily married. It&apos;s getting married happily.</p>
             <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#888580', textAlign: 'center', margin: '0 0 48px' }}>Dreamer Login</p>
 
             <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 36, fontWeight: 300, color: '#111111', margin: '0 0 10px' }}>Welcome back.</p>

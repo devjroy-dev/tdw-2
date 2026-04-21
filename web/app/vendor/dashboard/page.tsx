@@ -266,7 +266,7 @@ function ComingSoonModal({ tab, onClose }: { tab: any; onClose: () => void }) {
       padding: '24px',
     }} onClick={onClose}>
       <div style={{
-        background: '#FAF6F0',  // ivory
+        background: '#F8F7F5',  // ivory
         borderRadius: '16px',
         padding: '24px 22px',
         maxWidth: '480px',
@@ -1496,9 +1496,9 @@ export default function VendorDashboard() {
     const w = window.open('', '_blank');
     if (w) {
       w.document.write('<html><head><title>' + title + '</title>');
-      w.document.write('<style>body{font-family:Inter,sans-serif;padding:40px;color:#2C2420}button,nav,aside{display:none!important}</style>');
+      w.document.write('<style>body{font-family:Inter,sans-serif;padding:40px;color:#111111}button,nav,aside{display:none!important}</style>');
       w.document.write('</head><body>');
-      w.document.write('<h1 style="font-size:14px;color:#8C7B6E;letter-spacing:3px">THE DREAM WEDDING</h1>');
+      w.document.write('<h1 style="font-size:14px;color:#888580;letter-spacing:3px">THE DREAM WEDDING</h1>');
       w.document.write('<h2 style="font-size:22px;margin-bottom:24px">' + title + '</h2>');
       w.document.write(el.innerHTML);
       w.document.write('</body></html>');
@@ -1545,12 +1545,12 @@ export default function VendorDashboard() {
     return (
       <div style={{
         minHeight: '100dvh',
-        background: '#FAF6F0',
+        background: '#F8F7F5',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '40px 28px',
         fontFamily: 'DM Sans, sans-serif',
-        color: '#2C2420',
+        color: '#111111',
         position: 'relative',
       }}>
         {/* Sparkle mark */}
@@ -1581,7 +1581,7 @@ export default function VendorDashboard() {
         <div style={{
           fontFamily: "'Playfair Display', serif",
           fontSize: '32px', letterSpacing: '1px',
-          color: '#2C2420', textAlign: 'center',
+          color: '#111111', textAlign: 'center',
           lineHeight: 1.2, marginBottom: '14px',
           fontWeight: 400,
         }}>
@@ -1590,7 +1590,7 @@ export default function VendorDashboard() {
 
         {/* Subtitle */}
         <div style={{
-          fontSize: '14px', color: '#8C7B6E',
+          fontSize: '14px', color: '#888580',
           textAlign: 'center', lineHeight: 1.6,
           maxWidth: '320px', marginBottom: '36px',
         }}>
@@ -1602,7 +1602,7 @@ export default function VendorDashboard() {
           onClick={() => { window.location.href = '/vendor/mobile'; }}
           style={{
             width: '100%', maxWidth: '320px',
-            background: '#2C2420', color: '#FAF6F0',
+            background: '#111111', color: '#F8F7F5',
             border: 'none', borderRadius: '12px',
             padding: '16px', fontSize: '13px', fontWeight: 500,
             letterSpacing: '2px', textTransform: 'uppercase',
@@ -1618,7 +1618,7 @@ export default function VendorDashboard() {
         <button
           onClick={() => setMobileGateDismissed(true)}
           style={{
-            background: 'transparent', color: '#8C7B6E',
+            background: 'transparent', color: '#888580',
             border: 'none', fontSize: '12px',
             letterSpacing: '1px', cursor: 'pointer',
             fontFamily: 'DM Sans, sans-serif',
@@ -2071,7 +2071,7 @@ export default function VendorDashboard() {
             {/* ── Dream Ai Hero Card (mobile only — desktop users use the full CRM) ── */}
             {isMobile && <div style={{
               position: 'relative',
-              background: 'linear-gradient(180deg, #FFFDF7 0%, #FFF8EC 100%)',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #FFF8EC 100%)',
               borderRadius: '10px',
               padding: isMobile ? '22px 20px' : '28px 32px',
               border: vendorData?.ai_enabled ? '1.5px solid #C9A84C' : '1px solid rgba(201,168,76,0.32)',
@@ -2137,7 +2137,7 @@ export default function VendorDashboard() {
                   <div style={{
                     fontFamily: "'Playfair Display', serif",
                     fontSize: isMobile ? '22px' : '28px',
-                    color: vendorData?.ai_enabled ? '#2C2420' : '#4A3F38',
+                    color: vendorData?.ai_enabled ? '#111111' : '#4A3F38',
                     letterSpacing: '1.2px', marginBottom: '6px',
                     fontWeight: 400,
                   }}>Dream Ai</div>
@@ -2166,7 +2166,7 @@ export default function VendorDashboard() {
                       <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     ) : (
                       <path d="M19 11H17V7C17 4.24 14.76 2 12 2C9.24 2 7 4.24 7 7V11H5C3.9 11 3 11.9 3 13V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V13C21 11.9 20.1 11 19 11ZM9 7C9 5.34 10.34 4 12 4C13.66 4 15 5.34 15 7V11H9V7Z"
-                        fill="#8C7B6E" opacity="0.8"/>
+                        fill="#888580" opacity="0.8"/>
                     )}
                   </svg>
                 </div>
@@ -2181,7 +2181,7 @@ export default function VendorDashboard() {
                 backdropFilter: 'blur(4px)',
               }} onClick={() => setShowAiModal(false)}>
                 <div onClick={(e) => e.stopPropagation()} style={{
-                  background: 'linear-gradient(135deg, #1A1410 0%, #2C2420 50%, #1A1410 100%)',
+                  background: 'linear-gradient(135deg, #1A1410 0%, #111111 50%, #1A1410 100%)',
                   borderRadius: '20px', maxWidth: '480px', width: '100%',
                   padding: isMobile ? '28px 24px' : '36px 40px',
                   border: '1px solid rgba(201,168,76,0.3)',
@@ -2221,7 +2221,7 @@ export default function VendorDashboard() {
                   <div style={{
                     fontFamily: "'Playfair Display', serif",
                     fontSize: isMobile ? '18px' : '22px',
-                    color: '#FAF6F0', fontStyle: 'italic', fontWeight: 300,
+                    color: '#F8F7F5', fontStyle: 'italic', fontWeight: 300,
                     marginBottom: '24px', lineHeight: 1.3,
                   }}>Run your business from WhatsApp.</div>
 
@@ -2254,7 +2254,7 @@ export default function VendorDashboard() {
                         <div style={{ flex: 1 }}>
                           <div style={{
                             fontFamily: 'Inter, sans-serif', fontSize: '12px',
-                            color: '#FAF6F0', fontWeight: 400, marginBottom: '2px',
+                            color: '#F8F7F5', fontWeight: 400, marginBottom: '2px',
                           }}>{ex.cmd}</div>
                           <div style={{
                             fontFamily: 'Inter, sans-serif', fontSize: '11px',
@@ -3875,9 +3875,9 @@ export default function VendorDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
                     width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: vendorTier === 'prestige' ? '#2C2420' : vendorTier === 'signature' ? 'rgba(201,168,76,0.1)' : 'rgba(140,123,110,0.06)',
+                    background: vendorTier === 'prestige' ? '#111111' : vendorTier === 'signature' ? 'rgba(201,168,76,0.1)' : 'rgba(140,123,110,0.06)',
                   }}>
-                    <Award size={22} color={vendorTier === 'prestige' ? '#C9A84C' : vendorTier === 'signature' ? '#C9A84C' : '#8C7B6E'} />
+                    <Award size={22} color={vendorTier === 'prestige' ? '#C9A84C' : vendorTier === 'signature' ? '#C9A84C' : '#888580'} />
                   </div>
                   <div>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 500, color: 'var(--dark)' }}>
@@ -3927,8 +3927,8 @@ export default function VendorDashboard() {
                   return (
                     <div key={tab.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: idx < arr.length - 1 ? '1px solid var(--card-border)' : 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Icon size={14} color={isHidden ? '#B8ADA4' : '#C9A84C'} />
-                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: isHidden ? '#B8ADA4' : 'var(--dark)' }}>{tab.label}</span>
+                        <Icon size={14} color={isHidden ? '#C8C4BE' : '#C9A84C'} />
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: isHidden ? '#C8C4BE' : 'var(--dark)' }}>{tab.label}</span>
                       </div>
                       <button onClick={() => toggleTool(tab.id)} style={{
                         position: 'relative', width: '40px', height: '22px', borderRadius: '11px',
@@ -5173,7 +5173,7 @@ export default function VendorDashboard() {
                 expenses.forEach((exp: any) => { cats[exp.category || 'Other'] = (cats[exp.category || 'Other'] || 0) + (parseInt(exp.amount) || 0); });
                 const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
                 const total = entries.reduce((s, e) => s + e[1], 0) || 1;
-                const colors = ['var(--gold)', '#1D4ED8', '#4CAF50', '#DC2626', '#8C7B6E', '#9C27B0'];
+                const colors = ['var(--gold)', '#1D4ED8', '#4CAF50', '#DC2626', '#888580', '#9C27B0'];
                 return entries.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '32px', color: 'var(--grey)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>No expense data yet</div>
                 ) : (

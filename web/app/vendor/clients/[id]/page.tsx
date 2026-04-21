@@ -27,7 +27,7 @@ const CLIENT_DATA = {
 
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
   ACTIVE: { backgroundColor: "#C9A84C", color: "#0C0A09" },
-  UPCOMING: { backgroundColor: "transparent", color: "#FAFAF8", border: "1px solid #3C3835" },
+  UPCOMING: { backgroundColor: "transparent", color: "#F8F7F5", border: "1px solid #555250" },
   DELIVERED: { backgroundColor: "#F4F1EC", color: "#8C8480" },
   ARCHIVED: { backgroundColor: "#2C2A28", color: "#8C8480" },
 };
@@ -61,7 +61,7 @@ export default function ClientDetailPage({
   };
 
   return (
-    <div style={{ backgroundColor: "#FAFAF8", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#F8F7F5", minHeight: "100vh" }}>
       {/* Back button */}
       <div style={{ padding: "16px 20px 0" }}>
         <button
@@ -105,7 +105,7 @@ export default function ClientDetailPage({
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: "32px",
             fontWeight: 300,
-            color: "#FAFAF8",
+            color: "#F8F7F5",
             margin: "0 0 12px",
             lineHeight: 1.15,
           }}
@@ -180,7 +180,7 @@ export default function ClientDetailPage({
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "12px 0",
-                borderBottom: i < client.events.length - 1 ? "1px solid #E8E4DE" : "none",
+                borderBottom: i < client.events.length - 1 ? "1px solid #E2DED8" : "none",
               }}
             >
               <div>
@@ -237,7 +237,7 @@ export default function ClientDetailPage({
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "12px 0",
-                borderBottom: i < client.invoices.length - 1 ? "1px solid #E8E4DE" : "none",
+                borderBottom: i < client.invoices.length - 1 ? "1px solid #E2DED8" : "none",
               }}
             >
               <div>
@@ -257,7 +257,7 @@ export default function ClientDetailPage({
                     fontFamily: "'Jost', sans-serif",
                     fontSize: "12px",
                     fontWeight: 300,
-                    color: "#3C3835",
+                    color: "#555250",
                     margin: 0,
                   }}
                 >
@@ -364,7 +364,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           backgroundColor: "#F4F1EC",
           borderRadius: "16px",
           padding: "16px 20px",
-          border: "1px solid #E8E4DE",
+          border: "1px solid #E2DED8",
         }}
       >
         {children}
@@ -381,7 +381,7 @@ function ContactRow({ icon, label }: { icon: React.ReactNode; label: string }) {
         alignItems: "center",
         gap: "12px",
         padding: "10px 0",
-        borderBottom: "1px solid #E8E4DE",
+        borderBottom: "1px solid #E2DED8",
       }}
     >
       {icon}
@@ -390,7 +390,7 @@ function ContactRow({ icon, label }: { icon: React.ReactNode; label: string }) {
           fontFamily: "'DM Sans', sans-serif",
           fontSize: "14px",
           fontWeight: 300,
-          color: "#3C3835",
+          color: "#555250",
         }}
       >
         {label}

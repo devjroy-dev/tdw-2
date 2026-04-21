@@ -72,7 +72,7 @@ export default function StudioPage() {
               background: "#F4F1EC",
               borderRadius: "16px",
               padding: "24px 20px",
-              border: "1px solid #E8E4DE",
+              border: "1px solid #E2DED8",
               textAlign: "left",
               cursor: "pointer",
               display: "flex",
@@ -146,7 +146,7 @@ export default function StudioPage() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: "20px",
                 fontWeight: 300,
-                color: "#FAFAF8",
+                color: "#F8F7F5",
                 margin: "0 0 6px",
                 lineHeight: 1.2,
               }}

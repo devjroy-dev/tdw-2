@@ -34,18 +34,18 @@ const STATUS_STYLE: Record<ClientStatus, React.CSSProperties> = {
   },
   UPCOMING: {
     backgroundColor: "transparent",
-    color: "#3C3835",
-    border: "1px solid #E8E4DE",
+    color: "#555250",
+    border: "1px solid #E2DED8",
   },
   DELIVERED: {
     backgroundColor: "#F4F1EC",
     color: "#8C8480",
-    border: "1px solid #E8E4DE",
+    border: "1px solid #E2DED8",
   },
   ARCHIVED: {
     backgroundColor: "#F4F1EC",
     color: "#8C8480",
-    border: "1px solid #E8E4DE",
+    border: "1px solid #E2DED8",
   },
 };
 
@@ -67,7 +67,7 @@ export default function ClientCard({
         backgroundColor: "#F4F1EC",
         borderRadius: "16px",
         padding: "20px",
-        border: "1px solid #E8E4DE",
+        border: "1px solid #E2DED8",
         cursor: "pointer",
         transition: "opacity 0.15s ease",
       }}
@@ -174,7 +174,7 @@ export default function ClientCard({
             width: "100%",
             height: "4px",
             borderRadius: "2px",
-            backgroundColor: "#E8E4DE",
+            backgroundColor: "#E2DED8",
             overflow: "hidden",
           }}
         >

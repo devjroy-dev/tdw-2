@@ -14,7 +14,7 @@ function ProfileRing({ percent }: { percent: number }) {
       <circle
         cx="36" cy="36" r={r}
         fill="none"
-        stroke="#E8E4DE"
+        stroke="#E2DED8"
         strokeWidth="5"
       />
       {/* Fill */}
@@ -59,7 +59,7 @@ function StatCard({
         background: "#F4F1EC",
         borderRadius: "12px",
         padding: "16px",
-        border: "1px solid #E8E4DE",
+        border: "1px solid #E2DED8",
       }}
     >
       <p
@@ -145,7 +145,7 @@ export default function DiscoveryDashPage() {
             background: "#F4F1EC",
             borderRadius: "16px",
             padding: "24px",
-            border: "1px solid #E8E4DE",
+            border: "1px solid #E2DED8",
             display: "flex",
             alignItems: "center",
             gap: "20px",
@@ -250,7 +250,7 @@ export default function DiscoveryDashPage() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: "16px",
                 fontWeight: 300,
-                color: "#FAFAF8",
+                color: "#F8F7F5",
                 margin: "0 0 4px",
               }}
             >

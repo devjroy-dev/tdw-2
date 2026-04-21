@@ -30,7 +30,7 @@ export default function TopBar() {
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: "20px",
           fontWeight: 300,
-          color: "#FAFAF8",
+          color: "#F8F7F5",
           letterSpacing: "0.04em",
           lineHeight: 1,
         }}
@@ -65,7 +65,7 @@ export default function TopBar() {
                 borderRadius: "16px",
                 border: "none",
                 cursor: "pointer",
-                background: active ? "#FAFAF8" : "transparent",
+                background: active ? "#F8F7F5" : "transparent",
                 color: active ? "#0C0A09" : "rgba(255,255,255,0.5)",
                 transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
                 whiteSpace: "nowrap",
@@ -96,7 +96,7 @@ export default function TopBar() {
             fontFamily: "'Jost', sans-serif",
             fontSize: "12px",
             fontWeight: 400,
-            color: "#FAFAF8",
+            color: "#F8F7F5",
             lineHeight: 1,
           }}
         >

@@ -25,7 +25,7 @@ export default function EssentialDemoPage() {
         THE DREAM WEDDING
       </div>
       <div style={{ display: 'inline-block', padding: '6px 18px', borderRadius: '50px', border: '1px solid rgba(140,123,110,0.3)', background: 'rgba(140,123,110,0.08)' }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: '#8C7B6E', letterSpacing: '2px', textTransform: 'uppercase' }}>Essential Plan Demo</span>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 500, color: '#888580', letterSpacing: '2px', textTransform: 'uppercase' }}>Essential Plan Demo</span>
       </div>
       <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
         {status}
