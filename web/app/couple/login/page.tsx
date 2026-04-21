@@ -94,10 +94,11 @@ export default function CoupleLoginPage() {
       }
       if (res.status === 404) { showToast('No account found. Join the waitlist.'); return; }
       if (!res.ok || !data.success) throw new Error(data.error || 'Verification failed');
+      const pinSet = data.user?.pin_set || false;
       localStorage.setItem('couple_session', JSON.stringify({
-        id: data.user.id, name: data.user.name, phone: data.user.phone,
+        id: data.user.id, name: data.user.name, phone: data.user.phone, pin_set: pinSet,
       }));
-      router.replace('/couple/today');
+      router.replace(pinSet ? '/couple/today' : '/couple/pin');
     } catch (e: unknown) { showToast((e as Error).message || 'Verification failed. Try again.'); }
     finally { setLoading(false); }
   };

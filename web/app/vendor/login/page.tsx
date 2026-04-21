@@ -28,6 +28,10 @@ export default function VendorLoginPage() {
   const [prefillCode, setPrefillCode] = useState<string | null>(null);
 
   const goToVendorHome = () => {
+    try {
+      const s = JSON.parse(localStorage.getItem('vendor_web_session') || '{}');
+      if (s && s.vendorId && !s.pin_set) { window.location.href = '/vendor/pin'; return; }
+    } catch {}
     const mob = typeof window !== 'undefined' && window.innerWidth < 768;
     window.location.href = mob ? '/vendor/mobile' : '/vendor/dashboard';
   };
