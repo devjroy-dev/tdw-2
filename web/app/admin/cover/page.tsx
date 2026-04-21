@@ -40,7 +40,7 @@ async function compressImage(file: File): Promise<Blob> {
     const url = URL.createObjectURL(file);
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX = 1200;
+      const MAX = 1920;
       let { width, height } = img;
       if (width > MAX) { height = (height * MAX) / width; width = MAX; }
       if (height > MAX) { width = (width * MAX) / height; height = MAX; }
@@ -49,32 +49,34 @@ async function compressImage(file: File): Promise<Blob> {
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.85);
+      canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.92);
     };
     img.src = url;
   });
 }
 
-// Upload to Supabase Storage cover-photos bucket
+// Upload directly to Supabase Storage (bypasses backend)
 async function uploadToSupabase(file: File, onProgress: (p: number) => void): Promise<string> {
   onProgress(10);
   const compressed = await compressImage(file);
   onProgress(40);
-  const formData = new FormData();
-  formData.append('file', new Blob([compressed], { type: 'image/jpeg' }), `cover_${Date.now()}.jpg`);
-  const res = await fetch(`${BACKEND}/api/v2/admin/cover-photos/upload`, {
+  const filename = `cover_${Date.now()}.jpg`;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/cover-photos/${filename}`, {
     method: 'POST',
-    headers: { 'x-admin-password': ADMIN_PASSWORD },
-    body: formData,
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true',
+    },
+    body: compressed,
   });
   onProgress(90);
   if (!res.ok) {
     const err = await res.text();
     throw new Error('Upload failed: ' + err);
   }
-  const d = await res.json();
   onProgress(100);
-  return d.url;
+  return `${SUPABASE_URL}/storage/v1/object/public/cover-photos/${filename}`;
 }
 
 export default function AdminCoverPage() {
@@ -327,7 +329,7 @@ export default function AdminCoverPage() {
                           Click to upload
                         </div>
                         <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580' }}>
-                          JPG, PNG — max 1200px, compressed to &lt;500KB
+                          JPG, PNG — max 1920px, high quality
                         </div>
                       </div>
                     )}
