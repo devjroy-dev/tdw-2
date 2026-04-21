@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
         // Without this header browsers block registering a SW with a scope above its location.
         source: '/sw.js',
         headers: [
-          { key: 'Service-Worker-Allowed', value: '/vendor/mobile/' },
+          { key: 'Service-Worker-Allowed', value: '/' },
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
         ],
       },
