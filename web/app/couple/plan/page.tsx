@@ -4,13 +4,10 @@ import React, { useEffect, useState } from 'react';
 
 const RAILWAY_URL = process.env.NEXT_PUBLIC_RAILWAY_URL || 'https://dream-wedding-production-89ae.up.railway.app';
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
-// Reads the same localStorage key used by the v1 couple app.
-// No redirect — soft message if no session.
-
 interface CoupleSession {
   id: string;
   name: string;
+  dreamer_type?: string;
 }
 
 function getSession(): CoupleSession | null {
@@ -22,8 +19,6 @@ function getSession(): CoupleSession | null {
 }
 
 type Tab = 'tasks' | 'money' | 'people' | 'events';
-
-// ─── Shared shimmer ─────────────────────────────────────────────────────────
 
 const shimmer: React.CSSProperties = {
   background: 'linear-gradient(90deg,#F4F1EC 25%,#FFF8EC 50%,#F4F1EC 75%)',
@@ -212,10 +207,194 @@ function fmtINR(n: number) {
   return '₹' + n.toLocaleString('en-IN');
 }
 
-function MoneyTab({ userId }: { userId: string }) {
+// ─── Razorpay Checkout ────────────────────────────────────────────────────────
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise(resolve => {
+    if ((window as any).Razorpay) { resolve(true); return; }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
+async function openRazorpay({
+  userId,
+  paymentType,
+  amount,
+  label,
+  onSuccess,
+  onError,
+}: {
+  userId: string;
+  paymentType: string;
+  amount: number;
+  label: string;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+}) {
+  const loaded = await loadRazorpayScript();
+  if (!loaded) { onError('Payment service unavailable. Please try again.'); return; }
+
+  const orderRes = await fetch(`${RAILWAY_URL}/api/v2/razorpay/create-order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, currency: 'INR', payment_type: paymentType, user_id: userId }),
+  }).then(r => r.json()).catch(() => null);
+
+  if (!orderRes?.success) {
+    onError(orderRes?.error || 'Could not create payment. Please try again.');
+    return;
+  }
+
+  const { order_id, key_id } = orderRes;
+
+  const rzp = new (window as any).Razorpay({
+    key: key_id,
+    amount: amount * 100,
+    currency: 'INR',
+    order_id,
+    name: 'The Dream Wedding',
+    description: label,
+    theme: { color: '#C9A84C' },
+    handler: async (response: any) => {
+      const verifyRes = await fetch(`${RAILWAY_URL}/api/v2/razorpay/verify-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+          payment_type: paymentType,
+          user_id: userId,
+        }),
+      }).then(r => r.json()).catch(() => null);
+
+      if (verifyRes?.success) {
+        onSuccess();
+      } else {
+        onError('Payment verification failed. Contact support if amount was deducted.');
+      }
+    },
+    modal: { ondismiss: () => {} },
+  });
+  rzp.open();
+}
+
+// ─── Upgrade Card ─────────────────────────────────────────────────────────────
+
+function UpgradeCard({
+  userId,
+  currentTier,
+  onUpgraded,
+}: {
+  userId: string;
+  currentTier: string;
+  onUpgraded: () => void;
+}) {
+  const [paying, setPaying] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const isBasic = !currentTier || currentTier === 'basic';
+  const isGold = currentTier === 'gold';
+
+  // Don't show card if already Platinum
+  if (currentTier === 'platinum') return null;
+
+  const target = isBasic ? (isGold ? 'platinum' : 'gold') : 'platinum';
+  const label = target === 'gold' ? 'Gold — ₹999' : 'Platinum — ₹2,999';
+  const amount = target === 'gold' ? 999 : 2999;
+  const paymentType = target === 'gold' ? 'couple_gold' : 'couple_platinum';
+
+  const benefits = target === 'gold'
+    ? ['Priority discovery', 'Unlock full vendor profiles', 'Booking history']
+    : ['DreamAi — your AI wedding planner', 'Couture appointments', 'Memory Box'];
+
+  const handleUpgrade = async () => {
+    setPaying(true);
+    await openRazorpay({
+      userId,
+      paymentType,
+      amount,
+      label,
+      onSuccess: () => {
+        setPaying(false);
+        setToast('Welcome to ' + (target === 'gold' ? 'Gold' : 'Platinum') + '!');
+        setTimeout(() => { setToast(''); onUpgraded(); }, 2000);
+      },
+      onError: (msg) => {
+        setPaying(false);
+        setToast(msg);
+        setTimeout(() => setToast(''), 4000);
+      },
+    });
+  };
+
+  return (
+    <>
+      <div style={{
+        background: '#0C0A09',
+        borderRadius: 16,
+        padding: 24,
+        marginBottom: 20,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 8px' }}>
+          UPGRADE
+        </p>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#F8F7F5', margin: '0 0 16px', lineHeight: 1.2 }}>
+          {target === 'gold' ? 'Unlock the full journey.' : 'Your AI wedding planner awaits.'}
+        </p>
+        <div style={{ marginBottom: 20 }}>
+          {benefits.map(b => (
+            <p key={b} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 4px' }}>
+              · {b}
+            </p>
+          ))}
+        </div>
+        <button
+          onClick={handleUpgrade}
+          disabled={paying}
+          style={{
+            fontFamily: "'Jost', sans-serif",
+            fontSize: 9,
+            fontWeight: 400,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: '#0C0A09',
+            background: '#C9A84C',
+            border: 'none',
+            borderRadius: 100,
+            padding: '10px 20px',
+            cursor: paying ? 'not-allowed' : 'pointer',
+            opacity: paying ? 0.6 : 1,
+            touchAction: 'manipulation',
+          }}
+        >
+          {paying ? 'Opening...' : label}
+        </button>
+      </div>
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+          background: '#0C0A09', color: '#F8F7F5',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+          padding: '12px 20px', borderRadius: 100, zIndex: 999,
+          whiteSpace: 'nowrap',
+        }}>{toast}</div>
+      )}
+    </>
+  );
+}
+
+function MoneyTab({ userId, dreamerType }: { userId: string; dreamerType: string }) {
   const [data, setData] = useState<MoneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
+  const [currentTier, setCurrentTier] = useState(dreamerType || 'basic');
 
   useEffect(() => {
     setLoading(true);
@@ -242,6 +421,13 @@ function MoneyTab({ userId }: { userId: string }) {
 
   return (
     <div>
+      {/* Upgrade card — shown above budget if not Platinum */}
+      <UpgradeCard
+        userId={userId}
+        currentTier={currentTier}
+        onUpgraded={() => setCurrentTier(currentTier === 'basic' ? 'gold' : 'platinum')}
+      />
+
       <div style={{ background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 6px' }}>TOTAL JOURNEY</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: '#0C0A09', margin: '0 0 16px', lineHeight: 1 }}>{fmtINR(d.totalBudget)}</p>
@@ -256,8 +442,8 @@ function MoneyTab({ userId }: { userId: string }) {
           </div>
         </div>
         <div style={{ position: 'relative', height: 6, borderRadius: 8, background: '#E2DED8', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${committedPct}%`, background: '#C9A84C', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${paidPct}%`, background: '#0C0A09', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${committedPct}%`, background: '#C9A84C', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)', willChange: 'transform' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${paidPct}%`, background: '#0C0A09', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)', willChange: 'transform' }} />
         </div>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: '8px 0 0' }}>{fmtINR(remaining)} remaining</p>
       </div>
@@ -441,8 +627,6 @@ function formatEventDateLong(d?: string) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-// ─── Event Detail Sheet ───────────────────────────────────────────────────────
-
 type SheetTab = 'tasks' | 'vendors' | 'guests';
 
 interface EventSheetProps {
@@ -458,7 +642,6 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Trigger animation on mount
     const t = setTimeout(() => setVisible(true), 10);
     return () => clearTimeout(t);
   }, []);
@@ -468,7 +651,6 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
     setTimeout(onClose, 280);
   };
 
-  // Filter data for this event
   const eventTasks = allTasks.filter(t => (t.events?.name || t.event_name) === event.name);
   const eventGuests = allGuests.filter(g => (g.events || []).includes(event.name));
   const eventExpenses = allExpenses.filter(e => e.event_name === event.name);
@@ -484,73 +666,38 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={handleClose}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(12,10,9,0.4)',
-          transition: 'opacity 280ms',
-          opacity: visible ? 1 : 0,
-        }}
-      />
-      {/* Sheet */}
+      <div onClick={handleClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(12,10,9,0.4)', transition: 'opacity 280ms', opacity: visible ? 1 : 0 }} />
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
-        height: '85vh',
-        background: '#FAFAF8',
-        borderRadius: '20px 20px 0 0',
-        borderTop: '1px solid #E2DED8',
+        height: '85vh', background: '#FAFAF8',
+        borderRadius: '20px 20px 0 0', borderTop: '1px solid #E2DED8',
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
-        transition: visible
-          ? 'transform 400ms cubic-bezier(0.22,1,0.36,1)'
-          : 'transform 280ms cubic-bezier(0.22,1,0.36,1)',
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
+        transition: visible ? 'transform 400ms cubic-bezier(0.22,1,0.36,1)' : 'transform 280ms cubic-bezier(0.22,1,0.36,1)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {/* Drag handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 8px' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E2DED8' }} />
         </div>
-
-        {/* Header */}
         <div style={{ padding: '4px 20px 16px', borderBottom: '1px solid #E2DED8' }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{event.name}</p>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>
             {formatEventDateLong(event.date)}{event.venue ? ` · ${event.venue}` : ''}
           </p>
-          {/* Stat chips */}
           <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>
-            {[
-              event.task_count != null && `${event.task_count} Tasks`,
-              event.vendor_count != null && `${event.vendor_count} Vendors`,
-              event.guest_count != null && `${event.guest_count} Guests`,
-            ].filter(Boolean).join(' • ')}
+            {[event.task_count != null && `${event.task_count} Tasks`, event.vendor_count != null && `${event.vendor_count} Vendors`, event.guest_count != null && `${event.guest_count} Guests`].filter(Boolean).join(' • ')}
           </p>
         </div>
-
-        {/* Sub-nav */}
         <div style={{ display: 'flex', gap: 8, padding: '12px 20px', borderBottom: '1px solid #E2DED8' }}>
           {(['tasks', 'vendors', 'guests'] as SheetTab[]).map(t => (
-            <button key={t} onClick={() => setSheetTab(t)} style={sheetChipStyle(sheetTab === t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
+            <button key={t} onClick={() => setSheetTab(t)} style={sheetChipStyle(sheetTab === t)}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
           ))}
         </div>
-
-        {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-
-          {/* Tasks */}
           {sheetTab === 'tasks' && (
             eventTasks.length === 0
               ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No tasks for this event yet.</p>
-              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {eventTasks.map(t => <TaskCard key={t.id} task={t} />)}
-                </div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{eventTasks.map(t => <TaskCard key={t.id} task={t} />)}</div>
           )}
-
-          {/* Vendors */}
           {sheetTab === 'vendors' && (
             eventExpenses.length === 0
               ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No vendors linked yet.</p>
@@ -561,21 +708,13 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
                         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose || ''}</p>
                       </div>
-                      <span style={{
-                        fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400,
-                        letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px', borderRadius: 100,
-                        ...(exp.status === 'paid'
-                          ? { background: '#F4F1EC', color: '#8C8480' }
-                          : { background: '#FFF8EC', color: '#C9A84C' }),
-                      }}>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px', borderRadius: 100, ...(exp.status === 'paid' ? { background: '#F4F1EC', color: '#8C8480' } : { background: '#FFF8EC', color: '#C9A84C' }) }}>
                         {exp.status === 'paid' ? 'BOOKED' : 'ENQUIRED'}
                       </span>
                     </div>
                   ))}
                 </div>
           )}
-
-          {/* Guests */}
           {sheetTab === 'guests' && (
             eventGuests.length === 0
               ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No guests added to this event yet.</p>
@@ -593,9 +732,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
                           <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initials(g.name)}</span>
                         </div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: 0, flex: 1 }}>{g.name}</p>
-                        <span style={{ ...chipStyle, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 7px', borderRadius: 100 }}>
-                          {rsvp}
-                        </span>
+                        <span style={{ ...chipStyle, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 7px', borderRadius: 100 }}>{rsvp}</span>
                       </div>
                     );
                   })}
@@ -650,30 +787,15 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
               const isSoonest = i === soonestIdx;
               return (
                 <div key={ev.id} style={{ display: 'flex', gap: 12, marginBottom: 24, position: 'relative' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: '#F4F1EC', border: `1px solid ${isSoonest ? '#C9A84C' : '#E2DED8'}`,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1,
-                  }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: '#F4F1EC', border: `1px solid ${isSoonest ? '#C9A84C' : '#E2DED8'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
                     <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, color: '#8C8480', lineHeight: 1 }}>{month}</span>
                     <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', lineHeight: 1.1 }}>{day}</span>
                   </div>
-                  {/* Tappable card */}
-                  <button
-                    onClick={() => setSelectedEvent(ev)}
-                    style={{
-                      flex: 1, background: '#F4F1EC', border: '1px solid #E2DED8',
-                      borderRadius: 12, padding: 16, textAlign: 'left', cursor: 'pointer',
-                    }}
-                  >
+                  <button onClick={() => setSelectedEvent(ev)} style={{ flex: 1, background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 12, padding: 16, textAlign: 'left', cursor: 'pointer' }}>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
                     {ev.venue && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>{ev.venue}</p>}
                     <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#8C8480', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
-                      {[
-                        ev.task_count != null && `${ev.task_count} Tasks`,
-                        ev.vendor_count != null && `${ev.vendor_count} Vendors`,
-                        ev.guest_count != null && `${ev.guest_count} Guests`,
-                      ].filter(Boolean).join(' · ')}
+                      {[ev.task_count != null && `${ev.task_count} Tasks`, ev.vendor_count != null && `${ev.vendor_count} Vendors`, ev.guest_count != null && `${ev.guest_count} Guests`].filter(Boolean).join(' · ')}
                     </p>
                   </button>
                 </div>
@@ -683,13 +805,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
         )}
       </div>
       {selectedEvent && (
-        <EventDetailSheet
-          event={selectedEvent}
-          allTasks={allTasks}
-          allGuests={allGuests}
-          allExpenses={allExpenses}
-          onClose={() => setSelectedEvent(null)}
-        />
+        <EventDetailSheet event={selectedEvent} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} onClose={() => setSelectedEvent(null)} />
       )}
     </>
   );
@@ -714,17 +830,12 @@ const NAV_ITEMS = [
 export default function CouplePlanPage() {
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
   const [session, setSession] = useState<CoupleSession | null | undefined>(undefined);
-
-  // Cross-tab data for Events detail sheet
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [allGuests, setAllGuests] = useState<Guest[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
 
-  useEffect(() => {
-    setSession(getSession());
-  }, []);
+  useEffect(() => { setSession(getSession()); }, []);
 
-  // Pre-fetch tasks, guests, expenses for the Events detail sheet once we have a userId
   useEffect(() => {
     if (!session?.id) return;
     const uid = session.id;
@@ -736,16 +847,14 @@ export default function CouplePlanPage() {
     }).catch(() => {});
   }, [session?.id]);
 
-  // Loading state
   if (session === undefined) return null;
-
-  // No session — redirect to login
   if (!session) {
     if (typeof window !== 'undefined') window.location.replace('/couple/login');
     return null;
   }
 
   const userId = session.id;
+  const dreamerType = session.dreamer_type || 'basic';
   const initial = (session.name?.[0] || 'D').toUpperCase();
 
   return (
@@ -757,12 +866,7 @@ export default function CouplePlanPage() {
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
 
-      <div style={{
-        background: '#FAFAF8', minHeight: '100dvh',
-        paddingTop: 24,
-        paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)',
-      }}>
-        {/* Header */}
+      <div style={{ background: '#FAFAF8', minHeight: '100dvh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: 0 }}>Plan</h1>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -770,12 +874,10 @@ export default function CouplePlanPage() {
           </div>
         </div>
 
-        {/* Sub-nav chips */}
         <div style={{ padding: '0 16px', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 8 }}>
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-              flexShrink: 0,
-              fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
+              flexShrink: 0, fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
               letterSpacing: '0.15em', textTransform: 'uppercase',
               padding: '6px 14px', borderRadius: 100,
               border: activeTab === tab.key ? 'none' : '1px solid #E2DED8',
@@ -786,37 +888,18 @@ export default function CouplePlanPage() {
           ))}
         </div>
 
-        {/* Content */}
         <div style={{ padding: '8px 16px 0' }}>
           {activeTab === 'tasks' && <TasksTab userId={userId} />}
-          {activeTab === 'money' && <MoneyTab userId={userId} />}
+          {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} />}
           {activeTab === 'people' && <PeopleTab userId={userId} />}
-          {activeTab === 'events' && (
-            <EventsTab
-              userId={userId}
-              allTasks={allTasks}
-              allGuests={allGuests}
-              allExpenses={allExpenses}
-            />
-          )}
+          {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} />}
         </div>
       </div>
 
-      {/* Bottom Nav */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#FAFAF8', borderTop: '1px solid #E2DED8',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-        paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100,
-      }}>
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#FAFAF8', borderTop: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'space-around', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100 }}>
         {NAV_ITEMS.map(item => (
           <a key={item.key} href={item.href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', gap: 4, textDecoration: 'none' }}>
-            <span style={{
-              fontFamily: "'Jost', sans-serif", fontSize: 10,
-              fontWeight: item.key === 'plan' ? 400 : 300,
-              letterSpacing: '0.15em', textTransform: 'uppercase',
-              color: item.key === 'plan' ? '#0C0A09' : '#8C8480',
-            }}>{item.label}</span>
+            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: item.key === 'plan' ? 400 : 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: item.key === 'plan' ? '#0C0A09' : '#8C8480' }}>{item.label}</span>
             {item.key === 'plan' && <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#C9A84C', display: 'block' }} />}
           </a>
         ))}

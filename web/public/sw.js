@@ -1,89 +1,90 @@
-// Dream Wedding — Service Worker v2
-// Strategy: network-first for pages, cache-first for static assets only
-const CACHE_NAME = 'tdw-vendor-v2';
-const OFFLINE_URL = '/vendor/login';
+// The Dream Wedding — Service Worker v3 (Session 17)
+// Cache-first: images | Network-first: pages + API | Never cache: API responses
 
-// Only truly static assets that rarely change
-const STATIC_ASSETS = [
+const CACHE_NAME = 'tdw-v3';
+const IMAGE_CACHE = 'tdw-images-v3';
+
+const CORE_PAGES = [
+  '/',
+  '/couple/today',
+  '/couple/plan',
+  '/couple/login',
+  '/vendor/today',
+  '/vendor/clients',
+  '/vendor/login',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
 ];
 
+// ── Install: pre-cache core pages ────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).catch(() => {})
+      return cache.addAll(CORE_PAGES).catch(() => {});
+    })
   );
   self.skipWaiting();
 });
 
+// ── Activate: purge old caches ────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  // Purge ALL old caches (v1 and any others)
   event.waitUntil(
-    caches.keys().then((names) => {
-      return Promise.all(
-        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then((names) =>
+      Promise.all(
+        names
+          .filter((n) => n !== CACHE_NAME && n !== IMAGE_CACHE)
+          .map((n) => caches.delete(n))
+      )
+    )
   );
   self.clients.claim();
 });
 
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
+  const url = new URL(request.url);
 
-  const url = new URL(event.request.url);
+  // Never cache: API calls
+  if (
+    url.hostname.includes('railway.app') ||
+    url.pathname.startsWith('/api/')
+  ) {
+    event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
+    return;
+  }
 
-  // API calls — network only, no caching
-  if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) {
+  // Cache-first: images (Unsplash, Cloudinary, any image extension)
+  const isImage =
+    url.hostname.includes('unsplash.com') ||
+    url.hostname.includes('cloudinary.com') ||
+    /\.(png|jpg|jpeg|webp|avif|gif|svg)(\?|$)/i.test(url.pathname);
+
+  if (isImage) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: 'Offline' }), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      })
+      caches.open(IMAGE_CACHE).then((cache) =>
+        cache.match(request).then((cached) => {
+          if (cached) return cached;
+          return fetch(request).then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          }).catch(() => new Response('', { status: 404 }));
+        })
+      )
     );
     return;
   }
 
-  // Static assets (icons, manifest) — cache-first
-  if (STATIC_ASSETS.some(a => url.pathname === a)) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        return cached || fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
-
-  // Everything else (pages, JS bundles, CSS) — NETWORK-FIRST
-  // Always hit Vercel first to get the latest deployment.
-  // Only fall back to cache if offline.
+  // Network-first: pages — fallback to cache
   event.respondWith(
-    fetch(event.request).then((response) => {
-      // Cache successful page loads for offline fallback
-      if (response.ok && event.request.mode === 'navigate') {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
-      }
-      return response;
-    }).catch(() => {
-      // Offline — try cache, then show offline login page
-      return caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        if (event.request.mode === 'navigate') {
-          return caches.match(OFFLINE_URL);
+    fetch(request)
+      .then((response) => {
+        if (response.ok && request.method === 'GET') {
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
         }
-        return new Response('Offline', { status: 503 });
-      });
-    })
+        return response;
+      })
+      .catch(() =>
+        caches.match(request).then((cached) => cached || new Response('Offline', { status: 503 }))
+      )
   );
 });
