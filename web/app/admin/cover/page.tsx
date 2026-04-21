@@ -201,7 +201,7 @@ export default function AdminCoverPage() {
                   </div>
                 ))}
 
-                {photos.length < 5 && !showAdd && (
+                {photos.length < 10 && !showAdd && (
                   <button onClick={() => setShowAdd(true)}
                     style={{ border: '1px dashed #E2DED8', borderRadius: 6, background: 'transparent', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <span style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 10, color: '#888580', letterSpacing: '0.2em', textTransform: 'uppercase' }}>+ Add cover photo</span>

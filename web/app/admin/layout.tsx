@@ -76,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             }}>The Dream Wedding</div>
             <div style={{
               fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8,
-              color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase',
+              color: '#555250', letterSpacing: '0.25em', textTransform: 'uppercase',
             }}>Admin</div>
             <div style={{ height: 0.5, background: '#C9A84C', opacity: 0.25, margin: '12px 0 16px' }} />
           </div>
@@ -101,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         padding: '7px 16px', border: 'none', outline: 'none', cursor: 'pointer',
                         fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13,
                         background: active ? '#FFFFFF' : 'transparent',
-                        color: active ? '#111111' : '#888580',
+                        color: active ? '#111111' : '#555250',
                         borderLeft: active ? '2px solid #C9A84C' : '2px solid transparent',
                         borderRadius: '0 4px 4px 0',
                         transition: 'all 0.15s ease',
