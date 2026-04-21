@@ -20,12 +20,14 @@ type Role = 'Dreamer' | 'Maker';
 export default function Home() {
   const router = useRouter();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const slidesRef = useRef<string[]>(FALLBACK_SLIDES);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [screen, setScreen] = useState<Screen>('landing');
   const [role, setRole] = useState<Role>('Dreamer');
   const [cur, setCur] = useState(0);
   const [slides, setSlides] = useState<string[]>(FALLBACK_SLIDES);
+  useEffect(() => { slidesRef.current = slides; }, [slides]);
   const [tagVis, setTagVis] = useState(true);
   const [tagText, setTagText] = useState(DREAMER_TAG);
   const [panelUp, setPanelUp] = useState(false);
@@ -45,7 +47,7 @@ export default function Home() {
 
   const startCarousel = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => setCur(c => (c + 1) % FALLBACK_SLIDES.length), 2500);
+    intervalRef.current = setInterval(() => setCur(c => (c + 1) % slidesRef.current.length), 2500);
   }, []);
 
   useEffect(() => {
