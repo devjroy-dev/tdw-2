@@ -127,7 +127,7 @@ export default function CouplePinPage() {
                   value={d}
                   onChange={e => handlePin(i, e.target.value, pinRefs, setPin)}
                   onKeyDown={e => { if (e.key === 'Backspace') handleBackspace(i, d, pinRefs, setPin, pin); }}
-                  style={boxStyle(document.activeElement === pinRefs.current[i])}
+                  style={boxStyle(typeof document !== "undefined" && document.activeElement === pinRefs.current[i])}
                 />
               ))}
             </div>
@@ -146,7 +146,7 @@ export default function CouplePinPage() {
                   value={d}
                   onChange={e => handlePin(i, e.target.value, confirmRefs, setConfirm)}
                   onKeyDown={e => { if (e.key === 'Backspace') handleBackspace(i, d, confirmRefs, setConfirm, confirm); if (e.key === 'Enter' && allFilled) submit(); }}
-                  style={boxStyle(document.activeElement === confirmRefs.current[i])}
+                  style={boxStyle(typeof document !== "undefined" && document.activeElement === confirmRefs.current[i])}
                 />
               ))}
             </div>
