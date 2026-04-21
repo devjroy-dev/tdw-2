@@ -124,8 +124,8 @@ export default function Home() {
       });
       const d = await res.json();
       if (d.success) {
-        localStorage.setItem(role === 'Dreamer' ? 'couple_session' : 'vendor_session', JSON.stringify(d.user));
-        router.push(role === 'Dreamer' ? '/couple/today' : '/vendor/dashboard');
+        localStorage.setItem(role === 'Dreamer' ? 'couple_session' : 'vendor_session', JSON.stringify({ idToken: d.idToken, localId: d.localId, phoneNumber: d.phoneNumber }));
+        router.push(role === 'Dreamer' ? '/couple/today' : '/vendor/today');
       } else showToast(d.error || 'Incorrect code.');
     } catch { showToast('Verification failed.'); }
   };
