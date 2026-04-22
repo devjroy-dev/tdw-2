@@ -485,7 +485,7 @@ export default function VendorMoneyPage() {
                   type={f.type}
                   value={(invForm as any)[f.key]}
                   onChange={e => setInvForm(p => ({...p, [f.key]:e.target.value}))}
-                  style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', borderBottom:'1px solid #E2DED8', background:'transparent', outline:'none', padding:'10px 0', width:'100%', border:'none', borderBottom:'1px solid #E2DED8', borderRadius:0 }}
+                  style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', background:'transparent', outline:'none', padding:'10px 0', width:'100%', borderBottom:'1px solid #E2DED8', borderRadius:0 }}
                 />
               </div>
             ))}
