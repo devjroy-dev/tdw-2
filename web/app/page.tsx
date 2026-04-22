@@ -126,8 +126,23 @@ export default function Home() {
       });
       const d = await res.json();
       if (d.success) {
-        localStorage.setItem(role === 'Dreamer' ? 'couple_session' : 'vendor_session', JSON.stringify({ idToken: d.idToken, localId: d.localId, phoneNumber: d.phoneNumber }));
-        router.push(role === 'Dreamer' ? '/couple/today' : '/vendor/today');
+        const isVendor = role !== 'Dreamer';
+        const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
+        const userId = d.localId;
+        const sessionData = { idToken: d.idToken, localId: userId, phoneNumber: d.phoneNumber, vendorId: userId, userId: userId, phone: phone.replace(/\D/g, '') };
+        localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+        // Check if PIN is already set
+        try {
+          const pinRes = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=${userId}&role=${isVendor ? 'vendor' : 'couple'}`);
+          const pinData = await pinRes.json();
+          if (pinData.pin_set) {
+            router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
+          } else {
+            router.push(isVendor ? '/vendor/pin' : '/couple/pin');
+          }
+        } catch {
+          router.push(isVendor ? '/vendor/today' : '/couple/today');
+        }
       } else showToast(d.error || 'Incorrect code.');
     } catch { showToast('Verification failed.'); }
   };
