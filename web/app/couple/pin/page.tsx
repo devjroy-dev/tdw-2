@@ -31,7 +31,7 @@ export default function CouplePinPage() {
   useEffect(() => {
     // If already set, skip
     try {
-      const s = JSON.parse(localStorage.getItem('couple_session') || '{}');
+      const s = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
       if (s?.pin_set) { router.replace('/couple/today'); return; }
     } catch {}
     pinRefs.current[0]?.focus();
@@ -67,14 +67,14 @@ export default function CouplePinPage() {
     }
     setLoading(true);
     try {
-      const session = JSON.parse(localStorage.getItem('couple_session') || '{}');
+      const session = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
       const r = await fetch(`${API}/api/v2/auth/set-pin`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.id, pin: pinStr, role: 'user' }),
+        body: JSON.stringify({ userId: session.userId, pin: pinStr, role: 'couple', phone: session.phone }),
       });
       const d = await r.json();
       if (d.success) {
-        localStorage.setItem('couple_session', JSON.stringify({ ...session, pin_set: true }));
+        localStorage.setItem('couple_web_session', JSON.stringify({ ...session, pin_set: true }));
         router.replace('/couple/today');
       } else {
         showToast('Could not set PIN. Try again.');
