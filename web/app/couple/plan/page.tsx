@@ -4,6 +4,18 @@ import React, { useEffect, useState, useRef } from 'react';
 
 const RAILWAY_URL = 'https://dream-wedding-production-89ae.up.railway.app';
 
+// ─── CRITICAL: DB FIELD NAME INCONSISTENCY ────────────────────────────────────
+// v2 GET endpoints filter Supabase with `user_id`.
+// POST/PATCH/DELETE endpoints send `couple_id` in request body.
+// Both are the SAME value: session.id from localStorage couple_session.
+// Reading  →  user_id
+// Writing  →  couple_id
+// couple_expenses columns: `description` = purpose, `event` = event_name,
+//   `payment_status` = status, `actual_amount` = displayed amount
+// events v2 GET uses couple_id despite being a v2 endpoint — do not change.
+// NEVER rename any of these. NEVER normalise without a full DB migration.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Session ──────────────────────────────────────────────────────────────────
 interface CoupleSession {
   id: string;
@@ -42,6 +54,529 @@ function Shimmer({ h, w = '100%', br = 8, mt = 0 }: { h: number; w?: string | nu
       animation: 'shimmer 1.4s infinite',
       willChange: 'background-position',
     }} />
+  );
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ msg }: { msg: string }) {
+  if (!msg) return null;
+  return (
+    <div style={{
+      position: 'fixed', bottom: 100, left: '50%',
+      transform: 'translateX(-50%) translateZ(0)',
+      background: '#111111', color: '#F8F7F5',
+      fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+      padding: '12px 20px', borderRadius: 100, zIndex: 999,
+      whiteSpace: 'nowrap', willChange: 'transform',
+    }}>{msg}</div>
+  );
+}
+
+// ─── Shared sheet field styles ─────────────────────────────────────────────────
+const fieldLabel: React.CSSProperties = {
+  fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+  textTransform: 'uppercase', letterSpacing: '0.15em', color: '#888580',
+  marginBottom: 4, display: 'block',
+};
+const fieldInput: React.CSSProperties = {
+  width: '100%', height: 48,
+  fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+  color: '#111111', background: 'transparent',
+  border: 'none', borderBottom: '1px solid #E2DED8',
+  outline: 'none', padding: '0 4px',
+};
+const fieldWrapper: React.CSSProperties = { marginBottom: 20 };
+const pillGroup: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap' };
+
+function Pill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <button onClick={onPress} style={{
+      fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+      letterSpacing: '0.1em', textTransform: 'uppercase',
+      padding: '5px 12px', borderRadius: 100, cursor: 'pointer',
+      touchAction: 'manipulation',
+      border: active ? 'none' : '1px solid #E2DED8',
+      background: active ? '#111111' : 'transparent',
+      color: active ? '#F8F7F5' : '#888580',
+    }}>{label}</button>
+  );
+}
+
+function submitBtn(disabled: boolean): React.CSSProperties {
+  return {
+    width: '100%', height: 52, borderRadius: 100,
+    background: disabled ? '#E2DED8' : '#111111',
+    color: '#F8F7F5',
+    fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
+    letterSpacing: '0.15em', textTransform: 'uppercase',
+    border: 'none', cursor: disabled ? 'default' : 'pointer',
+    touchAction: 'manipulation', willChange: 'transform',
+  };
+}
+
+function selectStyle(): React.CSSProperties {
+  return {
+    width: '100%', height: 48,
+    fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+    color: '#111111', background: 'transparent',
+    border: 'none', borderBottom: '1px solid #E2DED8',
+    outline: 'none', padding: '0 4px',
+    appearance: 'none' as const,
+  };
+}
+
+// ─── Sheet wrapper ────────────────────────────────────────────────────────────
+function SheetWrap({ visible, onClose, title, height, children }: {
+  visible: boolean; onClose: () => void; title: string;
+  height: string; children: React.ReactNode;
+}) {
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        background: 'rgba(17,17,17,0.4)',
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'opacity',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301,
+        height, background: '#FFFFFF',
+        borderRadius: '24px 24px 0 0',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'transform', display: 'flex',
+        flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '8px 20px 12px', borderBottom: '0.5px solid #E2DED8',
+        }}>
+          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111' }}>{title}</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#888580', padding: 4, touchAction: 'manipulation' }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </>
+  );
+}
+
+// ─── AddTaskSheet ─────────────────────────────────────────────────────────────
+interface EventOption { id: string; name: string; }
+
+function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  events: EventOption[]; onSuccess: () => void;
+}) {
+  const [taskTitle, setTaskTitle] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState('general');
+  const [priority, setPriority] = useState('Medium');
+  const [dueDate, setDueDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  async function handleSubmit() {
+    if (!taskTitle.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/checklist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          event: selectedEvent || 'general',
+          text: taskTitle.trim(),
+          priority: priority.toLowerCase(),
+          due_date: dueDate || null,
+          is_custom: true,
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding task'); }
+      else { showToast('Task added'); onSuccess(); onClose(); setTaskTitle(''); setSelectedEvent('general'); setPriority('Medium'); setDueDate(''); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !taskTitle.trim() || submitting;
+
+  return (
+    <>
+      <SheetWrap visible={visible} onClose={onClose} title="New Task" height="80vh">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Task</label>
+            <input
+              value={taskTitle} onChange={e => setTaskTitle(e.target.value)}
+              placeholder="What needs to be done?"
+              style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Event</label>
+            <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} style={selectStyle()}>
+              <option value="general">General</option>
+              {events.map(ev => <option key={ev.id} value={ev.name}>{ev.name}</option>)}
+            </select>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Priority</label>
+            <div style={pillGroup}>
+              {['High', 'Medium', 'Low'].map(p => (
+                <Pill key={p} label={p} active={priority === p} onPress={() => setPriority(p)} />
+              ))}
+            </div>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Due Date</label>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+        </div>
+        <div style={{ padding: '16px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+          <button onClick={handleSubmit} disabled={disabled} style={submitBtn(disabled)}>
+            {submitting ? '...' : 'ADD TASK'}
+          </button>
+        </div>
+      </SheetWrap>
+      <Toast msg={toast} />
+    </>
+  );
+}
+
+// ─── AddGuestSheet ────────────────────────────────────────────────────────────
+function AddGuestSheet({ visible, onClose, userId, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  events: EventOption[]; onSuccess: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [side, setSide] = useState('bride');
+  const [relation, setRelation] = useState('');
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [dietary, setDietary] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  function toggleEvent(evName: string) {
+    setSelectedEvents(prev => prev.includes(evName) ? prev.filter(e => e !== evName) : [...prev, evName]);
+  }
+
+  async function handleSubmit() {
+    if (!name.trim() || submitting) return;
+    setSubmitting(true);
+    const eventInvites: Record<string, string> = {};
+    selectedEvents.forEach(ev => { eventInvites[ev] = 'pending'; });
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/guests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          name: name.trim(),
+          side,
+          relation: relation || null,
+          phone: phone || null,
+          dietary_notes: dietary || null,
+          event_invites: eventInvites,
+          household_count: 1,
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding guest'); }
+      else { showToast('Guest added'); onSuccess(); onClose(); setName(''); setPhone(''); setSide('bride'); setRelation(''); setSelectedEvents([]); setDietary(''); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !name.trim() || submitting;
+
+  return (
+    <>
+      <SheetWrap visible={visible} onClose={onClose} title="Add Guest" height="90vh">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Full Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Full name" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Phone</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="Optional" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Side</label>
+            <div style={pillGroup}>
+              {['Bride', 'Groom'].map(s => (
+                <Pill key={s} label={s} active={side === s.toLowerCase()} onPress={() => setSide(s.toLowerCase())} />
+              ))}
+            </div>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Relation</label>
+            <input value={relation} onChange={e => setRelation(e.target.value)} placeholder="e.g. Cousin, Friend, Colleague" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          {events.length > 0 && (
+            <div style={fieldWrapper}>
+              <label style={fieldLabel}>Invite to Events</label>
+              <div style={pillGroup}>
+                {events.map(ev => (
+                  <Pill key={ev.id} label={ev.name} active={selectedEvents.includes(ev.name)} onPress={() => toggleEvent(ev.name)} />
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Dietary Note</label>
+            <input value={dietary} onChange={e => setDietary(e.target.value)} placeholder="e.g. Vegetarian, No nuts" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+        </div>
+        <div style={{ padding: '16px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+          <button onClick={handleSubmit} disabled={disabled} style={submitBtn(disabled)}>
+            {submitting ? '...' : 'ADD GUEST'}
+          </button>
+        </div>
+      </SheetWrap>
+      <Toast msg={toast} />
+    </>
+  );
+}
+
+// ─── AddEventSheet ────────────────────────────────────────────────────────────
+const EVENT_TYPES = ['Mehendi', 'Haldi', 'Sangeet', 'Ceremony', 'Reception', 'Other'];
+const GUEST_RANGES = ['Under 50', '50–150', '150–300', '300–500', '500+'];
+
+function AddEventSheet({ visible, onClose, userId, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string; onSuccess: () => void;
+}) {
+  const [eventType, setEventType] = useState('');
+  const [eventName, setEventName] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [city, setCity] = useState('');
+  const [budget, setBudget] = useState('');
+  const [guestRange, setGuestRange] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  function selectType(t: string) {
+    setEventType(t.toLowerCase());
+    if (!eventName) setEventName(t);
+  }
+
+  async function handleSubmit() {
+    if (!eventName.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          event_type: eventType || 'other',
+          event_name: eventName.trim(),
+          event_date: eventDate || null,
+          event_city: city || null,
+          budget_total: budget ? Number(budget) : null,
+          guest_count_range: guestRange || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding event'); }
+      else { showToast('Event added'); onSuccess(); onClose(); setEventType(''); setEventName(''); setEventDate(''); setCity(''); setBudget(''); setGuestRange(''); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !eventName.trim() || submitting;
+
+  return (
+    <>
+      <SheetWrap visible={visible} onClose={onClose} title="New Event" height="88vh">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Event Type</label>
+            <div style={pillGroup}>
+              {EVENT_TYPES.map(t => (
+                <Pill key={t} label={t} active={eventType === t.toLowerCase()} onPress={() => selectType(t)} />
+              ))}
+            </div>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Event Name</label>
+            <input value={eventName} onChange={e => setEventName(e.target.value)} placeholder="e.g. Priya & Arjun's Sangeet" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Date</label>
+            <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>City</label>
+            <input value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Mumbai, Delhi" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={{ ...fieldWrapper, position: 'relative' }}>
+            <label style={fieldLabel}>Estimated Budget</label>
+            <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#888580' }}>₹</span>
+            <input value={budget} onChange={e => setBudget(e.target.value)} inputMode="numeric" placeholder="0" style={{ ...fieldInput, paddingLeft: 18 }}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Guest Range</label>
+            <div style={pillGroup}>
+              {GUEST_RANGES.map(r => (
+                <Pill key={r} label={r} active={guestRange === r} onPress={() => setGuestRange(guestRange === r ? '' : r)} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: '16px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+          <button onClick={handleSubmit} disabled={disabled} style={submitBtn(disabled)}>
+            {submitting ? '...' : 'ADD EVENT'}
+          </button>
+        </div>
+      </SheetWrap>
+      <Toast msg={toast} />
+    </>
+  );
+}
+
+// ─── AddBudgetSheet ───────────────────────────────────────────────────────────
+const BUDGET_CATEGORIES = ['Photography', 'Decor', 'Catering', 'MUA', 'Attire', 'Venue', 'Other'];
+
+function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  events: EventOption[]; onSuccess: () => void;
+}) {
+  const [vendorName, setVendorName] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [amount, setAmount] = useState('');
+  const [eventName, setEventName] = useState('general');
+  const [category, setCategory] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  async function handleSubmit() {
+    if (!vendorName.trim() || !purpose.trim() || !amount || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          vendor_name: vendorName.trim(),
+          description: purpose.trim(),       // DB column: description
+          actual_amount: Number(amount),      // DB column: actual_amount
+          event: eventName === 'general' ? null : eventName, // DB column: event
+          category: category || null,
+          due_date: dueDate || null,
+          payment_status: 'committed',        // DB column: payment_status
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding entry'); }
+      else { showToast('Entry added'); onSuccess(); onClose(); setVendorName(''); setPurpose(''); setAmount(''); setEventName('general'); setCategory(''); setDueDate(''); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !vendorName.trim() || !purpose.trim() || !amount || submitting;
+
+  return (
+    <>
+      <SheetWrap visible={visible} onClose={onClose} title="Add Entry" height="88vh">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Vendor / Payee</label>
+            <input value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="e.g. Nathan Cross Photography" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Purpose</label>
+            <input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Photography advance, Decor deposit" style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={{ ...fieldWrapper, position: 'relative' }}>
+            <label style={fieldLabel}>Amount</label>
+            <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#888580' }}>₹</span>
+            <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="numeric" placeholder="0" style={{ ...fieldInput, paddingLeft: 18 }}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Event</label>
+            <select value={eventName} onChange={e => setEventName(e.target.value)} style={selectStyle()}>
+              <option value="general">General</option>
+              {events.map(ev => <option key={ev.id} value={ev.name}>{ev.name}</option>)}
+            </select>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Category</label>
+            <div style={pillGroup}>
+              {BUDGET_CATEGORIES.map(c => (
+                <Pill key={c} label={c} active={category === c} onPress={() => setCategory(category === c ? '' : c)} />
+              ))}
+            </div>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Due Date</label>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+        </div>
+        <div style={{ padding: '16px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+          <button onClick={handleSubmit} disabled={disabled} style={submitBtn(disabled)}>
+            {submitting ? '...' : 'ADD ENTRY'}
+          </button>
+        </div>
+      </SheetWrap>
+      <Toast msg={toast} />
+    </>
   );
 }
 
@@ -277,7 +812,7 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
-function TasksTab({ userId, onOpenDreamAi }: { userId: string; onOpenDreamAi: (prefill: string) => void }) {
+function TasksTab({ userId, onOpenDreamAi, refetch }: { userId: string; onOpenDreamAi: (prefill: string) => void; refetch: number }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TaskFilter>('event');
@@ -288,7 +823,7 @@ function TasksTab({ userId, onOpenDreamAi }: { userId: string; onOpenDreamAi: (p
       .then(r => r.json())
       .then(d => { setTasks(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [userId]);
+  }, [userId, refetch]);
 
   const filterChips: { key: TaskFilter; label: string }[] = [
     { key: 'event', label: 'By Event' },
@@ -523,7 +1058,7 @@ function UpgradeCard({ userId, currentTier, onUpgraded }: { userId: string; curr
   );
 }
 
-function MoneyTab({ userId, dreamerType, onOpenDreamAi }: { userId: string; dreamerType: string; onOpenDreamAi: (prefill: string) => void }) {
+function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: { userId: string; dreamerType: string; onOpenDreamAi: (prefill: string) => void; refetch: number }) {
   const [data, setData] = useState<MoneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
@@ -535,7 +1070,7 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi }: { userId: string; drea
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [userId]);
+  }, [userId, refetch]);
 
   if (loading) return (
     <div style={{ paddingTop: 4 }}>
@@ -623,7 +1158,7 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi }: { userId: string; drea
               fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, padding: '4px 10px', borderRadius: 100,
               border: payFilter === f.key ? 'none' : '1px solid #E2DED8',
               background: payFilter === f.key ? '#0C0A09' : 'transparent',
-              color: payFilter === f.key ? '#FAFAF8' : '#8C8480',
+              color: payFilter === f.key ? '#FAFAL8' : '#8C8480',
               cursor: 'pointer', letterSpacing: '0.1em',
             }}>{f.label}</button>
           ))}
@@ -665,7 +1200,7 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function PeopleTab({ userId }: { userId: string }) {
+function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeEvent, setActiveEvent] = useState('all');
@@ -676,7 +1211,7 @@ function PeopleTab({ userId }: { userId: string }) {
       .then(r => r.json())
       .then(d => { setGuests(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [userId]);
+  }, [userId, refetch]);
 
   const allEvents = Array.from(new Set(guests.flatMap(g => g.events || (g.event_name ? [g.event_name] : []))));
   const filtered = activeEvent === 'all' ? guests : guests.filter(g => (g.events || [g.event_name]).includes(activeEvent));
@@ -894,7 +1429,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
   );
 }
 
-function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: string; allTasks: Task[]; allGuests: Guest[]; allExpenses: Expense[] }) {
+function EventsTab({ userId, allTasks, allGuests, allExpenses, refetch }: { userId: string; allTasks: Task[]; allGuests: Guest[]; allExpenses: Expense[]; refetch: number }) {
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<WeddingEvent | null>(null);
@@ -905,7 +1440,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
       .then(r => r.json())
       .then(d => { setEvents(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [userId]);
+  }, [userId, refetch]);
 
   const now = new Date();
   const soonestIdx = events.findIndex(ev => ev.date && new Date(ev.date) >= now);
@@ -966,14 +1501,14 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses }: { userId: strin
 const TABS: { key: Tab; label: string }[] = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'money', label: 'Money' },
-  { key: 'people', label: 'People' },
+  { key: 'people', label: 'Guests' },
   { key: 'events', label: 'Events' },
 ];
 
 const NAV_ITEMS = [
   { key: 'today', label: 'Today', href: '/couple/today' },
   { key: 'plan', label: 'Plan', href: '/couple/plan' },
-  { key: 'muse', label: 'Muse', href: '/couple/muse' },
+  { key: 'bespoke', label: 'Bespoke', href: '/couple/bespoke' },
   { key: 'me', label: 'Me', href: '/couple/me' },
 ];
 
@@ -983,8 +1518,22 @@ export default function CouplePlanPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [allGuests, setAllGuests] = useState<Guest[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  const [allEvents, setAllEvents] = useState<EventOption[]>([]);
   const [dreamAiOpen, setDreamAiOpen] = useState(false);
   const [dreamAiPrefill, setDreamAiPrefill] = useState('');
+
+  // ─── FAB sheet state ──────────────────────────────────────────────────────
+  const [fabPressed, setFabPressed] = useState(false);
+  const [taskSheetOpen, setTaskSheetOpen] = useState(false);
+  const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
+  const [guestSheetOpen, setGuestSheetOpen] = useState(false);
+  const [eventSheetOpen, setEventSheetOpen] = useState(false);
+
+  // ─── Refetch counters ─────────────────────────────────────────────────────
+  const [tasksRefetch, setTasksRefetch] = useState(0);
+  const [moneyRefetch, setMoneyRefetch] = useState(0);
+  const [guestsRefetch, setGuestsRefetch] = useState(0);
+  const [eventsRefetch, setEventsRefetch] = useState(0);
 
   useEffect(() => { setSession(getSession()); }, []);
 
@@ -996,6 +1545,9 @@ export default function CouplePlanPage() {
     fetch(`${RAILWAY_URL}/api/v2/couple/money/${uid}`).then(r => r.json()).then(d => {
       const rows = [...(d?.thisWeek || []), ...(d?.next30 || [])];
       setAllExpenses(rows);
+    }).catch(() => {});
+    fetch(`${RAILWAY_URL}/api/v2/couple/events/${uid}`).then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setAllEvents(d.map((ev: any) => ({ id: ev.id, name: ev.name })));
     }).catch(() => {});
   }, [session?.id]);
 
@@ -1014,6 +1566,13 @@ export default function CouplePlanPage() {
     setDreamAiOpen(true);
   }
 
+  function handleFabClick() {
+    if (activeTab === 'tasks') setTaskSheetOpen(true);
+    else if (activeTab === 'money') setBudgetSheetOpen(true);
+    else if (activeTab === 'people') setGuestSheetOpen(true);
+    else if (activeTab === 'events') setEventSheetOpen(true);
+  }
+
   return (
     <>
       <style>{`
@@ -1028,6 +1587,35 @@ export default function CouplePlanPage() {
         onClose={() => setDreamAiOpen(false)}
         userId={userId}
         prefill={dreamAiPrefill}
+      />
+
+      {/* ─── FAB Sheets ──────────────────────────────────────────────────── */}
+      <AddTaskSheet
+        visible={taskSheetOpen}
+        onClose={() => setTaskSheetOpen(false)}
+        userId={userId}
+        events={allEvents}
+        onSuccess={() => setTasksRefetch(n => n + 1)}
+      />
+      <AddBudgetSheet
+        visible={budgetSheetOpen}
+        onClose={() => setBudgetSheetOpen(false)}
+        userId={userId}
+        events={allEvents}
+        onSuccess={() => setMoneyRefetch(n => n + 1)}
+      />
+      <AddGuestSheet
+        visible={guestSheetOpen}
+        onClose={() => setGuestSheetOpen(false)}
+        userId={userId}
+        events={allEvents}
+        onSuccess={() => setGuestsRefetch(n => n + 1)}
+      />
+      <AddEventSheet
+        visible={eventSheetOpen}
+        onClose={() => setEventSheetOpen(false)}
+        userId={userId}
+        onSuccess={() => setEventsRefetch(n => n + 1)}
       />
 
       <div style={{ background: '#F8F7F5', minHeight: '100dvh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
@@ -1053,12 +1641,33 @@ export default function CouplePlanPage() {
         </div>
 
         <div style={{ padding: '8px 16px 0' }}>
-          {activeTab === 'tasks' && <TasksTab userId={userId} onOpenDreamAi={openDreamAi} />}
-          {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} />}
-          {activeTab === 'people' && <PeopleTab userId={userId} />}
-          {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} />}
+          {activeTab === 'tasks' && <TasksTab userId={userId} onOpenDreamAi={openDreamAi} refetch={tasksRefetch} />}
+          {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} refetch={moneyRefetch} />}
+          {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
+          {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} refetch={eventsRefetch} />}
         </div>
       </div>
+
+      {/* ─── Context-aware FAB ───────────────────────────────────────────── */}
+      <button
+        onPointerDown={() => setFabPressed(true)}
+        onPointerUp={() => setFabPressed(false)}
+        onPointerLeave={() => setFabPressed(false)}
+        onClick={handleFabClick}
+        style={{
+          position: 'fixed', bottom: 96, right: 20,
+          width: 52, height: 52, borderRadius: '50%',
+          background: '#C9A84C', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 16px rgba(201,168,76,0.35)',
+          zIndex: 200, touchAction: 'manipulation',
+          willChange: 'transform', transform: fabPressed ? 'scale(0.95) translateZ(0)' : 'translateZ(0)',
+          transition: 'transform 200ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+        aria-label="Add new item"
+      >
+        <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: '#FFFFFF', lineHeight: 1, marginTop: -2 }}>+</span>
+      </button>
 
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#F8F7F5', borderTop: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'space-around', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 100 }}>
         {NAV_ITEMS.map(item => (
