@@ -30,7 +30,7 @@ export default function VendorPinLoginPage() {
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem('vendor_web_session') || '{}');
-      if (!s?.vendorId || !s?.pin_set) { router.replace('/vendor/login'); return; }
+      if (!s?.pin_set) { router.replace('/'); return; }
     } catch { router.replace('/vendor/login'); return; }
     pinRefs.current[0]?.focus();
   }, []);
