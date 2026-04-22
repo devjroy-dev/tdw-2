@@ -39,6 +39,8 @@ export default function Home() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [instagram, setInstagram] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteError, setInviteError] = useState('');
   const [reqDone, setReqDone] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -282,7 +284,7 @@ export default function Home() {
               <p style={{ textAlign: 'center', fontFamily: '"Jost",sans-serif', fontWeight: 200, fontSize: 7.5, color: 'rgba(201,168,76,0.75)', letterSpacing: '0.28em', textTransform: 'uppercase', marginBottom: 6 }}>{role}</p>
               <div style={{ width: 22, height: 0.5, background: '#C9A84C', opacity: 0.4, margin: '0 auto 16px' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button onClick={() => triggerThreshold('otp')} style={{ ...btnBase, width: '100%', padding: '13px 0', background: '#C9A84C', color: '#0C0A09' }}>I have an invite</button>
+                <button onClick={() => triggerThreshold('invite')} style={{ ...btnBase, width: '100%', padding: '13px 0', background: '#C9A84C', color: '#0C0A09' }}>I have an invite</button>
                 <button onClick={() => triggerThreshold('request')} style={{ ...btnBase, width: '100%', padding: '13px 0', background: 'transparent', border: '0.5px solid rgba(248,247,245,0.28)', color: '#F8F7F5' }}>Request an invite</button>
                 <button onClick={() => triggerThreshold('signin')} style={{ ...btnBase, width: '100%', padding: '8px 0', background: 'transparent', color: 'rgba(248,247,245,0.38)', fontSize: 8 }}>Already a member — Sign in</button>
               </div>
@@ -311,6 +313,35 @@ export default function Home() {
           <p style={{ fontFamily: '"Cormorant Garamond",serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: '#888580', letterSpacing: '0.04em', marginBottom: 5, textAlign: 'center' }}>{role === 'Dreamer' ? DREAMER_TAG : MAKER_TAG}</p>
           <p style={{ fontFamily: '"Jost",sans-serif', fontWeight: 200, fontSize: 7, color: '#C9A84C', letterSpacing: '0.26em', textTransform: 'uppercase', marginBottom: 7, textAlign: 'center' }}>The Curated Wedding OS</p>
           <div style={{ width: 18, height: 0.5, background: '#C9A84C', opacity: 0.4, marginBottom: 28 }} />
+
+          {screen === 'invite' && (<>
+            <p style={{ fontFamily: '"Cormorant Garamond",serif', fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>Enter your invite.</p>
+            <p style={{ fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>Your code unlocks access.</p>
+            <div style={{ width: '100%', marginBottom: 18 }}>
+              <span style={{ display: 'block', fontFamily: '"Jost",sans-serif', fontWeight: 200, fontSize: 7, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 7 }}>Invite code</span>
+              <input
+                value={inviteCode} onChange={e => { setInviteCode(e.target.value.toUpperCase()); setInviteError(''); }}
+                type="text" maxLength={8} placeholder="XXXXXX"
+                style={{ width: '100%', border: 'none', borderBottom: '1px solid #E2DED8', background: 'transparent', outline: 'none', fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 20, color: '#111111', padding: '7px 0', letterSpacing: '0.15em', textAlign: 'center' }}
+              />
+              {inviteError && <p style={{ fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 11, color: '#C9A84C', textAlign: 'center', marginTop: 8 }}>{inviteError}</p>}
+            </div>
+            <button onClick={async () => {
+              if (!inviteCode.trim()) return;
+              try {
+                const r = await fetch(`${BACKEND}/api/v2/invite/validate`, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ code: inviteCode.trim(), role: role === 'Dreamer' ? 'dreamer' : 'vendor' })
+                });
+                const d = await r.json();
+                if (d.valid) {
+                  setScreen('otp');
+                } else {
+                  setInviteError(d.error || 'Invalid or expired code.');
+                }
+              } catch { setInviteError('Could not verify code. Try again.'); }
+            }} style={{ width: '100%', padding: '14px 0', background: '#111111', color: '#F8F7F5', border: 'none', fontFamily: '"Jost",sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12, touchAction: 'manipulation' }}>Continue</button>
+          </>)}
 
           {(screen === 'otp' || screen === 'signin') && (<>
             <p style={{ fontFamily: '"Cormorant Garamond",serif', fontWeight: 300, fontSize: 28, color: '#111111', textAlign: 'center', lineHeight: 1.12, marginBottom: 7 }}>
