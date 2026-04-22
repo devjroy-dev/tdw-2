@@ -372,7 +372,8 @@ export default function Home() {
                   const d = await r.json();
                   if (d.pin_set) {
                     const isVendor = role !== 'Dreamer';
-                    localStorage.setItem(isVendor ? 'vendor_web_session' : 'couple_web_session', JSON.stringify({ phone: cleanPhone, pin_set: true }));
+                    const existingSession = JSON.parse(localStorage.getItem(isVendor ? 'vendor_web_session' : 'couple_web_session') || '{}');
+                    localStorage.setItem(isVendor ? 'vendor_web_session' : 'couple_web_session', JSON.stringify({ ...existingSession, phone: cleanPhone, pin_set: true, vendorId: d.userId || existingSession.vendorId || cleanPhone, userId: d.userId || existingSession.userId || cleanPhone }));
                     router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
                     return;
                   }
