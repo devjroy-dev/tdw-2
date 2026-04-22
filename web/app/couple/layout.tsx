@@ -32,15 +32,12 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // MODE 2 — Discover route: TopBar + BottomNav float above fixed Discovery
+  // MODE 2 — Discover route: fully immersive, NO TopBar, NO BottomNav
+  // Discovery component is position:fixed; inset:0 and manages its own UI completely
   if (pathname === '/couple/discover') {
     return (
       <CoupleModeContext.Provider value={{ mode, setMode }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", position: 'relative', minHeight: '100dvh', background: '#0C0A09' }}>
-          <TopBar />
-          {children}
-          <BottomNav />
-        </div>
+        {children}
       </CoupleModeContext.Provider>
     );
   }

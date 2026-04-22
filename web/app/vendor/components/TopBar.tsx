@@ -152,97 +152,98 @@ export default function TopBar() {
           </span>
         </div>
 
-        {/* Profile sheet backdrop */}
-        {profileOpen && (
-          <div
-            onClick={() => setProfileOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 200,
-              background: 'rgba(17,17,17,0.4)',
-              willChange: 'opacity',
-            }}
-          />
-        )}
+      </header>
 
-        {/* Profile sheet */}
+      {/* Profile sheet backdrop — outside <header> to escape stacking context */}
+      {profileOpen && (
+        <div
+          onClick={() => setProfileOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            background: 'rgba(17,17,17,0.4)',
+            willChange: 'opacity',
+          }}
+        />
+      )}
+
+      {/* Profile sheet — outside <header>, z-index above BottomNav (100) */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 501,
+        background: '#FFFFFF', borderRadius: '24px 24px 0 0',
+        transform: profileOpen ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'transform',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}>
+        {/* Handle */}
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
-          background: '#FFFFFF', borderRadius: '24px 24px 0 0',
-          transform: profileOpen ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
-          willChange: 'transform',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}>
-          {/* Handle */}
+          width: 36, height: 4, background: '#E2DED8',
+          borderRadius: 2, margin: '12px auto 20px', display: 'block',
+        }} />
+
+        {/* Profile row */}
+        <div style={{ padding: '0 24px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
-            width: 36, height: 4, background: '#E2DED8',
-            borderRadius: 2, margin: '12px auto 20px', display: 'block',
-          }} />
-
-          {/* Profile row */}
-          <div style={{ padding: '0 24px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: '50%', background: '#111111',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <span style={{
-                fontFamily: "'Jost', sans-serif", fontSize: 16,
-                fontWeight: 300, color: '#F8F7F5',
-              }}>{initials}</span>
-            </div>
-            <div>
-              <p style={{
-                fontFamily: "'Cormorant Garamond', serif", fontSize: 20,
-                fontWeight: 300, color: '#111111', margin: '0 0 2px',
-              }}>{vendorName || 'Maker'}</p>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif", fontSize: 12,
-                fontWeight: 300, color: '#888580', margin: 0,
-              }}>Maker</p>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: '#E2DED8', margin: '0 24px' }} />
-
-          {/* Settings row */}
-          <div
-            onClick={() => { showToast('Coming soon.'); setProfileOpen(false); }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
-            }}
-          >
-            <Settings size={18} color="#888580" strokeWidth={1.5} />
+            width: 48, height: 48, borderRadius: '50%', background: '#111111',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
             <span style={{
-              fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-              fontWeight: 300, color: '#111111',
-            }}>Settings</span>
+              fontFamily: "'Jost', sans-serif", fontSize: 16,
+              fontWeight: 300, color: '#F8F7F5',
+            }}>{initials}</span>
           </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: '#E2DED8', margin: '0 24px' }} />
-
-          {/* Sign out row */}
-          <div
-            onClick={() => {
-              localStorage.removeItem('vendor_web_session');
-              localStorage.removeItem('vendor_session');
-              window.location.replace('/');
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
-            }}
-          >
-            <LogOut size={18} color="#888580" strokeWidth={1.5} />
-            <span style={{
-              fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-              fontWeight: 300, color: '#111111',
-            }}>Sign out</span>
+          <div>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 20,
+              fontWeight: 300, color: '#111111', margin: '0 0 2px',
+            }}>{vendorName || 'Maker'}</p>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: 12,
+              fontWeight: 300, color: '#888580', margin: 0,
+            }}>Maker</p>
           </div>
         </div>
-      </header>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: '#E2DED8', margin: '0 24px' }} />
+
+        {/* Settings row */}
+        <div
+          onClick={() => { showToast('Coming soon.'); setProfileOpen(false); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
+          }}
+        >
+          <Settings size={18} color="#888580" strokeWidth={1.5} />
+          <span style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+            fontWeight: 300, color: '#111111',
+          }}>Settings</span>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: '#E2DED8', margin: '0 24px' }} />
+
+        {/* Sign out row */}
+        <div
+          onClick={() => {
+            localStorage.removeItem('vendor_web_session');
+            localStorage.removeItem('vendor_session');
+            window.location.replace('/');
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
+          }}
+        >
+          <LogOut size={18} color="#888580" strokeWidth={1.5} />
+          <span style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+            fontWeight: 300, color: '#111111',
+          }}>Sign out</span>
+        </div>
+      </div>
     </>
   );
 }
