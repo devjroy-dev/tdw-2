@@ -358,11 +358,14 @@ export default function Home() {
             <p style={{ fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>Enter your number. We'll send a code.</p>
             <div style={{ width: '100%', marginBottom: 18 }}>
               <span style={{ display: 'block', fontFamily: '"Jost",sans-serif', fontWeight: 200, fontSize: 7, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 7 }}>Phone number</span>
-              <input
-                value={phone} onChange={e => setPhone(e.target.value)}
-                type="tel" maxLength={14} placeholder="+91 00000 00000"
-                style={{ width: '100%', border: 'none', borderBottom: '1px solid #E2DED8', background: 'transparent', outline: 'none', fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 13, color: '#111111', padding: '7px 0' }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #E2DED8' }}>
+                <span style={{ fontFamily: '"DM Sans",sans-serif', fontWeight: 400, fontSize: 13, color: '#888580', padding: '7px 10px 7px 0', whiteSpace: 'nowrap', userSelect: 'none', borderRight: '1px solid #E2DED8', marginRight: 10 }}>🇮🇳 +91</span>
+                <input
+                  value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  type="tel" maxLength={10} placeholder="00000 00000"
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 13, color: '#111111', padding: '7px 0' }}
+                />
+              </div>
             </div>
             <button onClick={async () => {
               if (screen === 'signin') {
@@ -412,7 +415,10 @@ export default function Home() {
             <p style={{ fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 11.5, color: '#888580', textAlign: 'center', lineHeight: 1.65, marginBottom: 24 }}>We're selective. We'll reach out.</p>
             <div style={{ width: '100%', marginBottom: 16 }}>
               <span style={{ display: 'block', fontFamily: '"Jost",sans-serif', fontWeight: 200, fontSize: 7, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 7 }}>Phone number</span>
-              <input value={phone} onChange={e => setPhone(e.target.value)} type="tel" placeholder="+91 00000 00000" style={{ width: '100%', border: 'none', borderBottom: '1px solid #E2DED8', background: 'transparent', outline: 'none', fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 13, color: '#111111', padding: '7px 0' }} />
+              <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #E2DED8' }}>
+                <span style={{ fontFamily: '"DM Sans",sans-serif', fontWeight: 400, fontSize: 13, color: '#888580', padding: '7px 10px 7px 0', whiteSpace: 'nowrap', userSelect: 'none', borderRight: '1px solid #E2DED8', marginRight: 10 }}>🇮🇳 +91</span>
+                <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 13, color: '#111111', padding: '7px 0' }} />
+              </div>
             </div>
             <div style={{ width: '100%', marginBottom: 24 }}>
               <span style={{ display: 'block', fontFamily: '"Jost",sans-serif', fontWeight: 200, fontSize: 7, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 7 }}>Instagram</span>
