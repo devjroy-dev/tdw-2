@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft, ChevronLeft, ChevronRight, Plus,
+  CheckSquare, ListTodo, CalendarPlus, Ban,
+} from 'lucide-react';
 
 const BACKEND = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -24,13 +27,44 @@ const shimmerStyle: React.CSSProperties = {
   transform: 'translateZ(0)',
 };
 
+type CreationType = 'task' | 'todo' | 'booking' | 'block' | null;
+
 export default function CalendarPage() {
   const router = useRouter();
+
+  // ── Existing state ──────────────────────────────────────
   const [vendorId, setVendorId] = useState<string | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // ── FAB state ───────────────────────────────────────────
+  const [fabOpen, setFabOpen] = useState(false);
+  const [creationType, setCreationType] = useState<CreationType>(null);
+  const [fabLoading, setFabLoading] = useState(false);
+  const [toast, setToast] = useState('');
+
+  // ── Form fields ─────────────────────────────────────────
+  const [formTitle, setFormTitle] = useState('');
+  const [formDate, setFormDate] = useState('');
+  const [formNote, setFormNote] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formEventType, setFormEventType] = useState('');
+  const [formReminderDate, setFormReminderDate] = useState('');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const resetForm = () => {
+    setFormTitle(''); setFormDate(''); setFormNote('');
+    setFormPhone(''); setFormEventType(''); setFormReminderDate('');
+    setCreationType(null);
+  };
+
+  // ── Auth + initial fetch ────────────────────────────────
   useEffect(() => {
     const raw = localStorage.getItem('vendor_web_session');
     if (!raw) { window.location.replace('/vendor/pin-login'); return; }
@@ -45,7 +79,17 @@ export default function CalendarPage() {
     try {
       const res = await fetch(`${BACKEND}/api/bookings/vendor/${vid}`);
       const json = await res.json();
-      if (json.success && Array.isArray(json.data)) setBookings(json.data);
+      if (json.success && Array.isArray(json.data)) {
+        setBookings(json.data);
+        const blocked = new Set<string>();
+        json.data.forEach((b: Booking) => {
+          if (b.status === 'blocked') {
+            const d = new Date(b.event_date);
+            blocked.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+          }
+        });
+        setBlockedDates(blocked);
+      }
     } catch {}
     setLoading(false);
   }, []);
@@ -54,6 +98,7 @@ export default function CalendarPage() {
     if (vendorId) fetchBookings(vendorId);
   }, [vendorId, fetchBookings]);
 
+  // ── Calendar computed values ────────────────────────────
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const today = new Date();
@@ -62,14 +107,16 @@ export default function CalendarPage() {
   const monthName = currentDate.toLocaleString('default', { month: 'long' });
 
   const bookingDates = new Set(
-    bookings.map(b => {
-      const d = new Date(b.event_date);
-      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    })
+    bookings
+      .filter(b => b.status !== 'blocked')
+      .map(b => {
+        const d = new Date(b.event_date);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      })
   );
 
   const upcoming = [...bookings]
-    .filter(b => new Date(b.event_date) >= new Date(today.toDateString()))
+    .filter(b => b.status !== 'blocked' && new Date(b.event_date) >= new Date(today.toDateString()))
     .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
 
   const formatDate = (dateStr: string) => {
@@ -81,94 +128,532 @@ export default function CalendarPage() {
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
+  // ── Form submit ─────────────────────────────────────────
+  const submitForm = async () => {
+    if (!vendorId) return;
+    setFabLoading(true);
+    try {
+      if (creationType === 'task' || creationType === 'todo') {
+        await fetch(`${BACKEND}/api/todos/${vendorId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vendorId,
+            title: formTitle,
+            ...(formDate ? { due_date: formDate } : {}),
+            notes: formNote,
+            type: creationType,
+          }),
+        });
+        showToast(creationType === 'task' ? 'Task added.' : 'To-do added.');
+      } else if (creationType === 'booking') {
+        await fetch(`${BACKEND}/api/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vendor_id: vendorId,
+            client_name: formTitle,
+            client_phone: formPhone,
+            event_type: formEventType,
+            event_date: formDate,
+            notes: formNote,
+            status: 'potential',
+          }),
+        });
+        if (formReminderDate) {
+          await fetch(`${BACKEND}/api/todos/${vendorId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              vendorId,
+              title: `Follow up with ${formTitle}`,
+              due_date: formReminderDate,
+              type: 'reminder',
+            }),
+          });
+        }
+        showToast('Booking added.');
+        await fetchBookings(vendorId);
+      } else if (creationType === 'block') {
+        await fetch(`${BACKEND}/api/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vendor_id: vendorId,
+            event_date: formDate,
+            notes: formNote,
+            status: 'blocked',
+            client_name: 'Blocked',
+          }),
+        });
+        showToast('Date blocked.');
+        await fetchBookings(vendorId);
+      }
+      resetForm();
+      setFabOpen(false);
+    } catch {
+      showToast('Something went wrong. Try again.');
+    }
+    setFabLoading(false);
+  };
+
+  const typeLabels: Record<string, string> = {
+    task: 'Task', todo: 'To-Do', booking: 'Booking', block: 'Block Date',
+  };
+
+  const submitLabels: Record<string, string> = {
+    task: 'ADD TASK', todo: 'ADD TO-DO', booking: 'ADD BOOKING', block: 'BLOCK DATE',
+  };
+
+  const isFormValid = () => {
+    if (!creationType) return false;
+    if (creationType === 'task') return formTitle.trim().length > 0;
+    if (creationType === 'todo') return formTitle.trim().length > 0;
+    if (creationType === 'booking') return formTitle.trim().length > 0 && formDate.length > 0;
+    if (creationType === 'block') return formDate.length > 0;
+    return false;
+  };
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%', background: 'transparent', outline: 'none',
+    borderBottom: '1px solid #E2DED8', fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13, fontWeight: 300, color: '#111111', padding: '10px 0',
+    marginBottom: 20, display: 'block',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+    letterSpacing: '0.22em', textTransform: 'uppercase' as const,
+    color: '#888580', display: 'block', marginBottom: 6,
+  };
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #F8F7F5; }
+        @keyframes calToast { from{opacity:0;transform:translateY(-40px) translateX(-50%)} to{opacity:1;transform:translateY(0) translateX(-50%)} }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { display: none; }
+        input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.4; }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#F8F7F5', fontFamily: "'DM Sans', sans-serif", paddingBottom: 80 }}>
-        {/* Back */}
-        <div style={{ padding: '16px 20px 0' }}>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, touchAction: 'manipulation', willChange: 'opacity', transform: 'translateZ(0)' }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#111111', color: '#F8F7F5',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+          padding: '10px 16px', borderRadius: 8, zIndex: 400,
+          animation: 'calToast 280ms cubic-bezier(0.22,1,0.36,1)',
+          whiteSpace: 'nowrap', pointerEvents: 'none',
+        }}>{toast}</div>
+      )}
+
+      <div style={{
+        background: '#F8F7F5', minHeight: '100dvh',
+        paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 80px)',
+      }}>
+
+        {/* Back + Header */}
+        <div style={{ padding: '24px 24px 0' }}>
+          <button
+            onClick={() => router.back()}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 0, marginBottom: 20, touchAction: 'manipulation',
+            }}
+          >
             <ArrowLeft size={20} strokeWidth={1.5} color="#111111" />
           </button>
-        </div>
 
-        {/* Header */}
-        <div style={{ padding: '12px 20px 20px' }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 10, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 4 }}>YOUR STUDIO</p>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 28, color: '#111111' }}>Calendar</h1>
+          <p style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+            letterSpacing: '0.25em', textTransform: 'uppercase',
+            color: '#888580', margin: '0 0 6px',
+          }}>YOUR STUDIO</p>
+          <h1 style={{
+            fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300,
+            color: '#111111', margin: '0 0 28px', lineHeight: 1.1,
+          }}>Calendar</h1>
         </div>
 
         {/* Month navigator */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px 16px' }}>
-          <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, touchAction: 'manipulation' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', marginBottom: 16,
+        }}>
+          <button
+            onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', touchAction: 'manipulation', padding: 4 }}
+          >
             <ChevronLeft size={18} strokeWidth={1.5} color="#555250" />
           </button>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#111111' }}>{monthName} {year}</span>
-          <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, touchAction: 'manipulation' }}>
+          <span style={{
+            fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#111111',
+          }}>{monthName} {year}</span>
+          <button
+            onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', touchAction: 'manipulation', padding: 4 }}
+          >
             <ChevronRight size={18} strokeWidth={1.5} color="#555250" />
           </button>
         </div>
 
         {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 20px', marginBottom: 8 }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+          padding: '0 24px', marginBottom: 8,
+        }}>
           {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-            <div key={d} style={{ textAlign: 'center', fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', paddingBottom: 6 }}>{d}</div>
+            <div key={d} style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+              letterSpacing: '0.15em', textTransform: 'uppercase',
+              color: '#888580', textAlign: 'center', padding: '4px 0',
+            }}>{d}</div>
           ))}
         </div>
 
         {/* Calendar grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 20px', gap: '2px 0' }}>
-          {days.map((day, i) => {
-            if (!day) return <div key={`e${i}`} />;
-            const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-            const key = `${year}-${month}-${day}`;
-            const hasBooking = bookingDates.has(key);
-            return (
-              <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 0' }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%',
-                  background: isToday ? '#111111' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+        {loading ? (
+          <div style={{ padding: '0 24px' }}>
+            <div style={{ ...shimmerStyle, height: 200, borderRadius: 8 }} />
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+            padding: '0 24px', gap: 2,
+          }}>
+            {days.map((day, idx) => {
+              if (day === null) return <div key={`empty-${idx}`} />;
+
+              const key = `${year}-${month}-${day}`;
+              const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+              const hasBooking = bookingDates.has(key);
+              const isBlocked = blockedDates.has(key);
+
+              return (
+                <div key={key} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  padding: '6px 0', position: 'relative',
                 }}>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: isToday ? '#F8F7F5' : '#111111', fontWeight: 300 }}>{day}</span>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isToday ? '#111111' : 'transparent',
+                  }}>
+                    <span style={{
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                      color: isToday ? '#F8F7F5' : '#111111',
+                    }}>{day}</span>
+                  </div>
+                  {hasBooking && !isBlocked && (
+                    <div style={{
+                      width: 4, height: 4, borderRadius: '50%',
+                      background: '#C9A84C', marginTop: 2,
+                    }} />
+                  )}
+                  {isBlocked && (
+                    <span style={{
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 400,
+                      color: '#9B4545', marginTop: 1, lineHeight: 1,
+                    }}>×</span>
+                  )}
                 </div>
-                {hasBooking && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#C9A84C', marginTop: 2 }} />}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        )}
+
+        {/* Legend */}
+        <div style={{
+          display: 'flex', gap: 16, padding: '12px 24px 0', alignItems: 'center',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#C9A84C' }} />
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>Booking</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#9B4545', fontWeight: 400 }}>×</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>Blocked</span>
+          </div>
         </div>
 
-        {/* Upcoming */}
-        <div style={{ padding: '24px 20px 0' }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 12 }}>UPCOMING</p>
+        {/* Upcoming section */}
+        <div style={{ padding: '28px 24px 0' }}>
+          <p style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+            letterSpacing: '0.25em', textTransform: 'uppercase',
+            color: '#888580', margin: '0 0 14px',
+          }}>UPCOMING</p>
 
           {loading ? (
             <>
-              {[1,2,3].map(i => (
-                <div key={i} style={{ ...shimmerStyle, height: 44, marginBottom: 1 }} />
+              {[0,1,2].map(i => (
+                <div key={i} style={{ ...shimmerStyle, height: 52, borderRadius: 8, marginBottom: 8 }} />
               ))}
             </>
           ) : upcoming.length === 0 ? (
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: 18, color: '#888580', textAlign: 'center', padding: '24px 0' }}>Nothing scheduled yet.</p>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
+              fontStyle: 'italic', color: '#888580', margin: 0,
+            }}>Nothing scheduled yet.</p>
           ) : (
-            upcoming.map((b, idx) => (
-              <div key={b.id}>
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0' }}>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580', minWidth: 52, fontWeight: 300 }}>{formatDate(b.event_date)}</span>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#111111', flex: 1, fontWeight: 400 }}>{b.event_type} · {b.client_name}</span>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: b.status === 'confirmed' ? '#111111' : '#888580', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{b.status}</span>
+            upcoming.map((b, i) => (
+              <div key={b.id} style={{
+                display: 'flex', alignItems: 'center', gap: 16,
+                padding: '12px 0',
+                borderBottom: i < upcoming.length - 1 ? '1px solid #E2DED8' : 'none',
+              }}>
+                <span style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300,
+                  color: '#888580', flexShrink: 0, minWidth: 48,
+                }}>{formatDate(b.event_date)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400,
+                    color: '#111111', margin: '0 0 2px',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{b.event_type || 'Event'} — {b.client_name}</p>
+                  {b.venue && (
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                      color: '#888580', margin: 0,
+                    }}>{b.venue}</p>
+                  )}
                 </div>
-                {idx < upcoming.length - 1 && <div style={{ height: 1, background: '#E2DED8' }} />}
+                <span style={{
+                  fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: b.status === 'confirmed' ? '#111111' : '#888580',
+                  flexShrink: 0,
+                }}>{b.status}</span>
               </div>
             ))
           )}
         </div>
+      </div>
+
+      {/* ── FAB ─────────────────────────────────────────────────── */}
+      <button
+        onClick={() => { setFabOpen(true); setCreationType(null); }}
+        style={{
+          position: 'fixed',
+          bottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)',
+          right: 24, width: 52, height: 52, borderRadius: '50%',
+          background: '#111111', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 90, touchAction: 'manipulation',
+          willChange: 'transform', transform: 'translateZ(0)',
+        }}
+      >
+        <Plus size={20} color="#F8F7F5" strokeWidth={1.5} />
+      </button>
+
+      {/* ── FAB Sheet Backdrop ───────────────────────────────────── */}
+      {fabOpen && (
+        <div
+          onClick={() => { setFabOpen(false); resetForm(); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(17,17,17,0.4)',
+            willChange: 'opacity',
+          }}
+        />
+      )}
+
+      {/* ── FAB Sheet ────────────────────────────────────────────── */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
+        background: '#FFFFFF', borderRadius: '24px 24px 0 0',
+        transform: fabOpen ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'transform',
+        maxHeight: '80dvh', overflowY: 'auto',
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+      }}>
+        {/* Handle */}
+        <div style={{
+          width: 36, height: 4, background: '#E2DED8',
+          borderRadius: 2, margin: '12px auto 0', display: 'block',
+        }} />
+
+        {/* STEP 1 — Type selector */}
+        {creationType === null && (
+          <>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300,
+              color: '#111111', padding: '20px 24px 16px', margin: 0,
+            }}>What would you like to add?</p>
+
+            {[
+              {
+                type: 'task' as CreationType,
+                Icon: CheckSquare,
+                title: 'Task',
+                sub: 'Add a to-do for yourself',
+              },
+              {
+                type: 'todo' as CreationType,
+                Icon: ListTodo,
+                title: 'To-Do',
+                sub: 'Quick reminder with no date',
+              },
+              {
+                type: 'booking' as CreationType,
+                Icon: CalendarPlus,
+                title: 'Booking',
+                sub: 'Add a potential client with follow-up reminder',
+              },
+              {
+                type: 'block' as CreationType,
+                Icon: Ban,
+                title: 'Block Date',
+                sub: 'Reserve a date with a note, no client needed',
+              },
+            ].map((opt, i, arr) => (
+              <div
+                key={opt.title}
+                onClick={() => setCreationType(opt.type)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
+                  borderBottom: i < arr.length - 1 ? '1px solid #E2DED8' : 'none',
+                }}
+              >
+                <opt.Icon size={20} strokeWidth={1.5} color="#888580" />
+                <div style={{ flex: 1 }}>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400,
+                    color: '#111111', margin: '0 0 2px',
+                  }}>{opt.title}</p>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                    color: '#888580', margin: 0,
+                  }}>{opt.sub}</p>
+                </div>
+                <ChevronRight size={16} strokeWidth={1.5} color="#C8C4BE" />
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* STEP 2 — Form */}
+        {creationType !== null && (
+          <div style={{ padding: '0 24px' }}>
+            {/* Back + title row */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '20px 0 16px',
+            }}>
+              <button
+                onClick={() => setCreationType(null)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: 0, touchAction: 'manipulation', display: 'flex',
+                }}
+              >
+                <ArrowLeft size={18} strokeWidth={1.5} color="#111111" />
+              </button>
+              <span style={{
+                fontFamily: "'Cormorant Garamond', serif", fontSize: 22,
+                fontWeight: 300, color: '#111111',
+              }}>{typeLabels[creationType]}</span>
+            </div>
+
+            {/* TASK fields */}
+            {creationType === 'task' && (
+              <>
+                <label style={labelStyle}>Title *</label>
+                <input value={formTitle} onChange={e => setFormTitle(e.target.value)}
+                  placeholder="e.g. Confirm team for Sharma wedding"
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Due Date</label>
+                <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Note</label>
+                <textarea value={formNote} onChange={e => setFormNote(e.target.value)}
+                  placeholder="Optional notes..."
+                  style={{ ...fieldStyle, border: 'none', minHeight: 72, resize: 'none', lineHeight: 1.5 }} />
+              </>
+            )}
+
+            {/* TODO fields */}
+            {creationType === 'todo' && (
+              <>
+                <label style={labelStyle}>Title *</label>
+                <input value={formTitle} onChange={e => setFormTitle(e.target.value)}
+                  placeholder="e.g. Buy extra batteries"
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Note</label>
+                <textarea value={formNote} onChange={e => setFormNote(e.target.value)}
+                  placeholder="Optional notes..."
+                  style={{ ...fieldStyle, border: 'none', minHeight: 72, resize: 'none', lineHeight: 1.5 }} />
+              </>
+            )}
+
+            {/* BOOKING fields */}
+            {creationType === 'booking' && (
+              <>
+                <label style={labelStyle}>Client Name *</label>
+                <input value={formTitle} onChange={e => setFormTitle(e.target.value)}
+                  placeholder="e.g. Priya Mehta"
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Phone</label>
+                <input type="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)}
+                  placeholder="10-digit number"
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Event Type</label>
+                <input value={formEventType} onChange={e => setFormEventType(e.target.value)}
+                  placeholder="e.g. Wedding, Pre-Wedding"
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Event Date *</label>
+                <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Follow-up Reminder</label>
+                <input type="date" value={formReminderDate} onChange={e => setFormReminderDate(e.target.value)}
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Note</label>
+                <textarea value={formNote} onChange={e => setFormNote(e.target.value)}
+                  placeholder="Any notes about this potential client..."
+                  style={{ ...fieldStyle, border: 'none', minHeight: 72, resize: 'none', lineHeight: 1.5 }} />
+              </>
+            )}
+
+            {/* BLOCK DATE fields */}
+            {creationType === 'block' && (
+              <>
+                <label style={labelStyle}>Date *</label>
+                <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
+                  style={{ ...fieldStyle, border: 'none' }} />
+                <label style={labelStyle}>Reason / Note</label>
+                <textarea value={formNote} onChange={e => setFormNote(e.target.value)}
+                  placeholder="e.g. Personal commitment, Travel, Hold for client"
+                  style={{ ...fieldStyle, border: 'none', minHeight: 96, resize: 'none', lineHeight: 1.5 }} />
+              </>
+            )}
+
+            {/* Submit */}
+            <button
+              onClick={submitForm}
+              disabled={fabLoading || !isFormValid()}
+              style={{
+                width: '100%', background: '#111111', color: '#F8F7F5',
+                border: 'none', padding: '14px 0',
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                letterSpacing: '0.22em', textTransform: 'uppercase',
+                cursor: isFormValid() && !fabLoading ? 'pointer' : 'default',
+                opacity: isFormValid() && !fabLoading ? 1 : 0.5,
+                touchAction: 'manipulation', marginTop: 8, borderRadius: 0,
+                transition: 'opacity 200ms cubic-bezier(0.22,1,0.36,1)',
+              }}
+            >
+              {fabLoading ? 'Saving...' : submitLabels[creationType]}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
