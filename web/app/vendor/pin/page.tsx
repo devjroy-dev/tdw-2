@@ -69,7 +69,7 @@ export default function VendorPinPage() {
       const session = JSON.parse(localStorage.getItem('vendor_web_session') || '{}');
       const r = await fetch(`${API}/api/v2/auth/set-pin`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.vendorId, pin: pinStr, role: 'vendor' }),
+        body: JSON.stringify({ userId: session.vendorId, pin: pinStr, role: 'vendor', phone: session.phone }),
       });
       const d = await r.json();
       if (d.success) {
