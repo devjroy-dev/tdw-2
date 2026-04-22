@@ -286,7 +286,16 @@ export default function Home() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <button onClick={() => triggerThreshold('invite')} style={{ ...btnBase, width: '100%', padding: '13px 0', background: '#C9A84C', color: '#0C0A09' }}>I have an invite</button>
                 <button onClick={() => triggerThreshold('request')} style={{ ...btnBase, width: '100%', padding: '13px 0', background: 'transparent', border: '0.5px solid rgba(248,247,245,0.28)', color: '#F8F7F5' }}>Request an invite</button>
-                <button onClick={() => triggerThreshold('signin')} style={{ ...btnBase, width: '100%', padding: '8px 0', background: 'transparent', color: 'rgba(248,247,245,0.38)', fontSize: 8 }}>Already a member — Sign in</button>
+                <button onClick={() => {
+                  const isVendor = role !== 'Dreamer';
+                  const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
+                  const session = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+                  if (session?.pin_set) {
+                    router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
+                  } else {
+                    triggerThreshold('signin');
+                  }
+                }} style={{ ...btnBase, width: '100%', padding: '8px 0', background: 'transparent', color: 'rgba(248,247,245,0.38)', fontSize: 8 }}>Already a member — Sign in</button>
               </div>
             </div>
           )}
