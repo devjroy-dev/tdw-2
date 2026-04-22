@@ -305,52 +305,84 @@ export default function DiscoveryFeed() {
           }} />
         </div>
 
-        {/* Top chrome - minimal */}
+        {/* Top chrome - X button only */}
         <div style={{
           position: 'absolute',
           top: 0,
-          left: 0,
           right: 0,
           padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 24px 0',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-start',
           zIndex: 10,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{
-              color: 'rgba(248,247,245,0.7)',
-              fontFamily: "'Jost', sans-serif",
-              fontSize: 11,
-              letterSpacing: '0.15em',
-            }}>
-              {String(vendorIdx + 1).padStart(2, '0')} / {String(vendors.length).padStart(2, '0')}
-            </span>
-            
-            {/* X button - small, transparent */}
-            <button
-              onClick={() => router.push('/couple/discover/hub')}
-              style={{
-                width: 28,
-                height: 28,
-                background: 'rgba(12,10,9,0.3)',
-                backdropFilter: 'blur(8px)',
-                border: '0.5px solid rgba(248,247,245,0.2)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'rgba(248,247,245,0.8)',
-                fontSize: 14,
-                fontWeight: 300,
-                transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
-              }}
-            >
-              ×
-            </button>
-          </div>
+          <button
+            onClick={() => router.push('/couple/discover/hub')}
+            style={{
+              width: 28,
+              height: 28,
+              background: 'rgba(12,10,9,0.2)',
+              backdropFilter: 'blur(8px)',
+              border: '0.5px solid rgba(248,247,245,0.15)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'rgba(248,247,245,0.6)',
+              fontSize: 14,
+              fontWeight: 300,
+              transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+            }}
+          >
+            ×
+          </button>
         </div>
+
+        {/* Bottom center - dots + up arrow hint */}
+        {mode !== 'blind' && (
+          <div
+            onClick={() => setCardVisible(true)}
+            style={{
+              position: 'absolute',
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              zIndex: 10,
+            }}
+          >
+            {/* Progress dots */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {Array.from({ length: Math.min(5, vendors.length) }).map((_, i) => {
+                const dotIndex = Math.floor((vendorIdx / vendors.length) * 5);
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      background: i === dotIndex ? 'rgba(248,247,245,0.7)' : 'transparent',
+                      border: '0.5px solid rgba(248,247,245,0.3)',
+                      transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Subtle up arrow hint */}
+            <div style={{
+              fontSize: 10,
+              color: 'rgba(248,247,245,0.4)',
+              fontWeight: 200,
+            }}>
+              ↑
+            </div>
+          </div>
+        )}
 
         {/* Vendor Card Sheet (60%) */}
         {mode !== 'blind' && (
