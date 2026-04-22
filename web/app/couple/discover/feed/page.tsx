@@ -313,35 +313,43 @@ export default function DiscoveryFeed() {
           right: 0,
           padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 24px 0',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'flex-start',
           zIndex: 10,
         }}>
-          <button
-            onClick={() => router.back()}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(248,247,245,0.85)',
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{
+              color: 'rgba(248,247,245,0.7)',
               fontFamily: "'Jost', sans-serif",
-              fontSize: 10,
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
-            ← {mode.toUpperCase()}
-          </button>
-
-          <span style={{
-            color: 'rgba(248,247,245,0.7)',
-            fontFamily: "'Jost', sans-serif",
-            fontSize: 11,
-            letterSpacing: '0.15em',
-          }}>
-            {String(vendorIdx + 1).padStart(2, '0')} / {String(vendors.length).padStart(2, '0')}
-          </span>
+              fontSize: 11,
+              letterSpacing: '0.15em',
+            }}>
+              {String(vendorIdx + 1).padStart(2, '0')} / {String(vendors.length).padStart(2, '0')}
+            </span>
+            
+            {/* X button - small, transparent */}
+            <button
+              onClick={() => router.push('/couple/discover/hub')}
+              style={{
+                width: 28,
+                height: 28,
+                background: 'rgba(12,10,9,0.3)',
+                backdropFilter: 'blur(8px)',
+                border: '0.5px solid rgba(248,247,245,0.2)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'rgba(248,247,245,0.8)',
+                fontSize: 14,
+                fontWeight: 300,
+                transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Vendor Card Sheet (60%) */}
