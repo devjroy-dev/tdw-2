@@ -469,7 +469,7 @@ export default function VendorMoneyPage() {
                   {clients.slice(0,10).map(c => (
                     <button key={c.id} onClick={() => setInvForm(f => ({...f, client_id:c.id, client_name:c.name, client_phone:c.phone||''}))} style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'#111111', background:'#F8F7F5', border:'1px solid #E2DED8', borderRadius:20, padding:'6px 12px', cursor:'pointer', touchAction:'manipulation' }}>{c.name}</button>
                   ))}
-                  {clients.length===0 && <input value={invForm.client_name} onChange={e => setInvForm(f => ({...f, client_name:e.target.value}))} placeholder="Client name" style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, color:'#111111', borderBottom:'1px solid #E2DED8', background:'transparent', outline:'none', padding:'10px 0', width:'100%', border:'none', borderBottom:'1px solid #E2DED8' }} />}
+                  {clients.length===0 && <input value={invForm.client_name} onChange={e => setInvForm(f => ({...f, client_name:e.target.value}))} placeholder="Client name" style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, color:'#111111', background:'transparent', outline:'none', padding:'10px 0', width:'100%', borderBottom:'1px solid #E2DED8' }} />}
                 </div>
               )}
             </div>
@@ -485,7 +485,7 @@ export default function VendorMoneyPage() {
                   type={f.type}
                   value={(invForm as any)[f.key]}
                   onChange={e => setInvForm(p => ({...p, [f.key]:e.target.value}))}
-                  style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', background:'transparent', outline:'none', padding:'10px 0', width:'100%', borderBottom:'1px solid #E2DED8', borderRadius:0 }}
+                  style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', borderBottom:'1px solid #E2DED8', background:'transparent', outline:'none', padding:'10px 0', width:'100%', border:'none', borderBottom:'1px solid #E2DED8', borderRadius:0 }}
                 />
               </div>
             ))}
