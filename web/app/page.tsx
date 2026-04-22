@@ -14,7 +14,7 @@ const FALLBACK_SLIDES = [
 const DREAMER_TAG = "It's not just happily married. It's getting married happily.";
 const MAKER_TAG = "Behind every dream, there is a Maker.";
 
-type Screen = 'landing' | 'panel' | 'dreamer' | 'maker' | 'otp' | 'otp2' | 'request' | 'signin' | 'signin2';
+type Screen = 'landing' | 'panel' | 'dreamer' | 'maker' | 'invite' | 'otp' | 'otp2' | 'request' | 'signin' | 'signin2';
 type Role = 'Dreamer' | 'Maker';
 
 export default function Home() {
