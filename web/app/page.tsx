@@ -145,8 +145,9 @@ export default function Home() {
             pinSet = !!upsertData.pin_set;
           }
         } catch {}
-        const sessionData = { idToken: d.idToken, localId: supabaseId, phoneNumber: d.phoneNumber, vendorId: supabaseId, userId: supabaseId, phone: cleanPhone, pin_set: pinSet };
+        const sessionData = { idToken: d.idToken, localId: supabaseId, phoneNumber: d.phoneNumber, vendorId: supabaseId, userId: supabaseId, id: supabaseId, phone: cleanPhone, pin_set: pinSet };
         localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+        localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
         if (pinSet) {
           router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
         } else {
@@ -373,7 +374,7 @@ export default function Home() {
                   if (d.pin_set) {
                     const isVendor = role !== 'Dreamer';
                     const existingSession = JSON.parse(localStorage.getItem(isVendor ? 'vendor_web_session' : 'couple_web_session') || '{}');
-                    localStorage.setItem(isVendor ? 'vendor_web_session' : 'couple_web_session', JSON.stringify({ ...existingSession, phone: cleanPhone, pin_set: true, vendorId: d.userId || existingSession.vendorId || cleanPhone, userId: d.userId || existingSession.userId || cleanPhone }));
+                    const _sid = isVendor ? "vendor_web_session" : "couple_web_session"; const _sd = { ...existingSession, phone: cleanPhone, pin_set: true, id: d.userId || existingSession.id || cleanPhone, userId: d.userId || existingSession.userId || cleanPhone, vendorId: d.userId || existingSession.vendorId || cleanPhone }; localStorage.setItem(_sid, JSON.stringify(_sd)); localStorage.setItem(isVendor ? "vendor_session" : "couple_session", JSON.stringify(_sd));
                     router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
                     return;
                   }
