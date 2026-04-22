@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Link2, Phone, Plus, Upload, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Plus, X, Upload, Link2, Image as ImageIcon, Phone, Instagram, Mail } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
