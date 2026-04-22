@@ -1,0 +1,530 @@
+'use client';
+
+import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Heart, X, Sparkles, MessageCircle, ChevronRight } from 'lucide-react';
+
+const API = 'https://dream-wedding-production-89ae.up.railway.app';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface Session {
+  id: string;
+  name?: string;
+  email?: string;
+  wedding_date?: string;
+}
+
+interface Vendor {
+  id: string;
+  name: string;
+  category: string;
+  city?: string;
+  portfolio_images?: string[];
+  featured_photos?: string[];
+  starting_price?: number;
+  rating?: number;
+  review_count?: number;
+  tier?: string;
+  phone?: string;
+}
+
+interface MuseItem {
+  id: string;
+  user_id: string;
+  vendor_id: string;
+  vendor_name: string;
+  vendor_category: string;
+  vendor_image?: string;
+  event?: string;
+  source?: string;
+  created_at: string;
+  vendor: Vendor | null;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function formatINR(n?: number): string {
+  if (!n) return 'On request';
+  return '₹' + n.toLocaleString('en-IN');
+}
+
+function getVendorImage(item: MuseItem): string {
+  if (item.vendor_image) return item.vendor_image;
+  if (item.vendor?.portfolio_images?.[0]) return item.vendor.portfolio_images[0];
+  if (item.vendor?.featured_photos?.[0]) return item.vendor.featured_photos[0];
+  return '';
+}
+
+function getTierBadge(tier?: string): { color: string; label: string } | null {
+  if (tier === 'prestige') return { color: '#C9A84C', label: 'PRESTIGE' };
+  if (tier === 'signature') return { color: '#888580', label: 'SIGNATURE' };
+  return null;
+}
+
+function getRatingStars(rating?: number): string {
+  if (!rating) return '';
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5 ? 1 : 0;
+  return '★'.repeat(full) + (half ? '½' : '');
+}
+
+// ─── Shimmer ─────────────────────────────────────────────────────────────────
+function Shimmer() {
+  return (
+    <div style={{
+      height: 180, width: '100%', borderRadius: 12, marginBottom: 16,
+      background: 'linear-gradient(90deg, #F8F7F5 25%, #EEECE8 50%, #F8F7F5 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s infinite',
+      willChange: 'background-position',
+    }} />
+  );
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <div style={{
+      position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%) translateZ(0)',
+      background: '#111111', color: '#F8F7F5',
+      fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+      padding: '10px 20px', borderRadius: 8, zIndex: 9999,
+      whiteSpace: 'nowrap', willChange: 'opacity',
+      animation: 'toastIn 200ms cubic-bezier(0.22,1,0.36,1) both',
+    }}>{msg}</div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+export default function MusePage() {
+  const router = useRouter();
+  const [session, setSession] = useState<Session | null>(null);
+  const [items, setItems] = useState<MuseItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [shortlisting, setShortlisting] = useState<string | null>(null);
+
+  // Auth guard
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('couple_session');
+      if (!raw) {
+        router.replace('/couple/login');
+        return;
+      }
+      const s = JSON.parse(raw) as Session;
+      if (!s?.id) {
+        router.replace('/couple/login');
+        return;
+      }
+      setSession(s);
+    } catch {
+      router.replace('/couple/login');
+    }
+  }, [router]);
+
+  // Fetch Muse items
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await fetch(`${API}/api/couple/muse/${session!.id}`);
+        if (!res.ok) throw new Error('fetch failed');
+        const json = await res.json();
+        if (!cancelled && json.success) {
+          setItems(json.data || []);
+        }
+      } catch (err) {
+        console.error('Muse load error:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [session]);
+
+  // Remove from Muse
+  const handleRemove = useCallback(async (save_id: string) => {
+    setRemoving(save_id);
+    try {
+      const res = await fetch(`${API}/api/couple/muse/${save_id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('delete failed');
+      setItems(prev => prev.filter(i => i.id !== save_id));
+      setToast('Removed from Muse');
+    } catch (err) {
+      console.error('Remove error:', err);
+      setToast('Failed to remove');
+    } finally {
+      setRemoving(null);
+    }
+  }, []);
+
+  // Shortlist → Move to Bespoke
+  const handleShortlist = useCallback(async (item: MuseItem) => {
+    setShortlisting(item.id);
+    try {
+      const res = await fetch(`${API}/api/couple/muse/shortlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          save_id: item.id,
+          couple_id: session!.id,
+          event: item.event || 'general',
+        }),
+      });
+      if (!res.ok) throw new Error('shortlist failed');
+      const json = await res.json();
+      
+      if (json.success) {
+        setItems(prev => prev.filter(i => i.id !== item.id));
+        setToast('Moved to Bespoke · Contact unlocked');
+      } else {
+        throw new Error(json.error || 'Unknown error');
+      }
+    } catch (err) {
+      console.error('Shortlist error:', err);
+      setToast('Failed to shortlist');
+    } finally {
+      setShortlisting(null);
+    }
+  }, [session]);
+
+  const showToast = (msg: string) => setToast(msg);
+
+  if (!session) return null;
+
+  return (
+    <>
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
+
+      {toast && <Toast msg={toast} onDone={() => setToast('')} />}
+
+      <div style={{
+        fontFamily: "'DM Sans', sans-serif",
+        background: '#0C0A09',
+        minHeight: '100dvh',
+        paddingTop: 16,
+        paddingBottom: 80,
+      }}>
+        {/* Header */}
+        <div style={{ padding: '16px 16px 24px' }}>
+          <p style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 32,
+            fontWeight: 300,
+            color: '#F8F7F5',
+            margin: '0 0 8px',
+            letterSpacing: '-0.01em',
+          }}>Your Muse</p>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 14,
+            fontWeight: 300,
+            color: 'rgba(248,247,245,0.6)',
+            margin: 0,
+          }}>
+            {items.length === 0
+              ? 'Your shortlist is empty'
+              : `${items.length} ${items.length === 1 ? 'vendor' : 'vendors'} saved`}
+          </p>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '0 16px' }}>
+          {loading ? (
+            <>
+              <Shimmer />
+              <Shimmer />
+              <Shimmer />
+            </>
+          ) : items.length === 0 ? (
+            // Empty state
+            <div style={{
+              textAlign: 'center',
+              padding: '80px 24px',
+            }}>
+              <div style={{
+                fontSize: 48,
+                marginBottom: 16,
+                opacity: 0.3,
+              }}>✦</div>
+              <p style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: 20,
+                fontWeight: 300,
+                color: '#F8F7F5',
+                margin: '0 0 8px',
+              }}>Your Muse awaits</p>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 14,
+                fontWeight: 300,
+                color: 'rgba(248,247,245,0.5)',
+                margin: '0 0 24px',
+                lineHeight: 1.6,
+              }}>
+                Explore Discovery to find<br />your perfect Makers
+              </p>
+              <button
+                onClick={() => router.push('/couple/discover')}
+                style={{
+                  fontFamily: "'Jost', sans-serif",
+                  fontSize: 11,
+                  fontWeight: 300,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: '#F8F7F5',
+                  background: 'rgba(248,247,245,0.1)',
+                  border: '0.5px solid rgba(248,247,245,0.2)',
+                  borderRadius: 24,
+                  padding: '12px 24px',
+                  cursor: 'pointer',
+                  transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(248,247,245,0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(248,247,245,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(248,247,245,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(248,247,245,0.2)';
+                }}
+              >
+                Explore Discovery
+              </button>
+            </div>
+          ) : (
+            // Vendor cards
+            items.map(item => {
+              const vendor = item.vendor;
+              const image = getVendorImage(item);
+              const tierBadge = getTierBadge(vendor?.tier);
+              const isRemoving = removing === item.id;
+              const isShortlisting = shortlisting === item.id;
+
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    background: 'rgba(248,247,245,0.03)',
+                    border: '0.5px solid rgba(248,247,245,0.1)',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    marginBottom: 16,
+                    opacity: isRemoving || isShortlisting ? 0.5 : 1,
+                    transition: 'opacity 200ms cubic-bezier(0.22,1,0.36,1)',
+                  }}
+                >
+                  {/* Image */}
+                  {image && (
+                    <div style={{
+                      position: 'relative',
+                      width: '100%',
+                      paddingBottom: '56.25%', // 16:9
+                      background: '#111111',
+                    }}>
+                      <img
+                        src={image}
+                        alt={vendor?.name || item.vendor_name}
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                      
+                      {/* Remove button */}
+                      <button
+                        onClick={() => handleRemove(item.id)}
+                        disabled={isRemoving || isShortlisting}
+                        style={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
+                          width: 32,
+                          height: 32,
+                          background: 'rgba(12,10,9,0.8)',
+                          backdropFilter: 'blur(8px)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                        }}
+                      >
+                        <X size={16} color="#F8F7F5" strokeWidth={1.5} />
+                      </button>
+
+                      {/* Tier badge */}
+                      {tierBadge && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 12,
+                          left: 12,
+                          fontFamily: "'Jost', sans-serif",
+                          fontSize: 9,
+                          fontWeight: 300,
+                          letterSpacing: '0.2em',
+                          color: tierBadge.color,
+                          background: 'rgba(12,10,9,0.8)',
+                          backdropFilter: 'blur(8px)',
+                          border: `0.5px solid ${tierBadge.color}`,
+                          borderRadius: 4,
+                          padding: '4px 8px',
+                        }}>
+                          {tierBadge.label}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Details */}
+                  <div style={{ padding: 16 }}>
+                    <p style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontSize: 20,
+                      fontWeight: 300,
+                      color: '#F8F7F5',
+                      margin: '0 0 4px',
+                    }}>
+                      {vendor?.name || item.vendor_name}
+                    </p>
+
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 13,
+                      fontWeight: 300,
+                      color: 'rgba(248,247,245,0.6)',
+                      margin: '0 0 12px',
+                    }}>
+                      {vendor?.category || item.vendor_category}
+                      {vendor?.city && ` · ${vendor.city}`}
+                    </p>
+
+                    {/* Rating & Price */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      marginBottom: 16,
+                    }}>
+                      {vendor?.rating && (
+                        <div style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: 12,
+                          fontWeight: 300,
+                          color: 'rgba(248,247,245,0.6)',
+                        }}>
+                          <span style={{ color: '#C9A84C', marginRight: 4 }}>
+                            {getRatingStars(vendor.rating)}
+                          </span>
+                          {vendor.rating.toFixed(1)}
+                          {vendor.review_count && ` (${vendor.review_count})`}
+                        </div>
+                      )}
+                      
+                      {vendor?.starting_price && (
+                        <div style={{
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontSize: 16,
+                          fontWeight: 300,
+                          color: '#F8F7F5',
+                        }}>
+                          {formatINR(vendor.starting_price)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 8,
+                    }}>
+                      {/* Enquire */}
+                      <button
+                        onClick={() => showToast('Messaging coming soon')}
+                        style={{
+                          fontFamily: "'Jost', sans-serif",
+                          fontSize: 10,
+                          fontWeight: 300,
+                          letterSpacing: '0.15em',
+                          textTransform: 'uppercase',
+                          color: '#F8F7F5',
+                          background: 'rgba(248,247,245,0.05)',
+                          border: '0.5px solid rgba(248,247,245,0.15)',
+                          borderRadius: 8,
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                        }}
+                      >
+                        <MessageCircle size={14} strokeWidth={1.5} />
+                        Enquire
+                      </button>
+
+                      {/* Shortlist */}
+                      <button
+                        onClick={() => handleShortlist(item)}
+                        disabled={isShortlisting}
+                        style={{
+                          fontFamily: "'Jost', sans-serif",
+                          fontSize: 10,
+                          fontWeight: 300,
+                          letterSpacing: '0.15em',
+                          textTransform: 'uppercase',
+                          color: '#111111',
+                          background: '#C9A84C',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '10px 16px',
+                          cursor: isShortlisting ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                          opacity: isShortlisting ? 0.6 : 1,
+                        }}
+                      >
+                        <Heart size={14} strokeWidth={1.5} fill={isShortlisting ? '#111111' : 'none'} />
+                        {isShortlisting ? 'Adding...' : 'Shortlist'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

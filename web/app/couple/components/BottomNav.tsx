@@ -4,17 +4,19 @@ import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Home, CheckSquare, Heart, User,
-  Layers, Sparkles, MessageCircle,
+  Layers, Sparkles, MessageCircle, Palette,
 } from 'lucide-react';
 import { useCoupleMode } from '../layout';
 
+// PLAN MODE: TODAY | PLAN | BESPOKE | ME
 const PLAN_TABS = [
-  { label: 'TODAY',  Icon: Home,        href: '/couple/today', action: 'navigate' },
-  { label: 'PLAN',   Icon: CheckSquare, href: '/couple/plan',  action: 'navigate' },
-  { label: 'MUSE',   Icon: Heart,       href: '/couple/muse',  action: 'navigate' },
-  { label: 'ME',     Icon: User,        href: '/couple/me',    action: 'navigate' },
+  { label: 'TODAY',    Icon: Home,        href: '/couple/today',   action: 'navigate' },
+  { label: 'PLAN',     Icon: CheckSquare, href: '/couple/plan',    action: 'navigate' },
+  { label: 'BESPOKE',  Icon: Palette,     href: '/couple/bespoke', action: 'navigate' },
+  { label: 'ME',       Icon: User,        href: '/couple/me',      action: 'navigate' },
 ] as const;
 
+// DISCOVER MODE: FEED | COUTURE | MUSE | MESSAGES  
 const DISCOVER_TABS = [
   { label: 'FEED',     Icon: Layers,        href: '/couple/discover', action: 'navigate' },
   { label: 'COUTURE',  Icon: Sparkles,      href: null,               action: 'toast'    },
@@ -97,7 +99,7 @@ export default function CoupleBottomNav() {
               }}
               aria-label={tab.label}
             >
-              {/* Active indicator — ABOVE icon for DISCOVER, BELOW label for PLAN */}
+              {/* Active indicator */}
               {isPlan ? (
                 <span style={{
                   position: 'absolute', bottom: 0, left: '50%',
