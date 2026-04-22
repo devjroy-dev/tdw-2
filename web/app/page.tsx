@@ -130,20 +130,27 @@ export default function Home() {
       if (d.success) {
         const isVendor = role !== 'Dreamer';
         const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
-        const userId = d.localId;
-        const sessionData = { idToken: d.idToken, localId: userId, phoneNumber: d.phoneNumber, vendorId: userId, userId: userId, phone: phone.replace(/\D/g, '') };
-        localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-        // Check if PIN is already set
+        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+        let supabaseId = d.localId;
+        let pinSet = false;
+        // Upsert vendor/couple record in Supabase and get real ID
         try {
-          const pinRes = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=${userId}&role=${isVendor ? 'vendor' : 'couple'}`);
-          const pinData = await pinRes.json();
-          if (pinData.pin_set) {
-            router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
-          } else {
-            router.push(isVendor ? '/vendor/pin' : '/couple/pin');
+          const upsertRes = await fetch(`${BACKEND}/api/v2/${isVendor ? 'vendor' : 'couple'}/upsert`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: cleanPhone, tier: 'essential', invite_code: inviteCode }),
+          });
+          const upsertData = await upsertRes.json();
+          if (upsertData.success) {
+            supabaseId = upsertData.vendorId || upsertData.userId || supabaseId;
+            pinSet = !!upsertData.pin_set;
           }
-        } catch {
-          router.push(isVendor ? '/vendor/today' : '/couple/today');
+        } catch {}
+        const sessionData = { idToken: d.idToken, localId: supabaseId, phoneNumber: d.phoneNumber, vendorId: supabaseId, userId: supabaseId, phone: cleanPhone, pin_set: pinSet };
+        localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+        if (pinSet) {
+          router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
+        } else {
+          router.push(isVendor ? '/vendor/pin' : '/couple/pin');
         }
       } else showToast(d.error || 'Incorrect code.');
     } catch { showToast('Verification failed.'); }
