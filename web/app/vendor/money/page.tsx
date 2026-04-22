@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, X, CheckCircle } from 'lucide-react';
 
@@ -36,6 +36,14 @@ function PayChip({ status }: { status: string }) {
 }
 
 export default function VendorMoneyPage() {
+  return (
+    <Suspense>
+      <VendorMoneyInner />
+    </Suspense>
+  );
+}
+
+function VendorMoneyInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
