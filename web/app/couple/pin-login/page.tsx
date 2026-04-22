@@ -29,8 +29,8 @@ export default function CouplePinLoginPage() {
 
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem('couple_session') || '{}');
-      if (!s?.id || !s?.pin_set) { router.replace('/couple/login'); return; }
+      const s = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
+      if ((!s?.id && !s?.userId) || !s?.pin_set) { router.replace('/couple/login'); return; }
     } catch { router.replace('/couple/login'); return; }
     pinRefs.current[0]?.focus();
   }, []);
@@ -61,10 +61,10 @@ export default function CouplePinLoginPage() {
     if (loading) return;
     setLoading(true);
     try {
-      const session = JSON.parse(localStorage.getItem('couple_session') || '{}');
+      const session = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
       const r = await fetch(`${API}/api/v2/auth/verify-pin`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.id, pin: pinStr, role: 'user', phone: session.phone }),
+        body: JSON.stringify({ userId: session.userId || session.id, pin: pinStr, role: 'couple', phone: session.phone }),
       });
       const d = await r.json();
       if (d.success) {
@@ -78,7 +78,7 @@ export default function CouplePinLoginPage() {
         pinRefs.current[0]?.focus();
         if (newAttempts >= 5) {
           showToast('Too many attempts. Use OTP instead.');
-          setTimeout(() => { localStorage.removeItem('couple_session'); router.replace('/couple/login'); }, 1800);
+          setTimeout(() => { localStorage.removeItem('couple_web_session'); localStorage.removeItem('couple_session'); router.replace('/couple/login'); }, 1800);
         } else {
           showToast(`Incorrect PIN. ${5 - newAttempts} ${5 - newAttempts === 1 ? 'attempt' : 'attempts'} left.`);
         }
@@ -90,7 +90,7 @@ export default function CouplePinLoginPage() {
     }
   };
 
-  const useOtp = () => { localStorage.removeItem('couple_session'); router.replace('/couple/login'); };
+  const useOtp = () => { localStorage.removeItem('couple_web_session'); localStorage.removeItem('couple_session'); router.replace('/couple/login'); };
 
   const boxStyle = (): React.CSSProperties => ({
     width: 52, height: 64,
