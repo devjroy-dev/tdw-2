@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SEED_VENDORS, type SeedVendor } from '@/lib/seed/discoverySeed';
-import VendorCardSheet from './VendorCardSheet';
+import VendorCardSheet from '../VendorCardSheet';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
