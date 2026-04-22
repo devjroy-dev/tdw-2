@@ -365,7 +365,23 @@ export default function Home() {
                 style={{ width: '100%', border: 'none', borderBottom: '1px solid #E2DED8', background: 'transparent', outline: 'none', fontFamily: '"DM Sans",sans-serif', fontWeight: 300, fontSize: 13, color: '#111111', padding: '7px 0' }}
               />
             </div>
-            <button onClick={sendOtp} style={{ width: '100%', padding: '14px 0', background: '#111111', color: '#F8F7F5', border: 'none', fontFamily: '"Jost",sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12, touchAction: 'manipulation' }}>Send code</button>
+            <button onClick={async () => {
+              if (screen === 'signin') {
+                // Check if user has PIN set before sending OTP
+                const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+                try {
+                  const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${role === 'Dreamer' ? 'couple' : 'vendor'}&phone=${cleanPhone}`);
+                  const d = await r.json();
+                  if (d.pin_set) {
+                    const isVendor = role !== 'Dreamer';
+                    localStorage.setItem(isVendor ? 'vendor_web_session' : 'couple_web_session', JSON.stringify({ phone: cleanPhone, pin_set: true }));
+                    router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
+                    return;
+                  }
+                } catch {}
+              }
+              sendOtp();
+            }} style={{ width: '100%', padding: '14px 0', background: '#111111', color: '#F8F7F5', border: 'none', fontFamily: '"Jost",sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12, touchAction: 'manipulation' }}>Send code</button>
           </>)}
 
           {(screen === 'otp2' || screen === 'signin2') && (<>
