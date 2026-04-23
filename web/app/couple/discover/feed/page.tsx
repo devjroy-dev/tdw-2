@@ -138,6 +138,7 @@ export default function DiscoveryFeed() {
   const handleDoubleTap = useCallback(async () => {
     if (!session || !vendor) return;
 
+    if (typeof document === 'undefined') return;
     const heart = document.createElement('div');
     heart.innerHTML = '❤';
     heart.style.cssText = `
@@ -147,7 +148,7 @@ export default function DiscoveryFeed() {
       pointer-events: none;
       animation: heartPop 600ms cubic-bezier(0.22,1,0.36,1) forwards;
     `;
-    document.body.appendChild(heart);
+    if (typeof document !== 'undefined') document.body.appendChild(heart);
     setTimeout(() => heart.remove(), 600);
     haptic(12);
 
