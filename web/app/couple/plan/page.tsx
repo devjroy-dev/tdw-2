@@ -180,6 +180,9 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
   const [priority, setPriority] = useState('Medium');
   const [dueDate, setDueDate] = useState('');
   const [vendorName, setVendorName] = useState('');
+  const [vendorId, setVendorId] = useState<string | null>(null);
+  const [myVendors, setMyVendors] = useState<{ id: string; vendor_id?: string; name: string }[]>([]);
+  const [showVendorPicker, setShowVendorPicker] = useState(false);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
@@ -188,8 +191,17 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
 
   function reset() {
     setTaskTitle(''); setSelectedEvent('general'); setPriority('Medium');
-    setDueDate(''); setVendorName(''); setNotes('');
+    setDueDate(''); setVendorName(''); setVendorId(null); setNotes('');
   }
+
+  // Load My Vendors when sheet opens
+  useEffect(() => {
+    if (!visible || !userId) return;
+    fetch(`${RAILWAY_URL}/api/couple/vendors/${userId}`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d?.data)) setMyVendors(d.data); })
+      .catch(() => {});
+  }, [visible, userId]);
 
   async function handleSubmit() {
     if (!taskTitle.trim() || submitting) return;
@@ -205,6 +217,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
           priority: priority.toLowerCase(),
           due_date: dueDate || null,
           assigned_to: vendorName.trim() || null,
+          vendor_id: vendorId || null, // S35: UUID for clean entity_link
           notes: notes.trim() || null,
           is_custom: true,
         }),
@@ -255,23 +268,32 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
             />
           </div>
           <div style={fieldWrapper}>
-            <label style={fieldLabel}>Vendor / Maker (optional)</label>
-            <input value={vendorName} onChange={e => setVendorName(e.target.value)}
-              placeholder="e.g. Arjun Kartha Studio"
-              style={fieldInput}
-              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
-              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
-            />
+            <label style={fieldLabel}>Maker (optional)</label>
+            {vendorName ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E2DED8', padding: '12px 4px' }}>
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111111' }}>{vendorName}</span>
+                <button onClick={() => { setVendorName(''); setVendorId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888580', fontSize: 16 }}>×</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowVendorPicker(true)} style={{ width: '100%', height: 48, background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8', textAlign: 'left', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#C8C4BE', cursor: 'pointer', padding: '0 4px' }}>
+                {myVendors.length > 0 ? 'Pick from My Makers...' : 'Type maker name...'}
+              </button>
+            )}
+            {!vendorName && myVendors.length === 0 && (
+              <input value={vendorName} onChange={e => setVendorName(e.target.value)}
+                placeholder="e.g. Arjun Kartha Studio"
+                style={{ ...fieldInput, marginTop: -48 }}
+                onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+                onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+              />
+            )}
           </div>
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Notes (optional)</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Any details or reminders..."
               rows={3}
-              style={{
-                ...fieldInput, height: 'auto', resize: 'none',
-                borderBottom: '1px solid #E2DED8', padding: '8px 4px', lineHeight: 1.6,
-              }}
+              style={{ ...fieldInput, height: 'auto', resize: 'none', borderBottom: '1px solid #E2DED8', padding: '8px 4px', lineHeight: 1.6 }}
               onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
               onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
             />
@@ -283,6 +305,28 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
           </button>
         </div>
       </SheetWrap>
+
+      {/* Vendor picker from My Vendors */}
+      {showVendorPicker && (
+        <>
+          <div onClick={() => setShowVendorPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.4)' }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 501, background: '#FFFFFF', borderRadius: '20px 20px 0 0', padding: '20px 20px 0', maxHeight: '60vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8', margin: '0 auto 16px' }} />
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#111111', margin: '0 0 16px' }}>Pick a Maker</p>
+            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {myVendors.map(v => (
+                <button key={v.id} onClick={() => { setVendorName(v.name); setVendorId(v.vendor_id || null); setShowVendorPicker(false); }}
+                  style={{ width: '100%', height: 52, borderRadius: 12, background: '#F4F1EC', border: '1px solid #E2DED8', fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#111111', cursor: 'pointer', touchAction: 'manipulation', textAlign: 'left', padding: '0 16px' }}>
+                  {v.name}
+                </button>
+              ))}
+              <button onClick={() => setShowVendorPicker(false)} style={{ width: '100%', height: 44, borderRadius: 100, background: 'transparent', border: 'none', fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       <Toast msg={toast} />
     </>
   );
@@ -403,8 +447,8 @@ function AddGuestSheet({ visible, onClose, userId, events, onSuccess }: {
 const EVENT_TYPES = ['Mehendi', 'Haldi', 'Sangeet', 'Ceremony', 'Reception', 'Other'];
 const GUEST_RANGES = ['Under 50', '50–150', '150–300', '300–500', '500+'];
 
-function AddEventSheet({ visible, onClose, userId, onSuccess }: {
-  visible: boolean; onClose: () => void; userId: string; onSuccess: () => void;
+function AddEventSheet({ visible, onClose, userId, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string; events: EventOption[]; onSuccess: () => void;
 }) {
   const [eventType, setEventType] = useState('');
   const [eventName, setEventName] = useState('');
@@ -414,12 +458,19 @@ function AddEventSheet({ visible, onClose, userId, onSuccess }: {
   const [guestRange, setGuestRange] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
+  const [dupWarning, setDupWarning] = useState(false);
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
 
   function selectType(t: string) {
     setEventType(t.toLowerCase());
     if (!eventName) setEventName(t);
+  }
+
+  function handleNameChange(val: string) {
+    setEventName(val);
+    const isDup = events.some(ev => ev.name.toLowerCase() === val.trim().toLowerCase());
+    setDupWarning(isDup);
   }
 
   async function handleSubmit() {
@@ -441,7 +492,7 @@ function AddEventSheet({ visible, onClose, userId, onSuccess }: {
       });
       const json = await res.json();
       if (json.success === false) { showToast(json.error || 'Error adding event'); }
-      else { showToast('Event added'); onSuccess(); onClose(); setEventType(''); setEventName(''); setEventDate(''); setCity(''); setBudget(''); setGuestRange(''); }
+      else { showToast('Event added'); onSuccess(); onClose(); setEventType(''); setEventName(''); setEventDate(''); setCity(''); setBudget(''); setGuestRange(''); setDupWarning(false); }
     } catch { showToast('Network error'); }
     finally { setSubmitting(false); }
   }
@@ -462,10 +513,15 @@ function AddEventSheet({ visible, onClose, userId, onSuccess }: {
           </div>
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Event Name</label>
-            <input value={eventName} onChange={e => setEventName(e.target.value)} placeholder="e.g. Priya & Arjun's Sangeet" style={fieldInput}
+            <input value={eventName} onChange={e => handleNameChange(e.target.value)} placeholder="e.g. Priya & Arjun's Sangeet" style={fieldInput}
               onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
               onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
             />
+            {dupWarning && (
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#C9A84C', margin: '6px 0 0' }}>
+                You already have an event with this name. You can still add it.
+              </p>
+            )}
           </div>
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Date</label>
@@ -1793,11 +1849,12 @@ function AddVendorSheet({ visible, onClose, userId, events, onSuccess }: {
 }
 
 // ─── VendorDetailSheet ────────────────────────────────────────────────────────
-function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, onClose, onUpdated, onDeleted }: {
+function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onClose, onUpdated, onDeleted }: {
   vendor: CoupleVendor;
   userId: string;
   allTasks: Task[];
   allExpenses: Expense[];
+  events: EventOption[];
   onClose: () => void;
   onUpdated: (v: CoupleVendor) => void;
   onDeleted: (id: string) => void;
@@ -1809,6 +1866,8 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, onClose, onU
   const [thread, setThread] = useState<{ id: string; last_message_preview: string; last_message_at: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState('');
+  const [showEventPicker, setShowEventPicker] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 2500); }
 
@@ -1837,12 +1896,24 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, onClose, onU
   const handleClose = () => { setVisible(false); setTimeout(onClose, 300); };
 
   async function handleStatusChange(newStatus: string) {
+    // If setting to Booked or Paid, show event picker first
+    if ((newStatus === 'booked' || newStatus === 'paid') && events.length > 0) {
+      setPendingStatus(newStatus);
+      setShowEventPicker(true);
+      return;
+    }
+    await commitStatusChange(newStatus, null);
+  }
+
+  async function commitStatusChange(newStatus: string, eventId: string | null) {
     setStatus(newStatus);
+    setShowEventPicker(false);
+    setPendingStatus(null);
     try {
       await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, event_id: eventId }),
       });
       onUpdated({ ...vendor, status: newStatus });
     } catch { showToast('Could not update status'); setStatus(vendor.status); }
@@ -2029,16 +2100,39 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, onClose, onU
           </button>
         </div>
         <Toast msg={toast} />
+
+        {/* Event picker — shown when tapping Booked/Paid */}
+        {showEventPicker && (
+          <>
+            <div onClick={() => { setShowEventPicker(false); setPendingStatus(null); }} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.4)' }} />
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 501, background: '#FFFFFF', borderRadius: '20px 20px 0 0', padding: '20px 20px 0' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8', margin: '0 auto 16px' }} />
+              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#111111', margin: '0 0 6px' }}>Which event is this for?</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 20px' }}>Tap an event to link this maker.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {events.map(ev => (
+                  <button key={ev.id} onClick={() => commitStatusChange(pendingStatus!, ev.id)} style={{ width: '100%', height: 48, borderRadius: 100, background: '#F4F1EC', border: '1px solid #E2DED8', fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#111111', cursor: 'pointer', touchAction: 'manipulation' }}>
+                    {ev.name}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => commitStatusChange(pendingStatus!, null)} style={{ width: '100%', height: 44, borderRadius: 100, background: 'transparent', border: 'none', fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation', marginBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+                Skip — no event
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </>
   );
 }
 
 // ─── VendorsTab ───────────────────────────────────────────────────────────────
-function VendorsTab({ userId, allTasks, allExpenses, refetch }: {
+function VendorsTab({ userId, allTasks, allExpenses, events, refetch }: {
   userId: string;
   allTasks: Task[];
   allExpenses: Expense[];
+  events: EventOption[];
   refetch: number;
 }) {
   const [vendors, setVendors] = useState<CoupleVendor[]>([]);
@@ -2129,6 +2223,7 @@ function VendorsTab({ userId, allTasks, allExpenses, refetch }: {
           userId={userId}
           allTasks={allTasks}
           allExpenses={allExpenses}
+          events={events}
           onClose={() => setSelected(null)}
           onUpdated={handleUpdated}
           onDeleted={handleDeleted}
@@ -2596,6 +2691,7 @@ export default function CouplePlanPage() {
         visible={eventSheetOpen}
         onClose={() => setEventSheetOpen(false)}
         userId={userId}
+        events={allEvents}
         onSuccess={() => setEventsRefetch(n => n + 1)}
       />
 
@@ -2632,7 +2728,7 @@ export default function CouplePlanPage() {
         <div style={{ padding: '8px 16px 0' }}>
           {activeTab === 'tasks' && <TasksTab userId={userId} events={allEvents} onOpenDreamAi={openDreamAi} refetch={tasksRefetch} onExpenseAdded={() => setMoneyRefetch(n => n + 1)} />}
           {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} refetch={moneyRefetch} />}
-          {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} refetch={vendorsRefetch} />}
+          {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} events={allEvents} refetch={vendorsRefetch} />}
           {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
           {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} refetch={eventsRefetch} />}
         </div>
