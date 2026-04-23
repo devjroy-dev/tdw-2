@@ -57,7 +57,7 @@ export default function DiscoveryFeed() {
     
     switch (mode) {
       case 'featured':
-        setVendors(allVendors.filter(v => v.tier === 'prestige'));
+        setVendors(allVendors.filter(v => v.priceFrom >= 200000)); // Premium vendors
         break;
       case 'trending':
         const shuffled = [...allVendors].sort(() => Math.random() - 0.5);
@@ -440,7 +440,7 @@ export default function DiscoveryFeed() {
                 gap: 4,
                 animation: 'slideUp 280ms cubic-bezier(0.22,1,0.36,1)',
               }}>
-                {vendor.rating && (
+                {null && (
                   <p style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 13,
@@ -448,10 +448,10 @@ export default function DiscoveryFeed() {
                     color: '#F8F7F5',
                     margin: 0,
                   }}>
-                    ★ {vendor.rating.toFixed(1)} {vendor.review_count && `(${vendor.review_count})`}
+                    ★ {null.toFixed(1)} {null && `(${null})`}
                   </p>
                 )}
-                {vendor.starting_price && (
+                {vendor.priceFrom && (
                   <p style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 14,
@@ -459,7 +459,7 @@ export default function DiscoveryFeed() {
                     color: '#C9A84C',
                     margin: 0,
                   }}>
-                    From ₹{vendor.starting_price.toLocaleString('en-IN')}
+                    From ₹{vendor.priceFrom.toLocaleString('en-IN')}
                   </p>
                 )}
               </div>

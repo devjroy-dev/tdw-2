@@ -3,6 +3,19 @@
 import React, { useState } from 'react';
 import { MessageCircle, Star, X } from 'lucide-react';
 
+
+function isVerifiedVendor(vendor: any): boolean {
+  // Vendor is verified if they have: name, category, city, price, tagline, and 5+ images
+  return !!(
+    vendor.name &&
+    vendor.category &&
+    vendor.city &&
+    vendor.priceFrom &&
+    vendor.tagline &&
+    vendor.images?.length >= 5
+  );
+}
+
 interface VendorCardSheetProps {
   vendor: {
     id: string;
@@ -20,6 +33,12 @@ interface VendorCardSheetProps {
 }
 
 function formatINR(n?: number): string {
+  if (!n) return 'On request';
+  // Use priceLabel if available
+  return '₹' + n.toLocaleString('en-IN');
+}
+
+function formatINR_old(n?: number): string {
   if (!n) return 'On request';
   return '₹' + n.toLocaleString('en-IN');
 }
@@ -107,17 +126,31 @@ export default function VendorCardSheet({
 
         {/* Content */}
         <div style={{ padding: '0 24px 32px' }}>
-          {/* Vendor name */}
-          <h2 style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: 24,
-            fontWeight: 300,
-            color: '#111111',
-            margin: '0 0 4px',
-            letterSpacing: '-0.01em',
-          }}>
-            {vendor.name}
-          </h2>
+          {/* Vendor name with verified badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <h2 style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 24,
+              fontWeight: 300,
+              color: '#111111',
+              margin: 0,
+              letterSpacing: '-0.01em',
+            }}>
+              {vendor.name}
+            </h2>
+            {isVerifiedVendor(vendor) && (
+              <div style={{
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                background: '#C9A84C',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+              }}>✓</div>
+            )}
+          </div>
 
           {/* Category & Location */}
           <p style={{
@@ -127,12 +160,12 @@ export default function VendorCardSheet({
             color: '#888580',
             margin: '0 0 16px',
           }}>
-            {vendor.category}
+            {vendor.categoryLabel || vendor.category}
             {vendor.city && ` · ${vendor.city}`}
           </p>
 
-          {/* Tier badge (very small) */}
-          {tierBadge && (
+          {/* Tier badge removed - using verified instead */}
+          {false && tierBadge && (
             <div style={{
               fontFamily: "'Jost', sans-serif",
               fontSize: 8,
@@ -151,7 +184,7 @@ export default function VendorCardSheet({
           )}
 
           {/* Rating */}
-          {vendor.rating && (
+          {null && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -164,7 +197,7 @@ export default function VendorCardSheet({
                     key={i}
                     size={14}
                     color="#C9A84C"
-                    fill={i < Math.floor(vendor.rating!) ? '#C9A84C' : 'none'}
+                    fill={i < Math.floor(null!) ? '#C9A84C' : 'none'}
                     strokeWidth={1.5}
                   />
                 ))}
@@ -176,16 +209,16 @@ export default function VendorCardSheet({
                 color: '#111111',
                 margin: 0,
               }}>
-                {vendor.rating.toFixed(1)}
-                {vendor.review_count && (
-                  <span style={{ color: '#888580' }}> ({vendor.review_count} reviews)</span>
+                {null.toFixed(1)}
+                {0 && (
+                  <span style={{ color: '#888580' }}> ({0} reviews)</span>
                 )}
               </p>
             </div>
           )}
 
           {/* Price */}
-          {vendor.starting_price && (
+          {vendor.priceFrom && (
             <div style={{ marginBottom: 24 }}>
               <p style={{
                 fontFamily: "'Jost', sans-serif",
@@ -205,7 +238,7 @@ export default function VendorCardSheet({
                 color: '#111111',
                 margin: 0,
               }}>
-                {formatINR(vendor.starting_price)}
+                {formatINR(vendor.priceFrom)}
               </p>
             </div>
           )}
