@@ -163,38 +163,7 @@ export default function VendorCardSheet({
           {/* Tier badge removed - using verified badge instead */}
 
           {/* Rating */}
-          {null && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 12,
-            }}>
-              <div style={{ display: 'flex', gap: 2 }}>
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={14}
-                    color="#C9A84C"
-                    fill={i < Math.floor(null!) ? '#C9A84C' : 'none'}
-                    strokeWidth={1.5}
-                  />
-                ))}
-              </div>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 13,
-                fontWeight: 300,
-                color: '#111111',
-                margin: 0,
-              }}>
-                {null.toFixed(1)}
-                {0 && (
-                  <span style={{ color: '#888580' }}> ({0} reviews)</span>
-                )}
-              </p>
-            </div>
-          )}
+          {/* Conditional section removed */}
 
           {/* Price */}
           {(vendor as any).priceFrom || vendor.starting_price && (
