@@ -539,8 +539,8 @@ function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
           vendor_name: vendorName.trim(),
           description: purpose.trim(),       // DB column: description
           actual_amount: Number(amount),      // DB column: actual_amount
-          event: eventName === 'general' ? null : eventName, // DB column: event
-          category: category || null,
+          event: eventName === 'general' ? 'general' : eventName, // DB column: event — never null, backend requires it
+          category: category || 'Other',
           due_date: dueDate || null,
           payment_status: 'committed',        // DB column: payment_status
         }),
@@ -1254,7 +1254,9 @@ type Expense = {
   actual_amount?: number;
   due_date?: string;
   status?: string;
+  payment_status?: string;
   event_name?: string;
+  category?: string;
   bucket?: string;
 };
 
@@ -1284,18 +1286,12 @@ async function openRazorpay({
 }) {
   const loaded = await loadRazorpayScript();
   if (!loaded) { onError('Payment service unavailable. Please try again.'); return; }
-
   const orderRes = await fetch(`${RAILWAY_URL}/api/v2/razorpay/create-order`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amount, currency: 'INR', payment_type: paymentType, user_id: userId }),
   }).then(r => r.json()).catch(() => null);
-
-  if (!orderRes?.success) {
-    onError(orderRes?.error || 'Could not create payment. Please try again.');
-    return;
-  }
-
+  if (!orderRes?.success) { onError(orderRes?.error || 'Could not create payment. Please try again.'); return; }
   const { order_id, key_id } = orderRes;
   const rzp = new (window as any).Razorpay({
     key: key_id, amount: amount * 100, currency: 'INR', order_id,
@@ -1322,91 +1318,182 @@ async function openRazorpay({
 function UpgradeCard({ userId, currentTier, onUpgraded }: { userId: string; currentTier: string; onUpgraded: () => void }) {
   const [paying, setPaying] = useState(false);
   const [toast, setToast] = useState('');
-
-  const isBasic = !currentTier || currentTier === 'basic';
   const isGold = currentTier === 'gold';
   if (currentTier === 'platinum') return null;
-
-  const target = isBasic ? (isGold ? 'platinum' : 'gold') : 'platinum';
+  const target = isGold ? 'platinum' : 'gold';
   const label = target === 'gold' ? 'Gold — ₹999' : 'Platinum — ₹2,999';
   const amount = target === 'gold' ? 999 : 2999;
   const paymentType = target === 'gold' ? 'couple_gold' : 'couple_platinum';
   const benefits = target === 'gold'
     ? ['Priority discovery', 'Unlock full vendor profiles', 'Booking history']
     : ['DreamAi — your AI wedding planner', 'Couture appointments', 'Memory Box'];
-
   const handleUpgrade = async () => {
     setPaying(true);
     await openRazorpay({
       userId, paymentType, amount, label,
-      onSuccess: () => {
-        setPaying(false);
-        setToast('Welcome to ' + (target === 'gold' ? 'Gold' : 'Platinum') + '!');
-        setTimeout(() => { setToast(''); onUpgraded(); }, 2000);
-      },
-      onError: (msg) => {
-        setPaying(false);
-        setToast(msg);
-        setTimeout(() => setToast(''), 4000);
-      },
+      onSuccess: () => { setPaying(false); setToast('Welcome to ' + (target === 'gold' ? 'Gold' : 'Platinum') + '!'); setTimeout(() => { setToast(''); onUpgraded(); }, 2000); },
+      onError: (msg) => { setPaying(false); setToast(msg); setTimeout(() => setToast(''), 4000); },
     });
   };
-
   return (
     <>
-      <div style={{
-        background: '#0C0A09', borderRadius: 16, padding: 24, marginBottom: 20,
-        position: 'relative', overflow: 'hidden',
-      }}>
+      <div style={{ background: '#0C0A09', borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 8px' }}>UPGRADE</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#F8F7F5', margin: '0 0 16px', lineHeight: 1.2 }}>
           {target === 'gold' ? 'Unlock the full journey.' : 'Your AI wedding planner awaits.'}
         </p>
         <div style={{ marginBottom: 20 }}>
-          {benefits.map(b => (
-            <p key={b} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 4px' }}>· {b}</p>
-          ))}
+          {benefits.map(b => <p key={b} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 4px' }}>· {b}</p>)}
         </div>
         <button onClick={handleUpgrade} disabled={paying} style={{
-          fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
-          letterSpacing: '0.2em', textTransform: 'uppercase',
-          color: '#0C0A09', background: '#C9A84C', border: 'none',
-          borderRadius: 100, padding: '10px 20px',
-          cursor: paying ? 'not-allowed' : 'pointer',
-          opacity: paying ? 0.6 : 1, touchAction: 'manipulation',
+          fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.2em', textTransform: 'uppercase',
+          color: '#0C0A09', background: '#C9A84C', border: 'none', borderRadius: 100, padding: '10px 20px',
+          cursor: paying ? 'not-allowed' : 'pointer', opacity: paying ? 0.6 : 1, touchAction: 'manipulation',
         }}>{paying ? 'Opening...' : label}</button>
       </div>
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
-          background: '#0C0A09', color: '#F8F7F5',
-          fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
-          padding: '12px 20px', borderRadius: 100, zIndex: 999, whiteSpace: 'nowrap',
-        }}>{toast}</div>
-      )}
+      {toast && <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: '#0C0A09', color: '#F8F7F5', fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, padding: '12px 20px', borderRadius: 100, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
     </>
   );
 }
 
-function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: { userId: string; dreamerType: string; onOpenDreamAi: (prefill: string) => void; refetch: number }) {
+// ─── SVG budget ring ──────────────────────────────────────────────────────────
+function BudgetRing({ pct, size = 48 }: { pct: number; size?: number }) {
+  const r = (size - 6) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = Math.min(pct / 100, 1) * circ;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E2DED8" strokeWidth={3} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#C9A84C" strokeWidth={3}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 600ms cubic-bezier(0.22,1,0.36,1)' }} />
+    </svg>
+  );
+}
+
+// ─── Set Budget Sheet ─────────────────────────────────────────────────────────
+function SetBudgetSheet({ visible, onClose, userId, current, onSaved }: {
+  visible: boolean; onClose: () => void; userId: string; current: number; onSaved: (n: number) => void;
+}) {
+  const [val, setVal] = useState(current > 0 ? String(current) : '');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+
+  useEffect(() => { if (visible) setVal(current > 0 ? String(current) : ''); }, [visible, current]);
+
+  async function handleSave() {
+    if (!val || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/budget/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ total_budget: Number(val) }),
+      });
+      const json = await res.json();
+      if (json.success === false) { setToast(json.error || 'Error saving'); setTimeout(() => setToast(''), 2500); }
+      else { onSaved(Number(val)); onClose(); }
+    } catch { setToast('Network error'); setTimeout(() => setToast(''), 2500); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(17,17,17,0.4)', opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 401, background: '#FFFFFF', borderRadius: '24px 24px 0 0', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding: '20px 20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 20px' }}>Set total budget</p>
+        <div style={{ position: 'relative', marginBottom: 28 }}>
+          <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 18, fontWeight: 300, color: '#888580' }}>₹</span>
+          <input
+            value={val} onChange={e => setVal(e.target.value.replace(/[^0-9]/g, ''))}
+            inputMode="numeric" placeholder="0"
+            autoFocus
+            style={{ ...fieldInput, paddingLeft: 22, fontSize: 22 }}
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+        <div style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <button onClick={handleSave} disabled={!val || saving} style={submitBtn(!val || saving)}>
+            {saving ? '...' : 'SAVE BUDGET'}
+          </button>
+        </div>
+        {toast && <Toast msg={toast} />}
+      </div>
+    </>
+  );
+}
+
+function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
+  userId: string; dreamerType: string; onOpenDreamAi: (prefill: string) => void; refetch: number;
+}) {
   const [data, setData] = useState<MoneyData | null>(null);
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
   const [currentTier, setCurrentTier] = useState(dreamerType || 'basic');
+  const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
 
-  useEffect(() => {
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  function loadData() {
     setLoading(true);
-    fetch(`${RAILWAY_URL}/api/v2/couple/money/${userId}`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [userId, refetch]);
+    Promise.all([
+      fetch(`${RAILWAY_URL}/api/v2/couple/money/${userId}`).then(r => r.json()),
+      fetch(`${RAILWAY_URL}/api/couple/expenses/${userId}`).then(r => r.json()),
+    ]).then(([money, exps]) => {
+      setData(money);
+      const rows = (exps?.data || exps || []) as Expense[];
+      setAllExpenses(rows.map((e: any) => ({
+        ...e,
+        actual_amount: e.actual_amount || 0,
+        amount: e.actual_amount || 0,
+        status: e.payment_status || 'committed',
+        purpose: e.description || e.purpose || null,
+        event_name: e.event || e.event_name || null,
+      })));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }
+
+  useEffect(() => { loadData(); }, [userId, refetch]);
+
+  async function handleMarkPaid(expId: string) {
+    if (markingPaid) return;
+    setMarkingPaid(expId);
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/expenses/${expId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'paid' }),
+      });
+      setAllExpenses(prev => prev.map(e => e.id === expId ? { ...e, status: 'paid', payment_status: 'paid' } : e));
+      // Refresh money data so committed/paid totals update
+      fetch(`${RAILWAY_URL}/api/v2/couple/money/${userId}`).then(r => r.json()).then(setData).catch(() => {});
+      showToast('Marked as paid');
+    } catch { showToast('Could not update'); }
+    finally { setMarkingPaid(null); }
+  }
+
+  async function handleDeleteExpense(expId: string) {
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/expenses/${expId}`, { method: 'DELETE' });
+      setAllExpenses(prev => prev.filter(e => e.id !== expId));
+      fetch(`${RAILWAY_URL}/api/v2/couple/money/${userId}`).then(r => r.json()).then(setData).catch(() => {});
+    } catch { showToast('Could not delete'); }
+  }
 
   if (loading) return (
     <div style={{ paddingTop: 4 }}>
-      <Shimmer h={120} br={16} />
-      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Shimmer h={8} w={80} br={4} /><Shimmer h={64} /><Shimmer h={64} /><Shimmer h={64} />
+      <Shimmer h={140} br={16} />
+      <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Shimmer h={8} w={80} br={4} />
+        <Shimmer h={80} br={12} /><Shimmer h={80} br={12} />
       </div>
     </div>
   );
@@ -1415,101 +1502,158 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: { userId: str
   const committedPct = d.totalBudget ? Math.min(100, (d.committed / d.totalBudget) * 100) : 0;
   const paidPct = d.totalBudget ? Math.min(100, (d.paid / d.totalBudget) * 100) : 0;
   const remaining = d.totalBudget - d.committed;
-  const payments = payFilter === 'week' ? d.thisWeek : d.next30;
+
+  // Upcoming = unpaid with a due_date in the relevant window, pulled from allExpenses for real-time updates
+  const now = new Date(); now.setHours(0,0,0,0);
+  const in7 = new Date(now); in7.setDate(now.getDate() + 7);
+  const in30 = new Date(now); in30.setDate(now.getDate() + 30);
+  const unpaid = allExpenses.filter(e => e.status !== 'paid' && e.payment_status !== 'paid');
+  const thisWeekPayments = unpaid.filter(e => { if (!e.due_date) return false; const dt = new Date(e.due_date); dt.setHours(0,0,0,0); return dt >= now && dt <= in7; });
+  const next30Payments = unpaid.filter(e => { if (!e.due_date) return false; const dt = new Date(e.due_date); dt.setHours(0,0,0,0); return dt > in7 && dt <= in30; });
+  const payments = payFilter === 'week' ? thisWeekPayments : next30Payments;
+
+  // Event committed amounts from allExpenses
+  const eventCommitted = (evName: string) =>
+    allExpenses.filter(e => e.event_name === evName).reduce((s, e) => s + (e.actual_amount || e.amount || 0), 0);
 
   return (
     <div>
-      <UpgradeCard
-        userId={userId}
-        currentTier={currentTier}
-        onUpgraded={() => setCurrentTier(currentTier === 'basic' ? 'gold' : 'platinum')}
-      />
+      <UpgradeCard userId={userId} currentTier={currentTier} onUpgraded={() => setCurrentTier(currentTier === 'basic' ? 'gold' : 'platinum')} />
 
-      {/* Budget hero + DreamAi button */}
+      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>TOTAL JOURNEY</p>
-        <button
-          onClick={() => onOpenDreamAi('Am I over budget on anything?')}
-          style={{
-            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
-            letterSpacing: '0.15em', textTransform: 'uppercase',
-            color: '#888580', background: 'none',
-            border: '0.5px solid #E2DED8', borderRadius: 100,
-            padding: '4px 10px', cursor: 'pointer',
-            touchAction: 'manipulation',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}
-        >
-          <span style={{ fontSize: 10 }}>✦</span> Ask DreamAi
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: 0 }}>BUDGET</p>
+        <button onClick={() => onOpenDreamAi('Am I over budget on anything?')} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888580', background: 'none', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '4px 10px', cursor: 'pointer', touchAction: 'manipulation', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 10 }}>✦</span> Ask
         </button>
       </div>
 
+      {/* Hero strip */}
       <div style={{ background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 16, padding: 24, marginBottom: 20 }}>
-        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: '#0C0A09', margin: '0 0 16px', lineHeight: 1 }}>{fmtINR(d.totalBudget)}</p>
-        <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
-          <div>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 4px' }}>Committed</p>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#3C3835', margin: 0 }}>{fmtINR(d.committed)}</p>
-          </div>
-          <div>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 4px' }}>Paid</p>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#3C3835', margin: 0 }}>{fmtINR(d.paid)}</p>
-          </div>
+        <button onClick={() => setBudgetSheetOpen(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', display: 'block', marginBottom: 16 }}>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 4px' }}>TOTAL BUDGET  ›</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: '#0C0A09', margin: 0, lineHeight: 1 }}>
+            {d.totalBudget > 0 ? fmtINR(d.totalBudget) : <span style={{ fontSize: 22, color: '#C8C4BE' }}>Tap to set</span>}
+          </p>
+        </button>
+        <div style={{ display: 'flex', gap: 32, marginBottom: 14 }}>
+          {[{ label: 'Committed', val: d.committed }, { label: 'Paid', val: d.paid }, { label: 'Remaining', val: remaining }].map(s => (
+            <div key={s.label}>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888580', margin: '0 0 3px' }}>{s.label}</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, color: s.label === 'Remaining' && remaining < 0 ? '#C9A84C' : '#3C3835', margin: 0 }}>{fmtINR(s.val)}</p>
+            </div>
+          ))}
         </div>
+        {/* Progress bar: gold = committed, dark = paid */}
         <div style={{ position: 'relative', height: 6, borderRadius: 8, background: '#E2DED8', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${committedPct}%`, background: '#C9A84C', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)', willChange: 'transform' }} />
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${paidPct}%`, background: '#0C0A09', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)', willChange: 'transform' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${committedPct}%`, background: '#C9A84C', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${paidPct}%`, background: '#0C0A09', borderRadius: 8, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
         </div>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: '8px 0 0' }}>{fmtINR(remaining)} remaining</p>
+        {d.totalBudget > 0 && (
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#8C8480', margin: '6px 0 0' }}>
+            {Math.round(committedPct)}% committed · {Math.round(paidPct)}% paid
+          </p>
+        )}
       </div>
 
+      {/* Envelope cards per event */}
       {d.events.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 12px' }}>BY EVENT</p>
+        <div style={{ marginBottom: 28 }}>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: '0 0 12px' }}>BY EVENT</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {d.events.map(ev => (
-              <div key={ev.id} style={{ background: '#FAFAF8', border: '1px solid #E2DED8', borderRadius: 12, padding: 16 }}>
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 10px' }}>{fmtINR(ev.budget)} allocated</p>
-                <div style={{ height: 4, borderRadius: 4, background: '#E2DED8', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: '40%', background: '#C9A84C', borderRadius: 4 }} />
+            {d.events.map(ev => {
+              const committed = eventCommitted(ev.name);
+              const pct = ev.budget > 0 ? Math.min(100, (committed / ev.budget) * 100) : 0;
+              return (
+                <div key={ev.id} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <BudgetRing pct={pct} size={48} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{ev.name}</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
+                      {fmtINR(committed)} of {ev.budget > 0 ? fmtINR(ev.budget) : '—'}
+                    </p>
+                  </div>
+                  <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#C9A84C' }}>{Math.round(pct)}%</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      <div>
-        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 12px' }}>UPCOMING PAYMENTS</p>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {([{ key: 'week', label: 'This Week' }, { key: 'next30', label: 'Next 30 Days' }] as { key: PaymentFilter; label: string }[]).map(f => (
-            <button key={f.key} onClick={() => setPayFilter(f.key)} style={{
-              fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, padding: '4px 10px', borderRadius: 100,
-              border: payFilter === f.key ? 'none' : '1px solid #E2DED8',
-              background: payFilter === f.key ? '#0C0A09' : 'transparent',
-              color: payFilter === f.key ? '#FAFAL8' : '#8C8480',
-              cursor: 'pointer', letterSpacing: '0.1em',
-            }}>{f.label}</button>
-          ))}
+      {/* Upcoming payments */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: 0 }}>UPCOMING</p>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {([{ key: 'week' as PaymentFilter, label: 'This Week' }, { key: 'next30' as PaymentFilter, label: 'Next 30' }]).map(f => (
+              <button key={f.key} onClick={() => setPayFilter(f.key)} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, padding: '3px 9px', borderRadius: 100, border: payFilter === f.key ? 'none' : '1px solid #E2DED8', background: payFilter === f.key ? '#0C0A09' : 'transparent', color: payFilter === f.key ? '#FAFAF8' : '#8C8480', cursor: 'pointer', letterSpacing: '0.08em' }}>{f.label}</button>
+            ))}
+          </div>
         </div>
         {payments.length === 0 ? (
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', padding: '24px 0' }}>No upcoming payments.</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', padding: '20px 0' }}>
+            {payFilter === 'week' ? 'No payments due this week.' : 'No payments due in the next 30 days.'}
+          </p>
         ) : (
-          payments.map((exp, i) => (
-            <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < payments.length - 1 ? '1px solid #E2DED8' : 'none' }}>
-              <div>
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
-                {exp.purpose && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose}</p>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {payments.map(exp => (
+              <div key={exp.id} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
+                    {exp.purpose || exp.category || ''}{exp.due_date ? ` · ${formatDue(exp.due_date)}` : ''}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#C9A84C', margin: '0 0 6px' }}>{fmtINR(exp.actual_amount || exp.amount || 0)}</p>
+                  <button onClick={() => handleMarkPaid(exp.id)} disabled={markingPaid === exp.id} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 100, padding: '4px 10px', cursor: 'pointer', touchAction: 'manipulation', opacity: markingPaid === exp.id ? 0.6 : 1 }}>
+                    {markingPaid === exp.id ? '...' : 'MARK PAID'}
+                  </button>
+                </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 400, color: '#C9A84C', margin: '0 0 2px' }}>{fmtINR(exp.actual_amount || exp.amount || 0)}</p>
-                {exp.due_date && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#8C8480', margin: 0 }}>{formatDue(exp.due_date)}</p>}
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
+
+      {/* All expenses */}
+      {allExpenses.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: '0 0 12px' }}>ALL ENTRIES</p>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {allExpenses.map((exp, i) => {
+              const isPaid = exp.status === 'paid' || exp.payment_status === 'paid';
+              return (
+                <div key={exp.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: i < allExpenses.length - 1 ? '1px solid #E2DED8' : 'none' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px', opacity: isPaid ? 0.5 : 1 }}>{exp.vendor_name || '—'}</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{[exp.purpose, exp.event_name].filter(Boolean).join(' · ')}</p>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, color: isPaid ? '#8C8480' : '#3C3835', margin: '0 0 4px' }}>{fmtINR(exp.actual_amount || exp.amount || 0)}</p>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 100, ...(isPaid ? { background: '#F4F1EC', color: '#8C8480' } : { background: '#FFF8EC', color: '#C9A84C' }) }}>
+                      {isPaid ? 'PAID' : 'COMMITTED'}
+                    </span>
+                  </div>
+                  <button onClick={() => handleDeleteExpense(exp.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C8C4BE', fontSize: 16, padding: '4px 0 4px 8px', touchAction: 'manipulation', flexShrink: 0 }}>×</button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {allExpenses.length === 0 && (
+        <div style={{ textAlign: 'center', marginTop: 40 }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>No expenses yet.</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: 0 }}>Tap + to log your first entry.</p>
+        </div>
+      )}
+
+      <SetBudgetSheet visible={budgetSheetOpen} onClose={() => setBudgetSheetOpen(false)} userId={userId} current={d.totalBudget} onSaved={n => { setData(prev => prev ? { ...prev, totalBudget: n } : prev); }} />
+      <Toast msg={toast} />
     </div>
   );
 }
