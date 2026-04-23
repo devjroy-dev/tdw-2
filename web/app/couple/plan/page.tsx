@@ -32,7 +32,7 @@ function getSession(): CoupleSession | null {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Tab = 'tasks' | 'money' | 'people' | 'events';
+type Tab = 'tasks' | 'money' | 'vendors' | 'people' | 'events';
 
 interface Task {
   id: string;
@@ -1658,6 +1658,481 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
   );
 }
 
+// ─── Vendors (My Vendors) ─────────────────────────────────────────────────────
+
+type CoupleVendor = {
+  id: string;
+  vendor_id?: string;
+  name: string;
+  category?: string;
+  city?: string;
+  phone?: string;
+  quoted_total?: number;
+  status: string;
+  notes?: string;
+  source?: string;
+  events?: string[];
+};
+
+const VENDOR_STATUS_ORDER = ['considering', 'contacted', 'booked', 'paid'];
+
+function statusLabel(s: string) {
+  return s === 'considering' ? 'Considering' : s === 'contacted' ? 'Contacted' : s === 'booked' ? 'Booked' : s === 'paid' ? 'Paid' : s;
+}
+
+function statusStyle(s: string): React.CSSProperties {
+  if (s === 'paid') return { background: '#F4F1EC', color: '#8C8480' };
+  if (s === 'booked') return { background: '#0C0A09', color: '#F8F7F5' };
+  if (s === 'contacted') return { background: '#FFF8EC', color: '#C9A84C' };
+  return { background: 'transparent', color: '#8C8480', border: '1px solid #E2DED8' };
+}
+
+const VENDOR_CATEGORIES = ['Photographer', 'MUA', 'Decorator', 'Venue', 'Designer', 'Event Manager', 'Caterer', 'DJ', 'Other'];
+
+// ─── AddVendorSheet ───────────────────────────────────────────────────────────
+function AddVendorSheet({ visible, onClose, userId, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  events: EventOption[]; onSuccess: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
+  const [phone, setPhone] = useState('');
+  const [price, setPrice] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 2500); }
+  function reset() { setName(''); setCategory(''); setPhone(''); setPrice(''); setNotes(''); }
+
+  async function handleSubmit() {
+    if (!name.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/vendors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          name: name.trim(),
+          category: category || null,
+          phone: phone.trim() || null,
+          quoted_total: price ? Number(price) : 0,
+          notes: notes.trim() || null,
+          status: 'considering',
+          source: 'manual',
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding vendor'); }
+      else { showToast('Maker added'); onSuccess(); onClose(); reset(); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  return (
+    <>
+      <SheetWrap visible={visible} onClose={onClose} title="Add Maker" height="88vh">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Name *</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              placeholder="e.g. Arjun Kartha Studio"
+              style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Category</label>
+            <div style={pillGroup}>
+              {VENDOR_CATEGORIES.map(c => (
+                <Pill key={c} label={c} active={category === c} onPress={() => setCategory(category === c ? '' : c)} />
+              ))}
+            </div>
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Phone</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)}
+              inputMode="tel" placeholder="Optional"
+              style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={{ ...fieldWrapper, position: 'relative' }}>
+            <label style={fieldLabel}>Quoted Price</label>
+            <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#888580' }}>₹</span>
+            <input value={price} onChange={e => setPrice(e.target.value)}
+              inputMode="numeric" placeholder="0"
+              style={{ ...fieldInput, paddingLeft: 18 }}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Any context — referral, preference, availability..."
+              rows={3}
+              style={{ ...fieldInput, height: 'auto', resize: 'none', padding: '8px 4px', lineHeight: 1.6 }}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+        </div>
+        <div style={{ padding: '16px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+          <button onClick={handleSubmit} disabled={!name.trim() || submitting} style={submitBtn(!name.trim() || submitting)}>
+            {submitting ? '...' : 'ADD MAKER'}
+          </button>
+        </div>
+      </SheetWrap>
+      <Toast msg={toast} />
+    </>
+  );
+}
+
+// ─── VendorDetailSheet ────────────────────────────────────────────────────────
+function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, onClose, onUpdated, onDeleted }: {
+  vendor: CoupleVendor;
+  userId: string;
+  allTasks: Task[];
+  allExpenses: Expense[];
+  onClose: () => void;
+  onUpdated: (v: CoupleVendor) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [notes, setNotes] = useState(vendor.notes || '');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [status, setStatus] = useState(vendor.status);
+  const [thread, setThread] = useState<{ id: string; last_message_preview: string; last_message_at: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 2500); }
+
+  useEffect(() => { setTimeout(() => setVisible(true), 10); }, []);
+
+  // Load message thread if TDW vendor
+  useEffect(() => {
+    if (!vendor.vendor_id) return;
+    fetch(`${RAILWAY_URL}/api/enquiries/couple/${userId}`)
+      .then(r => r.json())
+      .then(d => {
+        const threads = d?.data || [];
+        const match = threads.find((t: any) => t.vendor_id === vendor.vendor_id);
+        if (match) setThread({ id: match.id, last_message_preview: match.last_message_preview, last_message_at: match.last_message_at });
+      }).catch(() => {});
+  }, [vendor.vendor_id, userId]);
+
+  // Approximate joins
+  const linkedTasks = allTasks.filter(t =>
+    t.assigned_to && vendor.name && t.assigned_to.toLowerCase().includes(vendor.name.toLowerCase().split(' ')[0])
+  );
+  const linkedExpenses = allExpenses.filter(e =>
+    e.vendor_name && vendor.name && e.vendor_name.toLowerCase().includes(vendor.name.toLowerCase().split(' ')[0])
+  );
+
+  const handleClose = () => { setVisible(false); setTimeout(onClose, 300); };
+
+  async function handleStatusChange(newStatus: string) {
+    setStatus(newStatus);
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      onUpdated({ ...vendor, status: newStatus });
+    } catch { showToast('Could not update status'); setStatus(vendor.status); }
+  }
+
+  async function handleSaveNotes() {
+    setSavingNotes(true);
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+      onUpdated({ ...vendor, notes });
+      showToast('Notes saved');
+    } catch { showToast('Could not save notes'); }
+    finally { setSavingNotes(false); }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, { method: 'DELETE' });
+      onDeleted(vendor.id);
+      handleClose();
+    } catch { showToast('Could not delete'); setDeleting(false); }
+  }
+
+  const sectionLabel: React.CSSProperties = {
+    fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+    letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE',
+    margin: '0 0 10px',
+  };
+
+  return (
+    <>
+      <div onClick={handleClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(12,10,9,0.45)', opacity: visible ? 1 : 0, transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)', pointerEvents: visible ? 'auto' : 'none' }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 401,
+        height: '90vh', background: '#F8F7F5',
+        borderRadius: '20px 20px 0 0',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        {/* Handle + header */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+        <div style={{ padding: '8px 20px 16px', borderBottom: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{vendor.name}</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: 0 }}>
+                {[vendor.category, vendor.city].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+            <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8C8480', fontSize: 18, padding: 4, touchAction: 'manipulation', flexShrink: 0 }}>✕</button>
+          </div>
+          {/* Status chips */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+            {VENDOR_STATUS_ORDER.map(s => (
+              <button key={s} onClick={() => handleStatusChange(s)} style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                padding: '4px 10px', borderRadius: 100, cursor: 'pointer',
+                touchAction: 'manipulation',
+                ...statusStyle(s === status ? s : 'considering'),
+                ...(s === status ? statusStyle(s) : { background: 'transparent', color: '#C8C4BE', border: '1px solid #E2DED8' }),
+              }}>{statusLabel(s)}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
+
+          {/* Contact */}
+          {(vendor.phone || vendor.quoted_total) && (
+            <div style={{ marginBottom: 24 }}>
+              <p style={sectionLabel}>Contact</p>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, overflow: 'hidden' }}>
+                {vendor.phone && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: vendor.quoted_total ? '0.5px solid #E2DED8' : 'none' }}>
+                    <div>
+                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 3px' }}>Phone</p>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#0C0A09', margin: 0 }}>{vendor.phone}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <a href={`tel:${vendor.phone}`} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0C0A09', background: '#F4F1EC', border: 'none', borderRadius: 100, padding: '6px 12px', textDecoration: 'none', cursor: 'pointer' }}>Call</a>
+                      <a href={`https://wa.me/${vendor.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F8F7F5', background: '#25D366', border: 'none', borderRadius: 100, padding: '6px 12px', textDecoration: 'none', cursor: 'pointer' }}>WhatsApp</a>
+                    </div>
+                  </div>
+                )}
+                {!!vendor.quoted_total && (
+                  <div style={{ padding: '14px 16px' }}>
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 3px' }}>Quoted</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 400, color: '#C9A84C', margin: 0 }}>{fmtINR(vendor.quoted_total || 0)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Messages thread */}
+          {thread && (
+            <div style={{ marginBottom: 24 }}>
+              <p style={sectionLabel}>Messages</p>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#3C3835', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{thread.last_message_preview || 'Thread open'}</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#8C8480', margin: 0 }}>{thread.last_message_at ? new Date(thread.last_message_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</p>
+                </div>
+                <a href={`/couple/messages?thread=${thread.id}`} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0C0A09', background: '#F4F1EC', padding: '6px 12px', borderRadius: 100, textDecoration: 'none', flexShrink: 0 }}>Open</a>
+              </div>
+            </div>
+          )}
+
+          {/* Linked expenses */}
+          {linkedExpenses.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <p style={sectionLabel}>Payments</p>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, overflow: 'hidden' }}>
+                {linkedExpenses.map((exp, i) => {
+                  const isPaid = exp.status === 'paid' || exp.payment_status === 'paid';
+                  return (
+                    <div key={exp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: i < linkedExpenses.length - 1 ? '0.5px solid #E2DED8' : 'none' }}>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#3C3835', margin: 0 }}>{exp.purpose || exp.category || '—'}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, color: isPaid ? '#8C8480' : '#C9A84C', margin: 0 }}>{fmtINR(exp.actual_amount || exp.amount || 0)}</p>
+                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 100, ...(isPaid ? { background: '#F4F1EC', color: '#8C8480' } : { background: '#FFF8EC', color: '#C9A84C' }) }}>{isPaid ? 'PAID' : 'DUE'}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Linked tasks */}
+          {linkedTasks.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <p style={sectionLabel}>Tasks</p>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, overflow: 'hidden' }}>
+                {linkedTasks.map((t, i) => (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: i < linkedTasks.length - 1 ? '0.5px solid #E2DED8' : 'none' }}>
+                    <span style={{ width: 16, height: 16, borderRadius: '50%', border: `1.5px solid ${t.status === 'done' ? '#C9A84C' : '#E2DED8'}`, background: t.status === 'done' ? '#C9A84C' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {t.status === 'done' && <span style={{ color: '#fff', fontSize: 9 }}>✓</span>}
+                    </span>
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 300, color: '#0C0A09', margin: 0, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.5 : 1 }}>{t.title}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div style={{ marginBottom: 24 }}>
+            <p style={sectionLabel}>Notes</p>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Private notes about this maker..."
+              rows={4}
+              style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '14px 16px', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#0C0A09', resize: 'none', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = '#E2DED8'; }}
+            />
+            {notes !== (vendor.notes || '') && (
+              <button onClick={handleSaveNotes} disabled={savingNotes} style={{ marginTop: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.15em', textTransform: 'uppercase', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 100, padding: '8px 18px', cursor: 'pointer', touchAction: 'manipulation' }}>
+                {savingNotes ? '...' : 'SAVE NOTES'}
+              </button>
+            )}
+          </div>
+
+          {/* Delete */}
+          <button onClick={handleDelete} disabled={deleting} style={{ width: '100%', height: 44, borderRadius: 100, background: 'transparent', border: '1px solid #E2DED8', fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation' }}>
+            {deleting ? '...' : 'REMOVE MAKER'}
+          </button>
+        </div>
+        <Toast msg={toast} />
+      </div>
+    </>
+  );
+}
+
+// ─── VendorsTab ───────────────────────────────────────────────────────────────
+function VendorsTab({ userId, allTasks, allExpenses, refetch }: {
+  userId: string;
+  allTasks: Task[];
+  allExpenses: Expense[];
+  refetch: number;
+}) {
+  const [vendors, setVendors] = useState<CoupleVendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<CoupleVendor | null>(null);
+
+  function loadVendors() {
+    setLoading(true);
+    fetch(`${RAILWAY_URL}/api/couple/vendors/${userId}`)
+      .then(r => r.json())
+      .then(d => { setVendors(Array.isArray(d?.data) ? d.data : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }
+
+  useEffect(() => { loadVendors(); }, [userId, refetch]);
+
+  function handleUpdated(updated: CoupleVendor) {
+    setVendors(prev => prev.map(v => v.id === updated.id ? updated : v));
+    setSelected(updated);
+  }
+  function handleDeleted(id: string) {
+    setVendors(prev => prev.filter(v => v.id !== id));
+    setSelected(null);
+  }
+
+  // Group by status in pipeline order
+  const groups = VENDOR_STATUS_ORDER
+    .map(s => ({ status: s, items: vendors.filter(v => v.status === s) }))
+    .filter(g => g.items.length > 0);
+
+  if (loading) return (
+    <div style={{ paddingTop: 12 }}>
+      {[0, 1, 2].map(i => <Shimmer key={i} h={72} br={14} mt={i > 0 ? 8 : 0} />)}
+    </div>
+  );
+
+  if (vendors.length === 0) return (
+    <div style={{ textAlign: 'center', marginTop: 72 }}>
+      <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 10px' }}>No makers yet.</p>
+      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: 0, lineHeight: 1.6 }}>Makers you save, enquire about, or add manually will appear here.</p>
+    </div>
+  );
+
+  return (
+    <>
+      <div>
+        {groups.map(({ status, items }) => (
+          <div key={status} style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: 0 }}>{statusLabel(status)}</p>
+              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, color: '#C8C4BE' }}>{items.length}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {items.map(v => (
+                <button key={v.id} onClick={() => setSelected(v)} style={{
+                  background: '#FFFFFF', border: '1px solid #E2DED8',
+                  borderRadius: 14, padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation',
+                  width: '100%',
+                }}>
+                  {/* Category initial circle */}
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, color: '#8C8480' }}>
+                      {(v.category || v.name)?.[0]?.toUpperCase() || '·'}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
+                      {[v.category, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  {/* Status pill */}
+                  <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: 100, flexShrink: 0, ...statusStyle(v.status) }}>
+                    {statusLabel(v.status)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {selected && (
+        <VendorDetailSheet
+          vendor={selected}
+          userId={userId}
+          allTasks={allTasks}
+          allExpenses={allExpenses}
+          onClose={() => setSelected(null)}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── People ──────────────────────────────────────────────────────────────────
 
 type Guest = {
@@ -1998,6 +2473,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses, refetch }: { user
 const TABS: { key: Tab; label: string }[] = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'money', label: 'Money' },
+  { key: 'vendors', label: 'Vendors' },
   { key: 'people', label: 'Guests' },
   { key: 'events', label: 'Events' },
 ];
@@ -2025,12 +2501,14 @@ export default function CouplePlanPage() {
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
   const [guestSheetOpen, setGuestSheetOpen] = useState(false);
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
+  const [vendorSheetOpen, setVendorSheetOpen] = useState(false);
 
   // ─── Refetch counters ─────────────────────────────────────────────────────
   const [tasksRefetch, setTasksRefetch] = useState(0);
   const [moneyRefetch, setMoneyRefetch] = useState(0);
   const [guestsRefetch, setGuestsRefetch] = useState(0);
   const [eventsRefetch, setEventsRefetch] = useState(0);
+  const [vendorsRefetch, setVendorsRefetch] = useState(0);
 
   useEffect(() => { setSession(getSession()); }, []);
 
@@ -2066,6 +2544,7 @@ export default function CouplePlanPage() {
   function handleFabClick() {
     if (activeTab === 'tasks') setTaskSheetOpen(true);
     else if (activeTab === 'money') setBudgetSheetOpen(true);
+    else if (activeTab === 'vendors') setVendorSheetOpen(true);
     else if (activeTab === 'people') setGuestSheetOpen(true);
     else if (activeTab === 'events') setEventSheetOpen(true);
   }
@@ -2115,6 +2594,14 @@ export default function CouplePlanPage() {
         onSuccess={() => setEventsRefetch(n => n + 1)}
       />
 
+      <AddVendorSheet
+        visible={vendorSheetOpen}
+        onClose={() => setVendorSheetOpen(false)}
+        userId={userId}
+        events={allEvents}
+        onSuccess={() => setVendorsRefetch(n => n + 1)}
+      />
+
       <div style={{ background: '#F8F7F5', minHeight: '100dvh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#111111', margin: 0 }}>Plan</h1>
@@ -2140,6 +2627,7 @@ export default function CouplePlanPage() {
         <div style={{ padding: '8px 16px 0' }}>
           {activeTab === 'tasks' && <TasksTab userId={userId} events={allEvents} onOpenDreamAi={openDreamAi} refetch={tasksRefetch} onExpenseAdded={() => setMoneyRefetch(n => n + 1)} />}
           {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} refetch={moneyRefetch} />}
+          {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} refetch={vendorsRefetch} />}
           {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
           {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} refetch={eventsRefetch} />}
         </div>
