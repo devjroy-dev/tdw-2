@@ -59,6 +59,8 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
   const dragStartY = useRef(0);
   const [dragDelta, setDragDelta] = useState(0);
   const isDragging = useRef(false);
+  const [circleToast, setCircleToast] = useState(false);
+  const [enquireToast, setEnquireToast] = useState(false);
 
   const onTouchStart = (e: React.TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
@@ -89,10 +91,10 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
       opacity: visible ? op : 0,
       willChange: 'transform',
       // iOS frosted glass
-      background: 'rgba(248,247,245,0.78)',
-      backdropFilter: 'blur(32px) saturate(200%)',
-      WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-      borderTop: '0.5px solid rgba(255,255,255,0.8)',
+      background: 'rgba(12,10,9,0.82)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: '0.5px solid rgba(255,255,255,0.08)',
       borderRadius: '20px 20px 0 0',
       paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)',
     }}
@@ -102,27 +104,39 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
     >
       {/* Drag handle */}
       <div style={{ display:'flex',justifyContent:'center',padding:'12px 0 16px' }}>
-        <div style={{ width:36,height:4,borderRadius:2,background:'rgba(17,17,17,0.18)' }} />
+        <div style={{ width:36,height:4,borderRadius:2,background:'rgba(255,255,255,0.2)' }} />
       </div>
+      {/* Enquire toast */}
+      {enquireToast && (
+        <div style={{ position:'absolute',top:16,left:'50%',transform:'translateX(-50%)',background:'rgba(255,255,255,0.15)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',border:'0.5px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'6px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,color:'rgba(248,247,245,0.8)',whiteSpace:'nowrap',zIndex:30 }}>
+          Enquiry coming soon
+        </div>
+      )}
+      {/* Circle toast */}
+      {circleToast && (
+        <div style={{ position:'absolute',top:16,left:'50%',transform:'translateX(-50%)',background:'rgba(255,255,255,0.15)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',border:'0.5px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'6px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,color:'rgba(248,247,245,0.8)',whiteSpace:'nowrap',zIndex:30 }}>
+          Circle coming soon
+        </div>
+      )}
 
       <div style={{ padding:'0 24px' }}>
         {/* Category + city */}
-        <p style={{ fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#888580',margin:'0 0 8px' }}>
+        <p style={{ fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'rgba(248,247,245,0.5)',margin:'0 0 8px' }}>
           {vendor.categoryLabel}&nbsp;·&nbsp;{vendor.city}
         </p>
 
         {/* Name */}
-        <h2 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:'#111111',margin:'0 0 4px',letterSpacing:'-0.01em',lineHeight:1.1 }}>
+        <h2 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:'#F8F7F5',margin:'0 0 4px',letterSpacing:'-0.01em',lineHeight:1.1 }}>
           {vendor.name}
         </h2>
 
         {/* Tagline */}
-        <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:300,fontStyle:'italic',color:'#555250',margin:'0 0 12px',lineHeight:1.5 }}>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:300,fontStyle:'italic',color:'rgba(248,247,245,0.65)',margin:'0 0 12px',lineHeight:1.5 }}>
           {vendor.tagline}
         </p>
 
         {/* Price */}
-        <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:300,color:'#888580',margin:'0 0 20px' }}>
+        <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:300,color:'rgba(248,247,245,0.5)',margin:'0 0 20px' }}>
           {vendor.priceLabel}
         </p>
 
@@ -131,8 +145,8 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
 
           {/* Enquire — primary CTA */}
           <button
-            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEnquire(); }}
-            style={{ width:'100%',padding:'14px 0',background:'#111111',border:'none',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#F8F7F5',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,touchAction:'manipulation' }}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setEnquireToast(true); setTimeout(() => setEnquireToast(false), 2500); onEnquire(); }}
+            style={{ width:'100%',padding:'14px 0',background:'rgba(248,247,245,0.9)',border:'none',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#111111',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,touchAction:'manipulation' }}
           >
             <MessageCircle size={14} strokeWidth={1.5} />
             Enquire
@@ -144,21 +158,17 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
             {/* Lock Date — coming soon */}
             <button
               disabled
-              style={{ flex:1,padding:'12px 0',background:'transparent',border:'0.5px solid rgba(201,168,76,0.4)',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.18em',textTransform:'uppercase',color:'#C9A84C',cursor:'not-allowed',opacity:0.7,display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}
+              style={{ flex:1,padding:'12px 0',background:'rgba(255,255,255,0.12)',border:'0.5px solid rgba(255,255,255,0.18)',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(248,247,245,0.7)',cursor:'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}
             >
               <Lock size={12} strokeWidth={1.5} />
               Lock Date
-              <span style={{ fontSize:7,letterSpacing:'0.05em',textTransform:'none',fontStyle:'italic',color:'#C8C4BE' }}>soon</span>
+              <span style={{ fontSize:7,letterSpacing:'0.05em',textTransform:'none',fontStyle:'italic',color:'rgba(248,247,245,0.35)' }}>soon</span>
             </button>
 
             {/* Share to Circle */}
             <button
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                if (userId) saveVendorToMuse(vendor.id, userId);
-                spawnHeart();
-              }}
-              style={{ flex:1,padding:'12px 0',background:'transparent',border:'0.5px solid #E2DED8',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.18em',textTransform:'uppercase',color:'#555250',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,touchAction:'manipulation' }}
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setCircleToast(true); setTimeout(() => setCircleToast(false), 2500); }}
+              style={{ flex:1,padding:'12px 0',background:'rgba(255,255,255,0.12)',border:'0.5px solid rgba(255,255,255,0.18)',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(248,247,245,0.7)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,touchAction:'manipulation' }}
             >
               <Users size={12} strokeWidth={1.5} />
               Circle
@@ -193,25 +203,19 @@ function ImageDots({ total, current }: { total: number; current: number }) {
   );
 }
 
-// ── Blind indicator circles ───────────────────────────────────────────────────
-function BlindIndicator({ side, active }: { side: 'left'|'right'; active: boolean }) {
+// ── Blind centre toast (replaces side indicators) ────────────────────────────
+function BlindCentreToast({ hint }: { hint: 'left'|'right'|null }) {
+  if (!hint) return null;
   return (
     <div style={{
-      position:'fixed', top:'50%', [side]:24,
-      transform:'translateY(-50%)', zIndex:30,
-      opacity: active ? 1 : 0,
-      transition:'opacity 120ms ease',
-      pointerEvents:'none',
+      position:'fixed', top:'50%', left:'50%',
+      transform:'translate(-50%,-50%)',
+      zIndex:30, pointerEvents:'none',
+      animation: 'heartPop 600ms cubic-bezier(0.22,1,0.36,1) forwards',
     }}>
-      <div style={{
-        background: side === 'right' ? 'rgba(201,168,76,0.9)' : 'rgba(17,17,17,0.6)',
-        backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-        borderRadius:'50%', width:60, height:60,
-        display:'flex', alignItems:'center', justifyContent:'center',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-      }}>
-        <span style={{ fontSize:24, color:'#FFFFFF' }}>{side === 'right' ? '♥' : '✕'}</span>
-      </div>
+      <span style={{ fontSize:72, lineHeight:1 }}>
+        {hint === 'right' ? '♥' : '✕'}
+      </span>
     </div>
   );
 }
@@ -224,6 +228,7 @@ function DiscoveryFeedContent() {
   const isBlind = mode === 'blind';
 
   const [userId, setUserId] = useState<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
   const [vendors, setVendors] = useState<SeedVendor[]>([]);
   const [vendorIdx, setVendorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
@@ -242,7 +247,7 @@ function DiscoveryFeedContent() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('couple_session');
-      if (raw) { const s = JSON.parse(raw); if (s?.id) setUserId(s.id); }
+      if (raw) { const s = JSON.parse(raw); if (s?.id) { setUserId(s.id); userIdRef.current = s.id; } }
     } catch {}
   }, []);
 
@@ -315,7 +320,7 @@ function DiscoveryFeedContent() {
   const handleDoubleTap = useCallback(() => {
     if (isBlind || !vendor) return;
     spawnHeart();
-    saveVendorToMuse(vendor.id, userId);
+    saveVendorToMuse(vendor.id, userIdRef.current);
   }, [isBlind, vendor, userId]);
 
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -364,7 +369,7 @@ function DiscoveryFeedContent() {
           setBlindHint('right');
           setTimeout(() => setBlindHint(null), 400);
           spawnHeart();
-          saveVendorToMuse(vendor?.id || '', userId);
+          saveVendorToMuse(vendor?.id || '', userIdRef.current);
           goNextVendor('right');
         } else if (dx < -SWIPE_THRESHOLD) {
           // Left → dismiss + animate
@@ -459,13 +464,8 @@ function DiscoveryFeedContent() {
           </div>
         )}
 
-        {/* Blind indicators */}
-        {isBlind && (
-          <>
-            <BlindIndicator side="left" active={blindHint === 'left'} />
-            <BlindIndicator side="right" active={blindHint === 'right'} />
-          </>
-        )}
+        {/* Blind centre toast */}
+        {isBlind && <BlindCentreToast hint={blindHint} />}
 
         {/* Hint text (normal mode, no overlay) */}
         {!isBlind && !overlayVisible && (
@@ -482,7 +482,7 @@ function DiscoveryFeedContent() {
             vendor={vendor}
             visible={overlayVisible}
             onClose={() => setOverlayVisible(false)}
-            onEnquire={() => router.push(`/couple/messages?vendor=${vendor.id}&name=${encodeURIComponent(vendor.name)}`)}
+            onEnquire={() => { /* Enquiry flow — coming with messaging phase */ }}
             userId={userId}
           />
         )}

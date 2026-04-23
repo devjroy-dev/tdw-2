@@ -221,7 +221,7 @@ export default function MusePage() {
 
       <div style={{
         fontFamily: "'DM Sans', sans-serif",
-        background: '#0C0A09',
+        background: '#F8F7F5',
         minHeight: '100dvh',
         paddingTop: 16,
         paddingBottom: 80,
@@ -232,7 +232,7 @@ export default function MusePage() {
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: 32,
             fontWeight: 300,
-            color: '#F8F7F5',
+            color: '#111111',
             margin: '0 0 8px',
             letterSpacing: '-0.01em',
           }}>Your Muse</p>
@@ -240,7 +240,7 @@ export default function MusePage() {
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 14,
             fontWeight: 300,
-            color: 'rgba(248,247,245,0.6)',
+            color: '#888580',
             margin: 0,
           }}>
             {items.length === 0
@@ -266,7 +266,8 @@ export default function MusePage() {
               <div style={{
                 fontSize: 48,
                 marginBottom: 16,
-                opacity: 0.3,
+                opacity: 0.2,
+                color: '#111111',
               }}>✦</div>
               <p style={{
                 fontFamily: "'Cormorant Garamond', serif",
@@ -279,7 +280,7 @@ export default function MusePage() {
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: 14,
                 fontWeight: 300,
-                color: 'rgba(248,247,245,0.5)',
+                color: '#888580',
                 margin: '0 0 24px',
                 lineHeight: 1.6,
               }}>
@@ -293,9 +294,9 @@ export default function MusePage() {
                   fontWeight: 300,
                   letterSpacing: '0.15em',
                   textTransform: 'uppercase',
-                  color: '#F8F7F5',
-                  background: 'rgba(248,247,245,0.1)',
-                  border: '0.5px solid rgba(248,247,245,0.2)',
+                  color: '#111111',
+                  background: 'transparent',
+                  border: '0.5px solid #E2DED8',
                   borderRadius: 24,
                   padding: '12px 24px',
                   cursor: 'pointer',
@@ -327,11 +328,11 @@ export default function MusePage() {
                         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,letterSpacing:'0',textTransform:'none',color:'rgba(248,247,245,0.55)',lineHeight:1.4 }}>Pure photos, no names. Swipe on instinct.</span>
                       </button>
                       <button
-                        onClick={() => router.push('/couple/discover/hub')}
+                        onClick={() => router.push('/couple/discover/feed?mode=discover')}
                         style={{ width:'100%',padding:'16px 20px',background:'transparent',border:'0.5px solid #E2DED8',borderRadius:12,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#111111',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'flex-start',gap:4,touchAction:'manipulation' }}
                       >
-                        <span>Browse Feed</span>
-                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,letterSpacing:'0',textTransform:'none',color:'#888580',lineHeight:1.4 }}>Explore all Makers with filters.</span>
+                        <span>My Feed</span>
+                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,letterSpacing:'0',textTransform:'none',color:'#888580',lineHeight:1.4 }}>Browse all Makers. Swipe up and down.</span>
                       </button>
                     </div>
                   </div>

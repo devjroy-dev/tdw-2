@@ -51,7 +51,7 @@ function ComingSoonModal({ card, onClose }: { card: 'couture' | 'curated'; onClo
   );
 }
 
-function FilterRow({ filters, onChange }: { filters: FilterState; onChange: (f: FilterState) => void }) {
+function FilterRow({ filters, onChange, hideBudget }: { filters: FilterState; onChange: (f: FilterState) => void; hideBudget?: boolean }) {
   const sel: React.CSSProperties = { width:'100%',padding:'11px 14px',background:'#F8F7F5',border:'0.5px solid #E2DED8',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:300,color:'#111111',cursor:'pointer',appearance:'none',WebkitAppearance:'none',outline:'none' };
   const inp: React.CSSProperties = { flex:1,padding:'11px 14px',background:'#F8F7F5',border:'0.5px solid #E2DED8',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:300,color:'#111111',outline:'none',width:'100%' };
   const lbl: React.CSSProperties = { fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.2em',textTransform:'uppercase',color:'#888580',display:'block',marginBottom:6 };
@@ -64,6 +64,7 @@ function FilterRow({ filters, onChange }: { filters: FilterState; onChange: (f: 
           {CATEGORIES.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
         </select>
       </div>
+      {!hideBudget && (
       <div>
         <label style={lbl}>Budget</label>
         <div style={{ display:'flex',gap:8 }}>
@@ -71,6 +72,7 @@ function FilterRow({ filters, onChange }: { filters: FilterState; onChange: (f: 
           <input type="number" placeholder="Max ₹" value={filters.maxBudget} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({...filters,maxBudget:e.target.value})} style={inp} />
         </div>
       </div>
+      )}
       <div>
         <label style={lbl}>City</label>
         <select value={filters.city} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({...filters,city:e.target.value})} style={sel}>
@@ -128,7 +130,7 @@ function CapsuleCard({ id, title, subtitle, isOpen, onToggle, onBrowse, comingSo
       {/* Filter panel — only shows when chevron tapped */}
       {isOpen && !comingSoon && (
         <div style={{ padding:'0 20px 20px',borderTop:'0.5px solid #F0EDE8' }}>
-          <FilterRow filters={filters} onChange={onFiltersChange} />
+          <FilterRow filters={filters} onChange={onFiltersChange} hideBudget={id === 'blind'} />
           <button onClick={(e) => { e.stopPropagation(); onBrowse(); }} style={{ width:'100%',padding:'14px 0',marginTop:16,background:'#111111',border:'none',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#F8F7F5',cursor:'pointer',touchAction:'manipulation' }}>
             {browseLabel}
           </button>
