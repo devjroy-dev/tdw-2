@@ -86,9 +86,24 @@ function CapsuleCard({ id, title, subtitle, isOpen, onToggle, onBrowse, comingSo
   id: CardId; title: string; subtitle: string; isOpen: boolean; onToggle: () => void; onBrowse: () => void;
   comingSoon?: boolean; onComingSoon?: () => void; filters: FilterState; onFiltersChange: (f: FilterState) => void; browseLabel: string;
 }) {
+  // Card row click → browse directly (or coming soon modal)
+  // Chevron click → expand/collapse filters
+  const handleCardClick = () => {
+    if (comingSoon) { onComingSoon?.(); return; }
+    onBrowse();
+  };
+  const handleChevronClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle();
+  };
+
   return (
     <div style={{ background:'#FFFFFF',border:'0.5px solid #E2DED8',borderRadius:12,overflow:'hidden',transition:'box-shadow 220ms ease',boxShadow:isOpen?'0 4px 20px rgba(17,17,17,0.07)':'0 1px 4px rgba(17,17,17,0.04)' }}>
-      <button onClick={comingSoon ? onComingSoon : onToggle} style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 20px',background:'none',border:'none',cursor:'pointer',touchAction:'manipulation',textAlign:'left',gap:12 }}>
+      {/* Header row: clicking anywhere → browse; chevron only → expand */}
+      <div
+        onClick={handleCardClick}
+        style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 20px',background:'none',cursor:'pointer',touchAction:'manipulation',gap:12 }}
+      >
         <div style={{ flex:1,minWidth:0 }}>
           <div style={{ display:'flex',alignItems:'center',gap:10 }}>
             <h3 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:300,color:'#111111',margin:0,letterSpacing:'-0.01em',lineHeight:1 }}>{title}</h3>
@@ -96,16 +111,25 @@ function CapsuleCard({ id, title, subtitle, isOpen, onToggle, onBrowse, comingSo
           </div>
           <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:300,color:'#888580',margin:'4px 0 0',lineHeight:1.4 }}>{subtitle}</p>
         </div>
-        <div style={{ flexShrink:0,color:'#C8C4BE',transition:'transform 220ms ease',transform:isOpen&&!comingSoon?'rotate(180deg)':'rotate(0deg)' }}>
-          {comingSoon
-            ? <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            : <ChevronDown size={18} strokeWidth={1.5} />}
-        </div>
-      </button>
+        {/* Chevron — only expands filters, doesn't navigate */}
+        {!comingSoon ? (
+          <div
+            onClick={handleChevronClick}
+            style={{ flexShrink:0,color:'#C8C4BE',padding:'4px 0 4px 12px',cursor:'pointer',transition:'transform 220ms ease',transform:isOpen?'rotate(180deg)':'rotate(0deg)' }}
+          >
+            <ChevronDown size={18} strokeWidth={1.5} />
+          </div>
+        ) : (
+          <div style={{ flexShrink:0,color:'#C8C4BE' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+        )}
+      </div>
+      {/* Filter panel — only shows when chevron tapped */}
       {isOpen && !comingSoon && (
         <div style={{ padding:'0 20px 20px',borderTop:'0.5px solid #F0EDE8' }}>
           <FilterRow filters={filters} onChange={onFiltersChange} />
-          <button onClick={onBrowse} style={{ width:'100%',padding:'14px 0',marginTop:16,background:'#111111',border:'none',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#F8F7F5',cursor:'pointer',touchAction:'manipulation' }}>
+          <button onClick={(e) => { e.stopPropagation(); onBrowse(); }} style={{ width:'100%',padding:'14px 0',marginTop:16,background:'#111111',border:'none',borderRadius:10,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#F8F7F5',cursor:'pointer',touchAction:'manipulation' }}>
             {browseLabel}
           </button>
         </div>
@@ -118,10 +142,34 @@ export default function DiscoverHub() {
   const router = useRouter();
   const [openCard, setOpenCard] = useState<CardId | null>(null);
   const [comingSoonModal, setComingSoonModal] = useState<'couture'|'curated'|null>(null);
-  const [filters, setFilters] = useState<Record<CardId, FilterState>>({
+  // Sticky filters — persisted in localStorage, blind mode always resets
+  const STORAGE_KEY = 'tdw_hub_filters';
+  const defaultFilters: Record<CardId, FilterState> = {
     myfeed: {...EMPTY_FILTERS}, blind: {...EMPTY_FILTERS}, featured: {...EMPTY_FILTERS},
     couture: {...EMPTY_FILTERS}, categories: {...EMPTY_FILTERS}, curated: {...EMPTY_FILTERS},
-  });
+  };
+  const loadFilters = (): Record<CardId, FilterState> => {
+    if (typeof window === 'undefined') return defaultFilters;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Always reset blind mode filters
+        return { ...defaultFilters, ...parsed, blind: {...EMPTY_FILTERS} };
+      }
+    } catch {}
+    return defaultFilters;
+  };
+  const [filters, setFiltersState] = useState<Record<CardId, FilterState>>(loadFilters);
+  const setFilters = (updater: (prev: Record<CardId, FilterState>) => Record<CardId, FilterState>) => {
+    setFiltersState(prev => {
+      const next = updater(prev);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+      }
+      return next;
+    });
+  };
 
   type CardDef = { id: CardId; title: string; subtitle: string; mode: string; browseLabel: string; comingSoon?: boolean };
   const CARDS: CardDef[] = [
