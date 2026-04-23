@@ -10,7 +10,7 @@ function isVerifiedVendor(vendor: any): boolean {
     vendor.name &&
     vendor.category &&
     vendor.city &&
-    vendor.priceFrom &&
+    (vendor as any).priceFrom || vendor.starting_price &&
     vendor.tagline &&
     vendor.images?.length >= 5
   );
@@ -160,7 +160,7 @@ export default function VendorCardSheet({
             color: '#888580',
             margin: '0 0 16px',
           }}>
-            {vendor.categoryLabel || vendor.category}
+            {vendor.category}
             {vendor.city && ` · ${vendor.city}`}
           </p>
 
@@ -218,7 +218,7 @@ export default function VendorCardSheet({
           )}
 
           {/* Price */}
-          {vendor.priceFrom && (
+          {(vendor as any).priceFrom || vendor.starting_price && (
             <div style={{ marginBottom: 24 }}>
               <p style={{
                 fontFamily: "'Jost', sans-serif",
@@ -238,7 +238,7 @@ export default function VendorCardSheet({
                 color: '#111111',
                 margin: 0,
               }}>
-                {formatINR(vendor.priceFrom)}
+                {formatINR((vendor as any).priceFrom || vendor.starting_price)}
               </p>
             </div>
           )}
