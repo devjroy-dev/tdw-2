@@ -353,34 +353,38 @@ export default function MusePage() {
             items.map(item => {
               const vendor = item.vendor;
               const image = getVendorImage(item);
-              const tierBadge = getTierBadge(vendor?.tier);
               const isRemoving = removing === item.id;
               const isShortlisting = shortlisting === item.id;
+              // Derive name and category from vendor join (moodboard_items has no name/category columns)
+              const vendorName = vendor?.name || null;
+              const vendorCategory = vendor?.category || null;
+              const vendorCity = vendor?.city || null;
 
               return (
                 <div
                   key={item.id}
                   style={{
-                    background: 'rgba(248,247,245,0.03)',
-                    border: '0.5px solid rgba(248,247,245,0.1)',
-                    borderRadius: 12,
+                    background: '#FFFFFF',
+                    border: '0.5px solid #E2DED8',
+                    borderRadius: 16,
                     overflow: 'hidden',
-                    marginBottom: 16,
+                    marginBottom: 12,
                     opacity: isRemoving || isShortlisting ? 0.5 : 1,
                     transition: 'opacity 200ms cubic-bezier(0.22,1,0.36,1)',
+                    boxShadow: '0 2px 12px rgba(17,17,17,0.06)',
                   }}
                 >
-                  {/* Image */}
-                  {image && (
-                    <div style={{
-                      position: 'relative',
-                      width: '100%',
-                      paddingBottom: '56.25%', // 16:9
-                      background: '#111111',
-                    }}>
+                  {/* Image — 3:2 ratio, full width */}
+                  <div style={{
+                    position: 'relative',
+                    width: '100%',
+                    paddingBottom: '66.66%',
+                    background: '#F0EDE8',
+                  }}>
+                    {image ? (
                       <img
                         src={image}
-                        alt={vendor?.name || item.vendor_name}
+                        alt={vendorName || ''}
                         style={{
                           position: 'absolute',
                           inset: 0,
@@ -389,140 +393,122 @@ export default function MusePage() {
                           objectFit: 'cover',
                         }}
                       />
-                      
-                      {/* Remove button */}
-                      <button
-                        onClick={() => handleRemove(item.id)}
-                        disabled={isRemoving || isShortlisting}
-                        style={{
-                          position: 'absolute',
-                          top: 12,
-                          right: 12,
-                          width: 32,
-                          height: 32,
-                          background: 'rgba(12,10,9,0.8)',
-                          backdropFilter: 'blur(8px)',
-                          border: 'none',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
-                        }}
-                      >
-                        <X size={16} color="#F8F7F5" strokeWidth={1.5} />
-                      </button>
+                    ) : (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 32, color: '#C8C4BE' }}>✦</span>
+                      </div>
+                    )}
 
-                      {/* Tier badge */}
-                      {tierBadge && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 12,
-                          left: 12,
-                          fontFamily: "'Jost', sans-serif",
-                          fontSize: 9,
-                          fontWeight: 300,
-                          letterSpacing: '0.2em',
-                          color: tierBadge.color,
-                          background: 'rgba(12,10,9,0.8)',
-                          backdropFilter: 'blur(8px)',
-                          border: `0.5px solid ${tierBadge.color}`,
-                          borderRadius: 4,
-                          padding: '4px 8px',
-                        }}>
-                          {tierBadge.label}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Details */}
-                  <div style={{ padding: 16 }}>
-                    <p style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontSize: 20,
-                      fontWeight: 300,
-                      color: '#F8F7F5',
-                      margin: '0 0 4px',
-                    }}>
-                      {vendor?.name || item.vendor_name}
-                    </p>
-
-                    <p style={{
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontSize: 13,
-                      fontWeight: 300,
-                      color: 'rgba(248,247,245,0.6)',
-                      margin: '0 0 12px',
-                    }}>
-                      {vendor?.category || item.vendor_category}
-                      {vendor?.city && ` · ${vendor.city}`}
-                    </p>
-
-                    {/* Rating & Price */}
+                    {/* Subtle gradient at bottom for text legibility */}
                     <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 16,
-                      marginBottom: 16,
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      height: '50%',
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)',
+                      pointerEvents: 'none',
+                    }} />
+
+                    {/* Vendor name + category overlaid on image */}
+                    <div style={{
+                      position: 'absolute', bottom: 14, left: 16, right: 48,
                     }}>
-                      {vendor?.rating && (
-                        <div style={{
-                          fontFamily: "'DM Sans', sans-serif",
-                          fontSize: 12,
-                          fontWeight: 300,
-                          color: 'rgba(248,247,245,0.6)',
-                        }}>
-                          <span style={{ color: '#C9A84C', marginRight: 4 }}>
-                            {getRatingStars(vendor.rating)}
-                          </span>
-                          {vendor.rating.toFixed(1)}
-                          {vendor.review_count && ` (${vendor.review_count})`}
-                        </div>
-                      )}
-                      
-                      {vendor?.starting_price && (
-                        <div style={{
+                      {vendorName && (
+                        <p style={{
                           fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: 16,
-                          fontWeight: 300,
-                          color: '#F8F7F5',
+                          fontSize: 22, fontWeight: 300,
+                          color: '#FFFFFF', margin: '0 0 2px',
+                          letterSpacing: '-0.01em', lineHeight: 1.1,
+                          textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                        }}>{vendorName}</p>
+                      )}
+                      {(vendorCategory || vendorCity) && (
+                        <p style={{
+                          fontFamily: "'Jost', sans-serif",
+                          fontSize: 9, fontWeight: 300,
+                          letterSpacing: '0.18em', textTransform: 'uppercase',
+                          color: 'rgba(255,255,255,0.75)', margin: 0,
                         }}>
-                          {formatINR(vendor.starting_price)}
-                        </div>
+                          {vendorCategory}{vendorCity ? ` · ${vendorCity}` : ''}
+                        </p>
                       )}
                     </div>
 
-                    {/* Action buttons */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: 8,
-                    }}>
+                    {/* Remove button — subtle, top right */}
+                    <button
+                      onClick={() => handleRemove(item.id)}
+                      disabled={isRemoving || isShortlisting}
+                      style={{
+                        position: 'absolute', top: 10, right: 10,
+                        width: 28, height: 28,
+                        background: 'rgba(0,0,0,0.35)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        border: '0.5px solid rgba(255,255,255,0.2)',
+                        borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <X size={12} color="rgba(255,255,255,0.85)" strokeWidth={2} />
+                    </button>
+                  </div>
+
+                  {/* Bottom row — price + actions */}
+                  <div style={{
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                  }}>
+                    {/* Price + rating */}
+                    <div>
+                      {vendor?.starting_price && (
+                        <p style={{
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontSize: 18, fontWeight: 300,
+                          color: '#111111', margin: '0 0 2px',
+                        }}>{formatINR(vendor.starting_price)}</p>
+                      )}
+                      {vendor?.rating && (
+                        <p style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: 11, fontWeight: 300,
+                          color: '#888580', margin: 0,
+                        }}>
+                          <span style={{ color: '#C9A84C' }}>{getRatingStars(vendor.rating)}</span>
+                          {' '}{vendor.rating.toFixed(1)}
+                          {vendor.review_count ? ` (${vendor.review_count})` : ''}
+                        </p>
+                      )}
+                      {!vendor?.starting_price && !vendor?.rating && (
+                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 300, color: '#C8C4BE', margin: 0 }}>
+                          On request
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action buttons — compact row */}
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                       {/* Enquire */}
                       <button
-                        onClick={() => showToast('Messaging coming soon')}
+                        onClick={() => showToast('Enquiry coming with Messages')}
                         style={{
                           fontFamily: "'Jost', sans-serif",
-                          fontSize: 10,
-                          fontWeight: 300,
-                          letterSpacing: '0.15em',
-                          textTransform: 'uppercase',
-                          color: '#F8F7F5',
-                          background: 'rgba(248,247,245,0.05)',
-                          border: '0.5px solid rgba(248,247,245,0.15)',
-                          borderRadius: 8,
-                          padding: '10px 16px',
+                          fontSize: 9, fontWeight: 300,
+                          letterSpacing: '0.15em', textTransform: 'uppercase',
+                          color: '#111111',
+                          background: 'transparent',
+                          border: '0.5px solid #E2DED8',
+                          borderRadius: 8, padding: '9px 14px',
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          touchAction: 'manipulation',
                         }}
                       >
-                        <MessageCircle size={14} strokeWidth={1.5} />
+                        <MessageCircle size={12} strokeWidth={1.5} />
                         Enquire
                       </button>
 
@@ -532,25 +518,19 @@ export default function MusePage() {
                         disabled={isShortlisting}
                         style={{
                           fontFamily: "'Jost', sans-serif",
-                          fontSize: 10,
-                          fontWeight: 300,
-                          letterSpacing: '0.15em',
-                          textTransform: 'uppercase',
-                          color: '#111111',
-                          background: '#C9A84C',
+                          fontSize: 9, fontWeight: 300,
+                          letterSpacing: '0.15em', textTransform: 'uppercase',
+                          color: '#F8F7F5',
+                          background: '#111111',
                           border: 'none',
-                          borderRadius: 8,
-                          padding: '10px 16px',
+                          borderRadius: 8, padding: '9px 14px',
                           cursor: isShortlisting ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
+                          display: 'flex', alignItems: 'center', gap: 5,
                           opacity: isShortlisting ? 0.6 : 1,
+                          touchAction: 'manipulation',
                         }}
                       >
-                        <Heart size={14} strokeWidth={1.5} fill={isShortlisting ? '#111111' : 'none'} />
+                        <Heart size={12} strokeWidth={1.5} fill={isShortlisting ? '#F8F7F5' : 'none'} />
                         {isShortlisting ? 'Adding...' : 'Shortlist'}
                       </button>
                     </div>
