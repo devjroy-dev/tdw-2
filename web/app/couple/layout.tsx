@@ -34,8 +34,8 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
 
   // MODE 2 — Feed routes: fully immersive, NO TopBar, NO BottomNav
   // Feed is position:fixed; inset:0 and manages its own UI completely
-  const IMMERSIVE_ROUTES = ['/couple/discover/feed', '/couple/discover'];
-  if (IMMERSIVE_ROUTES.some(r => pathname === r || pathname?.startsWith(r + '?'))) {
+  // Only the feed itself is immersive — hub and other discover pages keep the shell
+  if (pathname === '/couple/discover/feed' || pathname?.startsWith('/couple/discover/feed?')) {
     return (
       <CoupleModeContext.Provider value={{ mode, setMode }}>
         {children}
