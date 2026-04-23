@@ -145,7 +145,7 @@ export default function Home() {
             pinSet = !!upsertData.pin_set;
           }
         } catch {}
-        const sessionData = { idToken: d.idToken, localId: supabaseId, phoneNumber: d.phoneNumber, vendorId: supabaseId, userId: supabaseId, id: supabaseId, phone: cleanPhone, pin_set: pinSet };
+        const sessionData = { idToken: d.idToken, localId: supabaseId, phoneNumber: d.phoneNumber, vendorId: supabaseId, userId: supabaseId, id: supabaseId, phone: cleanPhone, pin_set: pinSet, dreamer_type: upsertData?.dreamer_type || 'basic', name: upsertData?.name || null };
         localStorage.setItem(sessionKey, JSON.stringify(sessionData));
         localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
         if (pinSet) {
