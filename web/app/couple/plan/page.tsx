@@ -1675,6 +1675,7 @@ function TaskCardReadOnly({ task }: { task: Task }) {
 }
 
 // ─── EventDetailSheet ─────────────────────────────────────────────────────────
+function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: EventSheetProps) {
   const [sheetTab, setSheetTab] = useState<SheetTab>('tasks');
   const [visible, setVisible] = useState(false);
 
