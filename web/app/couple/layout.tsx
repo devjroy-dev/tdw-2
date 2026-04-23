@@ -32,9 +32,10 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // MODE 2 — Discover route: fully immersive, NO TopBar, NO BottomNav
-  // Discovery component is position:fixed; inset:0 and manages its own UI completely
-  if (pathname === '/couple/discover') {
+  // MODE 2 — Feed routes: fully immersive, NO TopBar, NO BottomNav
+  // Feed is position:fixed; inset:0 and manages its own UI completely
+  const IMMERSIVE_ROUTES = ['/couple/discover/feed', '/couple/discover'];
+  if (IMMERSIVE_ROUTES.some(r => pathname === r || pathname?.startsWith(r + '?'))) {
     return (
       <CoupleModeContext.Provider value={{ mode, setMode }}>
         {children}
@@ -47,9 +48,8 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
     <CoupleModeContext.Provider value={{ mode, setMode }}>
       <div style={{
         fontFamily: "'DM Sans', sans-serif",
-        background: mode === 'PLAN' ? '#F8F7F5' : '#0C0A09',
+        background: '#F8F7F5',
         minHeight: '100dvh',
-        transition: 'background 320ms cubic-bezier(0.22,1,0.36,1)',
       }}>
         <TopBar />
         <main style={{

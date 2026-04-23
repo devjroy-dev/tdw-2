@@ -65,27 +65,24 @@ export default function CoupleTopBar() {
       <header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 20px', height: 56,
-        background: isPlan ? '#F8F7F5' : '#0C0A09',
-        borderBottom: isPlan ? '1px solid #E2DED8' : '0px solid transparent',
+        background: '#F8F7F5',
+        borderBottom: '0.5px solid #E2DED8',
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         boxSizing: 'border-box',
-        transition: 'background 320ms cubic-bezier(0.22,1,0.36,1), border-color 320ms cubic-bezier(0.22,1,0.36,1)',
         willChange: 'transform',
       }}>
         {/* Wordmark */}
         <span style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: 20, fontWeight: 300, letterSpacing: '0.04em', lineHeight: 1,
-          color: isPlan ? '#111111' : '#F8F7F5',
-          transition: 'color 320ms cubic-bezier(0.22,1,0.36,1)',
+          color: '#111111',
         }}>TDW</span>
 
         {/* Toggle pill */}
         <div style={{
           display: 'inline-flex', alignItems: 'center',
-          background: isPlan ? 'rgba(17,17,17,0.06)' : 'rgba(255,255,255,0.08)',
+          background: 'rgba(17,17,17,0.06)',
           borderRadius: 20, padding: 3, gap: 0,
-          transition: 'background 320ms cubic-bezier(0.22,1,0.36,1)',
         }}>
           {(['PLAN', 'DISCOVER'] as CoupleAppMode[]).map(m => {
             const active = mode === m;
@@ -96,12 +93,8 @@ export default function CoupleTopBar() {
                 textTransform: 'uppercase', padding: '6px 16px',
                 borderRadius: 16, border: 'none', cursor: 'pointer',
                 whiteSpace: 'nowrap', touchAction: 'manipulation',
-                background: active
-                  ? (isPlan ? '#111111' : '#F8F7F5')
-                  : 'transparent',
-                color: active
-                  ? (isPlan ? '#F8F7F5' : '#0C0A09')
-                  : (isPlan ? '#888580' : 'rgba(255,255,255,0.5)'),
+                background: active ? '#111111' : 'transparent',
+                color: active ? '#F8F7F5' : '#888580',
                 transition: 'all 180ms cubic-bezier(0.22,1,0.36,1)',
               }}>{m}</button>
             );
@@ -113,9 +106,8 @@ export default function CoupleTopBar() {
           width: 32, height: 32, borderRadius: '50%', cursor: 'pointer',
           touchAction: 'manipulation', flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: isPlan ? '#111111' : 'rgba(201,168,76,0.15)',
-          border: isPlan ? 'none' : '1px solid #C9A84C',
-          transition: 'all 320ms cubic-bezier(0.22,1,0.36,1)',
+          background: '#111111',
+          border: 'none',
         }}>
           <span style={{
             fontFamily: "'Jost', sans-serif",
