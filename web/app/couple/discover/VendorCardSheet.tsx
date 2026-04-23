@@ -43,11 +43,7 @@ function formatINR_old(n?: number): string {
   return '₹' + n.toLocaleString('en-IN');
 }
 
-function getTierBadge(tier?: string): { color: string; label: string } | null {
-  if (tier === 'prestige') return { color: '#C9A84C', label: 'PRESTIGE' };
-  if (tier === 'signature') return { color: '#888580', label: 'SIGNATURE' };
-  return null;
-}
+// getTierBadge removed - using verified badge
 
 export default function VendorCardSheet({
   vendor,
@@ -61,7 +57,7 @@ export default function VendorCardSheet({
 
   if (!visible || !vendor) return null;
 
-  const tierBadge = getTierBadge(vendor.tier);
+  
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setStartY(e.touches[0].clientY);
@@ -164,24 +160,7 @@ export default function VendorCardSheet({
             {vendor.city && ` · ${vendor.city}`}
           </p>
 
-          {/* Tier badge removed - using verified instead */}
-          {false && tierBadge && (
-            <div style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: 8,
-              fontWeight: 300,
-              letterSpacing: '0.25em',
-              color: tierBadge.color,
-              border: `0.5px solid ${tierBadge.color}`,
-              borderRadius: 3,
-              padding: '3px 6px',
-              display: 'inline-block',
-              marginBottom: 16,
-              textTransform: 'uppercase',
-            }}>
-              {tierBadge.label}
-            </div>
-          )}
+          {/* Tier badge removed - using verified badge instead */}
 
           {/* Rating */}
           {null && (
