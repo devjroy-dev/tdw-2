@@ -143,6 +143,10 @@ function CapsuleCard({ id, title, subtitle, isOpen, onToggle, onBrowse, comingSo
 export default function DiscoverHub() {
   const router = useRouter();
   const [openCard, setOpenCard] = useState<CardId | null>(null);
+  const [searchQ, setSearchQ] = useState('');
+  const [searchResults, setSearchResults] = useState<{id:string;name:string;category:string;city?:string}[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const API = 'https://dream-wedding-production-89ae.up.railway.app';
   const [comingSoonModal, setComingSoonModal] = useState<'couture'|'curated'|null>(null);
   // Sticky filters — persisted in localStorage, blind mode always resets
   const STORAGE_KEY = 'tdw_hub_filters';
@@ -187,6 +191,60 @@ export default function DiscoverHub() {
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');`}</style>
       <div style={{ fontFamily:"'DM Sans',sans-serif",background:'#F8F7F5',minHeight:'100dvh',padding:'28px 16px',paddingBottom:'calc(80px + env(safe-area-inset-bottom,0px))' }}>
+
+        {/* Search bar */}
+        <div style={{ position:'relative', marginBottom:20 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8C4BE" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search for a Maker by name..."
+            value={searchQ}
+            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+              const q = e.target.value;
+              setSearchQ(q);
+              if (q.trim().length >= 2) {
+                try {
+                  const res = await fetch(`${API}/api/vendors/search?q=${encodeURIComponent(q.trim())}`);
+                  const json = await res.json();
+                  setSearchResults(json.success ? json.data : []);
+                  setShowResults(true);
+                } catch { setSearchResults([]); }
+              } else { setSearchResults([]); setShowResults(false); }
+            }}
+            style={{ width:'100%', padding:'10px 16px 10px 36px',
+              background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:20,
+              fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300,
+              color:'#111111', outline:'none', boxSizing:'border-box' as const }}
+          />
+          {/* Search results dropdown */}
+          {showResults && searchResults.length > 0 && (
+            <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, right:0, zIndex:100,
+              background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:12,
+              boxShadow:'0 8px 24px rgba(17,17,17,0.1)', overflow:'hidden' }}>
+              {searchResults.map((v: {id:string;name:string;category:string;city?:string}) => (
+                <div key={v.id} onClick={() => { router.push(buildFeedUrl('discover', {...EMPTY_FILTERS, category: v.category})); setShowResults(false); setSearchQ(''); }}
+                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                    padding:'12px 16px', borderBottom:'0.5px solid #F0EDE8', cursor:'pointer',
+                    touchAction:'manipulation' }}>
+                  <div>
+                    <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:300,
+                      color:'#111111', margin:'0 0 2px', letterSpacing:'-0.01em' }}>{v.name}</p>
+                    <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300,
+                      letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', margin:0 }}>
+                      {v.category}{v.city ? ` · ${v.city}` : ''}
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8C4BE" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Header */}
         <div style={{ marginBottom:28 }}>

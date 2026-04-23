@@ -526,7 +526,7 @@ function DiscoveryFeedContent() {
             vendor={vendor}
             visible={overlayVisible}
             onClose={() => setOverlayVisible(false)}
-            onEnquire={() => { /* Enquiry flow — coming with messaging phase */ }}
+            onEnquire={() => router.push(`/couple/messages?enquire=${vendor.id}&name=${encodeURIComponent(vendor.name)}`)}
             userId={userId}
           />
         )}

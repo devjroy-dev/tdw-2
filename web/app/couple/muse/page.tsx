@@ -494,7 +494,7 @@ export default function MusePage() {
                     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                       {/* Enquire */}
                       <button
-                        onClick={() => showToast('Enquiry coming with Messages')}
+                        onClick={() => router.push(`/couple/messages?enquire=${vendor?.id || item.vendor_id}&name=${encodeURIComponent(vendor?.name || 'Vendor')}`)}
                         style={{
                           fontFamily: "'Jost', sans-serif",
                           fontSize: 9, fontWeight: 300,
