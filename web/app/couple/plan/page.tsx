@@ -42,6 +42,9 @@ interface Task {
   due_date?: string;
   event_name?: string;
   events?: { name: string };
+  assigned_to?: string;   // vendor free-text
+  notes?: string;
+  is_complete?: boolean;
 }
 
 // ─── Shimmer ──────────────────────────────────────────────────────────────────
@@ -176,10 +179,17 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
   const [selectedEvent, setSelectedEvent] = useState('general');
   const [priority, setPriority] = useState('Medium');
   const [dueDate, setDueDate] = useState('');
+  const [vendorName, setVendorName] = useState('');
+  const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  function reset() {
+    setTaskTitle(''); setSelectedEvent('general'); setPriority('Medium');
+    setDueDate(''); setVendorName(''); setNotes('');
+  }
 
   async function handleSubmit() {
     if (!taskTitle.trim() || submitting) return;
@@ -194,12 +204,14 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
           text: taskTitle.trim(),
           priority: priority.toLowerCase(),
           due_date: dueDate || null,
+          assigned_to: vendorName.trim() || null,
+          notes: notes.trim() || null,
           is_custom: true,
         }),
       });
       const json = await res.json();
       if (json.success === false) { showToast(json.error || 'Error adding task'); }
-      else { showToast('Task added'); onSuccess(); onClose(); setTaskTitle(''); setSelectedEvent('general'); setPriority('Medium'); setDueDate(''); }
+      else { showToast('Task added'); onSuccess(); onClose(); reset(); }
     } catch { showToast('Network error'); }
     finally { setSubmitting(false); }
   }
@@ -208,7 +220,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
 
   return (
     <>
-      <SheetWrap visible={visible} onClose={onClose} title="New Task" height="80vh">
+      <SheetWrap visible={visible} onClose={onClose} title="New Task" height="88vh">
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Task</label>
@@ -238,6 +250,28 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Due Date</label>
             <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Vendor / Maker (optional)</label>
+            <input value={vendorName} onChange={e => setVendorName(e.target.value)}
+              placeholder="e.g. Arjun Kartha Studio"
+              style={fieldInput}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+          </div>
+          <div style={fieldWrapper}>
+            <label style={fieldLabel}>Notes (optional)</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Any details or reminders..."
+              rows={3}
+              style={{
+                ...fieldInput, height: 'auto', resize: 'none',
+                borderBottom: '1px solid #E2DED8', padding: '8px 4px', lineHeight: 1.6,
+              }}
               onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
               onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
             />
@@ -753,93 +787,364 @@ function DreamAiSheet({
 }
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
-type TaskFilter = 'event' | 'phase' | 'priority';
+type StatusFilter = 'all' | 'pending' | 'done';
 
 function formatDue(d?: string) {
   if (!d) return '';
-  const dt = new Date(d);
-  return 'Due ' + dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((dt.getTime() - today.getTime()) / 86400000);
+  if (diff < 0) return 'Overdue';
+  if (diff === 0) return 'Due today';
+  if (diff === 1) return 'Due tomorrow';
+  return 'Due ' + new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-function groupBy<T>(arr: T[], key: (t: T) => string): { group: string; items: T[] }[] {
+function isOverdue(d?: string) {
+  if (!d) return false;
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return dt < today;
+}
+
+function groupByEvent<T extends Task>(arr: T[]): { group: string; items: T[] }[] {
   const map = new Map<string, T[]>();
   arr.forEach(t => {
-    const k = key(t);
+    const k = t.events?.name || t.event_name || 'General';
     if (!map.has(k)) map.set(k, []);
     map.get(k)!.push(t);
   });
   return Array.from(map.entries()).map(([group, items]) => ({ group, items }));
 }
 
-function priorityOrder(p: string) { return p === 'high' ? 0 : p === 'medium' ? 1 : 2; }
+// ─── Auto-create expense sheet after task completion ──────────────────────────
+function CreateExpenseSheet({ visible, onClose, userId, task, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  task: Task; events: EventOption[]; onSuccess: () => void;
+}) {
+  const [amount, setAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
 
-function TaskCard({ task }: { task: Task }) {
-  const prioColor = (p: string) => p === 'high' ? '#C9A84C' : p === 'medium' ? '#8C8480' : '#E2DED8';
-  const statusChip = (s: string) => {
-    const styles: Record<string, React.CSSProperties> = {
-      pending: { background: '#FFF8EC', color: '#C9A84C' },
-      in_progress: { background: '#F4F1EC', color: '#3C3835' },
-      done: { background: '#F4F1EC', color: '#8C8480' },
-    };
-    return (
-      <span style={{
-        ...styles[s] || styles.pending,
-        fontFamily: "'Jost', sans-serif",
-        fontSize: 10, fontWeight: 400,
-        letterSpacing: '0.12em', textTransform: 'uppercase',
-        padding: '4px 8px', borderRadius: 100, whiteSpace: 'nowrap',
-      }}>{s.replace('_', ' ')}</span>
-    );
-  };
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  const eventName = task.events?.name || task.event_name || 'general';
+  const vendorName = task.assigned_to || '';
+
+  async function handleSubmit() {
+    if (!amount || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          vendor_name: vendorName || 'General',
+          description: task.title,
+          actual_amount: Number(amount),
+          event: eventName === 'general' ? null : eventName,
+          payment_status: 'committed',
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding expense'); }
+      else { showToast('Expense added'); onSuccess(); onClose(); setAmount(''); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
   return (
-    <div style={{
-      background: '#F4F1EC', border: '1px solid #E2DED8',
-      borderRadius: 12, padding: 16,
-      display: 'flex', alignItems: 'flex-start', gap: 10,
-    }}>
-      <span style={{ width: 4, height: 4, borderRadius: '50%', background: prioColor(task.priority), flexShrink: 0, marginTop: 8 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09',
-          margin: '0 0 4px', textDecoration: task.status === 'done' ? 'line-through' : 'none',
-        }}>{task.title}</p>
-        {task.due_date && (
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{formatDue(task.due_date)}</p>
-        )}
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 400,
+        background: 'rgba(17,17,17,0.4)',
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 401,
+        background: '#FFFFFF', borderRadius: '24px 24px 0 0',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        padding: '20px 20px 0',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 4px' }}>Log an expense?</p>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 24px' }}>
+          {task.title}{vendorName ? ` · ${vendorName}` : ''}
+        </p>
+        <div style={{ position: 'relative', marginBottom: 24 }}>
+          <label style={fieldLabel}>Amount paid</label>
+          <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#888580' }}>₹</span>
+          <input
+            value={amount} onChange={e => setAmount(e.target.value)}
+            inputMode="numeric" placeholder="0"
+            style={{ ...fieldInput, paddingLeft: 18 }}
+            autoFocus
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 12, paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <button onClick={onClose} style={{
+            flex: 1, height: 52, borderRadius: 100,
+            background: 'transparent', border: '1px solid #E2DED8',
+            fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
+            letterSpacing: '0.15em', textTransform: 'uppercase',
+            color: '#888580', cursor: 'pointer', touchAction: 'manipulation',
+          }}>SKIP</button>
+          <button onClick={handleSubmit} disabled={!amount || submitting} style={submitBtn(!amount || submitting)}>
+            {submitting ? '...' : 'LOG EXPENSE'}
+          </button>
+        </div>
+        <Toast msg={toast} />
       </div>
-      {statusChip(task.status)}
-    </div>
+    </>
   );
 }
 
-function TasksTab({ userId, onOpenDreamAi, refetch }: { userId: string; onOpenDreamAi: (prefill: string) => void; refetch: number }) {
+// ─── Task Card — tap to expand detail, checkbox to complete ───────────────────
+function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded }: {
+  task: Task;
+  userId: string;
+  events: EventOption[];
+  onCompleted: (id: string) => void;
+  onDeleted: (id: string) => void;
+  onExpenseAdded: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completed, setCompleted] = useState(task.status === 'done' || !!task.is_complete);
+  const [deleting, setDeleting] = useState(false);
+  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  const isDone = completed || task.status === 'done';
+  const overdue = !isDone && isOverdue(task.due_date);
+  const dueLabel = formatDue(task.due_date);
+  const prioColor = task.priority === 'high' ? '#C9A84C' : task.priority === 'medium' ? '#8C8480' : '#E2DED8';
+  const eventLabel = task.events?.name || task.event_name || '';
+
+  async function handleComplete(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (isDone || completing) return;
+    setCompleting(true);
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/checklist/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_complete: true }),
+      });
+      setCompleted(true);
+      onCompleted(task.id);
+      // Offer to create expense after short delay
+      setTimeout(() => setExpenseSheetOpen(true), 400);
+    } catch { showToast('Could not update task'); }
+    finally { setCompleting(false); }
+  }
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/checklist/${task.id}`, { method: 'DELETE' });
+      onDeleted(task.id);
+    } catch { showToast('Could not delete task'); setDeleting(false); }
+  }
+
+  return (
+    <>
+      <div
+        style={{
+          background: isDone ? 'transparent' : '#FFFFFF',
+          border: `1px solid ${isDone ? '#E2DED8' : overdue ? '#C9A84C' : '#E2DED8'}`,
+          borderRadius: 14,
+          overflow: 'hidden',
+          opacity: isDone ? 0.55 : 1,
+          transition: 'opacity 400ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        {/* Main row */}
+        <div
+          onClick={() => setExpanded(e => !e)}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 16, cursor: 'pointer' }}
+        >
+          {/* Checkbox */}
+          <button
+            onClick={handleComplete}
+            disabled={isDone || completing}
+            style={{
+              flexShrink: 0, width: 22, height: 22, borderRadius: '50%',
+              border: `1.5px solid ${isDone ? '#C9A84C' : '#E2DED8'}`,
+              background: isDone ? '#C9A84C' : 'transparent',
+              cursor: isDone ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginTop: 1, touchAction: 'manipulation',
+              transition: 'all 300ms cubic-bezier(0.22,1,0.36,1)',
+              flexDirection: 'column',
+            }}
+            aria-label="Mark complete"
+          >
+            {isDone && (
+              <span style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, marginTop: -1 }}>✓</span>
+            )}
+          </button>
+
+          {/* Content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300,
+              color: isDone ? '#8C8480' : '#0C0A09', margin: '0 0 4px', lineHeight: 1.3,
+              textDecoration: isDone ? 'line-through' : 'none',
+              transition: 'all 350ms cubic-bezier(0.22,1,0.36,1)',
+            }}>{task.title}</p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {dueLabel && (
+                <span style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                  color: overdue ? '#C9A84C' : '#8C8480',
+                }}>{dueLabel}</span>
+              )}
+              {eventLabel && eventLabel !== 'General' && (
+                <span style={{
+                  fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: '#8C8480', background: '#F4F1EC',
+                  padding: '2px 7px', borderRadius: 100,
+                }}>{eventLabel}</span>
+              )}
+              {/* Priority dot */}
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: prioColor, display: 'inline-block' }} />
+            </div>
+          </div>
+
+          {/* Expand chevron */}
+          <span style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#C8C4BE',
+            transition: 'transform 250ms cubic-bezier(0.22,1,0.36,1)',
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            flexShrink: 0, marginTop: 4,
+          }}>›</span>
+        </div>
+
+        {/* Expanded detail */}
+        {expanded && (
+          <div style={{
+            borderTop: '0.5px solid #E2DED8',
+            padding: '14px 16px 16px',
+            background: '#FAFAF8',
+          }}>
+            {/* Detail rows */}
+            {task.notes && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 4px' }}>Notes</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#3C3835', margin: 0, lineHeight: 1.6 }}>{task.notes}</p>
+              </div>
+            )}
+            {task.assigned_to && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 4px' }}>Maker</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#3C3835', margin: 0 }}>{task.assigned_to}</p>
+              </div>
+            )}
+            {eventLabel && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 4px' }}>Event</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#3C3835', margin: 0 }}>{eventLabel}</p>
+              </div>
+            )}
+            {task.due_date && (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 4px' }}>Due</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: overdue ? '#C9A84C' : '#3C3835', margin: 0 }}>
+                  {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            )}
+            {/* Actions row */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {!isDone && (
+                <button onClick={handleComplete} disabled={completing} style={{
+                  flex: 1, height: 38, borderRadius: 100,
+                  background: '#111111', border: 'none',
+                  fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: '#F8F7F5', cursor: 'pointer', touchAction: 'manipulation',
+                }}>{completing ? '...' : 'MARK DONE'}</button>
+              )}
+              <button onClick={handleDelete} disabled={deleting} style={{
+                flex: isDone ? 1 : 0, height: 38, borderRadius: 100,
+                background: 'transparent', border: '1px solid #E2DED8',
+                fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+                letterSpacing: '0.15em', textTransform: 'uppercase',
+                color: '#888580', cursor: 'pointer', touchAction: 'manipulation',
+                padding: '0 20px',
+              }}>{deleting ? '...' : 'DELETE'}</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Auto-create expense sheet */}
+      <CreateExpenseSheet
+        visible={expenseSheetOpen}
+        onClose={() => setExpenseSheetOpen(false)}
+        userId={userId}
+        task={task}
+        events={events}
+        onSuccess={onExpenseAdded}
+      />
+      <Toast msg={toast} />
+    </>
+  );
+}
+
+// ─── TasksTab ─────────────────────────────────────────────────────────────────
+function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
+  userId: string;
+  events: EventOption[];
+  onOpenDreamAi: (prefill: string) => void;
+  refetch: number;
+  onExpenseAdded: () => void;
+}) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<TaskFilter>('event');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  useEffect(() => {
+  function loadTasks() {
     setLoading(true);
     fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${userId}`)
       .then(r => r.json())
       .then(d => { setTasks(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [userId, refetch]);
-
-  const filterChips: { key: TaskFilter; label: string }[] = [
-    { key: 'event', label: 'By Event' },
-    { key: 'phase', label: 'By Phase' },
-    { key: 'priority', label: 'By Priority' },
-  ];
-
-  let groups: { group: string; items: Task[] }[] = [];
-  if (filter === 'event') {
-    groups = groupBy(tasks, t => t.events?.name || t.event_name || 'General');
-  } else if (filter === 'priority') {
-    const sorted = [...tasks].sort((a, b) => priorityOrder(a.priority) - priorityOrder(b.priority));
-    groups = groupBy(sorted, t => t.priority === 'high' ? 'High Priority' : t.priority === 'medium' ? 'Medium Priority' : 'Low Priority');
-  } else {
-    groups = groupBy(tasks, t => t.status === 'pending' ? 'To Do' : t.status === 'in_progress' ? 'In Progress' : 'Done');
   }
+
+  useEffect(() => { loadTasks(); }, [userId, refetch]);
+
+  function handleCompleted(id: string) {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'done', is_complete: true } : t));
+  }
+  function handleDeleted(id: string) {
+    setTasks(prev => prev.filter(t => t.id !== id));
+  }
+
+  // Apply status filter then group by event
+  const filtered = tasks.filter(t => {
+    if (statusFilter === 'pending') return t.status !== 'done' && !t.is_complete;
+    if (statusFilter === 'done') return t.status === 'done' || !!t.is_complete;
+    return true;
+  });
+  const groups = groupByEvent(filtered);
+
+  const pendingCount = tasks.filter(t => t.status !== 'done' && !t.is_complete).length;
+  const doneCount = tasks.filter(t => t.status === 'done' || !!t.is_complete).length;
 
   if (loading) return (
     <div style={{ paddingTop: 12 }}>
@@ -847,7 +1152,7 @@ function TasksTab({ userId, onOpenDreamAi, refetch }: { userId: string; onOpenDr
         <div key={g} style={{ marginBottom: 24 }}>
           <Shimmer h={8} w={60} br={4} />
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Shimmer h={64} /><Shimmer h={64} />
+            <Shimmer h={68} /><Shimmer h={68} />
           </div>
         </div>
       ))}
@@ -856,25 +1161,29 @@ function TasksTab({ userId, onOpenDreamAi, refetch }: { userId: string; onOpenDr
 
   return (
     <div>
-      {/* Filter chips row + DreamAi button */}
+      {/* Status filter row + DreamAi */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {filterChips.map(fc => (
-            <button key={fc.key} onClick={() => setFilter(fc.key)} style={{
+        <div style={{ display: 'flex', gap: 6 }}>
+          {([
+            { key: 'all' as StatusFilter, label: `All ${tasks.length > 0 ? tasks.length : ''}` },
+            { key: 'pending' as StatusFilter, label: `Pending ${pendingCount > 0 ? pendingCount : ''}` },
+            { key: 'done' as StatusFilter, label: `Done ${doneCount > 0 ? doneCount : ''}` },
+          ]).map(fc => (
+            <button key={fc.key} onClick={() => setStatusFilter(fc.key)} style={{
               fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
-              padding: '4px 10px', borderRadius: 100,
-              border: filter === fc.key ? 'none' : '1px solid #E2DED8',
-              background: filter === fc.key ? '#0C0A09' : 'transparent',
-              color: filter === fc.key ? '#FAFAF8' : '#8C8480',
-              cursor: 'pointer', letterSpacing: '0.1em',
-            }}>{fc.label}</button>
+              padding: '4px 11px', borderRadius: 100,
+              border: statusFilter === fc.key ? 'none' : '1px solid #E2DED8',
+              background: statusFilter === fc.key ? '#0C0A09' : 'transparent',
+              color: statusFilter === fc.key ? '#FAFAF8' : '#8C8480',
+              cursor: 'pointer', letterSpacing: '0.08em', whiteSpace: 'nowrap',
+            }}>{fc.label.trim()}</button>
           ))}
         </div>
         <button
           onClick={() => onOpenDreamAi('Help me prioritise my tasks')}
           style={{
             fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
-            letterSpacing: '0.15em', textTransform: 'uppercase',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
             color: '#888580', background: 'none',
             border: '0.5px solid #E2DED8', borderRadius: 100,
             padding: '4px 10px', cursor: 'pointer',
@@ -882,21 +1191,42 @@ function TasksTab({ userId, onOpenDreamAi, refetch }: { userId: string; onOpenDr
             display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
-          <span style={{ fontSize: 10 }}>✦</span> Ask DreamAi
+          <span style={{ fontSize: 10 }}>✦</span> Ask
         </button>
       </div>
 
+      {/* Empty state */}
       {tasks.length === 0 ? (
-        <div style={{ marginTop: 64, textAlign: 'center' }}>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>No tasks yet.</p>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: 0 }}>Tasks you add will appear here, linked to your events.</p>
+        <div style={{ marginTop: 72, textAlign: 'center' }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 10px' }}>Your list is clear.</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: '0 0 28px', lineHeight: 1.6 }}>Tasks you add will appear here,{'\n'}grouped by your events.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={{ marginTop: 48, textAlign: 'center' }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, fontStyle: 'italic', color: '#8C8480', margin: 0 }}>
+            {statusFilter === 'done' ? 'Nothing completed yet.' : 'All tasks are done.'}
+          </p>
         </div>
       ) : (
         groups.map(({ group, items }) => (
-          <div key={group} style={{ marginBottom: 24 }}>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8C8480', margin: '0 0 8px' }}>{group}</p>
+          <div key={group} style={{ marginBottom: 28 }}>
+            <p style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: '#C8C4BE', margin: '0 0 10px',
+            }}>{group}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {items.map(task => <TaskCard key={task.id} task={task} />)}
+              {items.map(task => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  userId={userId}
+                  events={events}
+                  onCompleted={handleCompleted}
+                  onDeleted={handleDeleted}
+                  onExpenseAdded={onExpenseAdded}
+                />
+              ))}
             </div>
           </div>
         ))
@@ -1322,7 +1652,29 @@ interface EventSheetProps {
   onClose: () => void;
 }
 
-function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: EventSheetProps) {
+// ─── TaskCardReadOnly — used inside EventDetailSheet (no actions) ─────────────
+function TaskCardReadOnly({ task }: { task: Task }) {
+  const isDone = task.status === 'done' || !!task.is_complete;
+  const prioColor = task.priority === 'high' ? '#C9A84C' : task.priority === 'medium' ? '#8C8480' : '#E2DED8';
+  return (
+    <div style={{
+      background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 12,
+      padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
+      opacity: isDone ? 0.5 : 1,
+    }}>
+      <span style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${isDone ? '#C9A84C' : '#E2DED8'}`, background: isDone ? '#C9A84C' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {isDone && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px', textDecoration: isDone ? 'line-through' : 'none' }}>{task.title}</p>
+        {task.due_date && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{formatDue(task.due_date)}</p>}
+      </div>
+      <span style={{ width: 4, height: 4, borderRadius: '50%', background: prioColor, flexShrink: 0 }} />
+    </div>
+  );
+}
+
+// ─── EventDetailSheet ─────────────────────────────────────────────────────────
   const [sheetTab, setSheetTab] = useState<SheetTab>('tasks');
   const [visible, setVisible] = useState(false);
 
@@ -1381,7 +1733,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
           {sheetTab === 'tasks' && (
             eventTasks.length === 0
               ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No tasks for this event yet.</p>
-              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{eventTasks.map(t => <TaskCard key={t.id} task={t} />)}</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{eventTasks.map(t => <TaskCardReadOnly key={t.id} task={t} />)}</div>
           )}
           {sheetTab === 'vendors' && (
             eventExpenses.length === 0
@@ -1641,7 +1993,7 @@ export default function CouplePlanPage() {
         </div>
 
         <div style={{ padding: '8px 16px 0' }}>
-          {activeTab === 'tasks' && <TasksTab userId={userId} onOpenDreamAi={openDreamAi} refetch={tasksRefetch} />}
+          {activeTab === 'tasks' && <TasksTab userId={userId} events={allEvents} onOpenDreamAi={openDreamAi} refetch={tasksRefetch} onExpenseAdded={() => setMoneyRefetch(n => n + 1)} />}
           {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} refetch={moneyRefetch} />}
           {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
           {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} refetch={eventsRefetch} />}
