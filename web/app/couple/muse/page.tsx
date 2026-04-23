@@ -202,7 +202,16 @@ export default function MusePage() {
 
   const showToast = (msg: string) => setToast(msg);
 
-  if (!session) return null;
+  // Show minimal skeleton on light bg while session loads — prevents flash
+  if (!session) return (
+    <div style={{ background:'#F8F7F5',minHeight:'100dvh',padding:'16px 16px',paddingBottom:80 }}>
+      <div style={{ height:36,width:160,borderRadius:8,marginBottom:8,background:'linear-gradient(90deg,#F8F7F5 25%,#EEECE8 50%,#F8F7F5 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite' }} />
+      <div style={{ height:16,width:100,borderRadius:6,marginBottom:32,background:'linear-gradient(90deg,#F8F7F5 25%,#EEECE8 50%,#F8F7F5 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite' }} />
+      <div style={{ height:180,borderRadius:12,marginBottom:12,background:'linear-gradient(90deg,#F8F7F5 25%,#EEECE8 50%,#F8F7F5 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite' }} />
+      <div style={{ height:180,borderRadius:12,marginBottom:12,background:'linear-gradient(90deg,#F8F7F5 25%,#EEECE8 50%,#F8F7F5 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite' }} />
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    </div>
+  );
 
   return (
     <>

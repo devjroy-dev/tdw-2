@@ -23,15 +23,43 @@ const DOUBLE_TAP_MS   = 280;
 const OVERLAY_DISMISS = 80;
 
 // ── Save to Muse (standalone, no spawnHeart dependency) ───────────────────────
-async function saveVendorToMuse(vendorId: string, userId: string | null) {
-  if (!userId) return;
+async function saveVendorToMuse(vendorId: string, userId: string | null): Promise<boolean> {
+  if (!userId) return false;
   try {
-    await fetch(`${API}/api/couple/muse/save`, {
+    const res = await fetch(`${API}/api/couple/muse/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ couple_id: userId, vendor_id: vendorId, event: 'general' }),
     });
-  } catch {}
+    const json = await res.json();
+    return json.success === true;
+  } catch { return false; }
+}
+
+// Toast that shows "Saved to Muse" briefly at top of screen
+function spawnSaveToast(alreadySaved = false) {
+  if (typeof document === 'undefined') return;
+  const existing = document.getElementById('muse-save-toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'muse-save-toast';
+  el.style.cssText = `
+    position:fixed;top:calc(env(safe-area-inset-top,0px) + 72px);
+    left:50%;transform:translateX(-50%);
+    background:rgba(17,17,17,0.75);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:0.5px solid rgba(255,255,255,0.15);
+    color:rgba(248,247,245,0.9);
+    font-family:'Jost',sans-serif;font-size:10px;font-weight:300;
+    letter-spacing:0.18em;text-transform:uppercase;
+    padding:8px 18px;border-radius:20px;
+    z-index:9998;pointer-events:none;white-space:nowrap;
+    animation:toastSlideIn 250ms cubic-bezier(0.22,1,0.36,1) forwards;
+  `;
+  el.textContent = alreadySaved ? 'Already in Muse' : 'Saved to Muse ♥';
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 300ms ease'; }, 1800);
+  setTimeout(() => el.remove(), 2200);
 }
 
 // ── Heart animation ───────────────────────────────────────────────────────────
@@ -162,7 +190,7 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
             >
               <Lock size={12} strokeWidth={1.5} />
               Lock Date
-              <span style={{ fontSize:7,letterSpacing:'0.05em',textTransform:'none',fontStyle:'italic',color:'rgba(248,247,245,0.35)' }}>soon</span>
+              <span style={{ fontSize:7,letterSpacing:'0.05em',textTransform:'none',fontStyle:'italic',color:'rgba(248,247,245,0.35)' }}>beta</span>
             </button>
 
             {/* Share to Circle */}
@@ -213,7 +241,7 @@ function BlindCentreToast({ hint }: { hint: 'left'|'right'|null }) {
       zIndex:30, pointerEvents:'none',
       animation: 'heartPop 600ms cubic-bezier(0.22,1,0.36,1) forwards',
     }}>
-      <span style={{ fontSize:72, lineHeight:1 }}>
+      <span style={{ fontSize:72, lineHeight:1, color: '#C9A84C' }}>
         {hint === 'right' ? '♥' : '✕'}
       </span>
     </div>
@@ -320,7 +348,7 @@ function DiscoveryFeedContent() {
   const handleDoubleTap = useCallback(() => {
     if (isBlind || !vendor) return;
     spawnHeart();
-    saveVendorToMuse(vendor.id, userIdRef.current);
+    saveVendorToMuse(vendor.id, userIdRef.current).then(ok => spawnSaveToast(!ok));
   }, [isBlind, vendor, userId]);
 
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -369,7 +397,7 @@ function DiscoveryFeedContent() {
           setBlindHint('right');
           setTimeout(() => setBlindHint(null), 400);
           spawnHeart();
-          saveVendorToMuse(vendor?.id || '', userIdRef.current);
+          saveVendorToMuse(vendor?.id || '', userIdRef.current).then(ok => spawnSaveToast(!ok));
           goNextVendor('right');
         } else if (dx < -SWIPE_THRESHOLD) {
           // Left → dismiss + animate
@@ -414,6 +442,7 @@ function DiscoveryFeedContent() {
         }
         @keyframes dissolveIn { from{opacity:0} to{opacity:1} }
         @keyframes slideInUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes toastSlideIn { from{opacity:0;transform:translateX(-50%) translateY(-8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
         @keyframes slideOffLeft { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(-120%)} }
         @keyframes slideOffRight { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(120%)} }
       `}</style>
