@@ -133,13 +133,14 @@ export default function Home() {
         const cleanPhone = phone.replace(/\D/g, '').slice(-10);
         let supabaseId = d.localId;
         let pinSet = false;
+        let upsertData: any = null;
         // Upsert vendor/couple record in Supabase and get real ID
         try {
           const upsertRes = await fetch(`${BACKEND}/api/v2/${isVendor ? 'vendor' : 'couple'}/upsert`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: cleanPhone, tier: 'essential', invite_code: inviteCode }),
           });
-          const upsertData = await upsertRes.json();
+          upsertData = await upsertRes.json();
           if (upsertData.success) {
             supabaseId = upsertData.vendorId || upsertData.userId || supabaseId;
             pinSet = !!upsertData.pin_set;
