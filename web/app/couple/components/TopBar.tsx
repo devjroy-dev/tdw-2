@@ -36,7 +36,7 @@ export default function CoupleTopBar() {
 
   const handleToggle = (m: CoupleAppMode) => {
     setMode(m);
-    router.push(m === 'PLAN' ? '/couple/today' : '/couple/discover');
+    router.push(m === 'PLAN' ? '/couple/today' : '/couple/discover/hub');
   };
 
   const initials = getInitials(name);
