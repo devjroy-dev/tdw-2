@@ -328,11 +328,13 @@ function MessagesContent() {
   useEffect(() => { if (userId) loadThreads(userId); }, [userId, loadThreads]);
 
   // Handle ?enquire=vendorId&name=VendorName from feed overlay
+  // Clear params immediately after reading to prevent re-opening on tab switch
   useEffect(() => {
     const vendorId = searchParams.get('enquire');
     const vendorName = searchParams.get('name');
     if (vendorId && vendorName && userId) {
       setEnquiryVendor({ id: vendorId, name: decodeURIComponent(vendorName) });
+      router.replace('/couple/messages');
     }
   }, [searchParams, userId]);
 

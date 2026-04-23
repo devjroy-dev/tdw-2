@@ -74,7 +74,7 @@ function Shimmer({ h, w }: { h: number; w?: string }) {
 
 // ─── Invite Sheet ─────────────────────────────────────────────────────────────
 function InviteSheet({ userId, onClose, onInvited }: {
-  userId: string; onClose: () => void; onInvited: (code: string, link: string) => void;
+  userId: string; onClose: () => void; onInvited: (code: string, link: string, name: string) => void;
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState<'partner' | 'family' | 'inner_circle'>('inner_circle');
@@ -92,7 +92,7 @@ function InviteSheet({ userId, onClose, onInvited }: {
       });
       const json = await res.json();
       if (json.success) {
-        onInvited(json.data.invite_code, json.data.link);
+        onInvited(json.data.invite_code, json.data.link, name.trim());
       } else {
         setError(json.error || 'Failed to generate invite');
       }
@@ -677,16 +677,31 @@ export default function CirclePage() {
                     {member.name || member.invitee_name || 'Pending'}
                   </p>
 
-                  {/* Role badge */}
-                  <span style={{
-                    fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300,
-                    letterSpacing: '0.15em', textTransform: 'uppercase' as const,
-                    color: ROLE_COLORS[member.role] || '#888580',
-                    background: 'rgba(17,17,17,0.04)',
-                    borderRadius: 20, padding: '3px 8px',
-                  }}>
-                    {member.status === 'pending' ? 'Pending' : ROLE_LABELS[member.role] || member.role}
-                  </span>
+                  {/* Role badge or resend */}
+                  {member.status === 'pending' ? (
+                    <button
+                      onClick={() => setInviteResult({ code: member.invite_code, link: `https://thedreamwedding.in/join/${member.invite_code}`, name: member.invitee_name || 'them' })}
+                      style={{
+                        fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300,
+                        letterSpacing: '0.15em', textTransform: 'uppercase' as const,
+                        color: '#C9A84C', background: 'rgba(201,168,76,0.08)',
+                        border: '0.5px solid rgba(201,168,76,0.25)',
+                        borderRadius: 20, padding: '3px 8px', cursor: 'pointer',
+                        touchAction: 'manipulation',
+                      }}>
+                      Resend
+                    </button>
+                  ) : (
+                    <span style={{
+                      fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300,
+                      letterSpacing: '0.15em', textTransform: 'uppercase' as const,
+                      color: ROLE_COLORS[member.role] || '#888580',
+                      background: 'rgba(17,17,17,0.04)',
+                      borderRadius: 20, padding: '3px 8px',
+                    }}>
+                      {ROLE_LABELS[member.role] || member.role}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -744,9 +759,9 @@ export default function CirclePage() {
         <InviteSheet
           userId={session.id}
           onClose={() => setShowInvite(false)}
-          onInvited={(code, link) => {
+          onInvited={(code, link, inviteeName) => {
             setShowInvite(false);
-            setInviteResult({ code, link, name: 'your guest' });
+            setInviteResult({ code, link, name: inviteeName });
             if (session?.id) loadMembers(session.id);
           }}
         />
