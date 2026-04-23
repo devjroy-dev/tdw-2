@@ -155,11 +155,8 @@ function DreamAiSheet({
     }
   }, [visible, prefill]);
 
-  useEffect(() => {
-    if (visible) {
-      setTimeout(() => inputRef.current?.focus(), 400);
-    }
-  }, [visible]);
+  // Keyboard only pops when user explicitly taps the input — no auto-focus
+  // useEffect removed intentionally
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -486,27 +483,7 @@ export default function CoupleTodayPage() {
         paddingBottom: 72,
       }}>
 
-        {/* Top Bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '16px 20px 12px', position: 'relative',
-        }}>
-          <span style={{
-            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
-            letterSpacing: '0.25em', textTransform: 'uppercase', color: '#888580',
-          }}>The Dream Wedding</span>
-          <div style={{
-            position: 'absolute', right: 20, top: '50%',
-            transform: 'translateY(-50%) translateZ(0)',
-            width: 40, height: 40, borderRadius: '50%',
-            background: '#111111', color: '#F8F7F5',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 300,
-            cursor: 'pointer', touchAction: 'manipulation',
-          }}>
-            {getInitials(session?.name)}
-          </div>
-        </div>
+
 
         {/* Content */}
         <div className="page-enter" style={{ flex: 1, padding: '0 20px', overflowY: 'auto' }}>
