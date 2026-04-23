@@ -286,11 +286,26 @@ function DiscoveryFeedContent() {
     const minB = Number(searchParams.get('minBudget') || 0);
     const maxB = Number(searchParams.get('maxBudget') || 0);
     let filtered = [...all];
-    if (category) filtered = filtered.filter(v => v.category === category);
+    if (category) {
+      // Normalize category param to match seed data values
+      const catMap: Record<string, string> = {
+        'photography': 'photographer',
+        'makeup & hair': 'mua', 'makeup': 'mua', 'mua': 'mua',
+        'decor': 'decorator', 'decorator': 'decorator',
+        'venues': 'venue', 'venue': 'venue',
+        'designers': 'designer', 'designer': 'designer',
+        'event managers': 'event_manager', 'event_manager': 'event_manager',
+      };
+      const normalizedCat = catMap[category.toLowerCase()] || category.toLowerCase();
+      filtered = filtered.filter(v => v.category === normalizedCat);
+    }
     if (minB) filtered = filtered.filter(v => v.priceFrom >= minB);
     if (maxB) filtered = filtered.filter(v => v.priceFrom <= maxB);
     if (mode === 'featured') filtered = filtered.filter(v => v.priceFrom >= 200000);
-    setVendors(filtered.length > 0 ? filtered : all);
+    // Shuffle — different order every session
+    const pool = filtered.length > 0 ? filtered : all;
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    setVendors(shuffled);
     setVendorIdx(0); setImageIdx(0);
   }, [mode, searchParams]);
 
