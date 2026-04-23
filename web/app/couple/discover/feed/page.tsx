@@ -440,17 +440,8 @@ export default function DiscoveryFeed() {
                 gap: 4,
                 animation: 'slideUp 280ms cubic-bezier(0.22,1,0.36,1)',
               }}>
-                {null && (
-                  <p style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 13,
-                    fontWeight: 300,
-                    color: '#F8F7F5',
-                    margin: 0,
-                  }}>
-                    ★ {null.toFixed(1)} {null && `(${null})`}
-                  </p>
-                )}
+                {/* removed */}
+                {/* removed */}
                 {vendor.priceFrom && (
                   <p style={{
                     fontFamily: "'DM Sans', sans-serif",
