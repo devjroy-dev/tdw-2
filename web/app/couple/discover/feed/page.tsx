@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SEED_VENDORS, type SeedVendor } from '@/lib/seed/discoverySeed';
 import VendorCardSheet from '../VendorCardSheet';
 import { Eye, EyeOff, Settings, X as XIcon } from 'lucide-react';
+import { Suspense } from 'react';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -24,7 +25,7 @@ const TAP_MAX_MOVE    = 10;
 const TAP_MAX_TIME    = 250;
 const DOUBLE_TAP_TIME = 300;
 
-export default function DiscoveryFeed() {
+function DiscoveryFeedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = (searchParams.get('mode') || 'discover') as FeedMode;
@@ -517,5 +518,26 @@ export default function DiscoveryFeed() {
         )}
       </div>
     </>
+  );
+}
+
+
+export default function DiscoveryFeed() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: '#0C0A09',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#F8F7F5',
+      }}>
+        Loading...
+      </div>
+    }>
+      <DiscoveryFeedContent />
+    </Suspense>
   );
 }
