@@ -1900,7 +1900,12 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, onClose, onU
                 {[vendor.category, vendor.city].filter(Boolean).join(' · ')}
               </p>
             </div>
-            <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8C8480', fontSize: 18, padding: 4, touchAction: 'manipulation', flexShrink: 0 }}>✕</button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              {vendor.vendor_id && (
+                <a href={`/couple/vendor/${vendor.vendor_id}`} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888580', background: '#F4F1EC', border: 'none', borderRadius: 100, padding: '6px 12px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>View Profile</a>
+              )}
+              <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8C8480', fontSize: 18, padding: 4, touchAction: 'manipulation' }}>✕</button>
+            </div>
           </div>
           {/* Status chips */}
           <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>

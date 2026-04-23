@@ -108,6 +108,7 @@ export default function MusePage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [showDiscoverPopup, setShowDiscoverPopup] = useState(false);
   const [shortlisting, setShortlisting] = useState<string | null>(null);
+  const [confirmProfileItem, setConfirmProfileItem] = useState<MuseItem | null>(null);
 
   // Auth guard
   useEffect(() => {
@@ -492,6 +493,24 @@ export default function MusePage() {
 
                     {/* Action buttons — compact row */}
                     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {/* Profile */}
+                      <button
+                        onClick={() => setConfirmProfileItem(item)}
+                        style={{
+                          fontFamily: "'Jost', sans-serif",
+                          fontSize: 9, fontWeight: 300,
+                          letterSpacing: '0.15em', textTransform: 'uppercase',
+                          color: '#888580',
+                          background: 'transparent',
+                          border: '0.5px solid #E2DED8',
+                          borderRadius: 8, padding: '9px 14px',
+                          cursor: 'pointer',
+                          touchAction: 'manipulation',
+                        }}
+                      >
+                        Profile
+                      </button>
+
                       {/* Enquire */}
                       <button
                         onClick={() => router.push(`/couple/messages?enquire=${vendor?.id || item.vendor_id}&name=${encodeURIComponent(vendor?.name || 'Vendor')}`)}
@@ -541,6 +560,34 @@ export default function MusePage() {
           )}
         </div>
       </div>
+
+      {/* Profile confirm prompt */}
+      {confirmProfileItem && (
+        <>
+          <div onClick={() => setConfirmProfileItem(null)} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.4)' }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 901, background: '#FFFFFF', borderRadius: '20px 20px 0 0', padding: '20px 24px 40px' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8', margin: '0 auto 20px' }} />
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 6px' }}>
+              Go to {confirmProfileItem.vendor?.name || confirmProfileItem.vendor_name}'s profile?
+            </p>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 24px' }}>
+              You'll leave your Muse board and open their full profile.
+            </p>
+            <button
+              onClick={() => { setConfirmProfileItem(null); router.push(`/couple/vendor/${confirmProfileItem.vendor_id || confirmProfileItem.vendor?.id}`); }}
+              style={{ width: '100%', height: 52, borderRadius: 100, background: '#111111', border: 'none', fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F8F7F5', cursor: 'pointer', touchAction: 'manipulation', marginBottom: 10 }}
+            >
+              Open Profile
+            </button>
+            <button
+              onClick={() => setConfirmProfileItem(null)}
+              style={{ width: '100%', height: 44, borderRadius: 100, background: 'transparent', border: '1px solid #E2DED8', fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation' }}
+            >
+              Stay in Muse
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 }
