@@ -106,6 +106,7 @@ export default function MusePage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [removing, setRemoving] = useState<string | null>(null);
+  const [showDiscoverPopup, setShowDiscoverPopup] = useState(false);
   const [shortlisting, setShortlisting] = useState<string | null>(null);
 
   // Auth guard
@@ -285,7 +286,7 @@ export default function MusePage() {
                 Explore Discovery to find<br />your perfect Makers
               </p>
               <button
-                onClick={() => router.push('/couple/discover')}
+                onClick={() => setShowDiscoverPopup(true)}
                 style={{
                   fontFamily: "'Jost', sans-serif",
                   fontSize: 11,
@@ -298,19 +299,44 @@ export default function MusePage() {
                   borderRadius: 24,
                   padding: '12px 24px',
                   cursor: 'pointer',
-                  transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(248,247,245,0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(248,247,245,0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(248,247,245,0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(248,247,245,0.2)';
+                  touchAction: 'manipulation',
                 }}
               >
-                Explore Discovery
+                Discover
               </button>
+
+              {/* Discover popup */}
+              {showDiscoverPopup && (
+                <>
+                  <div
+                    onClick={() => setShowDiscoverPopup(false)}
+                    style={{ position:'fixed',inset:0,zIndex:500,background:'rgba(17,17,17,0.45)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)' }}
+                  />
+                  <div style={{ position:'fixed',bottom:0,left:0,right:0,zIndex:501,background:'#FFFFFF',borderRadius:'24px 24px 0 0',padding:'20px 24px calc(env(safe-area-inset-bottom,0px) + 32px)' }}>
+                    <div style={{ display:'flex',justifyContent:'center',marginBottom:20 }}>
+                      <div style={{ width:36,height:4,borderRadius:2,background:'#E2DED8' }} />
+                    </div>
+                    <h3 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:300,color:'#111111',margin:'0 0 6px',letterSpacing:'-0.01em' }}>How do you want to browse?</h3>
+                    <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:300,color:'#888580',margin:'0 0 24px' }}>Choose your discovery mode</p>
+                    <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+                      <button
+                        onClick={() => router.push('/couple/discover/feed?mode=blind')}
+                        style={{ width:'100%',padding:'16px 20px',background:'#111111',border:'none',borderRadius:12,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#F8F7F5',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'flex-start',gap:4,touchAction:'manipulation' }}
+                      >
+                        <span>Blind</span>
+                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,letterSpacing:'0',textTransform:'none',color:'rgba(248,247,245,0.55)',lineHeight:1.4 }}>Pure photos, no names. Swipe on instinct.</span>
+                      </button>
+                      <button
+                        onClick={() => router.push('/couple/discover/hub')}
+                        style={{ width:'100%',padding:'16px 20px',background:'transparent',border:'0.5px solid #E2DED8',borderRadius:12,fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:300,letterSpacing:'0.22em',textTransform:'uppercase',color:'#111111',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'flex-start',gap:4,touchAction:'manipulation' }}
+                      >
+                        <span>Browse Feed</span>
+                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,letterSpacing:'0',textTransform:'none',color:'#888580',lineHeight:1.4 }}>Explore all Makers with filters.</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             // Vendor cards
