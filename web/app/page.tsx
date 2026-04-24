@@ -366,34 +366,31 @@ export default function Home() {
     try {
       const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${isVendor ? 'vendor' : 'couple'}&phone=${bare}`);
       const d = await r.json();
+
+      if (!d.userId) {
+        // Number not in system — send to request invite
+        setScreen('request_who');
+        showToast('No account found — request an invite to join.');
+        return;
+      }
+
       if (d.pin_set && d.userId) {
-        // Has a PIN — skip OTP, go straight to pin-login
+        // Has PIN — write session, go to pin-login
         const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
-        const sd = {
-          id: d.userId, userId: d.userId, vendorId: d.userId,
-          phone: bare, pin_set: true,
-        };
+        const sd = { id: d.userId, userId: d.userId, vendorId: d.userId, phone: bare, pin_set: true };
         localStorage.setItem(sessionKey, JSON.stringify(sd));
         localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sd));
-        window.location.href = isVendor ? 'https://app.thedreamwedding.in/vendor/pin-login' : 'https://app.thedreamwedding.in/couple/pin-login';
+        window.location.href = isVendor
+          ? 'https://app.thedreamwedding.in/vendor/pin-login'
+          : 'https://app.thedreamwedding.in/couple/pin-login';
         return;
       }
-    } catch {}
-    // Number not found at all — check if they have an account before sending OTP
-    // pin-status returns pin_set=false and no userId when number doesn't exist
-    try {
-      const bare = phone.replace(/\D/g, '').slice(-10);
-      const isVendor = role === 'Maker';
-      const r2 = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${isVendor ? 'vendor' : 'couple'}&phone=${bare}`);
-      const d2 = await r2.json();
-      if (!d2.userId && !d2.pin_set) {
-        // No account exists — go to request invite
-        setScreen('request_who');
-        showToast('No account found. Request an invite to join.');
-        return;
-      }
-    } catch {}
-    sendOtp(phone);
+
+      // Account exists but no PIN — send OTP to complete setup
+      sendOtp(phone);
+    } catch {
+      showToast('Could not connect. Try again.');
+    }
   };
 
   const S: React.CSSProperties = { position: 'absolute', inset: 0 };
