@@ -184,8 +184,7 @@ export default function Home() {
   useEffect(() => { slidesRef.current = slides; }, [slides]);
 
   const startCarousel = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    // Slower rotation on landing — 4s per slide
+    if (intervalRef.current) return; // already running — preserve slide position
     intervalRef.current = setInterval(() => setCur(c => (c + 1) % slidesRef.current.length), 4000);
   }, []);
 
@@ -561,16 +560,20 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Glass panel — all non-entry, non-exploring screens ──────────────── */}
+      {/* ── Glass panel — all non-entry, non-exploring screens — BOTTOM ─────── */}
       {screen !== 'exploring' && screen !== 'entry' && (
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 20,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '80px 24px 40px',
+          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
+          maxHeight: '80vh', overflowY: 'auto',
         }}>
-          <div style={{ ...GLASS, width: '100%', maxWidth: 400, padding: '28px 24px 32px' }}>
-
-            {/* entry screen handled by bottom strip above */}
+          <div style={{
+            background: 'rgba(12,10,9,0.3)',
+            backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+            borderTop: '0.5px solid rgba(255,255,255,0.1)',
+            borderRadius: '20px 20px 0 0',
+            padding: '16px 20px calc(env(safe-area-inset-bottom, 10px) + 16px)',
+            boxSizing: 'border-box',
+          }}>
 
             {/* ── REQUEST: WHO ARE YOU ──────────────────────────────────────── */}
             {screen === 'request_who' && (
@@ -578,11 +581,11 @@ export default function Home() {
                 <BackBtn onClick={() => setScreen('entry')} />
                 <p style={{
                   fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
-                  fontSize: 26, color: '#F8F7F5', margin: '0 0 20px', lineHeight: 1.15,
+                  fontSize: 20, color: '#F8F7F5', margin: '0 0 12px', lineHeight: 1.15,
                 }}>Request an invite.</p>
                 <p style={{
                   fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
-                  color: 'rgba(248,247,245,0.6)', margin: '0 0 20px',
+                  color: 'rgba(248,247,245,0.55)', margin: '0 0 12px',
                 }}>Are you a:</p>
                 <DotOption
                   label="Dreamer"
@@ -608,7 +611,7 @@ export default function Home() {
             {screen === 'request_dreamer' && (
               <div style={{ overflowY: 'auto', maxHeight: '70vh' }}>
                 <BackBtn onClick={() => setScreen('request_who')} />
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 26, color: '#F8F7F5', margin: '0 0 20px' }}>Your details.</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#F8F7F5', margin: '0 0 12px' }}>Your details.</p>
 
                 <Label text="Your name" />
                 <input value={reqName} onChange={e => setReqName(e.target.value)} placeholder="Full name" style={INPUT} />
@@ -658,7 +661,7 @@ export default function Home() {
             {screen === 'request_maker' && (
               <div style={{ overflowY: 'auto', maxHeight: '70vh' }}>
                 <BackBtn onClick={() => setScreen('request_who')} />
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 26, color: '#F8F7F5', margin: '0 0 20px' }}>Your details.</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#F8F7F5', margin: '0 0 12px' }}>Your details.</p>
 
                 <Label text="Business / studio name" />
                 <input value={reqName} onChange={e => setReqName(e.target.value)} placeholder="Your name or studio" style={INPUT} />
@@ -736,11 +739,11 @@ export default function Home() {
             {screen === 'invite_code' && (
               <>
                 <BackBtn onClick={() => setScreen('entry')} />
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 26, color: '#F8F7F5', margin: '0 0 6px' }}>Enter your invite.</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#F8F7F5', margin: '0 0 4px' }}>Enter your invite.</p>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', margin: '0 0 24px' }}>Your code unlocks access.</p>
 
                 <Label text="Are you a" />
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                   {(['Dreamer', 'Maker'] as Role[]).map(r => (
                     <button key={r} onClick={() => setRole(r)} style={{
                       flex: 1, height: 40, border: 'none', borderRadius: 100, cursor: 'pointer',
@@ -780,10 +783,10 @@ export default function Home() {
             {screen === 'invite_phone' && (
               <>
                 <BackBtn onClick={() => setScreen('invite_code')} />
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 26, color: '#F8F7F5', margin: '0 0 6px' }}>Welcome. Let's begin.</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#F8F7F5', margin: '0 0 4px' }}>Welcome. Let's begin.</p>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', margin: '0 0 24px' }}>Enter your number. We'll send a code.</p>
                 <Label text="Phone number" />
-                <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.3)', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.2)', marginBottom: 12 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', paddingRight: 10, borderRight: '1px solid rgba(255,255,255,0.2)', marginRight: 10 }}>🇮🇳 +91</span>
                   <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, borderBottom: 'none', marginBottom: 0, flex: 1 }} />
                 </div>
@@ -795,9 +798,9 @@ export default function Home() {
             {(screen === 'invite_otp' || screen === 'signin_otp') && (
               <>
                 <BackBtn onClick={() => setScreen(screen === 'invite_otp' ? 'invite_phone' : 'signin_phone')} />
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 26, color: '#F8F7F5', margin: '0 0 6px' }}>Check your messages.</p>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', margin: '0 0 28px' }}>Enter the 6-digit code we sent you.</p>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#F8F7F5', margin: '0 0 4px' }}>Check your messages.</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', margin: '0 0 16px' }}>Enter the 6-digit code we sent you.</p>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
                   {otp.map((v, i) => (
                     <input
                       key={i} ref={el => { otpRefs.current[i] = el; }}
@@ -823,9 +826,9 @@ export default function Home() {
             {screen === 'signin_phone' && (
               <>
                 <BackBtn onClick={() => setScreen('entry')} />
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 26, color: '#F8F7F5', margin: '0 0 6px' }}>Welcome back.</p>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', margin: '0 0 20px' }}>Are you a:</p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20, color: '#F8F7F5', margin: '0 0 4px' }}>Welcome back.</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', margin: '0 0 12px' }}>Are you a:</p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                   {(['Dreamer', 'Maker'] as Role[]).map(r => (
                     <button key={r} onClick={() => setRole(r)} style={{
                       flex: 1, height: 40, border: 'none', borderRadius: 100, cursor: 'pointer',
@@ -837,7 +840,7 @@ export default function Home() {
                   ))}
                 </div>
                 <Label text="Phone number" />
-                <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.3)', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.2)', marginBottom: 12 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', paddingRight: 10, borderRight: '1px solid rgba(255,255,255,0.2)', marginRight: 10 }}>🇮🇳 +91</span>
                   <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, borderBottom: 'none', marginBottom: 0, flex: 1 }} />
                 </div>
