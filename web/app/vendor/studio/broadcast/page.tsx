@@ -1,187 +1,137 @@
 'use client';
-
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X } from 'lucide-react';
 
-const BACKEND = 'https://dream-wedding-production-89ae.up.railway.app';
+const BASE = 'https://dream-wedding-production-89ae.up.railway.app';
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');`;
+const MAX_CHARS = 500;
 
-interface Broadcast { id: string; message: string; sent_at: string; recipient_count: number; }
+function Toast({ msg, onDone }: { msg: string; onDone: ()=>void }) {
+  useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[onDone]);
+  return <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',background:'#111',color:'#F8F7F5',fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:300,padding:'10px 16px',borderRadius:8,zIndex:300,whiteSpace:'nowrap'}}>{msg}</div>;
+}
 
-const shimmerStyle: React.CSSProperties = {
-  background: 'linear-gradient(90deg, #F8F7F5 25%, #EEECE8 50%, #F8F7F5 75%)',
-  backgroundSize: '200% 100%',
-  animation: 'shimmer 1.4s infinite',
-  borderRadius: 8,
-  willChange: 'transform',
-  transform: 'translateZ(0)',
-};
+function getVendorSession() {
+  if (typeof window==='undefined') return null;
+  try { const r=localStorage.getItem('vendor_session')||localStorage.getItem('vendor_web_session'); return r?JSON.parse(r):null; } catch { return null; }
+}
+
+const SEGMENTS = [
+  { key:'all', label:'All Clients', desc:'Everyone in your client list' },
+  { key:'upcoming', label:'Upcoming Weddings', desc:'Events in the next 90 days' },
+  { key:'post_wedding', label:'Post-Wedding', desc:'Past clients — ask for reviews' },
+];
 
 export default function BroadcastPage() {
   const router = useRouter();
-  const [vendorId, setVendorId] = useState<string | null>(null);
-  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [vendorId, setVendorId] = useState('');
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [message, setMessage] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
+  const [segment, setSegment] = useState('all');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{sent:number;total:number;failed_count:number}|null>(null);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  };
+  useEffect(()=>{
+    const s=getVendorSession();
+    if(!s?.vendorId&&!s?.id){router.replace('/vendor/login');return;}
+    const vid=s.vendorId||s.id;
+    setVendorId(vid);
+    fetch(`${BASE}/api/broadcasts/${vid}`).then(r=>r.json()).then(d=>{setBroadcasts(d.data||d||[]);setLoading(false);}).catch(()=>setLoading(false));
+  },[router]);
 
-  useEffect(() => {
-    const raw = localStorage.getItem('vendor_web_session');
-    if (!raw) { window.location.replace('/vendor/pin-login'); return; }
+  async function send() {
+    if (!message.trim()||sending||!vendorId) return;
+    setSending(true); setResult(null);
     try {
-      const parsed = JSON.parse(raw);
-      if (!parsed.vendorId) { window.location.replace('/vendor/pin-login'); return; }
-      setVendorId(parsed.vendorId);
-    } catch { window.location.replace('/vendor/pin-login'); }
-  }, []);
-
-  const fetchBroadcasts = useCallback(async (vid: string) => {
-    try {
-      const res = await fetch(`${BACKEND}/api/broadcasts/${vid}`);
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) setBroadcasts(json.data);
-    } catch {}
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (vendorId) fetchBroadcasts(vendorId);
-  }, [vendorId, fetchBroadcasts]);
-
-  const handleSend = async () => {
-    if (!message.trim()) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch(`${BACKEND}/api/broadcasts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId, message }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSheetOpen(false);
+      const r=await fetch(`${BASE}/api/v2/vendor/broadcast-whatsapp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vendor_id:vendorId,message:message.trim(),segment})});
+      const d=await r.json();
+      if (d.success) {
+        setResult({sent:d.sent||0,total:d.total||0,failed_count:d.failed_count||0});
         setMessage('');
-        if (vendorId) fetchBroadcasts(vendorId);
-        showToast('Broadcast sent.');
-      } else {
-        showToast('Could not send.');
-      }
-    } catch {
-      showToast('Could not send.');
-    }
-    setSubmitting(false);
-  };
+        setBroadcasts(p=>[{id:Date.now(),message:message.trim(),template:segment,sent_count:d.sent,recipient_count:d.total,created_at:new Date().toISOString()},...p]);
+        setToast(`Sent to ${d.sent} of ${d.total} clients`);
+      } else setToast(d.error||'Could not send');
+    } catch { setToast('Network error'); } finally { setSending(false); }
+  }
 
-  const formatSentAt = (s: string) => new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  function formatDate(d: string) { return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300&display=swap');
-        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #F8F7F5; }
-        textarea:focus { outline: none; }
-      `}</style>
+      <style>{`${FONTS} *{box-sizing:border-box;} body{margin:0;background:#F8F7F5;} ::-webkit-scrollbar{display:none;}`}</style>
+      {toast&&<Toast msg={toast} onDone={()=>setToast('')}/>}
 
-      {toast && (
-        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%) translateZ(0)', background: '#111111', color: '#F8F7F5', fontFamily: "'DM Sans', sans-serif", fontSize: 12, borderRadius: 12, padding: '10px 16px', zIndex: 9999, willChange: 'transform' }}>
-          {toast}
+      <div style={{padding:'24px 20px 100px'}}>
+        <div style={{marginBottom:24}}>
+          <p style={{fontFamily:"'Jost',sans-serif",fontWeight:200,fontSize:9,color:'#888580',letterSpacing:'0.25em',textTransform:'uppercase',margin:'0 0 4px'}}>Studio</p>
+          <p style={{fontFamily:"'Cormorant Garamond',serif",fontWeight:300,fontSize:28,color:'#111',margin:0}}>Broadcast</p>
         </div>
-      )}
 
-      {sheetOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 100, willChange: 'opacity', transform: 'translateZ(0)' }} onClick={() => setSheetOpen(false)}>
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: '#FFFFFF', borderRadius: '24px 24px 0 0', padding: '24px 20px 40px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 22, color: '#111111' }}>Compose Broadcast</p>
-              <button onClick={() => setSheetOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', touchAction: 'manipulation' }}><X size={18} color="#888580" /></button>
-            </div>
-            <textarea
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder="Write your message…"
-              maxLength={500}
-              style={{
-                width: '100%', minHeight: 120,
-                fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#111111',
-                background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8',
-                paddingBottom: 8, resize: 'none', fontWeight: 300,
-              }}
-            />
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580', textAlign: 'right', marginBottom: 20 }}>{message.length}/500</p>
-            <button
-              onClick={handleSend}
-              disabled={submitting || !message.trim()}
-              style={{ width: '100%', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 8, padding: '14px 0', fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 12, letterSpacing: '0.22em', cursor: 'pointer', touchAction: 'manipulation', opacity: (submitting || !message.trim()) ? 0.5 : 1 }}
-            >
-              SEND BROADCAST
+        {/* Segment picker */}
+        <p style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:200,letterSpacing:'0.22em',textTransform:'uppercase',color:'#888580',margin:'0 0 10px'}}>Send To</p>
+        <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+          {SEGMENTS.map(s=>(
+            <button key={s.key} onClick={()=>setSegment(s.key)} style={{background:segment===s.key?'#111':'#FFFFFF',border:`1px solid ${segment===s.key?'#111':'#E2DED8'}`,borderRadius:12,padding:'12px 16px',cursor:'pointer',touchAction:'manipulation',textAlign:'left',transition:'all 200ms'}}>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:300,color:segment===s.key?'#F8F7F5':'#111',margin:'0 0 2px'}}>{s.label}</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:300,color:segment===s.key?'rgba(248,247,245,0.6)':'#888580',margin:0}}>{s.desc}</p>
             </button>
+          ))}
+        </div>
+
+        {/* Message composer */}
+        <p style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:200,letterSpacing:'0.22em',textTransform:'uppercase',color:'#888580',margin:'0 0 8px'}}>Message</p>
+        <div style={{background:'#FFFFFF',border:'1px solid #E2DED8',borderRadius:14,padding:14,marginBottom:8}}>
+          <textarea value={message} onChange={e=>setMessage(e.target.value.slice(0,MAX_CHARS))} rows={5} placeholder="Type your message here..." style={{width:'100%',background:'transparent',border:'none',outline:'none',fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:300,color:'#111',resize:'none',lineHeight:1.6}}/>
+          <div style={{display:'flex',justifyContent:'flex-end'}}>
+            <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,color:message.length>MAX_CHARS*0.9?'#C9A84C':'#C8C4BE'}}>{message.length}/{MAX_CHARS}</span>
           </div>
         </div>
-      )}
+        <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,color:'#888580',margin:'0 0 16px'}}>
+          "Reply STOP to unsubscribe" is automatically appended to every message.
+        </p>
 
-      <div style={{ minHeight: '100vh', background: '#F8F7F5', fontFamily: "'DM Sans', sans-serif", paddingBottom: 80 }}>
-        <div style={{ padding: '16px 20px 0' }}>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, touchAction: 'manipulation', willChange: 'opacity', transform: 'translateZ(0)' }}>
-            <ArrowLeft size={20} strokeWidth={1.5} color="#111111" />
-          </button>
-        </div>
-
-        <div style={{ padding: '12px 20px 20px' }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 10, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 4 }}>YOUR STUDIO</p>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 28, color: '#111111' }}>Broadcast</h1>
-        </div>
-
-        <div style={{ padding: '0 20px' }}>
-          {loading ? (
-            [1,2,3].map(i => <div key={i} style={{ ...shimmerStyle, height: 72, marginBottom: 8 }} />)
-          ) : broadcasts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: 18, color: '#888580', marginBottom: 8 }}>No broadcasts yet.</p>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#888580' }}>Send announcements to all your clients at once.</p>
-            </div>
-          ) : (
-            broadcasts.map(b => (
-              <div key={b.id} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 12, padding: 16, marginBottom: 8 }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#111111', fontWeight: 400, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 8 }}>{b.message}</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>{formatSentAt(b.sent_at)}</span>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>{b.recipient_count || 0} recipients</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <button
-          onClick={() => setSheetOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)',
-            right: 20,
-            width: 48, height: 48,
-            borderRadius: '50%',
-            background: '#111111',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            touchAction: 'manipulation',
-            willChange: 'transform',
-            transform: 'translateZ(0)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          }}
-        >
-          <Plus size={20} color="#F8F7F5" strokeWidth={1.5} />
+        {/* Send button */}
+        <button onClick={send} disabled={!message.trim()||sending} style={{width:'100%',height:52,background:'#111',color:'#F8F7F5',border:'none',borderRadius:100,fontFamily:"'Jost',sans-serif",fontSize:11,fontWeight:300,letterSpacing:'0.2em',textTransform:'uppercase',cursor:'pointer',opacity:(!message.trim()||sending)?0.5:1,marginBottom:20}}>
+          {sending?'Sending via WhatsApp…':'Send via WhatsApp'}
         </button>
+
+        {/* Result */}
+        {result&&(
+          <div style={{background:'#F4F1EC',border:'1px solid #E2DED8',borderRadius:12,padding:'14px 16px',marginBottom:20,textAlign:'center'}}>
+            <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:300,color:'#111',margin:'0 0 4px'}}>{result.sent} of {result.total} sent</p>
+            {result.failed_count>0&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:300,color:'#888580',margin:0}}>{result.failed_count} failed (no phone number)</p>}
+          </div>
+        )}
+
+        {/* History */}
+        {!loading&&broadcasts.length>0&&(
+          <>
+            <p style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:200,letterSpacing:'0.22em',textTransform:'uppercase',color:'#888580',margin:'0 0 10px'}}>History</p>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {broadcasts.slice(0,10).map((b: any)=>(
+                <div key={b.id} style={{background:'#FFFFFF',border:'1px solid #E2DED8',borderRadius:12,padding:'12px 14px'}}>
+                  <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:300,color:'#111',margin:'0 0 6px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{b.message}</p>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,color:'#888580',letterSpacing:'0.08em'}}>{b.created_at?formatDate(b.created_at):''}</span>
+                    <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,color:'#888580'}}>{b.sent_count||0}/{b.recipient_count||0} sent</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
+
+      <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#F8F7F5',borderTop:'1px solid #E2DED8',display:'flex',alignItems:'center',justifyContent:'space-around',paddingBottom:'env(safe-area-inset-bottom)',zIndex:100}}>
+        {[{key:'today',label:'Today',href:'/vendor/today'},{key:'clients',label:'Clients',href:'/vendor/clients'},{key:'money',label:'Money',href:'/vendor/money'},{key:'studio',label:'Studio',href:'/vendor/studio'}].map(item=>(
+          <a key={item.key} href={item.href} style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'12px 16px',gap:4,textDecoration:'none'}}>
+            <span style={{fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:item.key==='studio'?400:300,letterSpacing:'0.15em',textTransform:'uppercase',color:item.key==='studio'?'#111':'#888580'}}>{item.label}</span>
+            {item.key==='studio'&&<span style={{width:4,height:4,borderRadius:'50%',background:'#C9A84C',display:'block'}}/>}
+          </a>
+        ))}
+      </nav>
     </>
   );
 }

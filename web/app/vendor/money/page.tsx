@@ -61,6 +61,14 @@ function VendorMoneyInner() {
   const [invoiceFilter, setInvoiceFilter] = useState('ALL');
   const [expandedInvoice, setExpandedInvoice] = useState<string|null>(null);
 
+  // S38 additions
+  const currentFY = (() => { const n=new Date(); const y=n.getMonth()>=3?n.getFullYear():n.getFullYear()-1; return `${y}-${y+1}`; })();
+  const [selectedFY, setSelectedFY] = useState(currentFY);
+  const [gstData, setGstData] = useState<any>(null);
+  const [shieldData, setShieldData] = useState<any[]>([]);
+  const [shieldForm, setShieldForm] = useState({ client_name:'', amount:'', wedding_date:'' });
+  const [addingShield, setAddingShield] = useState(false);
+
   // Invoice sheet
   const [sheetOpen, setSheetOpen] = useState(false);
   const [invForm, setInvForm] = useState({ client_id:'', client_name:'', client_phone:'', description:'', amount:'', due_date:'', gst_enabled:false });
@@ -96,21 +104,25 @@ function VendorMoneyInner() {
   const fetchAll = useCallback(async (vid: string) => {
     setLoading(true);
     try {
-      const [ir, er, tr, pr, cr] = await Promise.all([
+      const [ir, er, tr, pr, cr, gr, sr] = await Promise.all([
         fetch(`${BASE}/api/invoices/${vid}`),
         fetch(`${BASE}/api/expenses/${vid}`),
         fetch(`${BASE}/api/tds/${vid}/summary`),
         fetch(`${BASE}/api/payment-schedules/${vid}`),
         fetch(`${BASE}/api/v2/vendor/clients/${vid}`),
+        fetch(`${BASE}/api/v2/vendor/gst-summary/${vid}?fy=${selectedFY}`),
+        fetch(`${BASE}/api/v2/vendor/payment-shield/${vid}`),
       ]);
       const id = await ir.json(); if (id.success||Array.isArray(id.data)||Array.isArray(id)) setInvoices(id.data||id||[]);
       const ed = await er.json(); if (ed.success||Array.isArray(ed.data)||Array.isArray(ed)) setExpenses(ed.data||ed||[]);
       const td = await tr.json(); setTax(td.data||td||null);
       const pd = await pr.json(); if (pd.success||Array.isArray(pd.data)||Array.isArray(pd)) setPayments(pd.data||pd||[]);
       const cd = await cr.json(); if (cd.success) setClients(cd.data||[]);
+      const gd = await gr.json(); if (gd.success) setGstData(gd.data||null);
+      const sd = await sr.json(); if (sd.success) setShieldData(sd.data||[]);
     } catch {}
     setLoading(false);
-  }, []);
+  }, [selectedFY]);
 
   useEffect(() => { if (vendorId) fetchAll(vendorId); }, [vendorId, fetchAll]);
 
@@ -344,20 +356,67 @@ function VendorMoneyInner() {
           {/* TAX TAB */}
           {tab==='TAX' && (
             <div>
-              {!tax || (!tax.total_income && !tax.financial_year) ? (
-                <div style={{ paddingTop:40, textAlign:'center', fontFamily:'Cormorant Garamond,serif', fontStyle:'italic', fontSize:18, color:'#888580', lineHeight:1.5 }}>
-                  Tax summary will appear once you have recorded income.
+              {/* FY selector */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.22em', textTransform:'uppercase', color:'#888580', margin:0 }}>Financial Year</p>
+                <select value={selectedFY} onChange={e=>{ setSelectedFY(e.target.value); if(vendorId) fetch(`${BASE}/api/v2/vendor/gst-summary/${vendorId}?fy=${e.target.value}`).then(r=>r.json()).then(d=>{ if(d.success) setGstData(d.data); }); }} style={{ fontFamily:"'Jost',sans-serif", fontSize:11, fontWeight:300, color:'#111', background:'transparent', border:'0.5px solid #E2DED8', borderRadius:6, padding:'4px 8px', cursor:'pointer' }}>
+                  {[0,1,2].map(i=>{ const y=parseInt(currentFY.split('-')[0])-i; const fy=`${y}-${y+1}`; return <option key={fy} value={fy}>{`FY ${fy}`}</option>; })}
+                </select>
+              </div>
+
+              {!gstData || gstData.total_invoiced===0 ? (
+                <div style={{ paddingTop:40, textAlign:'center', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:18, color:'#888580' }}>
+                  No invoices found for {`FY ${selectedFY}`}.
                 </div>
               ) : (
-                <div style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:12, padding:20 }}>
-                  {tax.financial_year && <div style={{ fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, color:'#888580', letterSpacing:'0.22em', textTransform:'uppercase', marginBottom:12 }}>{tax.financial_year}</div>}
-                  <div style={{ fontFamily:'Cormorant Garamond,serif', fontSize:28, color:'#111111', fontWeight:300, marginBottom:16 }}>{formatAmt(tax.total_income)}</div>
-                  {tax.tds_deducted != null && <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:14, color:'#555250', marginBottom:6 }}>TDS Deducted: {formatAmt(tax.tds_deducted)}</div>}
-                  {tax.net_payable != null && <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:14, color:'#555250', marginBottom:20 }}>Net Payable: {formatAmt(tax.net_payable)}</div>}
-                  <button onClick={() => window.open(`${BASE}/api/tds/${vendorId}/export`)} style={{ width:'100%', background:'transparent', color:'#111111', border:'1px solid #E2DED8', borderRadius:8, fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, letterSpacing:'0.22em', textTransform:'uppercase', padding:'12px 0', cursor:'pointer', touchAction:'manipulation' }}>
-                    EXPORT FOR CA
-                  </button>
-                </div>
+                <>
+                  {/* Summary hero */}
+                  <div style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:14, padding:20, marginBottom:12 }}>
+                    <div style={{ display:'flex', justifyContent:'space-around', marginBottom:16 }}>
+                      {[{label:'Total Invoiced',val:gstData.total_invoiced},{label:'GST Collected',val:gstData.total_gst},{label:'TDS Deducted',val:gstData.total_tds}].map(s=>(
+                        <div key={s.label} style={{ textAlign:'center' }}>
+                          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:300, color:'#111', margin:'0 0 3px' }}>{formatAmt(s.val)}</p>
+                          <p style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:200, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', margin:0 }}>{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={()=>window.open(`${BASE}/api/v2/vendor/gst-export/${vendorId}?fy=${selectedFY}`)} style={{ width:'100%', background:'transparent', color:'#111', border:'1px solid #E2DED8', borderRadius:8, fontFamily:"'Jost',sans-serif", fontWeight:200, fontSize:9, letterSpacing:'0.22em', textTransform:'uppercase', padding:'12px 0', cursor:'pointer', touchAction:'manipulation' }}>
+                      Export for CA (.csv)
+                    </button>
+                  </div>
+
+                  {/* Quarterly breakdown */}
+                  <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.22em', textTransform:'uppercase', color:'#888580', margin:'0 0 10px' }}>Quarterly Breakdown</p>
+                  <div style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:14, marginBottom:16, overflow:'hidden' }}>
+                    {(gstData.quarterly||[]).map((q: any, i: number) => (
+                      <div key={q.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:i<3?'0.5px solid #E2DED8':'none' }}>
+                        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', margin:0 }}>{q.label}</p>
+                        <div style={{ textAlign:'right' }}>
+                          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:400, color:'#111', margin:'0 0 2px' }}>{formatAmt(q.invoiced)}</p>
+                          {q.gst>0&&<p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, color:'#888580', margin:0 }}>GST {formatAmt(q.gst)}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* TDS per-client ledger */}
+                  {(gstData.tds_ledger||[]).length>0&&(
+                    <>
+                      <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.22em', textTransform:'uppercase', color:'#888580', margin:'0 0 10px' }}>TDS Ledger</p>
+                      <div style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:14, overflow:'hidden' }}>
+                        {(gstData.tds_ledger||[]).map((row: any, i: number) => (
+                          <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:i<gstData.tds_ledger.length-1?'0.5px solid #E2DED8':'none' }}>
+                            <div>
+                              <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', margin:'0 0 2px' }}>{row.client_name}</p>
+                              <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, color:'#888580', margin:0 }}>TDS @ {row.tds_rate||10}% · {row.tds_deducted_by_client?'Deducted by client':'Self'}</p>
+                            </div>
+                            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:400, color:'#C9A84C', margin:0 }}>{formatAmt(row.tds_amount)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -398,30 +457,43 @@ function VendorMoneyInner() {
           {tab==='SHIELD' && (
             <div>
               <div style={{ background:'#111111', borderRadius:12, padding:24, marginBottom:16 }}>
-                <div style={{ fontFamily:'Cormorant Garamond,serif', fontSize:24, color:'#F8F7F5', fontWeight:300, marginBottom:8 }}>Payment Shield</div>
-                <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, color:'rgba(248,247,245,0.6)', fontWeight:300 }}>Final payment held securely until delivery is confirmed.</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:'#F8F7F5', fontWeight:300, marginBottom:8 }}>Payment Shield</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'rgba(248,247,245,0.6)', fontWeight:300 }}>Final payment held securely until 24 hours after the wedding.</div>
               </div>
-              {[
-                'Final payment held in escrow',
-                'Auto-released 24hrs after wedding',
-                "Couple sees 'Protected by Payment Shield'",
-              ].map(f => (
-                <div key={f} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 0', borderBottom:'1px solid #E2DED8' }}>
-                  <CheckCircle size={16} color="#C9A84C" />
-                  <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, color:'#555250', fontWeight:300 }}>{f}</span>
-                </div>
-              ))}
-              <div style={{ marginTop:20 }}>
-                <button
-                  onClick={() => setToast('Contact support to enable Payment Shield.')}
-                  style={{ width:'100%', background:'#111111', color:'#F8F7F5', border:'none', borderRadius:10, fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:12, letterSpacing:'0.2em', textTransform:'uppercase', padding:16, cursor:'pointer', touchAction:'manipulation' }}
-                >
-                  ENABLE SHIELD
+
+              {/* Add to shield form */}
+              <div style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:14, padding:16, marginBottom:16 }}>
+                <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.2em', textTransform:'uppercase', color:'#888580', margin:'0 0 12px' }}>Add Client to Shield</p>
+                <input value={shieldForm.client_name} onChange={e=>setShieldForm(f=>({...f,client_name:e.target.value}))} placeholder="Client name" style={{ width:'100%', border:'none', borderBottom:'1px solid #E2DED8', fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', padding:'6px 0', marginBottom:10, outline:'none', background:'transparent' }}/>
+                <input value={shieldForm.amount} onChange={e=>setShieldForm(f=>({...f,amount:e.target.value}))} placeholder="Shield amount (₹)" inputMode="numeric" style={{ width:'100%', border:'none', borderBottom:'1px solid #E2DED8', fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', padding:'6px 0', marginBottom:10, outline:'none', background:'transparent' }}/>
+                <input type="date" value={shieldForm.wedding_date} onChange={e=>setShieldForm(f=>({...f,wedding_date:e.target.value}))} style={{ width:'100%', border:'none', borderBottom:'1px solid #E2DED8', fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', padding:'6px 0', marginBottom:14, outline:'none', background:'transparent' }}/>
+                <button disabled={!shieldForm.client_name||!shieldForm.amount||addingShield} onClick={async()=>{ setAddingShield(true); try { const r=await fetch(`${BASE}/api/v2/vendor/payment-shield`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vendor_id:vendorId,client_name:shieldForm.client_name,amount:Number(shieldForm.amount),wedding_date:shieldForm.wedding_date||null})}); const d=await r.json(); if(d.success){setShieldData(p=>[d.data,...p]);setShieldForm({client_name:'',amount:'',wedding_date:''});setToast('Added to Shield');} else setToast(d.error||'Error'); } catch{setToast('Network error');} finally{setAddingShield(false);} }} style={{ width:'100%', height:44, background:'#111', color:'#F8F7F5', border:'none', borderRadius:100, fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.2em', textTransform:'uppercase', cursor:'pointer', opacity:(!shieldForm.client_name||!shieldForm.amount||addingShield)?0.5:1 }}>
+                  {addingShield?'Adding...':'Add to Shield'}
                 </button>
-                {tier==='essential' && (
-                  <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'#888580', textAlign:'center', marginTop:10, fontWeight:300 }}>Available on Signature and Prestige plans.</div>
-                )}
               </div>
+
+              {/* Shield list */}
+              {shieldData.length===0 ? (
+                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:300, color:'#888580', textAlign:'center', marginTop:24, fontStyle:'italic' }}>No clients in Payment Shield yet.</p>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {shieldData.map((s: any)=>(
+                    <div key={s.id} style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div>
+                        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:300, color:'#111', margin:'0 0 3px' }}>{s.client_name}</p>
+                        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:0 }}>{s.wedding_date?`Wedding ${formatDate(s.wedding_date)}`:''}{s.release_date?` · Release ${formatDate(s.release_date)}`:''}</p>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:400, color:'#111', margin:'0 0 4px' }}>{formatAmt(s.amount)}</p>
+                        <span style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.1em', textTransform:'uppercase', padding:'2px 8px', borderRadius:100, background:s.status==='released'?'#E8F5E9':s.status==='disputed'?'#FFEBEE':'#F4F1EC', color:s.status==='released'?'#4A7C59':s.status==='disputed'?'#9B4545':'#8C8480' }}>{s.status||'holding'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {tier==='essential' && (
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:'#888580', textAlign:'center', marginTop:16, fontWeight:300 }}>Available on Signature and Prestige plans.</div>
+              )}
             </div>
           )}
         </div>
