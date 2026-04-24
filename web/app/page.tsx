@@ -292,81 +292,81 @@ export default function Home() {
   };
 
   const sendOtp = async (phoneNum: string) => {
+    const isVendor = role === 'Maker';
+    const bare = phoneNum.replace(/\D/g, '').slice(-10);
+    const endpoint = isVendor
+      ? `${BACKEND}/api/v2/vendor/auth/send-otp`
+      : `${BACKEND}/api/v2/couple/auth/send-otp`;
     try {
-      const r = await fetch(`${BACKEND}/api/auth/send-otp`, {
+      const r = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneNum.replace(/\D/g, '') }),
+        body: JSON.stringify({ phone: bare }),
       });
       const d = await r.json();
-      if (d.sessionInfo) localStorage.setItem('otp_session', d.sessionInfo);
+      if (!d.success) { showToast(d.error || 'Could not send code. Try again.'); return; }
       setScreen(screen === 'signin_phone' ? 'signin_otp' : 'invite_otp');
     } catch { showToast('Could not send code. Try again.'); }
   };
 
   const verifyOtp = async () => {
+    const isVendor = role === 'Maker';
+    const bare = phone.replace(/\D/g, '').slice(-10);
+    const endpoint = isVendor
+      ? `${BACKEND}/api/v2/vendor/auth/verify-otp`
+      : `${BACKEND}/api/v2/couple/auth/verify-otp`;
     try {
-      const isVendor = role === 'Maker';
-      const res = await fetch(`${BACKEND}/api/auth/verify-otp`, {
+      const res = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionInfo: localStorage.getItem('otp_session') || 'admin_sdk_' + phone.replace(/\D/g, ''),
-          code: otp.join(''),
-        }),
+        body: JSON.stringify({ phone: bare, code: otp.join('') }),
       });
       const d = await res.json();
-      if (d.success) {
-        const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
-        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-        let supabaseId = d.localId;
-        let pinSet = false;
-        let upsertData: any = null;
-        try {
-          const upsertRes = await fetch(`${BACKEND}/api/v2/${isVendor ? 'vendor' : 'couple'}/upsert`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: cleanPhone, tier: 'essential', invite_code: inviteCode }),
-          });
-          upsertData = await upsertRes.json();
-          if (upsertData.success) {
-            supabaseId = upsertData.vendorId || upsertData.userId || supabaseId;
-            pinSet = !!upsertData.pin_set;
-          }
-        } catch {}
-        const sessionData = {
-          idToken: d.idToken, localId: supabaseId,
-          phoneNumber: d.phoneNumber, vendorId: supabaseId,
-          userId: supabaseId, id: supabaseId, phone: cleanPhone,
-          pin_set: pinSet,
-          dreamer_type: upsertData?.dreamer_type || 'basic',
-          name: upsertData?.name || null,
-        };
-        localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-        localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
-        router.push(pinSet
-          ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')
-          : (isVendor ? '/vendor/pin' : '/couple/pin'));
-      } else {
-        showToast(d.error || 'Incorrect code.');
-      }
+      if (!d.success) { showToast(d.error || 'Incorrect code.'); return; }
+
+      // d.vendor or d.user contains the record
+      const record = d.vendor || d.user;
+      if (!record) { showToast('Account not found.'); return; }
+
+      const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
+      const pinSet = !!record.pin_set;
+      const sessionData = {
+        id: record.id, userId: record.id, vendorId: record.id,
+        phone: bare,
+        pin_set: pinSet,
+        vendorName: record.name || null,
+        name: record.name || null,
+        category: record.category || null,
+        tier: record.tier || null,
+        dreamer_type: (record as any).dreamer_type || 'basic',
+      };
+      localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+      localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
+      router.push(pinSet
+        ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')
+        : (isVendor ? '/vendor/pin' : '/couple/pin'));
     } catch { showToast('Verification failed.'); }
   };
 
   // ── Sign in (returning member) ────────────────────────────────────────────
   const handleSignIn = async () => {
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const isVendor = role === 'Maker';
+    const bare = phone.replace(/\D/g, '').slice(-10);
     try {
-      const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${role === 'Dreamer' ? 'couple' : 'vendor'}&phone=${cleanPhone}`);
+      const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${isVendor ? 'vendor' : 'couple'}&phone=${bare}`);
       const d = await r.json();
-      if (d.pin_set) {
-        const isVendor = role === 'Maker';
+      if (d.pin_set && d.userId) {
+        // Has a PIN — skip OTP, go straight to pin-login
         const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
-        const existing = JSON.parse(localStorage.getItem(sessionKey) || '{}');
-        const sd = { ...existing, phone: cleanPhone, pin_set: true, id: d.userId || cleanPhone, userId: d.userId || cleanPhone, vendorId: d.userId || cleanPhone };
+        const sd = {
+          id: d.userId, userId: d.userId, vendorId: d.userId,
+          phone: bare, pin_set: true,
+        };
         localStorage.setItem(sessionKey, JSON.stringify(sd));
         localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sd));
         router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
         return;
       }
     } catch {}
+    // No PIN set or new user — send OTP
     sendOtp(phone);
   };
 
