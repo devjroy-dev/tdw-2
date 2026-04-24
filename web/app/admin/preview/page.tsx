@@ -8,8 +8,11 @@ import { useEffect, useState, useCallback } from 'react';
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 const H   = { 'Content-Type': 'application/json', 'x-admin-password': 'Mira@2551354' };
 
-interface SlottedVendor { id: string; name: string; category: string; city: string; display_order: number; }
-interface AvailableVendor { id: string; name: string; category: string; city: string; tier: string; }
+// Single interface covers both slotted and available states.
+// display_order is optional so AvailableVendors (without a slot) still satisfy it.
+interface Vendor { id: string; name: string; category: string; city: string; tier: string; display_order?: number; }
+type SlottedVendor   = Vendor & { display_order: number };
+type AvailableVendor = Vendor;
 
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
