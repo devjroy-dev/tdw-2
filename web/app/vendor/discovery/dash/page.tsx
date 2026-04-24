@@ -317,8 +317,8 @@ export default function DiscoveryDashPage() {
       const d = await r.json();
       if (d.success) {
         showToast(d.auto_approved
-          ? '✓ You're live! Couples can discover you now.'
-          : '✓ Submitted. We'll be in touch within 48 hours.');
+          ? "✓ You're live! Couples can discover you now."
+          : "✓ Submitted. We'll be in touch within 48 hours.");
         // Refresh profile level
         const fresh = await fetch(`${API}/api/v2/vendor/profile-level/${vendorId}`).then(r => r.json());
         if (fresh.success) setProfile(fresh);
