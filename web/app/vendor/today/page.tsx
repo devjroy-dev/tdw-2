@@ -61,6 +61,12 @@ interface DreamAiContext {
 interface ChatMessage {
   role: 'user' | 'ai';
   text: string;
+  actionType?: string;
+  actionLabel?: string;
+  actionPreview?: string;
+  actionParams?: Record<string, any>;
+}
+  text: string;
 }
 
 // ─── Shimmer ──────────────────────────────────────────────────────────────────
@@ -189,10 +195,21 @@ function DreamAiSheet({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const QUICK_CHIPS = [
+  // Context-aware quick prompts — generated fresh from context
+  const quickChips = context ? [
+    (context as any).overdue_invoices?.length > 0
+      ? `Who owes me money?`
+      : `What's my revenue this month?`,
+    (context as any).enquiries?.length > 0
+      ? `Any unanswered enquiries?`
+      : `What's my schedule this week?`,
+    `Draft a payment reminder for my next client`,
+    `Any conflicts next month?`,
+  ] : [
     "Who owes me money?",
-    "Any conflicts next month?",
-    "Draft a reply to my latest enquiry",
+    "Any unanswered enquiries?",
+    "What's my schedule this week?",
+    "Draft a payment reminder",
   ];
 
   useEffect(() => {
@@ -202,6 +219,25 @@ function DreamAiSheet({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  async function executeVendorAction(type: string, params: Record<string, any>) {
+    const endpointMap: Record<string, string> = {
+      send_payment_reminder: '/api/v2/dreamai/vendor-action/send-payment-reminder',
+      reply_to_enquiry: '/api/v2/dreamai/vendor-action/reply-to-enquiry',
+      block_date: '/api/v2/dreamai/vendor-action/block-date',
+      log_expense: '/api/v2/dreamai/vendor-action/log-expense',
+    };
+    const endpoint = endpointMap[type];
+    if (!endpoint) return 'Unknown action.';
+    try {
+      const r = await fetch(`${API}${endpoint}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: vendorId, ...params }),
+      });
+      const d = await r.json();
+      return d.message || 'Done.';
+    } catch { return 'Could not complete action.'; }
+  }
 
   async function sendMessage(text: string) {
     const msg = text.trim();
@@ -216,7 +252,19 @@ function DreamAiSheet({
         body: JSON.stringify({ userId: vendorId, userType: 'vendor', message: msg, context }),
       });
       const json = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: json.reply || 'Something went wrong. Please try again.' }]);
+      const replyText = json.reply || 'Something went wrong. Please try again.';
+
+      // Detect action block
+      const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^}]+\})\]/);
+      if (actionMatch) {
+        const [, type, label, preview, paramsStr] = actionMatch;
+        let params = {};
+        try { params = JSON.parse(paramsStr); } catch {}
+        const cleanText = replyText.replace(actionMatch[0], '').trim();
+        setMessages(prev => [...prev, { role: 'ai', text: cleanText, actionType: type, actionLabel: label, actionPreview: preview, actionParams: params }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'ai', text: replyText }]);
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'ai', text: 'Unable to reach DreamAi. Please check your connection.' }]);
     } finally {
@@ -270,13 +318,13 @@ function DreamAiSheet({
           }}>✕</button>
         </div>
 
-        {/* Quick chips */}
+        {/* Quick chips — context-aware */}
         {messages.length === 0 && (
           <div style={{
             display: 'flex', gap: 8, padding: '12px 20px',
             overflowX: 'auto', scrollbarWidth: 'none',
           }}>
-            {QUICK_CHIPS.map(chip => (
+            {quickChips.map(chip => (
               <button key={chip} onClick={() => sendMessage(chip)} style={{
                 flexShrink: 0,
                 fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
@@ -301,23 +349,39 @@ function DreamAiSheet({
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
-              marginBottom: 12,
-            }}>
+            <div key={i}>
               <div style={{
-                maxWidth: '80%',
-                background: m.role === 'user' ? '#FFFFFF' : '#F8F7F5',
-                border: m.role === 'user' ? '0.5px solid #C9A84C' : '0.5px solid #E2DED8',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                padding: '10px 14px',
+                display: 'flex',
+                justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+                marginBottom: m.actionType ? 4 : 12,
               }}>
-                <p style={{
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-                  fontWeight: 300, color: '#111111', margin: 0, lineHeight: 1.5,
-                }}>{m.text}</p>
+                <div style={{
+                  maxWidth: '80%',
+                  background: m.role === 'user' ? '#FFFFFF' : '#F8F7F5',
+                  border: m.role === 'user' ? '0.5px solid #C9A84C' : '0.5px solid #E2DED8',
+                  borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  padding: '10px 14px',
+                }}>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+                    fontWeight: 300, color: '#111111', margin: 0, lineHeight: 1.5,
+                  }}>{m.text || ''}</p>
+                </div>
               </div>
+              {m.actionType && m.actionPreview && (
+                <div style={{ background: '#F8F7F5', border: '1px solid #C9A84C', borderRadius: 12, padding: '12px 14px', margin: '4px 0 12px' }}>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 6px' }}>✦ Action Preview</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111', margin: '0 0 12px', lineHeight: 1.5 }}>{m.actionPreview}</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={async () => {
+                      const result = await executeVendorAction(m.actionType!, m.actionParams || {});
+                      setMessages(prev => [...prev, { role: 'ai', text: result }]);
+                      setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, actionType: undefined } : msg));
+                    }} style={{ flex: 1, height: 36, background: '#C9A84C', border: 'none', borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#111', cursor: 'pointer', touchAction: 'manipulation' }}>Confirm</button>
+                    <button onClick={() => setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, actionType: undefined } : msg))} style={{ height: 36, padding: '0 14px', background: 'transparent', border: '1px solid #E2DED8', borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation' }}>Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           {loading && (

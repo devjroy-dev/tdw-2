@@ -671,7 +671,51 @@ function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
 }
 
 // ─── DreamAi Sheet (shared across tabs) ──────────────────────────────────────
-interface ChatMessage { role: 'user' | 'ai'; text: string; }
+interface ChatMessage { role: 'user' | 'ai'; text: string; action?: AgentAction; }
+interface AgentAction { type: string; label: string; params: Record<string, any>; preview: string; }
+
+function ActionPreviewCard({ action, userId, onConfirm, onDismiss }: {
+  action: AgentAction; userId: string;
+  onConfirm: (result: string) => void; onDismiss: () => void;
+}) {
+  const [executing, setExecuting] = useState(false);
+  const endpointMap: Record<string, string> = {
+    complete_task: '/api/v2/dreamai/action/complete-task',
+    add_expense: '/api/v2/dreamai/action/add-expense',
+    send_whatsapp: '/api/v2/dreamai/action/send-whatsapp-reminder',
+    send_enquiry: '/api/v2/dreamai/action/send-enquiry',
+  };
+
+  async function execute() {
+    const endpoint = endpointMap[action.type];
+    if (!endpoint || executing) return;
+    setExecuting(true);
+    try {
+      const r = await fetch(`${RAILWAY_URL}${endpoint}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: userId, ...action.params }),
+      });
+      const d = await r.json();
+      onConfirm(d.message || 'Done.');
+    } catch { onConfirm('Could not complete action.'); }
+    finally { setExecuting(false); }
+  }
+
+  return (
+    <div style={{ background: '#F8F7F5', border: '1px solid #C9A84C', borderRadius: 12, padding: '12px 14px', margin: '8px 0' }}>
+      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 6px' }}>✦ Action Preview</p>
+      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111', margin: '0 0 12px', lineHeight: 1.5 }}>{action.preview}</p>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={execute} disabled={executing} style={{ flex: 1, height: 36, background: '#C9A84C', border: 'none', borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#111', cursor: 'pointer', opacity: executing ? 0.6 : 1, touchAction: 'manipulation' }}>
+          {executing ? '...' : 'Confirm'}
+        </button>
+        <button onClick={onDismiss} style={{ height: 36, padding: '0 14px', background: 'transparent', border: '1px solid #E2DED8', borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function DreamAiSheet({
   visible, onClose, userId, prefill,
@@ -712,13 +756,32 @@ function DreamAiSheet({
         body: JSON.stringify({ userId, userType: 'couple', message: msg, context }),
       });
       const json = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: json.reply || 'Something went wrong.' }]);
+      const replyText = json.reply || 'Something went wrong.';
+
+      // Detect action block in reply — format: [ACTION:type|label|preview|params_json]
+      const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^}]+\})\]/);
+      if (actionMatch) {
+        const [, type, label, preview, paramsStr] = actionMatch;
+        let params = {};
+        try { params = JSON.parse(paramsStr); } catch {}
+        const cleanText = replyText.replace(actionMatch[0], '').trim();
+        setMessages(prev => [...prev, { role: 'ai', text: cleanText, action: { type, label, preview, params } }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'ai', text: replyText }]);
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'ai', text: 'Unable to reach DreamAi.' }]);
     } finally {
       setLoading(false);
     }
   }
+
+  const quickPrompts = context ? [
+    'What\'s overdue this week?',
+    'How much have I spent so far?',
+    'Which vendors haven\'t replied?',
+    'Draft a reminder to my florist',
+  ] : [];
 
   return (
     <>
@@ -758,31 +821,57 @@ function DreamAiSheet({
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 16px' }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', marginTop: 48 }}>
+            <div style={{ marginTop: 32 }}>
               <p style={{
                 fontFamily: "'Cormorant Garamond', serif", fontSize: 18,
-                fontWeight: 300, fontStyle: 'italic', color: '#888580', margin: 0,
+                fontWeight: 300, fontStyle: 'italic', color: '#888580',
+                textAlign: 'center', margin: '0 0 24px',
               }}>Ask anything about your wedding.</p>
+              {quickPrompts.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {quickPrompts.map((q, i) => (
+                    <button key={i} onClick={() => sendMessage(q)} style={{
+                      background: '#F8F7F5', border: '0.5px solid #E2DED8', borderRadius: 10,
+                      padding: '10px 14px', textAlign: 'left', cursor: 'pointer', touchAction: 'manipulation',
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#555250',
+                    }}>{q}</button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
-              marginBottom: 12,
-            }}>
+            <div key={i}>
               <div style={{
-                maxWidth: '80%',
-                background: m.role === 'user' ? '#FFFFFF' : '#F8F7F5',
-                border: m.role === 'user' ? '0.5px solid #C9A84C' : '0.5px solid #E2DED8',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                padding: '10px 14px',
+                display: 'flex',
+                justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+                marginBottom: m.action ? 4 : 12,
               }}>
-                <p style={{
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-                  fontWeight: 300, color: '#111111', margin: 0, lineHeight: 1.5,
-                }}>{m.text}</p>
+                <div style={{
+                  maxWidth: '80%',
+                  background: m.role === 'user' ? '#FFFFFF' : '#F8F7F5',
+                  border: m.role === 'user' ? '0.5px solid #C9A84C' : '0.5px solid #E2DED8',
+                  borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  padding: '10px 14px',
+                }}>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+                    fontWeight: 300, color: '#111111', margin: 0, lineHeight: 1.5,
+                  }}>{m.text || ''}</p>
+                </div>
               </div>
+              {m.action && (
+                <ActionPreviewCard
+                  action={m.action}
+                  userId={userId}
+                  onConfirm={(result) => {
+                    setMessages(prev => [...prev, { role: 'ai', text: result }]);
+                  }}
+                  onDismiss={() => {
+                    setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, action: undefined } : msg));
+                  }}
+                />
+              )}
             </div>
           ))}
           {loading && (
