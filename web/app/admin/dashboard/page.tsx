@@ -14,12 +14,12 @@ function timeAgo(d: string) {
 }
 
 function Shimmer({ h: height, w = '100%', br = 8 }: { h: number; w?: string | number; br?: number }) {
-  return <div style={{ height, width: w, borderRadius: br, background: 'linear-gradient(90deg,#1E1C1A 25%,#2A2825 50%,#1E1C1A 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />;
+  return <div style={{ height, width: w, borderRadius: br, background: 'linear-gradient(90deg,#F0EEE8 25%,#E8E5DF 50%,#F0EEE8 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />;
 }
 
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
 }
 
 interface Counter { total: number; today_delta?: number; delta?: number; }
@@ -31,9 +31,9 @@ interface Data {
 
 function CounterCard({ label, value, delta }: { label: string; value: number; delta?: number }) {
   return (
-    <div style={{ background: '#161412', border: '1px solid rgba(248,247,245,0.1)', borderRadius: 14, padding: '20px 20px 18px', flex: 1, minWidth: 0 }}>
-      <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, fontWeight: 300, color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1 }}>{value.toLocaleString('en-IN')}</p>
-      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(248,247,245,0.4)', margin: '0 0 8px' }}>{label}</p>
+    <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '20px 20px 18px', flex: 1, minWidth: 0 }}>
+      <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, fontWeight: 300, color: '#111111', margin: '0 0 4px', lineHeight: 1 }}>{value.toLocaleString('en-IN')}</p>
+      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580', margin: '0 0 8px' }}>{label}</p>
       {delta !== undefined && delta !== 0 && (
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: delta > 0 ? '#4A7C59' : '#9B4545', margin: 0 }}>
           {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} vs yesterday
@@ -100,10 +100,10 @@ export default function CommandCentrePage() {
 
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 9, color: 'rgba(248,247,245,0.4)', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>Admin</p>
+        <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>Admin</p>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 32, color: '#F8F7F5', margin: 0 }}>Command Centre</p>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: 'rgba(248,247,245,0.4)', margin: 0 }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 32, color: '#111111', margin: 0 }}>Command Centre</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: 0 }}>
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
@@ -125,10 +125,10 @@ export default function CommandCentrePage() {
 
       {/* Quick actions */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        <button onClick={backfill} disabled={backfilling} style={{ height: 36, padding: '0 16px', background: '#111', color: '#F8F7F5', border: 'none', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: backfilling ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+        <button onClick={backfill} disabled={backfilling} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#111111', border: 'none', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: backfilling ? 0.6 : 1, whiteSpace: 'nowrap' }}>
           {backfilling ? '⟳ Backfilling...' : '⟳ Backfill Entity Links'}
         </button>
-        <button onClick={exportReport} style={{ height: 36, padding: '0 16px', background: 'transparent', color: '#F8F7F5', border: '1px solid rgba(248,247,245,0.1)', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <button onClick={exportReport} style={{ height: 36, padding: '0 16px', background: 'transparent', color: '#111111', border: '1px solid #E2DED8', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           ↓ Export Today's Report
         </button>
         <button onClick={() => router.push('/admin/images')} style={{ height: 36, padding: '0 16px', background: 'transparent', color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -139,7 +139,7 @@ export default function CommandCentrePage() {
       {/* Activity Feed */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(248,247,245,0.4)', margin: 0 }}>Activity — Last 24 Hours</p>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#888580', margin: 0 }}>Activity — Last 24 Hours</p>
           <button onClick={load} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Jost', sans-serif", fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#C9A84C' }}>Refresh</button>
         </div>
 
@@ -148,18 +148,18 @@ export default function CommandCentrePage() {
             {[1,2,3,4,5].map(i => <Shimmer key={i} h={44} br={10} />)}
           </div>
         ) : !data?.activity?.length ? (
-          <div style={{ background: '#161412', border: '1px solid rgba(248,247,245,0.1)', borderRadius: 12, padding: 32, textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, fontStyle: 'italic', color: 'rgba(248,247,245,0.4)', margin: 0 }}>Quiet so far today.</p>
+          <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 12, padding: 32, textAlign: 'center' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, fontStyle: 'italic', color: '#888580', margin: 0 }}>Quiet so far today.</p>
           </div>
         ) : (
-          <div style={{ background: '#161412', border: '1px solid rgba(248,247,245,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 12, overflow: 'hidden' }}>
             {data.activity.map((item, i) => (
               <div key={i} onClick={() => {
                 if (item.type === 'new_dreamer') router.push(`/admin/dreamers/${item.id}`);
                 else if (item.type === 'new_maker') router.push(`/admin/makers/${item.id}`);
                 else if (item.type === 'flagged') router.push('/admin/messages');
               }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < data.activity.length - 1 ? '0.5px solid #F0EEE8' : 'none', cursor: 'pointer', transition: 'background 150ms' }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#1E1C1A'}
+                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#F8F7F5'}
                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
               >
                 <span style={{ fontSize: 14, flexShrink: 0 }}>{item.emoji}</span>

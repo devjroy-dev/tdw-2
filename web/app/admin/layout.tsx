@@ -5,14 +5,14 @@ import { useRouter, usePathname } from 'next/navigation';
 const FONTS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { margin: 0; background: #0C0A09; color: #F8F7F5; }
-  ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: #2A2825; border-radius: 2px; }
+  body { margin: 0; background: #FFFFFF; color: #111111; }
+  ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: #E2DED8; border-radius: 2px; }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
   .fade-in { animation: fadeIn 240ms cubic-bezier(0.22,1,0.36,1) both; }
   table { border-collapse: collapse; }
-  input, select, textarea { color: #F8F7F5 !important; background: transparent !important; }
-  input::placeholder { color: rgba(248,247,245,0.35) !important; }
+  input, select, textarea { color: #111111 !important; background: transparent !important; }
+  input::placeholder { color: rgba(0,0,0,0.3) !important; }
 `;
 
 const NAV = [
@@ -38,12 +38,12 @@ const NAV = [
 ];
 
 // Dark theme tokens
-const BG = '#0C0A09';
-const BG2 = '#161412';
-const BG3 = '#1E1C1A';
-const BORDER = 'rgba(248,247,245,0.08)';
-const TEXT = '#F8F7F5';
-const MUTED = 'rgba(248,247,245,0.45)';
+const BG = '#FFFFFF';
+const BG2 = '#F8F7F5';
+const BG3 = '#F0EEE8';
+const BORDER = '#E2DED8';
+const TEXT = '#111111';
+const MUTED = '#888580';
 const GOLD = '#C9A84C';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -76,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <nav style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
         {NAV.map(({ group, items }) => (
           <div key={group}>
-            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: 'rgba(248,247,245,0.25)', letterSpacing: '0.3em', textTransform: 'uppercase', padding: '16px 20px 6px' }}>{group}</div>
+            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: '#BBBBBB', letterSpacing: '0.3em', textTransform: 'uppercase', padding: '16px 20px 6px' }}>{group}</div>
             {items.map(({ label, path, icon }) => {
               const active = isActive(path);
               return (
