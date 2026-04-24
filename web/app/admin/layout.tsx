@@ -16,13 +16,17 @@ const FONTS = `
 `;
 
 const NAV = [
-  { group: 'OVERVIEW', items: [{ label: 'Command Centre', path: '/admin/dashboard', icon: '◈' }]},
+  { group: 'OVERVIEW', items: [
+    { label: 'Command Centre', path: '/admin/dashboard', icon: '◈' },
+    { label: 'Control Room', path: '/admin/control-room', icon: '◐' },
+  ]},
   { group: 'PEOPLE', items: [
     { label: 'Dreamers', path: '/admin/dreamers', icon: '♡' },
     { label: 'Makers', path: '/admin/makers', icon: '✦' },
     { label: 'Invite Codes', path: '/admin/invites', icon: '⌘' },
   ]},
   { group: 'PLATFORM', items: [
+    { label: 'Cover Placement', path: '/admin/cover', icon: '⬡' },
     { label: 'Messages', path: '/admin/messages', icon: '💬' },
     { label: 'Image Approvals', path: '/admin/images', icon: '⬡' },
     { label: 'Featured', path: '/admin/featured', icon: '★' },
