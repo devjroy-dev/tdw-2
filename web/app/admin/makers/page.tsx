@@ -166,7 +166,7 @@ export default function MakersPage() {
 
       {/* Search + filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, or city…" style={{ flex: 1, minWidth: 200, border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, color: '#F8F7F5', padding: '8px 0', outline: 'none', color: '#F8F7F5' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, or city…" style={{ flex: 1, minWidth: 200, border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, color: '#F8F7F5', padding: '8px 0', outline: 'none' }} />
         <div style={{ display: 'flex', gap: 6 }}>
           {[['all','All'],['essential','Essential'],['signature','Signature'],['prestige','Prestige']].map(([v,l]) => (
             <button key={v} onClick={() => setFilterTier(v)} style={{ padding: '4px 12px', border: 'none', borderRadius: 100, cursor: 'pointer', fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', background: filterTier === v ? '#111' : '#F4F1EC', color: filterTier === v ? '#F8F7F5' : '#888580' }}>{l}</button>

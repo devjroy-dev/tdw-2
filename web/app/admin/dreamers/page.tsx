@@ -198,7 +198,7 @@ export default function DreamersPage() {
 
       {/* Search + filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or phone…" style={{ flex: 1, minWidth: 200, border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 300, color: '#F8F7F5', padding: '8px 0', outline: 'none', color: '#F8F7F5' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or phone…" style={{ flex: 1, minWidth: 200, border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 300, color: '#F8F7F5', padding: '8px 0', outline: 'none' }} />
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {[['all', 'All'], ['free', 'Basic'], ['premium', 'Gold'], ['elite', 'Platinum']].map(([v, l]) => (
             <button key={v} onClick={() => setFilterTier(v)} style={chipStyle(filterTier === v)}>{l}</button>
