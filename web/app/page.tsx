@@ -407,8 +407,7 @@ export default function Home() {
           transition: `opacity 3s ${ease}`,
           willChange: 'opacity',
           // Blur when a glass panel is active
-          filter: screen !== 'exploring' ? 'blur(4px)' : 'none',
-          transform: 'scale(1.04)', // slight scale to hide blur edges
+          filter: 'none',
         }} />
       ))}
 
@@ -420,7 +419,7 @@ export default function Home() {
 
       {/* ── Dark overlay for non-exploring screens ────────────────────────── */}
       {screen !== 'exploring' && (
-        <div style={{ ...S, zIndex: 3, background: 'rgba(12,10,9,0.35)', pointerEvents: 'none' }} />
+        <div style={{ ...S, zIndex: 3, background: 'rgba(12,10,9,0.15)', pointerEvents: 'none' }} />
       )}
 
       {/* ── Toast ─────────────────────────────────────────────────────────── */}
@@ -443,7 +442,7 @@ export default function Home() {
           <div
             onClick={() => setEntryExpanded(true)}
             style={{
-              background: 'rgba(12,10,9,0.75)',
+              background: 'rgba(12,10,9,0.35)',
               backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
               borderTop: '0.5px solid rgba(255,255,255,0.1)',
               padding: entryExpanded
