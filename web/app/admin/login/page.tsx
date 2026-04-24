@@ -30,10 +30,10 @@ export default function AdminLoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #F8F7F5; }
+        body { background: #0C0A09; }
       `}</style>
       <div style={{
-        minHeight: '100vh', background: '#F8F7F5',
+        minHeight: '100vh', background: '#0C0A09',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24,
       }}>
@@ -43,11 +43,11 @@ export default function AdminLoginPage() {
             <p style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic', fontWeight: 300, fontSize: 22,
-              color: '#111111', margin: '0 0 4px',
+              color: '#F8F7F5', margin: '0 0 4px',
             }}>The Dream Wedding</p>
             <p style={{
               fontFamily: "'Jost', sans-serif", fontWeight: 200,
-              fontSize: 9, color: '#555250',
+              fontSize: 9, color: 'rgba(248,247,245,0.45)',
               letterSpacing: '0.25em', textTransform: 'uppercase',
             }}>Admin</p>
           </div>
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
           <div style={{ marginBottom: 16 }}>
             <label style={{
               fontFamily: "'Jost', sans-serif", fontWeight: 200,
-              fontSize: 8, color: '#555250',
+              fontSize: 8, color: 'rgba(248,247,245,0.45)',
               letterSpacing: '0.22em', textTransform: 'uppercase',
               display: 'block', marginBottom: 8,
             }}>Password</label>
@@ -68,10 +68,10 @@ export default function AdminLoginPage() {
               autoFocus
               style={{
                 width: '100%', height: 48,
-                background: '#FFFFFF', border: '0.5px solid #E2DED8',
+                background: '#161412', border: '0.5px solid rgba(248,247,245,0.15)',
                 borderRadius: 8, padding: '0 16px', outline: 'none',
                 fontFamily: "'DM Sans', sans-serif", fontWeight: 300,
-                fontSize: 14, color: '#111111',
+                fontSize: 14, color: '#F8F7F5',
               }}
             />
           </div>

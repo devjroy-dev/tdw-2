@@ -5,21 +5,46 @@ import { useRouter, usePathname } from 'next/navigation';
 const FONTS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { margin: 0; background: #F8F7F5; }
-  ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: #E2DED8; border-radius: 2px; }
+  body { margin: 0; background: #0C0A09; color: #F8F7F5; }
+  ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: #2A2825; border-radius: 2px; }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
   .fade-in { animation: fadeIn 240ms cubic-bezier(0.22,1,0.36,1) both; }
+  table { border-collapse: collapse; }
+  input, select, textarea { color: #F8F7F5 !important; background: transparent !important; }
+  input::placeholder { color: rgba(248,247,245,0.35) !important; }
 `;
 
 const NAV = [
   { group: 'OVERVIEW', items: [{ label: 'Command Centre', path: '/admin/dashboard', icon: '◈' }]},
-  { group: 'PEOPLE', items: [{ label: 'Dreamers', path: '/admin/dreamers', icon: '♡' },{ label: 'Makers', path: '/admin/makers', icon: '✦' }]},
-  { group: 'PLATFORM', items: [{ label: 'Messages', path: '/admin/messages', icon: '💬' },{ label: 'Image Approvals', path: '/admin/images', icon: '⬡' },{ label: 'Featured', path: '/admin/featured', icon: '★' }]},
-  { group: 'MONEY', items: [{ label: 'Revenue', path: '/admin/money', icon: '₹' },{ label: 'Subscriptions', path: '/admin/subscriptions', icon: '◉' }]},
-  { group: 'TOOLS', items: [{ label: 'Data Tools', path: '/admin/data', icon: '⚙' },{ label: 'System Health', path: '/admin/health', icon: '●' }]},
-  { group: 'LEGACY', items: [{ label: 'Revenue', path: '/admin/revenue', icon: '₹' },{ label: 'Photos', path: '/admin/photos', icon: '⊡' },{ label: 'Vendors', path: '/admin/vendors', icon: '⊞' },{ label: 'Couples', path: '/admin/couples', icon: '⊛' }]},
+  { group: 'PEOPLE', items: [
+    { label: 'Dreamers', path: '/admin/dreamers', icon: '♡' },
+    { label: 'Makers', path: '/admin/makers', icon: '✦' },
+    { label: 'Invite Codes', path: '/admin/invites', icon: '⌘' },
+  ]},
+  { group: 'PLATFORM', items: [
+    { label: 'Messages', path: '/admin/messages', icon: '💬' },
+    { label: 'Image Approvals', path: '/admin/images', icon: '⬡' },
+    { label: 'Featured', path: '/admin/featured', icon: '★' },
+  ]},
+  { group: 'MONEY', items: [
+    { label: 'Revenue', path: '/admin/money', icon: '₹' },
+    { label: 'Subscriptions', path: '/admin/subscriptions', icon: '◉' },
+  ]},
+  { group: 'TOOLS', items: [
+    { label: 'Data Tools', path: '/admin/data', icon: '⚙' },
+    { label: 'System Health', path: '/admin/health', icon: '●' },
+  ]},
 ];
+
+// Dark theme tokens
+const BG = '#0C0A09';
+const BG2 = '#161412';
+const BG3 = '#1E1C1A';
+const BORDER = 'rgba(248,247,245,0.08)';
+const TEXT = '#F8F7F5';
+const MUTED = 'rgba(248,247,245,0.45)';
+const GOLD = '#C9A84C';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -39,21 +64,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (path: string) => pathname === path || (path !== '/admin' && pathname.startsWith(path));
 
   const nav = (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      <div style={{ padding:'24px 20px 16px', flexShrink:0 }}>
-        <div style={{ fontFamily:'"Cormorant Garamond",serif', fontStyle:'italic', fontWeight:300, fontSize:16, color:'#111', marginBottom:2 }}>The Dream Wedding</div>
-        <div style={{ fontFamily:'"Jost",sans-serif', fontWeight:200, fontSize:8, color:'#C9A84C', letterSpacing:'0.3em', textTransform:'uppercase' }}>Admin Portal</div>
-        <div style={{ height:1, background:'linear-gradient(to right,rgba(201,168,76,0.4),transparent)', marginTop:14 }} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: BG2 }}>
+      {/* Brand */}
+      <div style={{ padding: '24px 20px 16px', flexShrink: 0 }}>
+        <div style={{ fontFamily: '"Cormorant Garamond", serif', fontStyle: 'italic', fontWeight: 300, fontSize: 17, color: TEXT, marginBottom: 2 }}>The Dream Wedding</div>
+        <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: GOLD, letterSpacing: '0.3em', textTransform: 'uppercase' }}>Admin Portal</div>
+        <div style={{ height: 1, background: `linear-gradient(to right, ${GOLD}44, transparent)`, marginTop: 14 }} />
       </div>
-      <nav style={{ flex:1, overflowY:'auto', paddingBottom:16 }}>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
         {NAV.map(({ group, items }) => (
           <div key={group}>
-            <div style={{ fontFamily:'"Jost",sans-serif', fontWeight:200, fontSize:7, color:'#C8C4BE', letterSpacing:'0.28em', textTransform:'uppercase', padding:'14px 20px 5px' }}>{group}</div>
+            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: 'rgba(248,247,245,0.25)', letterSpacing: '0.3em', textTransform: 'uppercase', padding: '16px 20px 6px' }}>{group}</div>
             {items.map(({ label, path, icon }) => {
               const active = isActive(path);
               return (
-                <button key={path} onClick={() => { router.push(path); setNavOpen(false); }} style={{ display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left', padding:'7px 16px 7px 14px', border:'none', outline:'none', cursor:'pointer', fontFamily:'"DM Sans",sans-serif', fontWeight:active?400:300, fontSize:13, background:active?'#FFFFFF':'transparent', color:active?'#111':'#555250', borderLeft:`2px solid ${active?'#C9A84C':'transparent'}`, borderRadius:'0 6px 6px 0', transition:'all 0.12s ease' }}>
-                  <span style={{ fontSize:10, opacity:0.5, width:14, flexShrink:0 }}>{icon}</span>
+                <button key={path} onClick={() => { router.push(path); setNavOpen(false); }} style={{
+                  display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
+                  padding: '8px 16px 8px 14px', border: 'none', outline: 'none', cursor: 'pointer',
+                  fontFamily: '"DM Sans", sans-serif', fontWeight: active ? 400 : 300, fontSize: 13,
+                  background: active ? BG3 : 'transparent',
+                  color: active ? TEXT : MUTED,
+                  borderLeft: `2px solid ${active ? GOLD : 'transparent'}`,
+                  borderRadius: '0 6px 6px 0',
+                  transition: 'all 0.12s ease',
+                }}>
+                  <span style={{ fontSize: 11, opacity: 0.5, width: 14, flexShrink: 0 }}>{icon}</span>
                   {label}
                 </button>
               );
@@ -61,8 +98,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         ))}
       </nav>
-      <div style={{ padding:'12px 16px', borderTop:'0.5px solid #E2DED8', flexShrink:0 }}>
-        <button onClick={() => { localStorage.removeItem('admin_session'); router.replace('/admin/login'); }} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:'"Jost",sans-serif', fontWeight:200, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'#888580' }}>Sign Out</button>
+
+      {/* Footer */}
+      <div style={{ padding: '12px 16px', borderTop: `0.5px solid ${BORDER}`, flexShrink: 0 }}>
+        <button onClick={() => { localStorage.removeItem('admin_session'); router.replace('/admin/login'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: MUTED }}>Sign Out</button>
       </div>
     </div>
   );
@@ -70,21 +109,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <style>{FONTS}</style>
-      {navOpen && <div onClick={() => setNavOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:199 }} />}
-      <div style={{ position:'fixed', top:0, left:navOpen?0:-260, bottom:0, width:240, background:'#FAFAF8', borderRight:'0.5px solid #E2DED8', zIndex:200, transition:'left 280ms cubic-bezier(0.22,1,0.36,1)', display:'flex', flexDirection:'column' }} id="mobile-nav">{nav}</div>
-      <div style={{ position:'fixed', top:0, left:0, bottom:0, width:220, background:'#FAFAF8', borderRight:'0.5px solid #E2DED8', display:'none', flexDirection:'column' }} id="desktop-nav">{nav}</div>
-      <div id="admin-main">
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', borderBottom:'0.5px solid #E2DED8', background:'#FAFAF8', position:'sticky', top:0, zIndex:100 }} id="mobile-topbar">
-          <button onClick={() => setNavOpen(o => !o)} style={{ background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', flexDirection:'column', gap:4 }}>
-            <div style={{ width:20, height:1.5, background:'#555250' }} />
-            <div style={{ width:14, height:1.5, background:'#555250' }} />
-            <div style={{ width:20, height:1.5, background:'#555250' }} />
+      {navOpen && <div onClick={() => setNavOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 199 }} />}
+
+      {/* Mobile sidebar */}
+      <div style={{ position: 'fixed', top: 0, left: navOpen ? 0 : -260, bottom: 0, width: 240, zIndex: 200, transition: 'left 280ms cubic-bezier(0.22,1,0.36,1)', display: 'flex', flexDirection: 'column' }} id="mobile-nav">{nav}</div>
+
+      {/* Desktop sidebar */}
+      <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 220, display: 'none', flexDirection: 'column' }} id="desktop-nav">{nav}</div>
+
+      {/* Main */}
+      <div id="admin-main" style={{ background: BG, minHeight: '100vh' }}>
+        {/* Mobile top bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `0.5px solid ${BORDER}`, background: BG2, position: 'sticky', top: 0, zIndex: 100 }} id="mobile-topbar">
+          <button onClick={() => setNavOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ width: 20, height: 1.5, background: TEXT }} />
+            <div style={{ width: 14, height: 1.5, background: TEXT }} />
+            <div style={{ width: 20, height: 1.5, background: TEXT }} />
           </button>
-          <div style={{ fontFamily:'"Cormorant Garamond",serif', fontStyle:'italic', fontSize:15, fontWeight:300, color:'#111' }}>TDW Admin</div>
-          <div style={{ width:28 }} />
+          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontStyle: 'italic', fontSize: 16, fontWeight: 300, color: TEXT }}>TDW Admin</div>
+          <div style={{ width: 28 }} />
         </div>
-        <div style={{ padding:'28px 20px 80px' }} className="fade-in">{children}</div>
+
+        {/* Content */}
+        <div style={{ padding: '28px 20px 80px', color: TEXT }} className="fade-in">
+          {children}
+        </div>
       </div>
+
       <style>{`
         @media (min-width: 768px) {
           #desktop-nav { display: flex !important; }

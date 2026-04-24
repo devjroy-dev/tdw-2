@@ -46,14 +46,14 @@ export default function HealthPage() {
       {toast && <Toast msg={toast} onDone={() => setToast('')} />}
 
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontFamily: "'Jost',sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>Admin</p>
+        <p style={{ fontFamily: "'Jost',sans-serif", fontWeight: 200, fontSize: 9, color: 'rgba(248,247,245,0.4)', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>Admin</p>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <p style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 32, color: '#111', margin: 0 }}>System Health</p>
+          <p style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 32, color: '#F8F7F5', margin: 0 }}>System Health</p>
           <button onClick={ping} disabled={pinging} style={{ height: 36, padding: '0 16px', background: '#111', color: '#F8F7F5', border: 'none', borderRadius: 8, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: pinging ? 0.6 : 1 }}>
             {pinging ? '⟳ Pinging...' : '⟳ Ping All'}
           </button>
         </div>
-        {lastChecked && <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '8px 0 0' }}>Last checked: {lastChecked}</p>}
+        {lastChecked && <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 300, color: 'rgba(248,247,245,0.4)', margin: '8px 0 0' }}>Last checked: {lastChecked}</p>}
       </div>
 
       {/* Overall status */}
@@ -69,16 +69,16 @@ export default function HealthPage() {
       {/* Service cards */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[1,2,3].map(i => <div key={i} style={{ height: 72, borderRadius: 14, background: 'linear-gradient(90deg,#EEECE8 25%,#F4F2EE 50%,#EEECE8 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />)}
+          {[1,2,3].map(i => <div key={i} style={{ height: 72, borderRadius: 14, background: 'linear-gradient(90deg,#1E1C1A 25%,#2A2825 50%,#1E1C1A 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />)}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {services.map(svc => (
-            <div key={svc.name} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div key={svc.name} style={{ background: '#161412', border: '1px solid rgba(248,247,245,0.1)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
               <span style={{ fontSize: 18, opacity: 0.5, flexShrink: 0 }}>{svc.icon}</span>
               <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 400, color: '#111', margin: '0 0 2px' }}>{svc.name}</p>
-                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: 0 }}>{svc.detail}</p>
+                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 400, color: '#F8F7F5', margin: '0 0 2px' }}>{svc.name}</p>
+                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 300, color: 'rgba(248,247,245,0.4)', margin: 0 }}>{svc.detail}</p>
               </div>
               <StatusDot ok={svc.ok} />
             </div>
