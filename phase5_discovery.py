@@ -1,3 +1,203 @@
+"""
+PHASE 5 — Discovery 3-level system
+Repos: both
+
+Changes:
+  1. Backend (dream-wedding): GET /api/v2/vendor/profile-level/:vendorId
+     — calculates Level 0/1/2 dynamically, returns what's missing + next step hint
+  2. Frontend (tdw-2): Full rewrite of vendor/discovery/dash/page.tsx
+     — real data from backend, all 6 status states, next step hint, submit button
+
+Run from: /workspaces/dream-wedding  (for backend change)
+     then: /workspaces/tdw-2         (for frontend change)
+
+This script detects which repo it's in and applies the correct change.
+
+Command (backend terminal):  python3 phase5_discovery.py
+Command (frontend terminal): python3 phase5_discovery.py
+
+SQL: phase5.sql — run in Supabase SQL editor (confirms vendor_images columns exist)
+"""
+
+import os, sys
+
+# Detect which repo we're in
+CWD = os.getcwd()
+IS_BACKEND  = os.path.exists('backend/server.js') and 'dream-wedding' in CWD
+IS_FRONTEND = os.path.exists('web/app/vendor') and 'tdw-2' in CWD
+
+if not IS_BACKEND and not IS_FRONTEND:
+    print('✗ Run this from /workspaces/dream-wedding OR /workspaces/tdw-2')
+    sys.exit(1)
+
+changes = []
+
+# ═════════════════════════════════════════════════════════════════════════════
+# BACKEND CHANGE
+# GET /api/v2/vendor/profile-level/:vendorId
+#
+# Returns which level the vendor is at (0, 1, or 2) and exactly what's missing.
+# The frontend reads this to show the correct status banner and next step hint.
+#
+# Level 0: default — nothing done
+# Level 1: 4+ photos uploaded, hero set, starting_price, city filled
+# Level 2: Level 1 + about (80+ words), 3+ vibe tags, instagram set
+#
+# Also returns:
+#   - completion_pct: from recomputeDiscoverCompletion (stored value, kept fresh)
+#   - next_step: the single most important missing field (one at a time)
+#   - submitted: whether vendor has submitted for review
+#   - approved: whether vendor is live on couple feed
+#   - rejected: whether vendor was rejected (with reason)
+#   - pending_review: submitted but not yet reviewed
+# ═════════════════════════════════════════════════════════════════════════════
+
+if IS_BACKEND:
+    BACKEND_PATH = 'backend/server.js'
+    with open(BACKEND_PATH, 'r') as f:
+        src = f.read()
+
+    # Insert after the existing vendor-discover/status endpoint
+    OLD_MARKER = """// ── Request access
+app.post('/api/vendor-discover/request-access', async (req, res) => {"""
+
+    NEW_PROFILE_LEVEL = """// ── Profile level calculator
+// The single source of truth for where a vendor is in the discovery funnel.
+// Frontend uses this to show the correct status banner and next step hint.
+app.get('/api/v2/vendor/profile-level/:vendorId', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    // Fetch vendor row + image count in parallel
+    const [{ data: vendor }, { count: imageCount }, { data: sub }] = await Promise.all([
+      supabase.from('vendors').select('*').eq('id', vendorId).maybeSingle(),
+      supabase.from('vendor_images').select('*', { count: 'exact', head: true }).eq('vendor_id', vendorId),
+      supabase.from('vendor_subscriptions').select('tier').eq('vendor_id', vendorId).maybeSingle(),
+    ]);
+
+    if (!vendor) return res.status(404).json({ success: false, error: 'vendor not found' });
+
+    const tier = sub?.tier || 'essential';
+    const hasHero = Array.isArray(vendor.featured_photos) && vendor.featured_photos.length > 0;
+    const photoCount = imageCount || 0;
+
+    // ── Level thresholds ───────────────────────────────────────────────────
+    // Level 1: basic info done
+    const level1Done = (
+      photoCount >= 4 &&
+      hasHero &&
+      !!vendor.starting_price &&
+      !!vendor.city
+    );
+
+    // Level 2: full profile done (unlocks Submit button)
+    const aboutWordCount = vendor.about ? vendor.about.trim().split(/\s+/).length : 0;
+    const level2Done = level1Done && (
+      aboutWordCount >= 80 &&
+      Array.isArray(vendor.vibe_tags) && vendor.vibe_tags.length >= 3 &&
+      !!(vendor.instagram_url || vendor.instagram)
+    );
+
+    const level = level2Done ? 2 : level1Done ? 1 : 0;
+
+    // ── Next step hint — show the single most important missing item ────────
+    let next_step = null;
+    if (!hasHero) {
+      next_step = { field: 'hero_photo', label: 'Add a hero photo', href: '/vendor/discovery/images' };
+    } else if (photoCount < 4) {
+      next_step = { field: 'photos', label: `Add ${4 - photoCount} more photo${4 - photoCount !== 1 ? 's' : ''}`, href: '/vendor/discovery/images' };
+    } else if (!vendor.starting_price) {
+      next_step = { field: 'pricing', label: 'Add your starting price', href: '/vendor/studio' };
+    } else if (!vendor.city) {
+      next_step = { field: 'city', label: 'Add your city', href: '/vendor/studio' };
+    } else if (aboutWordCount < 80) {
+      const wordsLeft = 80 - aboutWordCount;
+      next_step = { field: 'about', label: `Write your bio (${wordsLeft} more word${wordsLeft !== 1 ? 's' : ''})`, href: '/vendor/studio' };
+    } else if (!Array.isArray(vendor.vibe_tags) || vendor.vibe_tags.length < 3) {
+      next_step = { field: 'vibe_tags', label: 'Add at least 3 vibe tags', href: '/vendor/studio' };
+    } else if (!vendor.instagram_url && !vendor.instagram) {
+      next_step = { field: 'instagram', label: 'Add your Instagram handle', href: '/vendor/studio' };
+    }
+
+    // ── Discovery state ────────────────────────────────────────────────────
+    const isLive     = !!vendor.discover_listed && !!vendor.is_approved && !!vendor.vendor_discover_enabled;
+    const isSubmitted = !!vendor.discover_submitted_at;
+    const isApproved  = !!vendor.discover_approved_at;
+    const isRejected  = !!vendor.discover_rejected_reason;
+    const isPending   = isSubmitted && !isApproved && !isRejected;
+
+    // Recompute completion % so it's always fresh
+    await recomputeDiscoverCompletion(vendorId);
+    const { data: fresh } = await supabase.from('vendors')
+      .select('discover_completion_pct').eq('id', vendorId).maybeSingle();
+
+    res.json({
+      success: true,
+      level,          // 0, 1, or 2
+      tier,
+      level1Done,
+      level2Done,
+      completion_pct: fresh?.discover_completion_pct || 0,
+      next_step,      // null if nothing is missing
+      // Discovery state flags
+      is_live:         isLive,
+      is_submitted:    isSubmitted,
+      is_approved:     isApproved,
+      is_rejected:     isRejected,
+      is_pending:      isPending,
+      rejection_reason: vendor.discover_rejected_reason || null,
+      // Raw counts for frontend display
+      photo_count:     photoCount,
+      about_word_count: aboutWordCount,
+    });
+  } catch (err) {
+    console.error('[profile-level] error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── Request access
+app.post('/api/vendor-discover/request-access', async (req, res) => {"""
+
+    if OLD_MARKER in src:
+        src = src.replace(OLD_MARKER, NEW_PROFILE_LEVEL)
+        with open(BACKEND_PATH, 'w') as f:
+            f.write(src)
+        changes.append('✓ Backend: GET /api/v2/vendor/profile-level/:vendorId added')
+    else:
+        changes.append('✗ Backend FAILED — request-access marker not found')
+
+    print('\nPhase 5 — Backend patch complete\n')
+    for c in changes:
+        print(c)
+    print('\nNext: git add -A && git commit -m "Phase 5: profile-level endpoint" && git push')
+    print('\nThen run this same script from /workspaces/tdw-2 for the frontend change.')
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# FRONTEND CHANGE
+# Full rewrite of vendor/discovery/dash/page.tsx
+#
+# The old page was 100% hardcoded static data (65% ring, fake stats).
+# This new version:
+#   - Fetches real profile level from /api/v2/vendor/profile-level/:vendorId
+#   - Fetches real weekly stats from /api/v2/vendor/today/:vendorId (snapshot)
+#   - Shows correct status banner for all 6 states:
+#       State 0: Level 0 — "Complete your profile to get discovered"
+#       State 1: Level 1 — "Step 1 complete — finish your bio to submit"
+#       State 2: Level 2 — "Your profile is ready. Submit for Discovery."
+#       State 3: Submitted/Pending — "Under review. We'll be in touch within 48 hours."
+#       State 4: Live — "You're live. Couples are discovering you."
+#       State 5: Rejected — rejection reason shown, resubmit available
+#   - Shows "next step" hint below the ring (Issue 14)
+#   - Submit for Discovery button active at Level 2
+#   - Prestige note for Prestige vendors
+# ═════════════════════════════════════════════════════════════════════════════
+
+if IS_FRONTEND:
+    DASH_PATH = 'web/app/vendor/discovery/dash/page.tsx'
+
+    DASH_PAGE = """\
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -317,8 +517,8 @@ export default function DiscoveryDashPage() {
       const d = await r.json();
       if (d.success) {
         showToast(d.auto_approved
-          ? '✓ You're live! Couples can discover you now.'
-          : '✓ Submitted. We'll be in touch within 48 hours.');
+          ? '✓ You\'re live! Couples can discover you now.'
+          : '✓ Submitted. We\'ll be in touch within 48 hours.');
         // Refresh profile level
         const fresh = await fetch(`${API}/api/v2/vendor/profile-level/${vendorId}`).then(r => r.json());
         if (fresh.success) setProfile(fresh);
@@ -507,3 +707,13 @@ export default function DiscoveryDashPage() {
     </>
   );
 }
+"""
+
+    with open(DASH_PATH, 'w') as f:
+        f.write(DASH_PAGE)
+    changes.append(f'✓ Frontend: {DASH_PATH} fully rewritten — real data, all 6 states, next step hint, submit button')
+
+    print('\nPhase 5 — Frontend patch complete\n')
+    for c in changes:
+        print(c)
+    print('\nNext: git add -A && git commit -m "Phase 5: Discover Dash — real data, 3-level system, submit flow" && git push')
