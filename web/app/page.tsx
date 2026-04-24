@@ -178,6 +178,7 @@ export default function Home() {
   const [previewVendors, setPreviewVendors] = useState<PreviewVendor[]>([]);
   const [previewIdx, setPreviewIdx]     = useState(0);
   const [previewDone, setPreviewDone]   = useState(false);
+  const [entryExpanded, setEntryExpanded] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => { slidesRef.current = slides; }, [slides]);
@@ -393,6 +394,7 @@ export default function Home() {
         input::placeholder { color: rgba(248,247,245,0.3); }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4); }
         ::-webkit-scrollbar { display: none; }
+        @keyframes breathe { 0%,100%{opacity:0.22} 50%{opacity:0.45} }
       `}</style>
 
       {/* ── Carousel ─────────────────────────────────────────────────────── */}
