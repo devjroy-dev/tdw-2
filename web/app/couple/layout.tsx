@@ -20,13 +20,19 @@ const AUTH_ROUTES = ['/couple/pin', '/couple/pin-login', '/couple/login'];
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 export default function CoupleLayout({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<CoupleAppMode>('PLAN');
+  const [mode, setMode] = useState<CoupleAppMode>(() => {
+    if (typeof window === 'undefined') return 'PLAN';
+    try {
+      const saved = localStorage.getItem('couple_app_mode');
+      return (saved === 'DISCOVER' ? 'DISCOVER' : 'PLAN') as CoupleAppMode;
+    } catch { return 'PLAN'; }
+  });
   const pathname = usePathname();
 
   // MODE 1 — Auth routes: render children only
   if (AUTH_ROUTES.some(r => pathname === r || pathname?.startsWith(r + '/'))) {
     return (
-      <CoupleModeContext.Provider value={{ mode, setMode }}>
+      <CoupleModeContext.Provider value={{ mode, setMode: setModePersisted }}>
         {children}
       </CoupleModeContext.Provider>
     );
@@ -37,7 +43,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
   // Only the feed itself is immersive — hub and other discover pages keep the shell
   if (pathname === '/couple/discover/feed' || pathname?.startsWith('/couple/discover/feed?')) {
     return (
-      <CoupleModeContext.Provider value={{ mode, setMode }}>
+      <CoupleModeContext.Provider value={{ mode, setMode: setModePersisted }}>
         {children}
       </CoupleModeContext.Provider>
     );
@@ -45,7 +51,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
 
   // MODE 3 — All other routes: full padded shell
   return (
-    <CoupleModeContext.Provider value={{ mode, setMode }}>
+    <CoupleModeContext.Provider value={{ mode, setMode: setModePersisted }}>
       <div style={{
         fontFamily: "'DM Sans', sans-serif",
         background: '#F8F7F5',
