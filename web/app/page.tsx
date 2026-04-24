@@ -340,9 +340,9 @@ export default function Home() {
       };
       localStorage.setItem(sessionKey, JSON.stringify(sessionData));
       localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
-      router.push(pinSet
-        ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')
-        : (isVendor ? '/vendor/pin' : '/couple/pin'));
+      window.location.href = pinSet
+        ? (isVendor ? 'https://app.thedreamwedding.in/vendor/pin-login' : 'https://app.thedreamwedding.in/couple/pin-login')
+        : (isVendor ? 'https://app.thedreamwedding.in/vendor/pin' : 'https://app.thedreamwedding.in/couple/pin');
     } catch { showToast('Verification failed.'); }
   };
 
@@ -362,7 +362,7 @@ export default function Home() {
         };
         localStorage.setItem(sessionKey, JSON.stringify(sd));
         localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sd));
-        router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
+        window.location.href = isVendor ? 'https://app.thedreamwedding.in/vendor/pin-login' : 'https://app.thedreamwedding.in/couple/pin-login';
         return;
       }
     } catch {}
