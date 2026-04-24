@@ -66,8 +66,6 @@ interface ChatMessage {
   actionPreview?: string;
   actionParams?: Record<string, any>;
 }
-  text: string;
-}
 
 // ─── Shimmer ──────────────────────────────────────────────────────────────────
 const shimmerStyle: React.CSSProperties = {
