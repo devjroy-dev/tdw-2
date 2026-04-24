@@ -21,6 +21,8 @@ export default function ReferralsPage() {
   const [code, setCode] = useState('');
   const [totalReferrals, setTotalReferrals] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [nextMilestone, setNextMilestone] = useState<{referrals: number; discount: number} | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
@@ -30,27 +32,34 @@ export default function ReferralsPage() {
   };
 
   useEffect(() => {
-    const raw = localStorage.getItem('vendor_web_session');
-    if (!raw) { window.location.replace('/vendor/pin-login'); return; }
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
+    if (!raw) { window.location.replace('/vendor/login'); return; }
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed.vendorId) { window.location.replace('/vendor/pin-login'); return; }
-      setVendorId(parsed.vendorId);
-    } catch { window.location.replace('/vendor/pin-login'); }
+      const vid = parsed.vendorId || parsed.id;
+      if (!vid) { window.location.replace('/vendor/login'); return; }
+      setVendorId(vid);
+    } catch { window.location.replace('/vendor/login'); }
   }, []);
 
   const fetchReferrals = useCallback(async (vid: string) => {
     try {
-      const [codeRes, statsRes] = await Promise.all([
+      const [codeRes, statsRes, rewardsRes] = await Promise.all([
         fetch(`${BACKEND}/api/referral-code/${vid}`),
         fetch(`${BACKEND}/api/referrals/stats/${vid}`),
+        fetch(`${BACKEND}/api/referrals/rewards/${vid}`),
       ]);
-      const codeJson = await codeRes.json();
-      const statsJson = await statsRes.json();
+      const codeJson    = await codeRes.json();
+      const statsJson   = await statsRes.json();
+      const rewardsJson = await rewardsRes.json();
       if (codeJson.success && codeJson.data?.code) setCode(codeJson.data.code);
       if (statsJson.success && statsJson.data) {
         setTotalReferrals(statsJson.data.total_referrals || 0);
         setTotalEarned(statsJson.data.total_earned || 0);
+      }
+      if (rewardsJson.success && rewardsJson.data) {
+        setDiscount(rewardsJson.data.discount || 0);
+        setNextMilestone(rewardsJson.data.next_milestone || null);
       }
     } catch {}
     setLoading(false);
@@ -127,6 +136,25 @@ export default function ReferralsPage() {
                   {code || vendorId?.slice(0, 6).toUpperCase() || '------'}
                 </p>
               </div>
+
+              {/* Discount earned */}
+              {discount > 0 && (
+                <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 12, textAlign: 'center' }}>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 8, color: '#C9A84C', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>YOUR DISCOUNT</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, fontWeight: 300, color: '#C9A84C', margin: 0 }}>{discount}% off</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#888580', margin: '4px 0 0' }}>applied to your next subscription bill</p>
+                </div>
+              )}
+
+              {/* Next milestone */}
+              {nextMilestone && (
+                <div style={{ background: '#F8F7F5', border: '0.5px solid #E2DED8', borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontWeight: 200, fontSize: 8, color: '#888580', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 4px' }}>NEXT MILESTONE</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#111', margin: 0 }}>
+                    {nextMilestone.referrals - totalReferrals} more referral{nextMilestone.referrals - totalReferrals !== 1 ? 's' : ''} → <strong style={{ color: '#C9A84C', fontWeight: 400 }}>{nextMilestone.discount}% off</strong>
+                  </p>
+                </div>
+              )}
 
               {/* CTA */}
               <button

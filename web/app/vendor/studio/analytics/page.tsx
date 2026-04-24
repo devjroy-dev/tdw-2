@@ -24,24 +24,48 @@ export default function AnalyticsPage() {
   const [daily, setDaily] = useState<DailyEntry[]>([]);
   const [totals, setTotals] = useState<Totals>({ impressions: 0, profile_views: 0, saves: 0, enquiries: 0, lock_interests: 0 });
   const [loading, setLoading] = useState(true);
+  // Real profile completion data from Phase 5 profile-level endpoint
+  const [profileLevel, setProfileLevel] = useState<{
+    completion_pct: number;
+    next_step: { label: string; href: string } | null;
+    photo_count: number;
+    about_word_count: number;
+    is_live: boolean;
+  } | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem('vendor_web_session');
-    if (!raw) { window.location.replace('/vendor/pin-login'); return; }
+    // Check both session keys — login paths write to different ones
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
+    if (!raw) { window.location.replace('/vendor/login'); return; }
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed.vendorId) { window.location.replace('/vendor/pin-login'); return; }
-      setVendorId(parsed.vendorId);
-    } catch { window.location.replace('/vendor/pin-login'); }
+      const vid = parsed.vendorId || parsed.id;
+      if (!vid) { window.location.replace('/vendor/login'); return; }
+      setVendorId(vid);
+    } catch { window.location.replace('/vendor/login'); }
   }, []);
 
   const fetchAnalytics = useCallback(async (vid: string) => {
     try {
-      const res = await fetch(`${BACKEND}/api/vendor-analytics/${vid}`);
-      const json = await res.json();
-      if (json.success) {
-        if (Array.isArray(json.daily)) setDaily(json.daily);
-        if (json.totals) setTotals(json.totals);
+      // Fetch analytics + profile level in parallel
+      const [analyticsRes, profileRes] = await Promise.all([
+        fetch(`${BACKEND}/api/vendor-analytics/${vid}`),
+        fetch(`${BACKEND}/api/v2/vendor/profile-level/${vid}`),
+      ]);
+      const analyticsJson = await analyticsRes.json();
+      const profileJson = await profileRes.json();
+      if (analyticsJson.success) {
+        if (Array.isArray(analyticsJson.daily)) setDaily(analyticsJson.daily);
+        if (analyticsJson.totals) setTotals(analyticsJson.totals);
+      }
+      if (profileJson.success) {
+        setProfileLevel({
+          completion_pct: profileJson.completion_pct || 0,
+          next_step: profileJson.next_step || null,
+          photo_count: profileJson.photo_count || 0,
+          about_word_count: profileJson.about_word_count || 0,
+          is_live: !!profileJson.is_live,
+        });
       }
     } catch {}
     setLoading(false);
@@ -69,13 +93,19 @@ export default function AnalyticsPage() {
   const maxViews = Math.max(...bars.map(b => b.views), 1);
   const noData = bars.every(b => b.views === 0);
 
-  const strengthItems = [
+  // Profile strength — derived from real profile-level data (Phase 5 endpoint)
+  const strengthItems = profileLevel ? [
+    { label: 'Profile active',            done: true },
+    { label: `Photos (${profileLevel.photo_count}/4 uploaded)`, done: profileLevel.photo_count >= 4 },
+    { label: `Bio (${profileLevel.about_word_count}/80 words)`, done: profileLevel.about_word_count >= 80 },
+    { label: 'Live on couple discovery',  done: profileLevel.is_live },
+  ] : [
     { label: 'Profile active', done: !!vendorId },
     { label: 'Photos uploaded', done: false },
     { label: 'Bio written', done: false },
-    { label: 'Pricing set', done: false },
+    { label: 'Live on discovery', done: false },
   ];
-  const strengthPct = strengthItems.filter(i => i.done).length * 25;
+  const strengthPct = profileLevel?.completion_pct ?? (strengthItems.filter(i => i.done).length * 25);
 
   return (
     <>
@@ -147,7 +177,14 @@ export default function AnalyticsPage() {
               <div style={{ height: 4, background: '#E2DED8', borderRadius: 2, marginBottom: 6, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${strengthPct}%`, background: '#111111', borderRadius: 2, willChange: 'transform', transform: 'translateZ(0)', transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
               </div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#555250', marginBottom: 12 }}>{strengthPct}% complete</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#555250', marginBottom: 12 }}>
+                {strengthPct}% complete
+                {profileLevel?.next_step && (
+                  <a href={profileLevel.next_step.href} style={{ marginLeft: 12, color: '#C9A84C', textDecoration: 'none', fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                    → {profileLevel.next_step.label}
+                  </a>
+                )}
+              </p>
               {strengthItems.map(item => (
                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: item.done ? '#111111' : '#C8C4BE', minWidth: 14 }}>{item.done ? '✓' : '–'}</span>
