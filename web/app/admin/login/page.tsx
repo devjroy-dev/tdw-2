@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
     setTimeout(() => {
       if (password === ADMIN_PASSWORD) {
         localStorage.setItem('admin_session', 'true');
-        router.replace('/admin/vendors');
+        router.replace('/admin/dashboard');
       } else {
         setError('Incorrect password.');
         setLoading(false);
