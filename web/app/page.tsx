@@ -367,7 +367,7 @@ export default function Home() {
       const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${isVendor ? 'vendor' : 'couple'}&phone=${bare}`);
       const d = await r.json();
 
-      if (!d.userId) {
+      if (!d.userId || d.found === false) {
         // Number not in system — send to request invite
         setScreen('request_who');
         showToast('No account found — request an invite to join.');
