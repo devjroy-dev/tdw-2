@@ -29,6 +29,11 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
   });
   const pathname = usePathname();
 
+  const setModePersisted = (m: CoupleAppMode) => {
+    try { localStorage.setItem('couple_app_mode', m); } catch {}
+    setMode(m);
+  };
+
   // MODE 1 — Auth routes: render children only
   if (AUTH_ROUTES.some(r => pathname === r || pathname?.startsWith(r + '/'))) {
     return (
