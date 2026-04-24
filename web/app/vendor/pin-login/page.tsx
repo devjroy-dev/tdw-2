@@ -49,6 +49,19 @@ export default function VendorPinLoginPage() {
       });
       const d = await r.json();
       if (d.success) {
+        const updated = {
+          ...session,
+          id: d.userId || session.id,
+          userId: d.userId || session.userId,
+          vendorId: d.userId || session.vendorId,
+          vendorName: d.name || session.vendorName || session.name || '',
+          name: d.name || session.name || '',
+          category: d.category || session.category || '',
+          tier: d.tier || session.tier || '',
+          pin_set: true,
+        };
+        localStorage.setItem('vendor_web_session', JSON.stringify(updated));
+        localStorage.setItem('vendor_session', JSON.stringify(updated));
         router.replace('/vendor/today');
       } else {
         const next = attempts + 1; setAttempts(next);
