@@ -320,11 +320,25 @@ export default function Home() {
         body: JSON.stringify({ phone: bare, code: otp.join('') }),
       });
       const d = await res.json();
-      if (!d.success) { showToast(d.error || 'Incorrect code.'); return; }
+      if (!d.success) {
+        const err = d.error || '';
+        if (err.toLowerCase().includes('no account') || err.toLowerCase().includes('not found') || err.toLowerCase().includes('no vendor')) {
+          setScreen('request_who');
+          showToast('No account found. Request an invite to join.');
+          return;
+        }
+        showToast(err || 'Incorrect code.');
+        return;
+      }
 
       // d.vendor or d.user contains the record
       const record = d.vendor || d.user;
-      if (!record) { showToast('Account not found.'); return; }
+      if (!record) {
+        // Number not in system — send them to request an invite
+        setScreen('request_who');
+        showToast('No account found. Request an invite to join.');
+        return;
+      }
 
       const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
       const pinSet = !!record.pin_set;
@@ -366,7 +380,20 @@ export default function Home() {
         return;
       }
     } catch {}
-    // No PIN set or new user — send OTP
+    // Number not found at all — check if they have an account before sending OTP
+    // pin-status returns pin_set=false and no userId when number doesn't exist
+    try {
+      const bare = phone.replace(/\D/g, '').slice(-10);
+      const isVendor = role === 'Maker';
+      const r2 = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${isVendor ? 'vendor' : 'couple'}&phone=${bare}`);
+      const d2 = await r2.json();
+      if (!d2.userId && !d2.pin_set) {
+        // No account exists — go to request invite
+        setScreen('request_who');
+        showToast('No account found. Request an invite to join.');
+        return;
+      }
+    } catch {}
     sendOtp(phone);
   };
 
@@ -776,7 +803,8 @@ export default function Home() {
                       key={i} ref={el => { otpRefs.current[i] = el; }}
                       value={v} onChange={e => handleOtpInput(i, e.target.value)}
                       onKeyDown={e => handleOtpKey(i, e)}
-                      type="tel" maxLength={1}
+                      type="tel" inputMode="numeric" maxLength={1}
+                      autoComplete="one-time-code"
                       style={{
                         width: 40, height: 48, border: 'none',
                         borderBottom: '1.5px solid rgba(255,255,255,0.4)',
