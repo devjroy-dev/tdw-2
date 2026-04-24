@@ -32,7 +32,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
   // MODE 1 — Auth routes: render children only
   if (AUTH_ROUTES.some(r => pathname === r || pathname?.startsWith(r + '/'))) {
     return (
-      <CoupleModeContext.Provider value={{ mode, setMode: setModePersisted }}>
+      <CoupleModeContext.Provider value={{ mode, setMode }}>
         {children}
       </CoupleModeContext.Provider>
     );
@@ -43,7 +43,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
   // Only the feed itself is immersive — hub and other discover pages keep the shell
   if (pathname === '/couple/discover/feed' || pathname?.startsWith('/couple/discover/feed?')) {
     return (
-      <CoupleModeContext.Provider value={{ mode, setMode: setModePersisted }}>
+      <CoupleModeContext.Provider value={{ mode, setMode }}>
         {children}
       </CoupleModeContext.Provider>
     );
@@ -51,7 +51,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
 
   // MODE 3 — All other routes: full padded shell
   return (
-    <CoupleModeContext.Provider value={{ mode, setMode: setModePersisted }}>
+    <CoupleModeContext.Provider value={{ mode, setMode }}>
       <div style={{
         fontFamily: "'DM Sans', sans-serif",
         background: '#F8F7F5',
