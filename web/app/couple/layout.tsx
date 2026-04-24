@@ -4,7 +4,7 @@ import { createContext, useContext, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
-import DreamAiFAB from '@/app/components/DreamAiFAB';
+import DreamAiFAB from '../components/DreamAiFAB';
 
 // ─── Mode Context ─────────────────────────────────────────────────────────────
 export type CoupleAppMode = 'PLAN' | 'DISCOVER';
