@@ -4,8 +4,8 @@
   "description": "The Curated Wedding OS",
   "start_url": "https://app.thedreamwedding.in/",
   "display": "standalone",
-  "background_color": "#0C0A09",
-  "theme_color": "#C9A84C",
+  "background_color": "#F8F7F5",
+  "theme_color": "#F8F7F5",
   "orientation": "portrait",
   "icons": [
     {
