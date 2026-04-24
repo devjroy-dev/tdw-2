@@ -16,7 +16,9 @@ interface VendorSession {
 function getSession(): VendorSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('vendor_web_session');
+    // Check both keys — login paths are inconsistent about which one they write.
+    // vendor_session is set by some OTP paths; vendor_web_session by others.
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
