@@ -385,7 +385,7 @@ export default function Home() {
                 } catch {}
               }
               sendOtp();
-            }} style={{ width: '100%', padding: '14px 0', background: '#111111', color: '#F8F7F5', border: 'none', fontFamily: '"Jost",sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12, touchAction: 'manipulation' }}>Send code</button>
+            }} style={{ width: '100%', padding: '14px 0', background: '#111111', color: '#F8F7F5', border: 'none', fontFamily: '"Jost",sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12, touchAction: 'manipulation' }}>{screen === 'signin' ? 'Continue' : 'Send code'}</button>
           </>)}
 
           {(screen === 'otp2' || screen === 'signin2') && (<>
