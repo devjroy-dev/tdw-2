@@ -1,3 +1,39 @@
+"""
+PHASE 9 — Frontend patch
+Repo: tdw-2
+
+Changes:
+  1. Full rewrite of web/app/page.tsx — the landing page
+     — Glassmorphism carousel behind everything
+     — 3-path flow: "I have an invite" / "Request an invite" / "Just exploring"
+     — "Just Exploring" → 10-vendor blind swipe preview → nudge to request invite
+     — "Request an invite" → Dreamer or Maker form → 60s edit window
+     — "I have an invite" → existing OTP + PIN flow (preserved exactly)
+     — Wedding date picker: 3 dot options (exact / month blocks / just browsing)
+     — Instagram deep-link helper on forms
+  2. Create web/app/admin/preview/page.tsx — admin curates the 10 preview vendors
+  3. Add "Preview Vendors" to admin nav under PLATFORM
+
+Run from: /workspaces/tdw-2
+Command:  python3 phase9_frontend.py
+"""
+
+import os
+
+changes = []
+
+# ═════════════════════════════════════════════════════════════════════════════
+# CHANGE 1 — Full landing page rewrite: web/app/page.tsx
+#
+# Design:
+#   - Full-screen carousel (fetched from /api/v2/cover-photos, fallback Unsplash)
+#   - Always-running slow fade between slides
+#   - Glassmorphism panel floating over the carousel
+#   - Three entry paths — all on one page, panels morph in place
+#   - All OTP/PIN logic from the original preserved exactly
+# ═════════════════════════════════════════════════════════════════════════════
+
+LANDING_PAGE = """\
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -240,7 +276,7 @@ export default function Home() {
     setSubmitting(true);
     try {
       const payload: any = {
-        phone: reqPhone.replace(/\D/g, ''),
+        phone: reqPhone.replace(/\\D/g, ''),
         instagram: reqInstagram || null,
         role: role === 'Dreamer' ? 'dreamer' : 'maker',
         name: reqName || null,
@@ -294,7 +330,7 @@ export default function Home() {
     try {
       const r = await fetch(`${BACKEND}/api/auth/send-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneNum.replace(/\D/g, '') }),
+        body: JSON.stringify({ phone: phoneNum.replace(/\\D/g, '') }),
       });
       const d = await r.json();
       if (d.sessionInfo) localStorage.setItem('otp_session', d.sessionInfo);
@@ -308,14 +344,14 @@ export default function Home() {
       const res = await fetch(`${BACKEND}/api/auth/verify-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionInfo: localStorage.getItem('otp_session') || 'admin_sdk_' + phone.replace(/\D/g, ''),
+          sessionInfo: localStorage.getItem('otp_session') || 'admin_sdk_' + phone.replace(/\\D/g, ''),
           code: otp.join(''),
         }),
       });
       const d = await res.json();
       if (d.success) {
         const sessionKey = isVendor ? 'vendor_web_session' : 'couple_web_session';
-        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+        const cleanPhone = phone.replace(/\\D/g, '').slice(-10);
         let supabaseId = d.localId;
         let pinSet = false;
         let upsertData: any = null;
@@ -351,7 +387,7 @@ export default function Home() {
 
   // ── Sign in (returning member) ────────────────────────────────────────────
   const handleSignIn = async () => {
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const cleanPhone = phone.replace(/\\D/g, '').slice(-10);
     try {
       const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${role === 'Dreamer' ? 'couple' : 'vendor'}&phone=${cleanPhone}`);
       const d = await r.json();
@@ -541,7 +577,7 @@ export default function Home() {
                 <Label text="Phone" />
                 <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.3)', marginBottom: 16 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', paddingRight: 10, borderRight: '1px solid rgba(255,255,255,0.2)', marginRight: 10, whiteSpace: 'nowrap' }}>🇮🇳 +91</span>
-                  <input value={reqPhone} onChange={e => setReqPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, marginBottom: 0, borderBottom: 'none', flex: 1 }} />
+                  <input value={reqPhone} onChange={e => setReqPhone(e.target.value.replace(/\\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, marginBottom: 0, borderBottom: 'none', flex: 1 }} />
                 </div>
 
                 <Label text="Instagram" />
@@ -591,7 +627,7 @@ export default function Home() {
                 <Label text="Phone" />
                 <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.3)', marginBottom: 16 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', paddingRight: 10, borderRight: '1px solid rgba(255,255,255,0.2)', marginRight: 10, whiteSpace: 'nowrap' }}>🇮🇳 +91</span>
-                  <input value={reqPhone} onChange={e => setReqPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, marginBottom: 0, borderBottom: 'none', flex: 1 }} />
+                  <input value={reqPhone} onChange={e => setReqPhone(e.target.value.replace(/\\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, marginBottom: 0, borderBottom: 'none', flex: 1 }} />
                 </div>
 
                 <Label text="Instagram" />
@@ -710,7 +746,7 @@ export default function Home() {
                 <Label text="Phone number" />
                 <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.3)', marginBottom: 20 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', paddingRight: 10, borderRight: '1px solid rgba(255,255,255,0.2)', marginRight: 10 }}>🇮🇳 +91</span>
-                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, borderBottom: 'none', marginBottom: 0, flex: 1 }} />
+                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, borderBottom: 'none', marginBottom: 0, flex: 1 }} />
                 </div>
                 <GoldBtn label="Send code →" onClick={() => sendOtp(phone)} disabled={phone.length < 10} />
               </>
@@ -763,7 +799,7 @@ export default function Home() {
                 <Label text="Phone number" />
                 <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.3)', marginBottom: 20 }}>
                   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'rgba(248,247,245,0.5)', paddingRight: 10, borderRight: '1px solid rgba(255,255,255,0.2)', marginRight: 10 }}>🇮🇳 +91</span>
-                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, borderBottom: 'none', marginBottom: 0, flex: 1 }} />
+                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\\D/g, '').slice(0, 10))} type="tel" maxLength={10} placeholder="00000 00000" style={{ ...INPUT, borderBottom: 'none', marginBottom: 0, flex: 1 }} />
                 </div>
                 <GoldBtn label="Continue →" onClick={handleSignIn} disabled={phone.length < 10 || !role} />
               </>
@@ -878,3 +914,276 @@ export default function Home() {
     </div>
   );
 }
+"""
+
+with open('web/app/page.tsx', 'w') as f:
+    f.write(LANDING_PAGE)
+changes.append('✓ Change 1: web/app/page.tsx — full landing page rewrite (glassmorphism, 3 paths, preview, 60s edit)')
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# CHANGE 2 — Create admin/preview/page.tsx
+# Admin curates which 10 vendors appear in the "Just Exploring" preview.
+# Simple: search for approved vendors, drag them into 10 numbered slots.
+# ═════════════════════════════════════════════════════════════════════════════
+
+PREVIEW_ADMIN_PAGE = """\
+'use client';
+// Admin: Preview Vendors
+// Curate which 10 vendor cards appear in the "Just Exploring" blind swipe
+// preview on the landing page. Vendors must be approved (is_approved = true).
+// Order matters — slot 1 shows first.
+import { useEffect, useState, useCallback } from 'react';
+
+const API = 'https://dream-wedding-production-89ae.up.railway.app';
+const H   = { 'Content-Type': 'application/json', 'x-admin-password': 'Mira@2551354' };
+
+interface SlottedVendor { id: string; name: string; category: string; city: string; display_order: number; }
+interface AvailableVendor { id: string; name: string; category: string; city: string; tier: string; }
+
+function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
+  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+}
+
+export default function PreviewVendorsPage() {
+  const [slots, setSlots]     = useState<(SlottedVendor | null)[]>(Array(10).fill(null));
+  const [available, setAvailable] = useState<AvailableVendor[]>([]);
+  const [search, setSearch]   = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [toast, setToast]     = useState('');
+
+  const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 3000); };
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [slotsRes, vendorsRes] = await Promise.all([
+        fetch(`${API}/api/v2/admin/preview-vendors`, { headers: H }),
+        fetch(`${API}/api/v3/admin/makers?limit=200`, { headers: H }),
+      ]);
+      const slotsData   = await slotsRes.json();
+      const vendorsData = await vendorsRes.json();
+
+      // Build slots array
+      const filled: (SlottedVendor | null)[] = Array(10).fill(null);
+      (slotsData.data || []).forEach((v: SlottedVendor) => {
+        const idx = v.display_order - 1;
+        if (idx >= 0 && idx < 10) filled[idx] = v;
+      });
+      setSlots(filled);
+
+      // Available = approved vendors not already in slots
+      const slottedIds = new Set((slotsData.data || []).map((v: SlottedVendor) => v.id));
+      setAvailable((vendorsData.data || []).filter((v: AvailableVendor & { is_approved?: boolean }) =>
+        v.is_approved && !slottedIds.has(v.id)
+      ));
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addToSlot = (vendor: AvailableVendor) => {
+    const firstEmpty = slots.findIndex(s => s === null);
+    if (firstEmpty === -1) { showToast('All 10 slots are full. Remove one first.'); return; }
+    const newSlots = [...slots];
+    newSlots[firstEmpty] = { ...vendor, display_order: firstEmpty + 1 };
+    setSlots(newSlots);
+    setAvailable(prev => prev.filter(v => v.id !== vendor.id));
+  };
+
+  const removeFromSlot = (idx: number) => {
+    const vendor = slots[idx];
+    if (!vendor) return;
+    const newSlots = [...slots];
+    newSlots[idx] = null;
+    setSlots(newSlots);
+    setAvailable(prev => [...prev, vendor]);
+  };
+
+  const moveUp = (idx: number) => {
+    if (idx === 0) return;
+    const newSlots = [...slots];
+    [newSlots[idx - 1], newSlots[idx]] = [newSlots[idx], newSlots[idx - 1]];
+    setSlots(newSlots);
+  };
+
+  const moveDown = (idx: number) => {
+    if (idx === 9) return;
+    const newSlots = [...slots];
+    [newSlots[idx], newSlots[idx + 1]] = [newSlots[idx + 1], newSlots[idx]];
+    setSlots(newSlots);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const ids = slots.filter(Boolean).map(v => v!.id);
+      const r = await fetch(`${API}/api/v2/admin/preview-vendors`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ vendor_ids: ids }),
+      });
+      const d = await r.json();
+      if (d.success) showToast(`✓ Saved ${d.count} preview vendors`);
+      else showToast(d.error || 'Save failed');
+    } catch { showToast('Network error'); }
+    setSaving(false);
+  };
+
+  const filtered = search
+    ? available.filter(v => v.name?.toLowerCase().includes(search.toLowerCase()) || v.category?.toLowerCase().includes(search.toLowerCase()))
+    : available;
+
+  const filledCount = slots.filter(Boolean).length;
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onDone={() => setToast('')} />}
+
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontFamily: "'Jost',sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>PLATFORM</p>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <p style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 32, color: '#111', margin: 0 }}>
+            Preview Vendors
+            <span style={{ fontSize: 16, color: '#888580', marginLeft: 10 }}>({filledCount}/10 slots filled)</span>
+          </p>
+          <button onClick={save} disabled={saving} style={{
+            height: 44, padding: '0 24px', background: '#111', color: '#F8F7F5', border: 'none',
+            borderRadius: 100, cursor: saving ? 'default' : 'pointer',
+            fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300,
+            letterSpacing: '0.18em', textTransform: 'uppercase', opacity: saving ? 0.5 : 1,
+          }}>{saving ? 'Saving...' : 'Save Preview →'}</button>
+        </div>
+        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: '#888580', margin: '8px 0 0' }}>
+          These 10 vendors appear in the "Just Exploring" blind swipe preview on the landing page. Only approved vendors can be selected.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+
+        {/* Left: 10 slots */}
+        <div>
+          <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580', margin: '0 0 12px' }}>PREVIEW ORDER</p>
+          {slots.map((vendor, idx) => (
+            <div key={idx} style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6,
+              background: vendor ? '#FFFFFF' : '#F8F7F5',
+              border: `0.5px solid ${vendor ? '#E2DED8' : '#EEECE8'}`,
+              borderRadius: 10, padding: '10px 12px',
+            }}>
+              {/* Slot number */}
+              <span style={{ fontFamily: "'Jost',sans-serif", fontSize: 10, fontWeight: 200, color: '#C8C4BE', minWidth: 16, textAlign: 'right' }}>{idx + 1}</span>
+
+              {vendor ? (
+                <>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 300, color: '#111', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</p>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: '#888580', margin: 0 }}>{vendor.category} · {vendor.city}</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => moveUp(idx)} disabled={idx === 0} style={{ width: 26, height: 26, border: '0.5px solid #E2DED8', borderRadius: 4, background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer', color: '#888580', fontSize: 12, opacity: idx === 0 ? 0.3 : 1 }}>↑</button>
+                    <button onClick={() => moveDown(idx)} disabled={idx === 9 || !slots[idx + 1]} style={{ width: 26, height: 26, border: '0.5px solid #E2DED8', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: '#888580', fontSize: 12, opacity: (idx === 9 || !slots[idx + 1]) ? 0.3 : 1 }}>↓</button>
+                    <button onClick={() => removeFromSlot(idx)} style={{ width: 26, height: 26, border: '0.5px solid #E2DED8', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: '#E57373', fontSize: 14 }}>✕</button>
+                  </div>
+                </>
+              ) : (
+                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: '#C8C4BE', fontStyle: 'italic', margin: 0, flex: 1 }}>Empty slot — add a vendor from the right</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Right: available vendors */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580', margin: 0 }}>APPROVED VENDORS ({available.length})</p>
+          </div>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name or category..."
+            style={{ width: '100%', height: 36, padding: '0 12px', border: '0.5px solid #E2DED8', borderRadius: 8, fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: '#111', outline: 'none', marginBottom: 10 }}
+          />
+          {loading ? (
+            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: '#888580' }}>Loading...</p>
+          ) : filtered.length === 0 ? (
+            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: '#888580', fontStyle: 'italic' }}>
+              {available.length === 0 ? 'No approved vendors yet. Approve vendors from Discovery Approvals.' : 'No results.'}
+            </p>
+          ) : (
+            <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+              {filtered.map(v => (
+                <div key={v.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 12px', background: '#FFFFFF', border: '0.5px solid #E2DED8',
+                  borderRadius: 10, marginBottom: 6, gap: 10,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 300, color: '#111', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: '#888580', margin: 0 }}>{v.category} · {v.city}</p>
+                  </div>
+                  <button onClick={() => addToSlot(v)} disabled={filledCount >= 10} style={{
+                    height: 32, padding: '0 12px', background: filledCount >= 10 ? '#F4F1EC' : '#C9A84C',
+                    border: 'none', borderRadius: 100, cursor: filledCount >= 10 ? 'default' : 'pointer',
+                    fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: filledCount >= 10 ? '#888580' : '#111', flexShrink: 0,
+                  }}>+ Add</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </>
+  );
+}
+"""
+
+os.makedirs('web/app/admin/preview', exist_ok=True)
+with open('web/app/admin/preview/page.tsx', 'w') as f:
+    f.write(PREVIEW_ADMIN_PAGE)
+changes.append('✓ Change 2: Created web/app/admin/preview/page.tsx — curate 10 preview vendor slots')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CHANGE 3 — Add "Preview Vendors" to admin nav under PLATFORM
+# ─────────────────────────────────────────────────────────────────────────────
+LAYOUT_PATH = 'web/app/admin/layout.tsx'
+with open(LAYOUT_PATH, 'r') as f:
+    layout = f.read()
+
+OLD_PLATFORM = """  { group: 'PLATFORM', items: [
+    { label: 'Cover Placement', path: '/admin/cover', icon: '⬡' },
+    { label: 'Messages', path: '/admin/messages', icon: '💬' },
+    { label: 'Image Approvals', path: '/admin/images', icon: '⬡' },
+    { label: 'Featured', path: '/admin/featured', icon: '★' },
+  ]},"""
+
+NEW_PLATFORM = """  { group: 'PLATFORM', items: [
+    { label: 'Cover Placement',  path: '/admin/cover',    icon: '⬡' },
+    { label: 'Preview Vendors',  path: '/admin/preview',  icon: '◈' },
+    { label: 'Messages',         path: '/admin/messages', icon: '💬' },
+    { label: 'Image Approvals',  path: '/admin/images',   icon: '⬡' },
+    { label: 'Featured',         path: '/admin/featured', icon: '★' },
+  ]},"""
+
+if OLD_PLATFORM in layout:
+    layout = layout.replace(OLD_PLATFORM, NEW_PLATFORM)
+    with open(LAYOUT_PATH, 'w') as f:
+        f.write(layout)
+    changes.append('✓ Change 3: "Preview Vendors" added to admin nav under PLATFORM')
+else:
+    changes.append('✗ Change 3 FAILED — admin nav PLATFORM pattern not found')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Report
+# ─────────────────────────────────────────────────────────────────────────────
+print('\nPhase 9 — Frontend patch complete\n')
+for c in changes:
+    print(c)
+print('\nNext: git add -A && git commit -m "Phase 9: landing page rewrite — glassmorphism, 3 paths, preview, 60s edit window" && git push')

@@ -27,10 +27,11 @@ const NAV = [
     { label: 'Invite Codes',         path: '/admin/invites',   icon: '⌘' },
   ]},
   { group: 'PLATFORM', items: [
-    { label: 'Cover Placement', path: '/admin/cover', icon: '⬡' },
-    { label: 'Messages', path: '/admin/messages', icon: '💬' },
-    { label: 'Image Approvals', path: '/admin/images', icon: '⬡' },
-    { label: 'Featured', path: '/admin/featured', icon: '★' },
+    { label: 'Cover Placement',  path: '/admin/cover',    icon: '⬡' },
+    { label: 'Preview Vendors',  path: '/admin/preview',  icon: '◈' },
+    { label: 'Messages',         path: '/admin/messages', icon: '💬' },
+    { label: 'Image Approvals',  path: '/admin/images',   icon: '⬡' },
+    { label: 'Featured',         path: '/admin/featured', icon: '★' },
   ]},
   { group: 'MONEY', items: [
     { label: 'Revenue', path: '/admin/money', icon: '₹' },
