@@ -544,7 +544,7 @@ export default function Home() {
         }}>
           <div style={{ ...GLASS, width: '100%', maxWidth: 400, padding: '28px 24px 32px' }}>
 
-            {screen === 'entry' && null /* entry handled above */}
+            {/* entry screen handled by bottom strip above */}
 
             {/* ── REQUEST: WHO ARE YOU ──────────────────────────────────────── */}
             {screen === 'request_who' && (
