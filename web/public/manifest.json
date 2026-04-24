@@ -33,5 +33,33 @@
       "purpose": "maskable"
     }
   ],
-  "scope": "/"
+  "scope": "/",
+  "id": "in.thedreamwedding.app",
+  "categories": [
+    "lifestyle",
+    "wedding",
+    "shopping"
+  ],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "The Dream Wedding"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discover Vendors",
+      "url": "/couple/discover/hub",
+      "description": "Browse premium wedding vendors"
+    },
+    {
+      "name": "My Plan",
+      "url": "/couple/plan",
+      "description": "Manage your wedding plan"
+    }
+  ]
 }
