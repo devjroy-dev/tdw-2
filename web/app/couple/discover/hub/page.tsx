@@ -182,7 +182,7 @@ export default function DiscoverHub() {
     { id:'myfeed' as CardId,    title:'My Feed',           subtitle:'Browse all curated wedding Makers',                    mode:'discover',    browseLabel:'Browse My Feed' },
     { id:'blind' as CardId,     title:'Blind',             subtitle:'Pure photos, no names. Swipe on instinct.',            mode:'blind',       browseLabel:'Enter Blind Mode' },
     { id:'featured' as CardId,  title:'Featured',          subtitle:'Prestige Makers, premium work, ₹2L+',                 mode:'featured',    browseLabel:'Browse Featured' },
-    { id:'couture' as CardId,   title:'Couture',           subtitle:'Invitation-only bridal fashion & jewellery',           mode:'couture',     browseLabel:'', comingSoon:true },
+    { id:'couture' as CardId,   title:'Couture',           subtitle:'Invitation-only bridal fashion & jewellery',           mode:'couture',     browseLabel:'', comingSoon:false },
     { id:'categories' as CardId,title:'Categories',        subtitle:'Photographers, venues, MUA, decor & more',             mode:'categories',  browseLabel:'Browse Category' },
     { id:'curated' as CardId,   title:'Curated Packages',  subtitle:'Full-service wedding packages from ₹25L',              mode:'curated',     browseLabel:'', comingSoon:true },
   ];
@@ -263,7 +263,10 @@ export default function DiscoverHub() {
               subtitle={card.subtitle}
               isOpen={openCard === card.id}
               onToggle={(): void => { setOpenCard((prev: CardId | null) => prev === card.id ? null : card.id); }}
-              onBrowse={(): void => { router.push(buildFeedUrl(card.mode, filters[card.id as CardId])); }}
+              onBrowse={(): void => { 
+                if (card.id === 'couture') { router.push('/couple/discover/couture'); return; }
+                router.push(buildFeedUrl(card.mode, filters[card.id as CardId])); 
+              }}
               comingSoon={card.comingSoon || undefined}
               onComingSoon={(card.id==='couture'||card.id==='curated') ? (): void => { setComingSoonModal(card.id as 'couture'|'curated'); } : undefined}
               filters={filters[card.id as CardId] as FilterState}
