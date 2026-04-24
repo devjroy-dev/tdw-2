@@ -8,16 +8,18 @@ import {
   Megaphone,
   Gift,
   FileText,
+  Lightbulb,
   ChevronRight,
 } from "lucide-react";
 
 const TOOLS = [
-  { Icon: Calendar,  title: "Calendar",   subtitle: "Your shoots & events",    href: "/vendor/studio/calendar"   },
-  { Icon: Users,     title: "Team",       subtitle: "Manage your team",        href: "/vendor/studio/team"       },
-  { Icon: BarChart2, title: "Analytics",  subtitle: "Views, saves, enquiries", href: "/vendor/studio/analytics"  },
-  { Icon: Megaphone, title: "Broadcast",  subtitle: "Message all clients",     href: "/vendor/studio/broadcast"  },
-  { Icon: Gift,      title: "Referrals",  subtitle: "Earn from referrals",     href: "/vendor/studio/referrals"  },
-  { Icon: FileText,  title: "Contracts",  subtitle: "Templates & signed docs", href: "/vendor/studio/contracts"  },
+  { Icon: Calendar,  title: "Calendar",       subtitle: "Your shoots & events",    href: "/vendor/studio/calendar"   },
+  { Icon: Users,     title: "Team",           subtitle: "Manage your team",        href: "/vendor/studio/team"       },
+  { Icon: BarChart2, title: "Analytics",      subtitle: "Views, saves, enquiries", href: "/vendor/studio/analytics"  },
+  { Icon: Megaphone, title: "Broadcast",      subtitle: "Message all clients",     href: "/vendor/studio/broadcast"  },
+  { Icon: Gift,      title: "Referrals",      subtitle: "Earn from referrals",     href: "/vendor/studio/referrals"  },
+  { Icon: FileText,  title: "Contracts",      subtitle: "Templates & signed docs", href: "/vendor/studio/contracts"  },
+  { Icon: Lightbulb, title: "Tips & Features",subtitle: "What TDW can do for you", href: "/vendor/studio/settings"   },
 ];
 
 export default function StudioPage() {

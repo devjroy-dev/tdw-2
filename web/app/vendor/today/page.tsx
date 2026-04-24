@@ -221,11 +221,16 @@ function DreamAiSheet({
   }, [messages, loading]);
 
   async function executeVendorAction(type: string, params: Record<string, any>) {
+    // All 8 DreamAi actions — matches the WhatsApp DreamAi tool set exactly
     const endpointMap: Record<string, string> = {
-      send_payment_reminder: '/api/v2/dreamai/vendor-action/send-payment-reminder',
-      reply_to_enquiry: '/api/v2/dreamai/vendor-action/reply-to-enquiry',
-      block_date: '/api/v2/dreamai/vendor-action/block-date',
-      log_expense: '/api/v2/dreamai/vendor-action/log-expense',
+      send_payment_reminder:  '/api/v2/dreamai/vendor-action/send-payment-reminder',
+      reply_to_enquiry:       '/api/v2/dreamai/vendor-action/reply-to-enquiry',
+      block_date:             '/api/v2/dreamai/vendor-action/block-date',
+      log_expense:            '/api/v2/dreamai/vendor-action/log-expense',
+      create_invoice:         '/api/v2/dreamai/vendor-action/create-invoice',
+      add_client:             '/api/v2/dreamai/vendor-action/add-client',
+      create_task:            '/api/v2/dreamai/vendor-action/create-task',
+      send_client_reminder:   '/api/v2/dreamai/vendor-action/send-client-reminder',
     };
     const endpoint = endpointMap[type];
     if (!endpoint) return 'Unknown action.';
@@ -448,6 +453,10 @@ export default function VendorTodayPage() {
   const [dreamAiPrefill, setDreamAiPrefill] = useState('');
   const [dreamAiContext, setDreamAiContext] = useState<DreamAiContext | null>(null);
   const [nudge, setNudge]             = useState<{ text: string; query: string } | null>(null);
+  const [vendorCreatedAt, setVendorCreatedAt] = useState<string | null>(null);
+  const [clientCount, setClientCount]         = useState<number>(-1); // -1 = loading
+  const [showIntroCard, setShowIntroCard]     = useState(false);
+  const [introDismissed, setIntroDismissed]   = useState(false);
 
   useEffect(() => {
     const s = getSession();
@@ -485,6 +494,27 @@ export default function VendorTodayPage() {
         }
       })
       .catch(() => {});
+
+    // Fetch vendor row for created_at (needed for onboarding + tip of day timing)
+    fetch(`${API}/api/vendors/${s.vendorId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.data?.created_at) setVendorCreatedAt(d.data.created_at);
+      })
+      .catch(() => {});
+
+    // Fetch client count to decide if onboarding banner should show
+    fetch(`${API}/api/v2/vendor/clients/${s.vendorId}`)
+      .then(r => r.json())
+      .then(d => setClientCount((d.data || []).length))
+      .catch(() => setClientCount(0));
+
+    // First-login intro card — show once per device
+    const seen = localStorage.getItem('onboarding_intro_seen');
+    if (!seen) {
+      setShowIntroCard(true);
+      localStorage.setItem('onboarding_intro_seen', 'true');
+    }
   }, []);
 
   if (session === undefined) return null;
@@ -505,14 +535,147 @@ export default function VendorTodayPage() {
     setDreamAiOpen(true);
   }
 
+  // ─── Onboarding + tip logic ─────────────────────────────────────────────────
+  const daysSinceSignup = vendorCreatedAt
+    ? Math.floor((Date.now() - new Date(vendorCreatedAt).getTime()) / 86400000)
+    : null;
+
+  // New vendor = joined < 14 days ago AND has no clients yet
+  const isNewVendor = daysSinceSignup !== null && daysSinceSignup < 14 && clientCount === 0;
+
+  // Onboarding 3-card banner: show if new vendor
+  const showOnboardingBanner = isNewVendor && clientCount === 0;
+
+  // 10-day urgency: days 8-10 from signup, if not yet submitted to Discovery
+  const showUrgencyBanner = daysSinceSignup !== null && daysSinceSignup >= 8 && daysSinceSignup <= 10;
+
+  // Post-10-day gentle nudge
+  const showGentleNudge = daysSinceSignup !== null && daysSinceSignup > 10;
+
+  // Tip of the Day: first 30 days only, rotates through 10 tips
+  const TIPS_SHORT = [
+    { id: 'dreamai_whatsapp', title: 'DreamAi on WhatsApp', desc: 'Run your entire business from WhatsApp.' },
+    { id: 'payment_shield',   title: 'Payment Shield',      desc: 'Secure your final payment before the wedding day.' },
+    { id: 'broadcast',        title: 'WhatsApp Broadcast',  desc: 'Message all your clients at once with one tap.' },
+    { id: 'discovery_profile',title: 'How Couples See You', desc: 'Your photos do the selling — names come later.' },
+    { id: 'progress_ring',    title: 'Client Progress Ring', desc: 'Watch each client move from enquiry to final payment.' },
+    { id: 'gst_invoice',      title: 'GST Invoicing',       desc: 'Every invoice auto-calculates CGST and SGST.' },
+    { id: 'block_dates',      title: 'Block Your Calendar', desc: 'Block dates the moment you confirm a booking.' },
+    { id: 'referral',         title: 'Referral Discounts',  desc: 'Refer couples and earn subscription discounts.' },
+    { id: 'collab_hub',       title: 'Collab Hub',          desc: 'Post when you need a vendor or find work from others.' },
+    { id: 'image_hub',        title: 'Image Hub',           desc: 'Make your photos catalogue-worthy before submitting.' },
+  ];
+  const showTipOfDay = daysSinceSignup !== null && daysSinceSignup < 30;
+  const todaysTip = showTipOfDay ? TIPS_SHORT[daysSinceSignup % TIPS_SHORT.length] : null;
+
+  // Onboarding card completion flags (localStorage)
+  const [card1Done, setCard1Done] = React.useState(false);
+  const [card2Done, setCard2Done] = React.useState(false);
+  const [card3Done, setCard3Done] = React.useState(
+    typeof window !== 'undefined' && !!localStorage.getItem('whatsapp_activated')
+  );
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { display: none; }
       `}</style>
+
+      {/* ─── First-login intro card ─────────────────────────────────────────
+          Shows once per device. Explains the 3-level discovery system.
+          Not dismissable by backdrop — vendor must tap the button.
+      ────────────────────────────────────────────────────────────────────── */}
+      {showIntroCard && !introDismissed && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 400,
+          background: 'rgba(12,10,9,0.85)',
+          display: 'flex', alignItems: 'flex-end',
+        }}>
+          <div style={{
+            width: '100%', background: '#0C0A09',
+            borderRadius: '24px 24px 0 0',
+            padding: '20px 24px',
+            paddingBottom: 'calc(28px + env(safe-area-inset-bottom))',
+            border: '1px solid #2A2825',
+            animation: 'slideUp 380ms cubic-bezier(0.22,1,0.36,1)',
+          }}>
+            {/* Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#2A2825' }} />
+            </div>
+
+            {/* TDW wordmark */}
+            <p style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+              letterSpacing: '0.3em', textTransform: 'uppercase',
+              color: '#555250', textAlign: 'center', margin: '0 0 16px',
+            }}>THE DREAM WEDDING</p>
+
+            {/* Welcome */}
+            <h2 style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300,
+              color: '#F8F7F5', textAlign: 'center', margin: '0 0 6px', lineHeight: 1.1,
+            }}>Welcome, {firstName}.</h2>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+              color: '#555250', textAlign: 'center', margin: '0 0 24px',
+            }}>Your CRM is live. Discovery works differently here.</p>
+
+            {/* Divider */}
+            <div style={{ height: '0.5px', background: '#2A2825', margin: '0 0 20px' }} />
+
+            {/* 3 levels */}
+            {[
+              { num: '①', text: 'Basic info & 4 photos', sub: 'Unlocks your Discovery profile' },
+              { num: '②', text: 'Complete bio & vibe tags', sub: 'Unlocks your Submit button' },
+              { num: '③', text: 'Our team reviews and lists you', sub: 'You go live on couple discovery' },
+            ].map(step => (
+              <div key={step.num} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16,
+              }}>
+                <span style={{
+                  fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300,
+                  color: '#C9A84C', flexShrink: 0, lineHeight: 1,
+                }}>{step.num}</span>
+                <div>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+                    color: '#F8F7F5', margin: '0 0 2px',
+                  }}>{step.text}</p>
+                  <p style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                    letterSpacing: '0.12em', color: '#C9A84C', margin: 0, textTransform: 'uppercase',
+                  }}>{step.sub}</p>
+                </div>
+              </div>
+            ))}
+
+            {/* Divider */}
+            <div style={{ height: '0.5px', background: '#2A2825', margin: '0 0 20px' }} />
+
+            {/* Tagline */}
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 300,
+              fontStyle: 'italic', color: '#555250', textAlign: 'center', margin: '0 0 24px',
+            }}>The CRM is yours from Day 1. Discovery is earned.</p>
+
+            {/* CTA — only way to dismiss */}
+            <button
+              onClick={() => setIntroDismissed(true)}
+              style={{
+                width: '100%', height: 52, background: '#C9A84C', border: 'none',
+                borderRadius: 100, cursor: 'pointer',
+                fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 400,
+                letterSpacing: '0.2em', textTransform: 'uppercase', color: '#0C0A09',
+              }}
+            >Got it — let's start →</button>
+          </div>
+        </div>
+      )}
 
       <DreamAiSheet
         visible={dreamAiOpen}
@@ -591,6 +754,181 @@ export default function VendorTodayPage() {
                 letterSpacing: '0.2em', color: '#C9A84C', flexShrink: 0,
               }}>ASK →</span>
             </button>
+          </div>
+        )}
+
+        {/* ─── 10-day urgency banner ────────────────────────────────────────────
+            Days 8-10: strong push to complete profile and submit for Discovery.
+            Tone is calm urgency — "don't miss your chance", not "access expires".
+        ─────────────────────────────────────────────────────────────────────── */}
+        {showUrgencyBanner && (
+          <div style={{ padding: '0 20px', marginBottom: 20 }}>
+            <div style={{
+              background: '#FFFFFF', border: '1.5px solid #C9A84C',
+              borderRadius: 12, padding: '16px 18px',
+            }}>
+              <p style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 6px',
+              }}>DISCOVERY WINDOW</p>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+                color: '#111111', margin: '0 0 4px', lineHeight: 1.5,
+              }}>
+                Your profile window closes in {10 - (daysSinceSignup || 0)} day{10 - (daysSinceSignup || 0) !== 1 ? 's' : ''}.
+              </p>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                color: '#888580', margin: '0 0 14px',
+              }}>Complete your bio and submit for Discovery — India's first curated digital storefront.</p>
+              <a href="/vendor/discovery/dash" style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C',
+                textDecoration: 'none',
+              }}>COMPLETE NOW →</a>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Post-10-day gentle nudge ─────────────────────────────────────── */}
+        {showGentleNudge && !showUrgencyBanner && (
+          <div style={{ padding: '0 20px', marginBottom: 20 }}>
+            <div style={{
+              background: '#FFFFFF', border: '0.5px solid #E2DED8',
+              borderRadius: 12, padding: '14px 18px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                color: '#555250', margin: 0,
+              }}>Ready to go live? Your Discovery profile is waiting.</p>
+              <a href="/vendor/discovery/dash" style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+                letterSpacing: '0.15em', textTransform: 'uppercase', color: '#C9A84C',
+                textDecoration: 'none', flexShrink: 0, marginLeft: 12,
+              }}>SUBMIT →</a>
+            </div>
+          </div>
+        )}
+
+        {/* ─── New vendor onboarding banner ─────────────────────────────────────
+            Shown if vendor is < 14 days old and has no clients yet.
+            Each card disappears individually once the action is completed.
+            Entire banner gone after 14 days or once all 3 cards are done.
+        ─────────────────────────────────────────────────────────────────────── */}
+        {showOnboardingBanner && !(card1Done && card2Done && card3Done) && (
+          <div style={{ padding: '0 20px', marginBottom: 28 }}>
+            <p style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+              letterSpacing: '0.25em', textTransform: 'uppercase',
+              color: '#888580', margin: '0 0 12px',
+            }}>THREE THINGS TO DO RIGHT NOW</p>
+
+            {/* Card 1 — Add first client */}
+            {!card1Done && (
+              <div style={{
+                background: '#FFFFFF', border: '0.5px solid #E2DED8',
+                borderLeft: '3px solid #C9A84C',
+                borderRadius: 8, padding: '14px 16px', marginBottom: 10,
+              }}>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
+                  color: '#111111', margin: '0 0 4px',
+                }}>1. Add your first client</p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                  color: '#888580', margin: '0 0 12px',
+                }}>Start tracking your bookings and revenue.</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <a href="/vendor/clients" style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                    letterSpacing: '0.2em', textTransform: 'uppercase',
+                    color: '#C9A84C', textDecoration: 'none',
+                  }}>GO TO CLIENTS →</a>
+                  <button onClick={() => setCard1Done(true)} style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: '#C8C4BE', background: 'none', border: 'none',
+                    cursor: 'pointer', padding: 0,
+                  }}>Mark done</button>
+                </div>
+              </div>
+            )}
+
+            {/* Card 2 — Block dates */}
+            {!card2Done && (
+              <div style={{
+                background: '#FFFFFF', border: '0.5px solid #E2DED8',
+                borderLeft: '3px solid #C9A84C',
+                borderRadius: 8, padding: '14px 16px', marginBottom: 10,
+              }}>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
+                  color: '#111111', margin: '0 0 4px',
+                }}>2. Block your booked dates</p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                  color: '#888580', margin: '0 0 12px',
+                }}>Keep your calendar accurate. Never double-book.</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <a href="/vendor/studio/calendar" style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                    letterSpacing: '0.2em', textTransform: 'uppercase',
+                    color: '#C9A84C', textDecoration: 'none',
+                  }}>OPEN CALENDAR →</a>
+                  <button onClick={() => setCard2Done(true)} style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: '#C8C4BE', background: 'none', border: 'none',
+                    cursor: 'pointer', padding: 0,
+                  }}>Mark done</button>
+                </div>
+              </div>
+            )}
+
+            {/* Card 3 — Meet DreamAi on WhatsApp */}
+            {!card3Done && (
+              <div style={{
+                background: '#0C0A09', border: '0.5px solid #2A2825',
+                borderRadius: 8, padding: '14px 16px', marginBottom: 10,
+              }}>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
+                  color: '#F8F7F5', margin: '0 0 4px',
+                }}>3. Meet your business assistant</p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                  color: '#555250', margin: '0 0 10px',
+                }}>Save this number on WhatsApp:</p>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300,
+                  color: '#C9A84C', margin: '0 0 4px', letterSpacing: '0.05em',
+                }}>+1 415 523 8886</p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                  color: '#555250', margin: '0 0 10px',
+                }}>Send: <span style={{ color: '#C9A84C' }}>"join acres-eventually"</span> · Then: <span style={{ color: '#C9A84C' }}>"What can you do?"</span></p>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+                  <a
+                    href="https://wa.me/14155238886?text=join%20acres-eventually"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => { localStorage.setItem('whatsapp_activated', 'true'); setCard3Done(true); }}
+                    style={{
+                      fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                      letterSpacing: '0.2em', textTransform: 'uppercase',
+                      color: '#C9A84C', textDecoration: 'none',
+                    }}
+                  >OPEN WHATSAPP →</a>
+                  <button onClick={() => { localStorage.setItem('whatsapp_activated', 'true'); setCard3Done(true); }} style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: '#555250', background: 'none', border: 'none',
+                    cursor: 'pointer', padding: 0,
+                  }}>Mark done</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -706,6 +1044,34 @@ export default function VendorTodayPage() {
             </div>
           )}
         </div>
+
+        {/* ─── Tip of the Day ──────────────────────────────────────────────────
+            Shown only in first 30 days. One subtle line at the bottom.
+            Tap "Learn more" → goes to Tips & Features in Settings.
+        ─────────────────────────────────────────────────────────────────── */}
+        {todaysTip && (
+          <div style={{ padding: '0 20px', marginBottom: 16 }}>
+            <div style={{ height: '0.5px', background: '#E2DED8', marginBottom: 12 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+                letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C',
+              }}>✦ TIP</span>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                color: '#888580', margin: 0, flex: 1, lineHeight: 1.4,
+              }}>
+                <strong style={{ color: '#555250', fontWeight: 400 }}>{todaysTip.title}</strong>
+                {' — '}{todaysTip.desc.length > 55 ? todaysTip.desc.slice(0, 55) + '...' : todaysTip.desc}
+              </p>
+              <a href="/vendor/studio/settings" style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: '#C9A84C', textDecoration: 'none', flexShrink: 0,
+              }}>More →</a>
+            </div>
+          </div>
+        )}
 
         {/* DreamAi Bar */}
         <div style={{ padding: '16px 20px 0' }}>
