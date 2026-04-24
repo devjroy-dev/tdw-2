@@ -21,9 +21,10 @@ const NAV = [
     { label: 'Control Room', path: '/admin/control-room', icon: '◐' },
   ]},
   { group: 'PEOPLE', items: [
-    { label: 'Dreamers', path: '/admin/dreamers', icon: '♡' },
-    { label: 'Makers', path: '/admin/makers', icon: '✦' },
-    { label: 'Invite Codes', path: '/admin/invites', icon: '⌘' },
+    { label: 'Dreamers',             path: '/admin/dreamers',  icon: '♡' },
+    { label: 'Makers',               path: '/admin/makers',    icon: '✦' },
+    { label: 'Discovery Approvals',  path: '/admin/approvals', icon: '◈' },
+    { label: 'Invite Codes',         path: '/admin/invites',   icon: '⌘' },
   ]},
   { group: 'PLATFORM', items: [
     { label: 'Cover Placement', path: '/admin/cover', icon: '⬡' },
