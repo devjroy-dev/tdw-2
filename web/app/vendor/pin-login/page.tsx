@@ -112,7 +112,7 @@ export default function VendorPinLoginPage() {
       <div style={{ minHeight: '100vh', background: '#F8F7F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 40px' }}>
         <div className="pin-enter" style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
           <div style={{ fontFamily: '"Cormorant Garamond", serif', fontStyle: 'italic', fontWeight: 300, fontSize: 18, color: '#111111', marginBottom: 6 }}>The Dream Wedding</div>
-          <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580', marginBottom: 16 }}>Behind every dream, there is a Maker.</div>
+          <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580', marginBottom: 16 }}>Every product is a catalogue. Every appointment is a sale.</div>
           <div style={{ height: 0.5, background: '#C9A84C', opacity: 0.4, margin: '0 auto 32px', width: 40 }} />
 
           <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111', marginBottom: 8 }}>Welcome back.</div>
