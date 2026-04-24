@@ -696,10 +696,6 @@ function DreamAiSheet({
   }, [visible, prefill]);
 
   useEffect(() => {
-    if (visible) setTimeout(() => inputRef.current?.focus(), 400);
-  }, [visible]);
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 

@@ -50,8 +50,7 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { if(visible&&prefill) setInput(prefill); },[visible,prefill]);
-  useEffect(() => { if(visible) setTimeout(()=>inputRef.current?.focus(),400); },[visible]);
+  useEffect(() => { if (visible && prefill) setInput(prefill); },[visible,prefill]);
   useEffect(() => { bottomRef.current?.scrollIntoView({behavior:'smooth'}); },[messages,loading]);
   async function send(text: string) {
     const msg=text.trim(); if(!msg||loading) return;
