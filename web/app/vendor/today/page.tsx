@@ -457,6 +457,12 @@ export default function VendorTodayPage() {
   const [clientCount, setClientCount]         = useState<number>(-1); // -1 = loading
   const [showIntroCard, setShowIntroCard]     = useState(false);
   const [introDismissed, setIntroDismissed]   = useState(false);
+  // Onboarding card completion flags — must stay here, not after early returns (Rules of Hooks)
+  const [card1Done, setCard1Done] = useState(false);
+  const [card2Done, setCard2Done] = useState(false);
+  const [card3Done, setCard3Done] = useState(
+    typeof window !== 'undefined' && !!localStorage.getItem('whatsapp_activated')
+  );
 
   useEffect(() => {
     const s = getSession();
@@ -568,12 +574,7 @@ export default function VendorTodayPage() {
   const showTipOfDay = daysSinceSignup !== null && daysSinceSignup < 30;
   const todaysTip = showTipOfDay ? TIPS_SHORT[daysSinceSignup % TIPS_SHORT.length] : null;
 
-  // Onboarding card completion flags (localStorage)
-  const [card1Done, setCard1Done] = React.useState(false);
-  const [card2Done, setCard2Done] = React.useState(false);
-  const [card3Done, setCard3Done] = React.useState(
-    typeof window !== 'undefined' && !!localStorage.getItem('whatsapp_activated')
-  );
+
 
   return (
     <>
