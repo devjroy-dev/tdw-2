@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Settings, LogOut } from "lucide-react";
 import { useAppMode } from "../layout";
 import type { AppMode } from "../layout";
@@ -10,20 +11,29 @@ function getInitials(name?: string): string {
   return name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
+// Reads both session keys — login paths write to different ones
+function getVendorSession() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 export default function TopBar() {
+  const router = useRouter();
   const { mode, setMode } = useAppMode();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [vendorName, setVendorName] = useState('');
-  const [toast, setToast] = useState('');
+  const [vendorName, setVendorName]   = useState('');
+  const [category, setCategory]       = useState('');
+  const [tier, setTier]               = useState('');
+  const [toast, setToast]             = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('vendor_web_session');
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (s?.vendorName) setVendorName(s.vendorName);
-      }
-    } catch {}
+    const s = getVendorSession();
+    if (s?.vendorName) setVendorName(s.vendorName);
+    if (s?.category)   setCategory(s.category);
+    if (s?.tier)       setTier(s.tier);
   }, []);
 
   const showToast = (msg: string) => {
@@ -31,7 +41,22 @@ export default function TopBar() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const initials = getInitials(vendorName);
+  // Switch mode AND navigate to the correct section
+  const handleModeSwitch = (m: AppMode) => {
+    setMode(m);
+    // Persist so mode survives page navigation (layout reads this on mount)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vendor_app_mode', m);
+    }
+    if (m === 'DISCOVERY') {
+      router.push('/vendor/discovery/dash');
+    } else {
+      router.push('/vendor/today');
+    }
+  };
+
+  const initials    = getInitials(vendorName);
+  const profileSub  = [category, tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : ''].filter(Boolean).join(' · ') || 'Maker';
 
   return (
     <>
@@ -53,120 +78,68 @@ export default function TopBar() {
         }}>{toast}</div>
       )}
 
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 20px",
-          height: "56px",
-          backgroundColor: "#0C0A09",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Left: TDW wordmark */}
-        <span
-          style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: "20px",
-            fontWeight: 300,
-            color: "#F8F7F5",
-            letterSpacing: "0.04em",
-            lineHeight: 1,
-          }}
-        >
-          TDW
-        </span>
+      <header style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 20px", height: "56px", backgroundColor: "#0C0A09",
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, boxSizing: "border-box",
+      }}>
+        {/* TDW wordmark */}
+        <span style={{
+          fontFamily: "'Cormorant Garamond', serif", fontSize: "20px",
+          fontWeight: 300, color: "#F8F7F5", letterSpacing: "0.04em", lineHeight: 1,
+        }}>TDW</span>
 
-        {/* Centre: Mode toggle pill */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: "20px",
-            padding: "3px",
-            gap: 0,
-          }}
-        >
+        {/* Mode toggle pill */}
+        <div style={{
+          display: "inline-flex", alignItems: "center",
+          background: "rgba(255,255,255,0.08)", borderRadius: "20px", padding: "3px", gap: 0,
+        }}>
           {(["BUSINESS", "DISCOVERY"] as AppMode[]).map((m) => {
             const active = mode === m;
             return (
               <button
                 key={m}
-                onClick={() => setMode(m)}
+                onClick={() => handleModeSwitch(m)}
                 style={{
-                  fontFamily: "'Jost', sans-serif",
-                  fontSize: "10px",
-                  fontWeight: 300,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  padding: "6px 16px",
-                  borderRadius: "16px",
-                  border: "none",
-                  cursor: "pointer",
+                  fontFamily: "'Jost', sans-serif", fontSize: "10px", fontWeight: 300,
+                  letterSpacing: "0.2em", textTransform: "uppercase",
+                  padding: "6px 16px", borderRadius: "16px", border: "none", cursor: "pointer",
                   background: active ? "#F8F7F5" : "transparent",
                   color: active ? "#0C0A09" : "rgba(255,255,255,0.5)",
                   transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
                   whiteSpace: "nowrap",
                 }}
-              >
-                {m}
-              </button>
+              >{m}</button>
             );
           })}
         </div>
 
-        {/* Right: Profile circle — now interactive */}
+        {/* Profile circle */}
         <div
           onClick={() => setProfileOpen(true)}
           style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            border: "1px solid #C9A84C",
-            background: "rgba(201,168,76,0.15)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            cursor: "pointer",
-            touchAction: "manipulation",
+            width: "32px", height: "32px", borderRadius: "50%",
+            border: "1px solid #C9A84C", background: "rgba(201,168,76,0.15)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, cursor: "pointer", touchAction: "manipulation",
           }}
         >
-          <span
-            style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: "12px",
-              fontWeight: 400,
-              color: "#F8F7F5",
-              lineHeight: 1,
-            }}
-          >
-            {initials}
-          </span>
+          <span style={{
+            fontFamily: "'Jost', sans-serif", fontSize: "12px",
+            fontWeight: 400, color: "#F8F7F5", lineHeight: 1,
+          }}>{initials}</span>
         </div>
-
       </header>
 
-      {/* Profile sheet backdrop — outside <header> to escape stacking context */}
+      {/* Profile sheet backdrop */}
       {profileOpen && (
         <div
           onClick={() => setProfileOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 500,
-            background: 'rgba(17,17,17,0.4)',
-            willChange: 'opacity',
-          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(17,17,17,0.4)' }}
         />
       )}
 
-      {/* Profile sheet — outside <header>, z-index above BottomNav (100) */}
+      {/* Profile sheet */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 501,
         background: '#FFFFFF', borderRadius: '24px 24px 0 0',
@@ -175,11 +148,7 @@ export default function TopBar() {
         willChange: 'transform',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
-        {/* Handle */}
-        <div style={{
-          width: 36, height: 4, background: '#E2DED8',
-          borderRadius: 2, margin: '12px auto 20px', display: 'block',
-        }} />
+        <div style={{ width: 36, height: 4, background: '#E2DED8', borderRadius: 2, margin: '12px auto 20px' }} />
 
         {/* Profile row */}
         <div style={{ padding: '0 24px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -187,61 +156,39 @@ export default function TopBar() {
             width: 48, height: 48, borderRadius: '50%', background: '#111111',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <span style={{
-              fontFamily: "'Jost', sans-serif", fontSize: 16,
-              fontWeight: 300, color: '#F8F7F5',
-            }}>{initials}</span>
+            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 16, fontWeight: 300, color: '#F8F7F5' }}>{initials}</span>
           </div>
           <div>
-            <p style={{
-              fontFamily: "'Cormorant Garamond', serif", fontSize: 20,
-              fontWeight: 300, color: '#111111', margin: '0 0 2px',
-            }}>{vendorName || 'Maker'}</p>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif", fontSize: 12,
-              fontWeight: 300, color: '#888580', margin: 0,
-            }}>Maker</p>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#111111', margin: '0 0 2px' }}>{vendorName || 'Maker'}</p>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: 0 }}>{profileSub}</p>
           </div>
         </div>
 
-        {/* Divider */}
         <div style={{ height: 1, background: '#E2DED8', margin: '0 24px' }} />
 
-        {/* Settings row */}
+        {/* Settings — links to Tips & Features */}
         <div
-          onClick={() => { showToast('Coming soon.'); setProfileOpen(false); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
-          }}
+          onClick={() => { router.push('/vendor/studio/settings'); setProfileOpen(false); }}
+          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation' }}
         >
           <Settings size={18} color="#888580" strokeWidth={1.5} />
-          <span style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-            fontWeight: 300, color: '#111111',
-          }}>Settings</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111111' }}>Tips & Features</span>
         </div>
 
-        {/* Divider */}
         <div style={{ height: 1, background: '#E2DED8', margin: '0 24px' }} />
 
-        {/* Sign out row */}
+        {/* Sign out */}
         <div
           onClick={() => {
             localStorage.removeItem('vendor_web_session');
             localStorage.removeItem('vendor_session');
+            localStorage.removeItem('vendor_app_mode');
             window.location.replace('/');
           }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation',
-          }}
+          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', cursor: 'pointer', touchAction: 'manipulation' }}
         >
           <LogOut size={18} color="#888580" strokeWidth={1.5} />
-          <span style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-            fontWeight: 300, color: '#111111',
-          }}>Sign out</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111111' }}>Sign out</span>
         </div>
       </div>
     </>

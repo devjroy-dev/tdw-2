@@ -26,13 +26,14 @@ export default function VendorTeamPage() {
   const [form, setForm] = useState({ name:'', role:'', phone:'' });
 
   useEffect(() => {
-    const raw = localStorage.getItem('vendor_web_session');
-    if (!raw) { window.location.replace('/vendor/pin-login'); return; }
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
+    if (!raw) { window.location.replace('/vendor/login'); return; }
     try {
       const s = JSON.parse(raw);
-      if (!s.vendorId) { window.location.replace('/vendor/pin-login'); return; }
-      setVendorId(s.vendorId);
-    } catch { window.location.replace('/vendor/pin-login'); }
+      const vid = s.vendorId || s.id;
+      if (!vid) { window.location.replace('/vendor/login'); return; }
+      setVendorId(vid);
+    } catch { window.location.replace('/vendor/login'); }
   }, []);
 
   const fetchTeam = useCallback(async (vid: string) => {

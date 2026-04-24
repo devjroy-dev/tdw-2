@@ -66,13 +66,14 @@ export default function CalendarPage() {
 
   // ── Auth + initial fetch ────────────────────────────────
   useEffect(() => {
-    const raw = localStorage.getItem('vendor_web_session');
-    if (!raw) { window.location.replace('/vendor/pin-login'); return; }
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
+    if (!raw) { window.location.replace('/vendor/login'); return; }
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed.vendorId) { window.location.replace('/vendor/pin-login'); return; }
-      setVendorId(parsed.vendorId);
-    } catch { window.location.replace('/vendor/pin-login'); }
+      const vid = parsed.vendorId || parsed.id;
+      if (!vid) { window.location.replace('/vendor/login'); return; }
+      setVendorId(vid);
+    } catch { window.location.replace('/vendor/login'); }
   }, []);
 
   const fetchBookings = useCallback(async (vid: string) => {

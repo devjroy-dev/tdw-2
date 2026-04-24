@@ -95,11 +95,55 @@ export default function ImageHubPage() {
 
   useEffect(() => { if (session?.vendorId || session?.id) load(); }, [session, load]);
 
-  // ─── Upload via Cloudinary URL paste (no file upload server needed) ────────
-  // Vendors paste a direct image URL (from WhatsApp, Google Drive, etc.)
-  // In a future release this will be a proper file picker with Cloudinary direct upload.
-  const [urlInput, setUrlInput] = useState('');
+  // ─── Upload: file picker → Cloudinary → backend ─────────────────────────────
+  // Same Cloudinary account used by the mobile app.
+  // Vendors pick a photo from their camera roll, it uploads directly to Cloudinary,
+  // then the secure URL is saved to the backend for admin approval.
+  const CLOUDINARY_CLOUD  = 'dccso5ljv';
+  const CLOUDINARY_PRESET = 'dream_wedding_uploads';
+
+  const [urlInput, setUrlInput]       = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const s = getSession();
+    if (!s) return;
+    const vendorId = s.vendorId || s.id;
+    setUploading(true);
+    try {
+      // Step 1: Upload to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+        method: 'POST', body: formData,
+      });
+      const cloudData = await cloudRes.json();
+      if (!cloudData.secure_url) {
+        setToast('Upload failed — please try again');
+        setUploading(false);
+        return;
+      }
+      // Step 2: Save URL to backend for admin approval
+      const r = await fetch(`${API}/api/vendor-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_id: vendorId, url: cloudData.secure_url, tags: [] }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setToast('Photo uploaded — pending admin approval');
+        load();
+      } else {
+        setToast(d.error || 'Could not save photo');
+      }
+    } catch { setToast('Upload failed — check connection'); }
+    setUploading(false);
+    // Reset file input so same file can be re-selected
+    if (fileRef.current) fileRef.current.value = '';
+  }
 
   async function submitUrl() {
     const s = getSession();
@@ -242,21 +286,48 @@ export default function ImageHubPage() {
           </div>
         )}
 
-        {/* Add photo button */}
+        {/* Add photo — file picker (primary) + URL paste (fallback) */}
         <div style={{ padding: '0 20px 20px' }}>
+          {/* Hidden file input */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+
+          {/* Primary: pick from camera roll */}
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            style={{
+              width: '100%', height: 52,
+              background: uploading ? '#2A2825' : '#C9A84C',
+              color: uploading ? '#555250' : '#0C0A09',
+              border: 'none', borderRadius: 100, cursor: uploading ? 'default' : 'pointer',
+              fontFamily: "'Jost', sans-serif", fontSize: 10,
+              fontWeight: 400, letterSpacing: '0.2em', textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            {uploading ? 'Uploading...' : '+ Choose Photo'}
+          </button>
+
+          {/* Secondary: paste URL */}
           <button
             onClick={() => setShowUrlInput(v => !v)}
             style={{
-              width: '100%', height: 48,
-              background: showUrlInput ? '#1A1816' : '#C9A84C',
-              color: showUrlInput ? '#8C8480' : '#0C0A09',
-              border: showUrlInput ? '1px solid #2A2825' : 'none',
+              width: '100%', height: 40,
+              background: 'transparent',
+              color: '#555250',
+              border: '0.5px solid #2A2825',
               borderRadius: 100, cursor: 'pointer',
-              fontFamily: "'Jost', sans-serif", fontSize: 10,
-              fontWeight: 400, letterSpacing: '0.2em', textTransform: 'uppercase',
+              fontFamily: "'Jost', sans-serif", fontSize: 9,
+              fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase',
             }}
           >
-            {showUrlInput ? 'Cancel' : '+ Add Photo'}
+            {showUrlInput ? 'Cancel' : 'Paste URL instead'}
           </button>
 
           {showUrlInput && (

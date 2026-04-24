@@ -305,15 +305,7 @@ export default function CollabPage() {
         )}
       </div>
 
-      {/* Discovery bottom nav */}
-      <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#F8F7F5',borderTop:'1px solid #E2DED8',display:'flex',alignItems:'center',justifyContent:'space-around',paddingBottom:'env(safe-area-inset-bottom)',zIndex:100}}>
-        {[{key:'dash',label:'Dash',href:'/vendor/discovery/dash'},{key:'leads',label:'Leads',href:'/vendor/leads'},{key:'hub',label:'Image Hub',href:'/vendor/discovery/hub'},{key:'collab',label:'Collab',href:'/vendor/discovery/collab'}].map(item=>(
-          <a key={item.key} href={item.href} style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'12px 10px',gap:4,textDecoration:'none'}}>
-            <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:item.key==='collab'?400:300,letterSpacing:'0.12em',textTransform:'uppercase',color:item.key==='collab'?'#111':'#888580'}}>{item.label}</span>
-            {item.key==='collab'&&<span style={{width:4,height:4,borderRadius:'50%',background:'#C9A84C',display:'block'}}/>}
-          </a>
-        ))}
-      </nav>
+      {/* Nav handled by layout — BottomNav component */}
     </>
   );
 }

@@ -23,7 +23,12 @@ export default function VendorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [mode, setMode] = useState<AppMode>("BUSINESS");
+  // Read persisted mode from localStorage so it survives page navigation
+  const [mode, setMode] = useState<AppMode>(() => {
+    if (typeof window === 'undefined') return 'BUSINESS';
+    const saved = localStorage.getItem('vendor_app_mode');
+    return (saved === 'DISCOVERY' || saved === 'BUSINESS') ? saved as AppMode : 'BUSINESS';
+  });
 
   return (
     <ModeContext.Provider value={{ mode, setMode }}>
