@@ -15,7 +15,8 @@ interface VendorSession {
 function getSession(): VendorSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('vendor_web_session');
+    // Check both keys — login paths are inconsistent about which one they write.
+    const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
@@ -96,6 +97,117 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   );
 }
 
+// ─── Booking Sheet ────────────────────────────────────────────────────────────
+// Slides up when vendor taps "Book this couple →" on a lead card.
+// Shows a summary of what will be created, then confirms.
+// Separate component keeps the lead card logic clean.
+function BookingSheet({
+  client,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  client: Client;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onCancel}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.6)',
+        }}
+      />
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
+        background: '#FFFFFF', borderRadius: '20px 20px 0 0',
+        padding: '20px 20px',
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+        animation: 'slideUp 320ms cubic-bezier(0.22,1,0.36,1)',
+      }}>
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+
+        <p style={{
+          fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+          letterSpacing: '0.25em', textTransform: 'uppercase',
+          color: '#888580', margin: '0 0 4px',
+        }}>BOOK THIS COUPLE</p>
+
+        <p style={{
+          fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300,
+          color: '#111111', margin: '0 0 20px', lineHeight: 1.15,
+        }}>{client.name || 'Unknown'}</p>
+
+        {/* Details summary */}
+        <div style={{ marginBottom: 24 }}>
+          {[
+            { label: 'Event', value: client.event_type },
+            { label: 'Date',  value: client.event_date
+                ? new Date(client.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+                : null },
+            { label: 'Budget', value: client.budget
+                ? '₹' + Number(client.budget).toLocaleString('en-IN')
+                : null },
+            { label: 'City',  value: client.city },
+          ].map(row => row.value ? (
+            <div key={row.label} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              padding: '10px 0', borderBottom: '0.5px solid #F0EEE8',
+            }}>
+              <span style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
+                letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580',
+              }}>{row.label}</span>
+              <span style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
+                color: '#111111',
+              }}>{row.value}</span>
+            </div>
+          ) : null)}
+        </div>
+
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+          color: '#888580', margin: '0 0 20px', lineHeight: 1.5,
+        }}>
+          This will add them to your Clients with status <strong style={{ fontWeight: 400 }}>Active</strong>. You can edit details anytime.
+        </p>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            style={{
+              flex: 1, height: 52, background: '#C9A84C', border: 'none',
+              borderRadius: 100, cursor: loading ? 'default' : 'pointer',
+              fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400,
+              letterSpacing: '0.2em', textTransform: 'uppercase', color: '#111111',
+              opacity: loading ? 0.6 : 1,
+            }}
+          >{loading ? 'Booking...' : 'Confirm Booking →'}</button>
+          <button
+            onClick={onCancel}
+            style={{
+              height: 52, padding: '0 20px', background: 'transparent',
+              border: '0.5px solid #E2DED8', borderRadius: 100, cursor: 'pointer',
+              fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+              letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580',
+            }}
+          >Cancel</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function VendorLeadsPage() {
   const [session, setSession]       = useState<VendorSession | null | undefined>(undefined);
@@ -106,8 +218,11 @@ export default function VendorLeadsPage() {
   const [toast, setToast]           = useState<string | null>(null);
   const [clients, setClients]       = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId]   = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  // Booking sheet — pre-filled from a lead card
+  const [bookingTarget, setBookingTarget] = useState<Client | null>(null);
+  const [booking, setBooking]             = useState(false);
 
   useEffect(() => {
     const s = getSession();
@@ -158,7 +273,7 @@ export default function VendorLeadsPage() {
     if (!extracted || !session) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API}/api/v2/vendor/clients`, {
+      const res = await fetch(`${API}/api/vendor-clients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +283,6 @@ export default function VendorLeadsPage() {
           event_type: extracted.event_type || null,
           event_date: extracted.wedding_date || null,
           budget: extracted.budget ? parseInt(extracted.budget.replace(/[^0-9]/g, '')) || null : null,
-          city: extracted.city || null,
           notes: message.trim(),
           status: 'new',
         }),
@@ -194,6 +308,41 @@ export default function VendorLeadsPage() {
     setExtracted(null);
   }
 
+  // Book this couple → converts a lead into a full client record.
+  // Pre-filled from whatever data the lead already has.
+  async function bookClient(client: Client) {
+    if (!session || booking) return;
+    setBooking(true);
+    try {
+      const res = await fetch(`${API}/api/vendor-clients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: session.vendorId,
+          name: client.name || 'Unknown',
+          event_type: client.event_type || null,
+          event_date: client.event_date || null,
+          budget: client.budget || null,
+          city: client.city || null,
+          notes: client.notes || null,
+          status: 'active',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('Booked ✓ Added to Clients');
+        setBookingTarget(null);
+        loadClients(session.vendorId);
+      } else {
+        showToast(json.error || 'Could not book couple. Try again.');
+      }
+    } catch {
+      showToast('Could not book couple. Check connection.');
+    } finally {
+      setBooking(false);
+    }
+  }
+
   if (session === undefined) return null;
   if (!session) {
     if (typeof window !== 'undefined') window.location.replace('/vendor/login');
@@ -216,6 +365,10 @@ export default function VendorLeadsPage() {
           0%   { background-position: 200% 0 }
           100% { background-position: -200% 0 }
         }
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
         @keyframes toastIn {
           from { opacity: 0; transform: translateX(-50%) translateY(-8px) translateZ(0); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0) translateZ(0); }
@@ -230,6 +383,16 @@ export default function VendorLeadsPage() {
       `}</style>
 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+
+      {/* Booking confirmation sheet */}
+      {bookingTarget && (
+        <BookingSheet
+          client={bookingTarget}
+          onConfirm={() => bookClient(bookingTarget)}
+          onCancel={() => setBookingTarget(null)}
+          loading={booking}
+        />
+      )}
 
       <div style={{
         minHeight: '100dvh', background: '#0C0A09',
@@ -475,6 +638,18 @@ export default function VendorLeadsPage() {
                           "{client.notes}"
                         </p>
                       )}
+
+                      {/* Book this couple — converts lead to client */}
+                      <button
+                        onClick={() => setBookingTarget(client)}
+                        style={{
+                          marginTop: 14, width: '100%', height: 40,
+                          background: '#C9A84C', border: 'none', borderRadius: 100,
+                          cursor: 'pointer', touchAction: 'manipulation',
+                          fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                          letterSpacing: '0.2em', textTransform: 'uppercase', color: '#111111',
+                        }}
+                      >Book this couple →</button>
                     </div>
                   )}
                 </div>
