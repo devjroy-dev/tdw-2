@@ -279,34 +279,93 @@ function DiscoveryFeedContent() {
     } catch {}
   }, []);
 
-  // Load vendors
+  // Load vendors from API
   useEffect(() => {
-    const all = SEED_VENDORS;
-    const category = searchParams.get('category');
-    const minB = Number(searchParams.get('minBudget') || 0);
-    const maxB = Number(searchParams.get('maxBudget') || 0);
-    let filtered = [...all];
-    if (category) {
-      // Normalize category param to match seed data values
-      const catMap: Record<string, string> = {
-        'photography': 'photographer',
-        'makeup & hair': 'mua', 'makeup': 'mua', 'mua': 'mua',
-        'decor': 'decorator', 'decorator': 'decorator',
-        'venues': 'venue', 'venue': 'venue',
-        'designers': 'designer', 'designer': 'designer',
-        'event managers': 'event_manager', 'event_manager': 'event_manager',
-      };
-      const normalizedCat = catMap[category.toLowerCase()] || category.toLowerCase();
-      filtered = filtered.filter(v => v.category === normalizedCat);
+    async function load() {
+      try {
+        const res = await fetch('https://dream-wedding-production-89ae.up.railway.app/api/vendors?limit=200');
+        const json = await res.json();
+        const raw: any[] = json.data || [];
+        if (!Array.isArray(raw) || raw.length === 0) throw new Error('empty');
+
+        const category = searchParams.get('category');
+        const minB = Number(searchParams.get('minBudget') || 0);
+        const maxB = Number(searchParams.get('maxBudget') || 0);
+
+        const PHOTO_FALLBACKS = [
+          '1519741497674-611481863552','1529636798458-92182e662485','1519225421980-715cb0215aed',
+          '1583939003579-730e3918a45a','1511285560929-80b456fea0bc','1478146896981-b80fe463b330',
+        ];
+
+        const CAT_LABEL: Record<string,string> = {
+          photographers:'Photography', photographer:'Photography',
+          mua:'Makeup & Hair', decorator:'Decor', decorators:'Decor',
+          venue:'Venue', venues:'Venue', designers:'Designer', designer:'Designer',
+          'event-managers':'Event Management', choreographers:'Choreography',
+          mehendi:'Mehendi', caterers:'Catering', dj:'DJ',
+        };
+
+        const CAT_SLUG: Record<string,string> = {
+          photographers:'photographer', videographers:'photographer',
+          mua:'mua', decorator:'decorator', decorators:'decorator',
+          venue:'venue', venues:'venue', designers:'designer', designer:'designer',
+          'event-managers':'event_manager', choreographers:'choreographer',
+          mehendi:'mehendi', caterers:'caterer', dj:'dj',
+        };
+
+        function mapVendor(v: any, idx: number): SeedVendor {
+          const cat = (v.category || '').toLowerCase();
+          const imgs: string[] = [...(v.featured_photos||[]), ...(v.portfolio_images||[])].filter(Boolean);
+          const images = imgs.length > 0 ? imgs : [
+            `https://images.unsplash.com/photo-${PHOTO_FALLBACKS[idx % PHOTO_FALLBACKS.length]}?w=1080&q=80&auto=format&fit=crop`,
+          ];
+          const price = v.starting_price || 0;
+          const priceLabel = price >= 100000
+            ? `₹${(price/100000).toFixed(price%100000===0?0:1)}L onwards`
+            : price > 0 ? `₹${(price/1000).toFixed(0)}K onwards` : 'Price on request';
+          return {
+            id: v.id,
+            name: v.name || 'Unnamed Vendor',
+            city: v.city || 'India',
+            category: (CAT_SLUG[cat] || 'photographer') as SeedVendor['category'],
+            categoryLabel: CAT_LABEL[cat] || 'Wedding',
+            priceFrom: price,
+            priceLabel,
+            tagline: v.tagline || (v.about||'').slice(0,80),
+            images,
+          };
+        }
+
+        let filtered = raw;
+        if (category) {
+          const catMap: Record<string,string> = {
+            'photography':'photographer','photographers':'photographer',
+            'makeup & hair':'mua','makeup':'mua','mua':'mua',
+            'decor':'decorator','decorator':'decorator',
+            'venues':'venue','venue':'venue',
+            'designers':'designer','designer':'designer',
+            'event managers':'event_manager','event-managers':'event_manager',
+          };
+          const want = catMap[category.toLowerCase()] || category.toLowerCase();
+          filtered = raw.filter(v => (v.category||'').toLowerCase() === want || CAT_SLUG[(v.category||'').toLowerCase()] === want);
+        }
+        if (minB) filtered = filtered.filter(v => (v.starting_price||0) >= minB);
+        if (maxB) filtered = filtered.filter(v => (v.starting_price||0) <= maxB);
+        if (mode === 'featured') filtered = filtered.filter(v => (v.starting_price||0) >= 200000);
+
+        const pool = filtered.length > 0 ? filtered : raw;
+        const mapped = pool.map((v,i) => mapVendor(v,i));
+        const shuffled = [...mapped].sort(() => Math.random() - 0.5);
+        setVendors(shuffled);
+        setVendorIdx(0); setImageIdx(0);
+      } catch {
+        // Fallback to seed
+        const all = SEED_VENDORS;
+        setVendors([...all].sort(() => Math.random() - 0.5));
+        setVendorIdx(0); setImageIdx(0);
+      }
     }
-    if (minB) filtered = filtered.filter(v => v.priceFrom >= minB);
-    if (maxB) filtered = filtered.filter(v => v.priceFrom <= maxB);
-    if (mode === 'featured') filtered = filtered.filter(v => v.priceFrom >= 200000);
-    // Shuffle — different order every session
-    const pool = filtered.length > 0 ? filtered : all;
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    setVendors(shuffled);
-    setVendorIdx(0); setImageIdx(0);
+    load();
   }, [mode, searchParams]);
 
   const vendor = vendors[vendorIdx];
