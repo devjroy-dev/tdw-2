@@ -65,7 +65,7 @@ export default function FeaturedPage() {
       {showSearch && (
         <div style={{ background: '#FFFFFF', border: '1px solid #C9A84C', borderRadius: 12, padding: 16, marginBottom: 20, position: 'relative' }}>
           <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 8px' }}>Search Makers to Feature</p>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Type a maker name…" autoFocus style={{ width: '100%', border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 300, color: '#111111', padding: '6px 0', outline: 'none' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Type a maker name…" style={{ width: '100%', border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 300, color: '#111111', padding: '6px 0', outline: 'none' }} />
           {filteredSearch.length > 0 && (
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {filteredSearch.slice(0, 5).map(v => (

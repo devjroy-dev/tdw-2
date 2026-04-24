@@ -1025,7 +1025,6 @@ function CreateExpenseSheet({ visible, onClose, userId, task, events, onSuccess 
             value={amount} onChange={e => setAmount(e.target.value)}
             inputMode="numeric" placeholder="0"
             style={{ ...fieldInput, paddingLeft: 18 }}
-            autoFocus
             onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
             onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
           />
@@ -1551,7 +1550,6 @@ function SetBudgetSheet({ visible, onClose, userId, current, onSaved }: {
           <input
             value={val} onChange={e => setVal(e.target.value.replace(/[^0-9]/g, ''))}
             inputMode="numeric" placeholder="0"
-            autoFocus
             style={{ ...fieldInput, paddingLeft: 22, fontSize: 22 }}
             onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
             onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
