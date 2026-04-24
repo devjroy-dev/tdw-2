@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -444,6 +445,100 @@ function DreamAiSheet({
   );
 }
 
+// ─── Quick Actions ───────────────────────────────────────────────────────────
+// Horizontally scrollable pill strip — one tap, no confirmations.
+// Sits between the hero greeting and the DreamAi nudge card.
+function QuickActions({
+  onDreamAi,
+  category,
+}: {
+  onDreamAi: () => void;
+  category?: string;
+}) {
+  const router = useRouter();
+
+  const universalActions = [
+    { label: 'New Client',  icon: '＋', action: () => router.push('/vendor/clients?action=new') },
+    { label: 'New Invoice', icon: '₹',  action: () => router.push('/vendor/money?action=invoice') },
+    { label: 'Block Date',  icon: '◻',  action: () => router.push('/vendor/studio/calendar?action=block') },
+    { label: 'Ask DreamAi',icon: '✦',  action: onDreamAi },
+    { label: 'Broadcast',   icon: '◉',  action: () => router.push('/vendor/studio/broadcast') },
+    { label: 'Leads',       icon: '↗',  action: () => router.push('/vendor/leads') },
+  ];
+
+  const categoryAction = ({
+    photographer:  { label: 'Add Shoot',    icon: '◈', action: () => router.push('/vendor/studio/calendar?action=shoot') },
+    videographer:  { label: 'Add Shoot',    icon: '◈', action: () => router.push('/vendor/studio/calendar?action=shoot') },
+    mua:           { label: 'Add Trial',    icon: '◎', action: () => router.push('/vendor/clients?action=trial') },
+    decorator:     { label: 'Site Visit',   icon: '⬡', action: () => router.push('/vendor/studio/calendar?action=visit') },
+    venue:         { label: 'Book Tour',    icon: '⬡', action: () => router.push('/vendor/clients?action=tour') },
+    event_manager: { label: 'New Brief',    icon: '◐', action: () => router.push('/vendor/clients?action=brief') },
+    choreographer: { label: 'Book Session', icon: '◉', action: () => router.push('/vendor/studio/calendar?action=session') },
+    mehendi:       { label: 'Add Booking',  icon: '✦', action: () => router.push('/vendor/clients?action=new') },
+    caterer:       { label: 'Menu Call',    icon: '◻', action: () => router.push('/vendor/clients?action=call') },
+    designer:      { label: 'Book Fitting', icon: '◎', action: () => router.push('/vendor/clients?action=fitting') },
+    jeweller:      { label: 'Book Viewing', icon: '◎', action: () => router.push('/vendor/clients?action=viewing') },
+  } as Record<string, { label: string; icon: string; action: () => void }>)[category?.toLowerCase() || '']
+    || { label: 'Add Task', icon: '◐', action: () => router.push('/vendor/studio/calendar') };
+
+  const allActions = [...universalActions, categoryAction];
+
+  return (
+    <div style={{ padding: '0 20px', marginBottom: 28 }}>
+      <p style={{
+        fontFamily: "'Jost', sans-serif",
+        fontSize: 9, fontWeight: 300,
+        letterSpacing: '0.25em', textTransform: 'uppercase',
+        color: '#888580', margin: '0 0 12px',
+      }}>QUICK ACTIONS</p>
+
+      <div style={{
+        display: 'flex', gap: 8,
+        overflowX: 'auto', scrollbarWidth: 'none',
+        WebkitOverflowScrolling: 'touch',
+        paddingBottom: 4,
+        marginRight: -20,
+        paddingRight: 20,
+      }}>
+        {allActions.map((a, i) => (
+          <button
+            key={i}
+            onClick={a.action}
+            style={{
+              flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 6,
+              height: 38, padding: '0 14px',
+              background: a.label === 'Ask DreamAi' ? '#111111' : '#FFFFFF',
+              border: a.label === 'Ask DreamAi'
+                ? '1px solid #111111'
+                : '0.5px solid #E2DED8',
+              borderRadius: 100,
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+              willChange: 'transform',
+              transition: 'transform 120ms ease',
+            }}
+            onPointerDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.96)'; }}
+            onPointerUp={e =>   { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+            onPointerLeave={e =>{ (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+          >
+            <span style={{ fontSize: 12, color: '#C9A84C', lineHeight: 1 }}>{a.icon}</span>
+            <span style={{
+              fontFamily: "'Jost', sans-serif",
+              fontSize: 9,
+              fontWeight: a.label === 'Ask DreamAi' ? 400 : 300,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: a.label === 'Ask DreamAi' ? '#F8F7F5' : '#111111',
+              whiteSpace: 'nowrap',
+            }}>{a.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function VendorTodayPage() {
   const [session, setSession]         = useState<VendorSession | null | undefined>(undefined);
@@ -728,6 +823,12 @@ export default function VendorTodayPage() {
             }}>{attentionCount(attention.length)}</p>
           )}
         </div>
+
+        {/* Quick Actions */}
+        <QuickActions
+          onDreamAi={() => openDreamAi()}
+          category={session.category}
+        />
 
         {/* DreamAi Nudge */}
         {nudge && (
