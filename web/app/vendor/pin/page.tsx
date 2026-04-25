@@ -27,6 +27,22 @@ export default function VendorPinPage() {
 
   useEffect(() => {
     try {
+      // Check URL params first (cross-domain session handoff from thedreamwedding.in)
+      const params = new URLSearchParams(window.location.search);
+      const uid = params.get('uid');
+      const phone = params.get('phone');
+      const pinSetParam = params.get('pin_set');
+
+      if (uid) {
+        const sd = { id: uid, userId: uid, vendorId: uid, phone, pin_set: pinSetParam === 'true' };
+        localStorage.setItem('vendor_web_session', JSON.stringify(sd));
+        localStorage.setItem('vendor_session', JSON.stringify(sd));
+        window.history.replaceState({}, '', '/vendor/pin');
+        if (pinSetParam === 'true') { router.replace('/vendor/today'); return; }
+        pinRefs.current[0]?.focus();
+        return;
+      }
+
       const s = JSON.parse(localStorage.getItem('vendor_web_session') || localStorage.getItem('vendor_session') || '{}');
       if (s?.pin_set) { router.replace('/vendor/today'); return; }
     } catch {}

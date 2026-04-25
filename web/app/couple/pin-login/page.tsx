@@ -29,6 +29,19 @@ export default function CouplePinLoginPage() {
 
   useEffect(() => {
     try {
+      // Check URL params first (cross-domain session handoff)
+      const params = new URLSearchParams(window.location.search);
+      const uid = params.get('uid');
+      const phone = params.get('phone');
+      const pinSetParam = params.get('pin_set');
+      if (uid && pinSetParam === 'true') {
+        const sd = { id: uid, userId: uid, phone, pin_set: true };
+        localStorage.setItem('couple_web_session', JSON.stringify(sd));
+        localStorage.setItem('couple_session', JSON.stringify(sd));
+        window.history.replaceState({}, '', '/couple/pin-login');
+        pinRefs.current[0]?.focus();
+        return;
+      }
       const s = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
       if ((!s?.id && !s?.userId) || !s?.pin_set) { router.replace('/couple/login'); return; }
     } catch { router.replace('/couple/login'); return; }
