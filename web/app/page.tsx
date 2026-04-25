@@ -371,9 +371,13 @@ export default function Home() {
       localStorage.setItem(sessionKey, JSON.stringify(sessionData));
       localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
       // For new vendors with no name — go through onboarding first
-      const needsOnboarding = isVendor && !pinSet && !record.name;
-      if (needsOnboarding) {
+      const vendorNeedsOnboarding = isVendor && !pinSet && !record.name;
+      // For new couples with no name — go through couple onboarding first
+      const coupleNeedsOnboarding = !isVendor && !pinSet && !record.name;
+      if (vendorNeedsOnboarding) {
         router.push('/vendor/onboarding');
+      } else if (coupleNeedsOnboarding) {
+        router.push('/couple/onboarding');
       } else {
         router.push(pinSet
           ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')

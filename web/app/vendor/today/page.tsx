@@ -651,6 +651,43 @@ function QuickActions({
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+// Push notification helpers
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function savePushSubscription(vendorId: string, sub: PushSubscription) {
+  await fetch(`${API}/api/v2/vendor/push-subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vendor_id: vendorId, subscription: sub.toJSON() }),
+  }).catch(() => {});
+}
+
+async function subscribeToPush(vendorId: string) {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await savePushSubscription(vendorId, existing);
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) return;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    });
+    await savePushSubscription(vendorId, sub);
+  } catch {}
+}
+
 export default function VendorTodayPage() {
   const router = useRouter();
   const [session, setSession]         = useState<VendorSession | null | undefined>(undefined);
@@ -749,6 +786,9 @@ export default function VendorTodayPage() {
       setShowIntroCard(true);
       localStorage.setItem('onboarding_intro_seen', 'true');
     }
+
+    // Push notification subscription
+    subscribeToPush(s.vendorId);
   }, []);
 
   if (session === undefined) return null;

@@ -17,7 +17,7 @@ export const CoupleModeContext = createContext<{
 export const useCoupleMode = () => useContext(CoupleModeContext);
 
 // ─── Auth routes — no shell ───────────────────────────────────────────────────
-const AUTH_ROUTES = ['/couple/pin', '/couple/pin-login', '/couple/login'];
+const AUTH_ROUTES = ['/couple/pin', '/couple/pin-login', '/couple/login', '/couple/onboarding'];
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 export default function CoupleLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
   // PWA persistence — save last path on every navigation
   useEffect(() => {
     if (!pathname) return;
-    const skipPaths = ['/couple/pin', '/couple/pin-login', '/couple/login'];
+    const skipPaths = ['/couple/pin', '/couple/pin-login', '/couple/login', '/couple/onboarding'];
     if (!skipPaths.some(p => pathname.startsWith(p))) {
       try { localStorage.setItem('couple_last_path', pathname); } catch {}
     }
