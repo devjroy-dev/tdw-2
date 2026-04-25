@@ -370,16 +370,9 @@ export default function Home() {
       };
       localStorage.setItem(sessionKey, JSON.stringify(sessionData));
       localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
-      const qp = new URLSearchParams({
-        uid: record.id,
-        phone: bare,
-        pin_set: String(pinSet),
-        name: record.name || '',
-        category: record.category || '',
-      });
-      window.location.href = pinSet
-        ? (isVendor ? 'https://app.thedreamwedding.in/vendor/pin-login?' + qp : 'https://app.thedreamwedding.in/couple/pin-login?' + qp)
-        : (isVendor ? 'https://app.thedreamwedding.in/vendor/pin?' + qp : 'https://app.thedreamwedding.in/couple/pin?' + qp);
+      router.push(pinSet
+        ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')
+        : (isVendor ? '/vendor/pin' : '/couple/pin'));
     } catch { showToast('Verification failed.'); }
   };
 
@@ -404,14 +397,7 @@ export default function Home() {
         const sd = { id: d.userId, userId: d.userId, vendorId: d.userId, phone: bare, pin_set: true };
         localStorage.setItem(sessionKey, JSON.stringify(sd));
         localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sd));
-        const params = new URLSearchParams({
-          uid: sd.id,
-          phone: bare,
-          pin_set: 'true',
-        });
-        window.location.href = isVendor
-          ? 'https://app.thedreamwedding.in/vendor/pin-login?' + params.toString()
-          : 'https://app.thedreamwedding.in/couple/pin-login?' + params.toString();
+        router.push(isVendor ? '/vendor/pin-login' : '/couple/pin-login');
         return;
       }
 

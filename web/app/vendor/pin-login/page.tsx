@@ -26,24 +26,6 @@ export default function VendorPinLoginPage() {
 
   useEffect(() => {
     try {
-      // Check URL params first (cross-domain session handoff from thedreamwedding.in)
-      const params = new URLSearchParams(window.location.search);
-      const uid = params.get('uid');
-      const phone = params.get('phone');
-      const pinSetParam = params.get('pin_set');
-      const nameParam = params.get('name');
-
-      if (uid && pinSetParam === 'true') {
-        // Write session from URL params then clean URL
-        const sd = { id: uid, userId: uid, vendorId: uid, phone, pin_set: true, vendorName: nameParam || '', name: nameParam || '' };
-        localStorage.setItem('vendor_web_session', JSON.stringify(sd));
-        localStorage.setItem('vendor_session', JSON.stringify(sd));
-        if (nameParam) setName(nameParam);
-        window.history.replaceState({}, '', '/vendor/pin-login');
-        pinRefs.current[0]?.focus();
-        return;
-      }
-
       const s = JSON.parse(localStorage.getItem('vendor_web_session') || localStorage.getItem('vendor_session') || '{}');
       if (!s?.pin_set) { router.replace('/'); return; }
       if (s?.name || s?.vendorName) setName(s.name || s.vendorName);
