@@ -116,14 +116,28 @@ function Modal({ onClose, userType, userId }: {
       const d = await r.json();
       const replyText = d.reply || d.response || 'Something went wrong. Please try again.';
 
-      // Parse action tag — strip ALL action tags from display text
-      const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^\]]+\})\]/);
-      const cleanText = replyText.replace(/\[ACTION:[^\]]+\]/g, '').trim();
-      if (actionMatch) {
-        const [, type, label, preview, paramsStr] = actionMatch;
-        let params = {};
-        try { params = JSON.parse(paramsStr); } catch {}
-        setMsgs(p => [...p, { role: 'assistant', text: cleanText, actionType: type, actionLabel: label, actionPreview: preview, actionParams: params }]);
+      // Parse action tag robustly — find [ACTION:...] even if JSON contains ] characters
+      let actionType: string|undefined, actionLabel: string|undefined, actionPreview: string|undefined, actionParams: Record<string,any>|undefined;
+      const actionStart = replyText.indexOf('[ACTION:');
+      if (actionStart !== -1) {
+        const inner = replyText.slice(actionStart + 8); // after [ACTION:
+        const parts = inner.split('|');
+        if (parts.length >= 4) {
+          actionType = parts[0];
+          actionLabel = parts[1];
+          actionPreview = parts[2];
+          // params = everything from part[3] onwards, find the closing ]
+          const rest = parts.slice(3).join('|');
+          const lastBrace = rest.lastIndexOf('}');
+          if (lastBrace !== -1) {
+            try { actionParams = JSON.parse(rest.slice(0, lastBrace + 1)); } catch {}
+          }
+        }
+      }
+      // Strip ALL [ACTION:...] blocks from display text
+      const cleanText = replyText.replace(/\[ACTION:[^]*?\}\]/g, '').trim();
+      if (actionType && actionLabel && actionPreview) {
+        setMsgs(p => [...p, { role: 'assistant', text: cleanText, actionType, actionLabel, actionPreview, actionParams: actionParams || {} }]);
       } else {
         setMsgs(p => [...p, { role: 'assistant', text: cleanText }]);
       }
@@ -234,16 +248,18 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
   const dragActiveRef = useRef(false);
   const longTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const resolvedId = userId || (() => {
-    if (typeof window === 'undefined') return '';
+  const [resolvedId, setResolvedId] = useState(userId || '');
+  useEffect(() => {
+    if (resolvedId) return; // already have it from prop
     try {
       const raw = localStorage.getItem('vendor_session')||localStorage.getItem('vendor_web_session')
                ||localStorage.getItem('couple_session')||localStorage.getItem('couple_web_session');
-      if (!raw) return '';
+      if (!raw) return;
       const s = JSON.parse(raw);
-      return s.vendorId||s.userId||s.id||'';
-    } catch { return ''; }
-  })();
+      const id = s.vendorId||s.userId||s.id||'';
+      if (id) setResolvedId(id);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (!resolvedId || userType !== 'vendor') return;
