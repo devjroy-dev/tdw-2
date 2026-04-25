@@ -1,35 +1,31 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API = 'https://dream-wedding-production-89ae.up.railway.app';
-
-const fonts = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { margin: 0; background: #F8F7F5; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-  @keyframes slideDown { from{opacity:0;transform:translateY(-40px)} to{opacity:1;transform:translateY(0)} }
-  .pin-enter { animation: fadeIn 320ms cubic-bezier(0.22,1,0.36,1) both; }
-  .pin-shake { animation: shake 320ms cubic-bezier(0.22,1,0.36,1); }
-  .toast-in { animation: slideDown 280ms cubic-bezier(0.22,1,0.36,1) both; }
-`;
+const API  = 'https://dream-wedding-production-89ae.up.railway.app';
+const GOLD = '#C9A84C';
+const SLIDES = [
+  'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=90&fit=crop',
+  'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=90&fit=crop',
+  'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=90&fit=crop',
+  'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=1200&q=90&fit=crop',
+];
 
 export default function CouplePinPage() {
   const router = useRouter();
-  const [pin, setPin] = useState(['', '', '', '']);
+  const [pin, setPin]         = useState(['', '', '', '']);
   const [confirm, setConfirm] = useState(['', '', '', '']);
-  const [shakingConfirm, setShakingConfirm] = useState(false);
+  const [stage, setStage]     = useState<'pin' | 'confirm'>('pin');
+  const [shaking, setShaking] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState('');
-  const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [toast, setToast]     = useState('');
+  const [slide, setSlide]     = useState(() => Math.floor(Math.random() * SLIDES.length));
+  const pinRefs     = useRef<(HTMLInputElement | null)[]>([]);
   const confirmRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2800); };
 
   useEffect(() => {
-    // If already set, skip
     try {
       const s = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
       if (s?.pin_set) { router.replace('/couple/today'); return; }
@@ -37,138 +33,121 @@ export default function CouplePinPage() {
     pinRefs.current[0]?.focus();
   }, []);
 
-  const handlePin = (idx: number, val: string, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    if (!/^\d*$/.test(val)) return;
-    const v = val.slice(-1);
-    setter(prev => { const n = [...prev]; n[idx] = v; return n; });
-    if (v && idx < 3) refs.current[idx + 1]?.focus();
-  };
+  useEffect(() => {
+    const t = setInterval(() => setSlide(p => (p + 1) % SLIDES.length), 4500);
+    return () => clearInterval(t);
+  }, []);
 
-  const handleBackspace = (idx: number, val: string, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>, arr: string[]) => {
-    if (val === '' && idx > 0) {
-      setter(prev => { const n = [...prev]; n[idx - 1] = ''; return n; });
-      refs.current[idx - 1]?.focus();
-    }
-  };
-
-  const allFilled = pin.every(d => d) && confirm.every(d => d);
-
-  const submit = async () => {
-    if (!allFilled) return;
-    const pinStr = pin.join('');
-    const confirmStr = confirm.join('');
+  const submit = useCallback(async () => {
+    const pinStr = pin.join(''); const confirmStr = confirm.join('');
+    if (pinStr.length < 4 || confirmStr.length < 4) return;
     if (pinStr !== confirmStr) {
-      setShakingConfirm(true);
-      setTimeout(() => setShakingConfirm(false), 400);
-      showToast('PINs don\'t match');
-      setConfirm(['', '', '', '']);
-      confirmRefs.current[0]?.focus();
-      return;
+      setShaking(true); setTimeout(() => setShaking(false), 400);
+      showToast("PINs don't match — try again");
+      setConfirm(['', '', '', '']); setStage('pin'); setPin(['', '', '', '']);
+      setTimeout(() => pinRefs.current[0]?.focus(), 80); return;
     }
     setLoading(true);
     try {
       const session = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
-      const r = await fetch(`${API}/api/v2/auth/set-pin`, {
+      const r = await fetch(API + '/api/v2/auth/set-pin', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.userId, pin: pinStr, role: 'couple', phone: session.phone }),
+        body: JSON.stringify({ userId: session.userId || session.id, pin: pinStr, role: 'couple', phone: session.phone }),
       });
       const d = await r.json();
       if (d.success) {
-        localStorage.setItem('couple_web_session', JSON.stringify({ ...session, pin_set: true }));
+        const updated = { ...session, pin_set: true };
+        localStorage.setItem('couple_web_session', JSON.stringify(updated));
+        localStorage.setItem('couple_session', JSON.stringify(updated));
         router.replace('/couple/today');
-      } else {
-        showToast('Could not set PIN. Try again.');
-      }
-    } catch {
-      showToast('Network error. Try again.');
-    } finally {
-      setLoading(false);
-    }
+      } else { showToast('Could not set PIN. Try again.'); }
+    } catch { showToast('Network error. Try again.'); }
+    finally { setLoading(false); }
+  }, [pin, confirm, router]);
+
+  useEffect(() => { if (confirm.every(d => d) && stage === 'confirm') submit(); }, [confirm, stage, submit]);
+
+  const handlePinInput = (idx: number, val: string) => {
+    if (!/^\d*$/.test(val)) return;
+    const v = val.slice(-1);
+    setPin(prev => { const n = [...prev]; n[idx] = v; return n; });
+    if (v && idx < 3) pinRefs.current[idx + 1]?.focus();
+    if (v && idx === 3) setTimeout(() => { setStage('confirm'); setTimeout(() => confirmRefs.current[0]?.focus(), 60); }, 60);
   };
 
-  const skip = () => { router.replace('/couple/today'); };
+  const handleConfirmInput = (idx: number, val: string) => {
+    if (!/^\d*$/.test(val)) return;
+    const v = val.slice(-1);
+    setConfirm(prev => { const n = [...prev]; n[idx] = v; return n; });
+    if (v && idx < 3) confirmRefs.current[idx + 1]?.focus();
+  };
 
-  const boxStyle = (focused?: boolean): React.CSSProperties => ({
-    width: 52, height: 64,
-    background: 'transparent', border: 'none', outline: 'none',
-    borderBottom: `2px solid ${focused ? '#C9A84C' : '#E2DED8'}`,
-    fontFamily: '"DM Sans", sans-serif', fontWeight: 400, fontSize: 28,
-    color: '#111111', textAlign: 'center',
-    touchAction: 'manipulation',
-    transition: 'border-color 0.18s ease',
-  });
+  const handleBackspace = (idx: number, val: string, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (val === '' && idx > 0) { setter(prev => { const n = [...prev]; n[idx - 1] = ''; return n; }); refs.current[idx - 1]?.focus(); }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: 48, height: 58, background: 'transparent', border: 'none', outline: 'none',
+    borderBottom: '2px solid ' + GOLD,
+    fontFamily: "'DM Sans', sans-serif",
+    fontWeight: 400, fontSize: 26, color: '#F8F7F5', textAlign: 'center',
+    touchAction: 'manipulation', caretColor: GOLD,
+  };
 
   return (
     <>
-      <style>{fonts}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { margin: 0; background: #0C0A09; }
+        @keyframes pinFadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pinShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+        @keyframes slideDown { from{opacity:0;transform:translateY(-32px) translateX(-50%)} to{opacity:1;transform:translateY(0) translateX(-50%)} }
+        input[type=tel]::-webkit-outer-spin-button, input[type=tel]::-webkit-inner-spin-button { -webkit-appearance: none; }
+      `}</style>
+
       {toast && (
-        <div className="toast-in" style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, padding: '10px 22px', borderRadius: 4, zIndex: 9999, whiteSpace: 'nowrap' }}>{toast}</div>
+        <div style={{ position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',background:'rgba(201,168,76,0.12)',backdropFilter:'blur(12px)',border:'0.5px solid rgba(201,168,76,0.3)',color:GOLD,fontFamily:"'DM Sans',sans-serif",fontWeight:300,fontSize:13,padding:'10px 20px',borderRadius:100,zIndex:9999,whiteSpace:'nowrap',animation:'slideDown 280ms cubic-bezier(0.22,1,0.36,1)' }}>{toast}</div>
       )}
 
-      <div style={{ minHeight: '100vh', background: '#F8F7F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 40px' }}>
-        <div className="pin-enter" style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
-          {/* Wordmark */}
-          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontStyle: 'italic', fontWeight: 300, fontSize: 18, color: '#111111', marginBottom: 6 }}>The Dream Wedding</div>
-          <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11, color: '#888580', marginBottom: 16 }}>It's not just happily married. It's getting married happily.</div>
-          <div style={{ height: 0.5, background: '#C9A84C', opacity: 0.4, margin: '0 auto 32px', width: 40 }} />
-
-          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 300, fontSize: 28, color: '#111111', marginBottom: 8 }}>Create your PIN.</div>
-          <div style={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 11.5, color: '#888580', marginBottom: 36 }}>Four digits. Quick access every time.</div>
-
-          {/* PIN entry */}
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-              {pin.map((d, i) => (
-                <input
-                  key={i}
-                  ref={el => { pinRefs.current[i] = el; }}
-                  type="tel"
-                  maxLength={1}
-                  value={d}
-                  onChange={e => handlePin(i, e.target.value, pinRefs, setPin)}
-                  onKeyDown={e => { if (e.key === 'Backspace') handleBackspace(i, d, pinRefs, setPin, pin); }}
-                  style={boxStyle(typeof document !== "undefined" && document.activeElement === pinRefs.current[i])}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Confirm PIN */}
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: '#888580', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 12 }}>Confirm PIN</div>
-            <div className={shakingConfirm ? 'pin-shake' : ''} style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-              {confirm.map((d, i) => (
-                <input
-                  key={i}
-                  ref={el => { confirmRefs.current[i] = el; }}
-                  type="tel"
-                  maxLength={1}
-                  value={d}
-                  onChange={e => handlePin(i, e.target.value, confirmRefs, setConfirm)}
-                  onKeyDown={e => { if (e.key === 'Backspace') handleBackspace(i, d, confirmRefs, setConfirm, confirm); if (e.key === 'Enter' && allFilled) submit(); }}
-                  style={boxStyle(typeof document !== "undefined" && document.activeElement === confirmRefs.current[i])}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: 36 }}>
-            <button
-              onClick={submit}
-              disabled={!allFilled || loading}
-              style={{
-                width: '100%', background: allFilled ? '#111111' : '#E2DED8',
-                color: allFilled ? '#F8F7F5' : '#888580',
-                border: 'none', padding: '14px 0',
-                fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9,
-                letterSpacing: '0.22em', textTransform: 'uppercase',
-                cursor: allFilled ? 'pointer' : 'not-allowed', borderRadius: 2,
-                transition: 'all 0.2s ease',
-                touchAction: 'manipulation',
-              }}
-            >{loading ? 'Setting PIN…' : 'Set PIN'}</button>
-
-            <button onClick={skip} style={{ marginTop: 16, background: 'none', border: 'none', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, color: '#AAAAAA', cursor: 'pointer', letterSpacing: '0.15em', touchAction: 'manipulation' }}>Skip for now</button>
+      <div style={{ position:'fixed',inset:0,background:'#0C0A09',overflow:'hidden' }}>
+        {SLIDES.map((src, i) => (
+          <div key={i} style={{ position:'absolute',inset:0,backgroundImage:'url(' + src + ')',backgroundSize:'cover',backgroundPosition:'center',opacity: i === slide ? 0.55 : 0,transition:'opacity 1200ms ease' }} />
+        ))}
+        <div style={{ position:'absolute',inset:0,background:'rgba(12,10,9,0.45)' }} />
+        <div style={{ position:'absolute',bottom:0,left:0,right:0,animation:'pinFadeIn 400ms cubic-bezier(0.22,1,0.36,1)' }}>
+          <div style={{ background:'rgba(12,10,9,0.3)',backdropFilter:'blur(28px)',WebkitBackdropFilter:'blur(28px)',borderTop:'0.5px solid rgba(255,255,255,0.1)',borderRadius:'20px 20px 0 0',padding:'28px 32px calc(env(safe-area-inset-bottom, 16px) + 32px)' }}>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontWeight:300,fontSize:15,color:'rgba(248,247,245,0.5)',margin:'0 0 2px' }}>The Dream Wedding</p>
+            <p style={{ fontFamily:"'Jost',sans-serif",fontWeight:200,fontSize:6,letterSpacing:'0.32em',textTransform:'uppercase',color:GOLD,margin:'0 0 24px' }}>DREAMER PORTAL</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif",fontWeight:300,fontSize:26,color:'#F8F7F5',margin:'0 0 4px',lineHeight:1.15 }}>
+              {stage === 'pin' ? 'Create your PIN.' : 'Confirm your PIN.'}
+            </p>
+            <p style={{ fontFamily:"'DM Sans',sans-serif",fontWeight:300,fontSize:13,color:'rgba(248,247,245,0.4)',margin:'0 0 28px' }}>
+              {stage === 'pin' ? 'Four digits. Quick access every time.' : 'Enter the same PIN again.'}
+            </p>
+            {stage === 'pin' && (
+              <div style={{ display:'flex',justifyContent:'center',gap:16,marginBottom:32 }}>
+                {pin.map((d, i) => (
+                  <input key={i} ref={el => { pinRefs.current[i] = el; }}
+                    type='tel' maxLength={1} value={d}
+                    onChange={e => handlePinInput(i, e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Backspace') handleBackspace(i, d, pinRefs, setPin); }}
+                    style={inputStyle} disabled={loading} />
+                ))}
+              </div>
+            )}
+            {stage === 'confirm' && (
+              <div style={{ display:'flex',justifyContent:'center',gap:16,marginBottom:32,animation: shaking ? 'pinShake 320ms cubic-bezier(0.22,1,0.36,1)' : 'none' }}>
+                {confirm.map((d, i) => (
+                  <input key={i} ref={el => { confirmRefs.current[i] = el; }}
+                    type='tel' maxLength={1} value={d}
+                    onChange={e => handleConfirmInput(i, e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Backspace') handleBackspace(i, d, confirmRefs, setConfirm); }}
+                    style={inputStyle} disabled={loading} />
+                ))}
+              </div>
+            )}
+            {loading && <p style={{ fontFamily:"'Jost',sans-serif",fontWeight:200,fontSize:9,letterSpacing:'0.2em',textTransform:'uppercase',color:GOLD,textAlign:'center',marginBottom:16 }}>Setting PIN…</p>}
           </div>
         </div>
       </div>
