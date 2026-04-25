@@ -224,7 +224,6 @@ function VendorMoneyInner() {
   const tier = session.tier || 'essential';
 
   // Expense summary
-  const cm = currentMonth();
   const expThisMonth = expenses
     .filter(e => (e.expense_date||'').slice(0,7) === cm)
     .reduce((s, e) => s + (Number(e.amount)||0), 0);
