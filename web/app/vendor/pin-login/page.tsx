@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
-const API = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
 const FALLBACK_SLIDES = [
   'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=90&fit=crop',
