@@ -29,10 +29,15 @@ function Modal({ onClose, userType, userId }: {
     try {
       const r = await fetch(API + '/api/v2/dreamai/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor_id: userId, couple_id: userId, message: msg }),
+        body: JSON.stringify({
+          userId,
+          userType,
+          message: msg,
+          context: null,
+        }),
       });
       const d = await r.json();
-      setMsgs(p => [...p, { role: 'assistant', text: d.reply || d.response || 'Done.' }]);
+      setMsgs(p => [...p, { role: 'assistant', text: d.reply || d.response || 'Something went wrong. Please try again.' }]);
     } catch {
       setMsgs(p => [...p, { role: 'assistant', text: 'Could not connect.' }]);
     }
