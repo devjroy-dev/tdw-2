@@ -12,7 +12,7 @@ interface Payment { id: string; vendor_name?: string; actual_amount?: number; du
 interface QuietActivity { type: string; text: string; at: string; enquiry_id?: string; }
 interface TodayData { hero: HeroData; three_moments: Moment[]; muse_saves: MuseSave[]; this_week_events: EventItem[]; upcoming_payments: Payment[]; budget: { total: number; committed: number; paid: number }; next_event: EventItem|null; quiet_activity: QuietActivity[]; priority_tasks: any[]; }
 interface Session { id: string; name?: string; dreamer_type?: string; }
-interface ChatMessage { role: 'user'|'ai'; text: string; }
+interface ChatMessage { role: 'user'|'ai'; text: string; actionType?: string; actionLabel?: string; actionPreview?: string; actionParams?: Record<string,any>; }
 
 function getSession(): Session|null {
   if (typeof window === 'undefined') return null;
@@ -44,19 +44,98 @@ function Toast({ msg, onDone }: { msg: string|null; onDone: () => void }) {
   return <div style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background:'#111', color:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, padding:'10px 20px', borderRadius:100, zIndex:9999, whiteSpace:'nowrap' }}>{msg}</div>;
 }
 
+// Robust ACTION tag parser — couple side
+function parseActionTag(text: string) {
+  const start = text.indexOf('[ACTION:');
+  if (start === -1) return null;
+  const end = text.lastIndexOf(']');
+  if (end === -1 || end <= start) return null;
+  const tagContent = text.slice(start + 8, end);
+  const firstPipe = tagContent.indexOf('|');
+  const secondPipe = tagContent.indexOf('|', firstPipe + 1);
+  const lastBrace = tagContent.lastIndexOf('{');
+  if (firstPipe === -1 || secondPipe === -1 || lastBrace === -1) return null;
+  const type = tagContent.slice(0, firstPipe);
+  const label = tagContent.slice(firstPipe + 1, secondPipe);
+  const preview = tagContent.slice(secondPipe + 1, lastBrace - 1).trim();
+  const paramsStr = tagContent.slice(lastBrace);
+  let params: Record<string,any> = {};
+  try { params = JSON.parse(paramsStr); } catch {}
+  const cleanText = (text.slice(0, start) + text.slice(end + 1)).trim();
+  return { type, label, preview, params, cleanText };
+}
+
+function CoupleActionCard({ msg, userId, onConfirm, onDismiss }: {
+  msg: ChatMessage; userId: string;
+  onConfirm: (result: string) => void; onDismiss: () => void;
+}) {
+  const [executing, setExecuting] = useState(false);
+  const eps: Record<string, string> = {
+    complete_task: '/api/v2/dreamai/action/complete-task',
+    add_expense:   '/api/v2/dreamai/action/add-expense',
+    send_whatsapp: '/api/v2/dreamai/action/send-whatsapp-reminder',
+    send_enquiry:  '/api/v2/dreamai/action/send-enquiry',
+  };
+  async function execute() {
+    if (!msg.actionType) return;
+    const ep = eps[msg.actionType];
+    if (!ep) { onConfirm('Action not available yet.'); return; }
+    setExecuting(true);
+    try {
+      const r = await fetch(API + ep, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: userId, ...(msg.actionParams || {}) }),
+      });
+      const d = await r.json();
+      onConfirm(d.message || 'Done.');
+    } catch { onConfirm('Could not complete. Please try again.'); }
+    finally { setExecuting(false); }
+  }
+  return (
+    <div style={{ background: '#FFFEF8', border: '1px solid #C9A84C', borderRadius: 12, padding: '12px 14px', margin: '4px 0 8px' }}>
+      <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 7, fontWeight: 200, letterSpacing: '0.22em', textTransform: 'uppercase' as const, color: '#C9A84C', margin: '0 0 6px' }}>✦ Action Preview</p>
+      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, color: '#111', margin: '0 0 12px', lineHeight: 1.5 }}>{msg.actionPreview}</p>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={execute} disabled={executing} style={{ flex: 1, height: 36, background: '#C9A84C', border: 'none', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: '#111', cursor: 'pointer' }}>
+          {executing ? '...' : 'Confirm'}
+        </button>
+        <button onClick={onDismiss} style={{ height: 36, padding: '0 14px', background: 'transparent', border: '0.5px solid #E2DED8', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, color: '#888580', cursor: 'pointer' }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible: boolean; onClose: ()=>void; context: any; userId: string; prefill?: string; }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (visible && prefill) setInput(prefill); },[visible,prefill]);
   useEffect(() => { bottomRef.current?.scrollIntoView({behavior:'smooth'}); },[messages,loading]);
+
   async function send(text: string) {
-    const msg=text.trim(); if(!msg||loading) return;
-    setInput(''); setMessages(p=>[...p,{role:'user',text:msg}]); setLoading(true);
-    try { const res=await fetch(`${API}/api/v2/dreamai/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,userType:'couple',message:msg,context})}); const json=await res.json(); setMessages(p=>[...p,{role:'ai',text:json.reply||'Something went wrong.'}]); } catch { setMessages(p=>[...p,{role:'ai',text:'Unable to reach DreamAi.'}]); } finally { setLoading(false); }
+    const msg = text.trim(); if (!msg || loading) return;
+    setInput(''); setMessages(p => [...p, { role: 'user', text: msg }]); setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/v2/dreamai/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userType: 'couple', message: msg, context, history: messages.slice(-10) }),
+      });
+      const json = await res.json();
+      const replyText = json.reply || 'Something went wrong.';
+      const parsed = parseActionTag(replyText);
+      const cleanText = parsed ? parsed.cleanText : replyText.replace(/\[ACTION:[^\]]*\]/g, '').trim();
+      if (parsed) {
+        setMessages(p => [...p, { role: 'ai', text: cleanText, actionType: parsed.type, actionLabel: parsed.label, actionPreview: parsed.preview, actionParams: parsed.params }]);
+      } else {
+        setMessages(p => [...p, { role: 'ai', text: cleanText }]);
+      }
+    } catch { setMessages(p => [...p, { role: 'ai', text: 'Unable to reach DreamAi.' }]); }
+    finally { setLoading(false); }
   }
+
   const s: React.CSSProperties = { position:'fixed', inset:0, zIndex:300 };
   return (
     <>
@@ -70,10 +149,19 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
         <div style={{ flex:1, overflowY:'auto', padding:'8px 20px 16px' }}>
           {messages.length===0 && <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580', textAlign:'center', marginTop:48 }}>Ask anything about your wedding.</p>}
           {messages.map((m,i)=>(
-            <div key={i} style={{ display:'flex', justifyContent:m.role==='user'?'flex-end':'flex-start', marginBottom:12 }}>
-              <div style={{ maxWidth:'80%', background:m.role==='user'?'#FFFFFF':'#F8F7F5', border:m.role==='user'?'0.5px solid #C9A84C':'0.5px solid #E2DED8', borderRadius:m.role==='user'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px' }}>
-                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:300, color:'#111', margin:0, lineHeight:1.5 }}>{m.text}</p>
+            <div key={i} style={{ marginBottom:12 }}>
+              <div style={{ display:'flex', justifyContent:m.role==='user'?'flex-end':'flex-start' }}>
+                <div style={{ maxWidth:'80%', background:m.role==='user'?'#FFFFFF':'#F8F7F5', border:m.role==='user'?'0.5px solid #C9A84C':'0.5px solid #E2DED8', borderRadius:m.role==='user'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px' }}>
+                  <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:300, color:'#111', margin:0, lineHeight:1.5 }}>{m.text}</p>
+                </div>
               </div>
+              {m.role==='ai' && m.actionType && !dismissed.has(i) && (
+                <CoupleActionCard
+                  msg={m} userId={userId}
+                  onConfirm={(result) => { setMessages(p => [...p, { role: 'ai', text: result }]); setDismissed(d => new Set(d).add(i)); }}
+                  onDismiss={() => setDismissed(d => new Set(d).add(i))}
+                />
+              )}
             </div>
           ))}
           {loading && (
@@ -95,6 +183,7 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
     </>
   );
 }
+
 
 function MomentCard({ moment, onAction }: { moment: Moment; onAction: (m: Moment)=>void; }) {
   const accent = moment.priority <= 1 ? '#C9A84C' : '#8C8480';

@@ -181,6 +181,27 @@ function SnapNum({ label, value, delta }: { label: string; value: number; delta:
   );
 }
 
+// Robust ACTION tag parser — handles complex JSON params
+function parseActionTag(text: string) {
+  const start = text.indexOf('[ACTION:');
+  if (start === -1) return null;
+  const end = text.lastIndexOf(']');
+  if (end === -1 || end <= start) return null;
+  const tagContent = text.slice(start + 8, end); // after [ACTION:
+  const firstPipe = tagContent.indexOf('|');
+  const secondPipe = tagContent.indexOf('|', firstPipe + 1);
+  const lastBrace = tagContent.lastIndexOf('{');
+  if (firstPipe === -1 || secondPipe === -1 || lastBrace === -1) return null;
+  const type = tagContent.slice(0, firstPipe);
+  const label = tagContent.slice(firstPipe + 1, secondPipe);
+  const preview = tagContent.slice(secondPipe + 1, lastBrace - 1).trim();
+  const paramsStr = tagContent.slice(lastBrace);
+  let params = {};
+  try { params = JSON.parse(paramsStr); } catch {}
+  const cleanText = (text.slice(0, start) + text.slice(end + 1)).trim();
+  return { type, label, preview, params, cleanText };
+}
+
 // ─── DreamAi Sheet ────────────────────────────────────────────────────────────
 function DreamAiSheet({
   visible,
@@ -260,21 +281,25 @@ function DreamAiSheet({
       const res = await fetch(`${API}/api/v2/dreamai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: vendorId, userType: 'vendor', message: msg, context }),
+        body: JSON.stringify({
+          userId: vendorId, userType: 'vendor', message: msg, context,
+          history: messages.slice(-10),
+        }),
       });
       const json = await res.json();
       const replyText = json.reply || 'Something went wrong. Please try again.';
 
-      // Detect action block
-      const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^}]+\})\]/);
-      if (actionMatch) {
-        const [, type, label, preview, paramsStr] = actionMatch;
-        let params = {};
-        try { params = JSON.parse(paramsStr); } catch {}
-        const cleanText = replyText.replace(actionMatch[0], '').trim();
-        setMessages(prev => [...prev, { role: 'ai', text: cleanText, actionType: type, actionLabel: label, actionPreview: preview, actionParams: params }]);
+      // Robust ACTION tag parser
+      const parsed = parseActionTag(replyText);
+      const cleanText = parsed ? parsed.cleanText : replyText.replace(/\[ACTION:[^\]]*\]/g, '').trim();
+      if (parsed) {
+        setMessages(prev => [...prev, {
+          role: 'ai', text: cleanText,
+          actionType: parsed.type, actionLabel: parsed.label,
+          actionPreview: parsed.preview, actionParams: parsed.params,
+        }]);
       } else {
-        setMessages(prev => [...prev, { role: 'ai', text: replyText }]);
+        setMessages(prev => [...prev, { role: 'ai', text: cleanText }]);
       }
     } catch {
       setMessages(prev => [...prev, { role: 'ai', text: 'Unable to reach DreamAi. Please check your connection.' }]);

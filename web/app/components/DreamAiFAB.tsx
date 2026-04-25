@@ -72,6 +72,51 @@ function ActionCard({ msg, userType, userId, onConfirm, onDismiss }: {
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
+function getContextChips(userType: 'vendor' | 'couple', ctx: any): string[] {
+  if (userType === 'vendor') {
+    const chips: string[] = [];
+    if (ctx?.overdue_invoices?.length > 0) {
+      chips.push(`Who owes me money? (${ctx.overdue_invoices.length} overdue)`);
+    } else {
+      chips.push('Who owes me money?');
+    }
+    const newEnqs = (ctx?.enquiries || []).filter((e: any) => e.status === 'open' || !e.status);
+    if (newEnqs.length > 0) {
+      chips.push(`Any new enquiries? (${newEnqs.length} pending)`);
+    } else {
+      chips.push('Any new enquiries?');
+    }
+    if (ctx?.calendar?.length > 0) {
+      chips.push("What's my next event?");
+    } else {
+      chips.push('Draft a payment reminder');
+    }
+    if (ctx?.expenses_this_month?.total > 0) {
+      chips.push('What did I spend this month?');
+    } else {
+      chips.push('What should I do today?');
+    }
+    return chips;
+  } else {
+    const chips: string[] = [];
+    const daysTW = ctx?.days_to_wedding;
+    if (daysTW && daysTW < 30) {
+      chips.push(`Only ${daysTW} days left — what's urgent?`);
+    } else {
+      chips.push("What's left to plan?");
+    }
+    const overdue = (ctx?.tasks || []).filter((t: any) => t.overdue);
+    if (overdue.length > 0) {
+      chips.push(`I have ${overdue.length} overdue tasks`);
+    } else {
+      chips.push('Who should I book next?');
+    }
+    chips.push("How's my budget?");
+    chips.push('What are my tasks this week?');
+    return chips;
+  }
+}
+
 function Modal({ onClose, userType, userId }: {
   onClose: () => void; userType: 'vendor' | 'couple'; userId: string;
 }) {
@@ -98,9 +143,7 @@ function Modal({ onClose, userType, userId }: {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, busy]);
 
-  const chips = userType === 'vendor'
-    ? ['Who owes me money?', 'Any new enquiries?', 'Draft a payment reminder', 'What should I do today?']
-    : ["What's left to plan?", 'Who should I book next?', "How's my budget?", 'What are my tasks this week?'];
+  const chips = getContextChips(userType, ctx);
 
   async function send(text?: string) {
     const msg = (text || input).trim();
@@ -111,7 +154,7 @@ function Modal({ onClose, userType, userId }: {
     try {
       const r = await fetch(API + '/api/v2/dreamai/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, userType, message: msg, context: ctx }),
+        body: JSON.stringify({ userId, userType, message: msg, context: ctx, history: msgs.slice(-10) }),
       });
       const d = await r.json();
       const replyText = d.reply || d.response || 'Something went wrong. Please try again.';
