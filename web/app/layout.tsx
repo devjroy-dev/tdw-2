@@ -1,75 +1,46 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useState } from "react";
-import { usePathname } from "next/navigation";
-import TopBar from "./components/TopBar";
-import BottomNav from "./components/BottomNav";
-import DreamAiFAB from "../components/DreamAiFAB";
+import './globals-v2.css';
+import type { Metadata } from 'next';
+import './globals.css';
+import { useEffect } from 'react';
 
-// ─── Mode Context ───────────────────────────────────────────────────────────
-export type AppMode = "BUSINESS" | "DISCOVERY";
+// SW registration runs client-side only
+function ServiceWorkerRegistrar() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+  return null;
+}
 
-export const ModeContext = createContext<{
-  mode: AppMode;
-  setMode: (m: AppMode) => void;
-}>({
-  mode: "BUSINESS",
-  setMode: () => {},
-});
-
-export const useAppMode = () => useContext(ModeContext);
-
-// ─── Layout ─────────────────────────────────────────────────────────────────
-export default function VendorLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const [mode, setMode] = useState<AppMode>(() => {
-    if (typeof window === "undefined") return "BUSINESS";
-    const saved = localStorage.getItem("vendor_app_mode");
-    return saved === "DISCOVERY" || saved === "BUSINESS"
-      ? (saved as AppMode)
-      : "BUSINESS";
-  });
-
-  // PIN and onboarding pages are full-screen — no shell, no nav, no FAB
-  const isPinPage =
-    pathname === "/vendor/pin" ||
-    pathname === "/vendor/pin-login" ||
-    pathname === "/vendor/onboarding";
-
-  if (isPinPage) {
-    return (
-      <ModeContext.Provider value={{ mode, setMode }}>
-        {children}
-      </ModeContext.Provider>
-    );
-  }
-
   return (
-    <ModeContext.Provider value={{ mode, setMode }}>
-      <div
-        style={{
-          backgroundColor: "#F8F7F5",
-          fontFamily: "'DM Sans', sans-serif",
-          minHeight: "100vh",
-        }}
-      >
-        <TopBar />
-        <main
-          style={{
-            paddingTop: "56px",
-            paddingBottom: "calc(80px + env(safe-area-inset-bottom))",
-            overflowX: "hidden",
-          }}
-        >
-          {children}
-        </main>
-        <BottomNav />
-        <DreamAiFAB userType="vendor" />
-      </div>
-    </ModeContext.Provider>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Jost:wght@200;300;400;500&display=swap"
+          rel="stylesheet"
+        />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#F8F7F5" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="TDW" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
+      <body style={{ margin: 0, padding: 0, background: '#0C0A09' }}>
+        <ServiceWorkerRegistrar />
+        {children}
+      </body>
+    </html>
   );
 }
