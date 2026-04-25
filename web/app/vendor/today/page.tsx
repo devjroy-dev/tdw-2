@@ -652,6 +652,7 @@ function QuickActions({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function VendorTodayPage() {
+  const router = useRouter();
   const [session, setSession]         = useState<VendorSession | null | undefined>(undefined);
   const [data, setData]               = useState<TodayData | null>(null);
   const [loading, setLoading]         = useState(true);
