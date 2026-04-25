@@ -101,7 +101,7 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
       }}>✦ Action Preview</p>
       <p style={{
         fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 300,
-        color: '#F8F7F5', margin: '0 0 14px', lineHeight: 1.5,
+        color: '#111111', margin: '0 0 14px', lineHeight: 1.5,
       }}>{msg.actionPreview}</p>
       <div style={{ display: 'flex', gap: 10 }}>
         <button
@@ -122,11 +122,11 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
           style={{
             height: 42, padding: '0 18px',
             background: 'transparent',
-            border: '0.5px solid rgba(255,255,255,0.15)',
+            border: '0.5px solid #D4D0CA',
             borderRadius: 100,
             fontFamily: "'Jost',sans-serif", fontSize: 10, fontWeight: 300,
             letterSpacing: '0.12em', textTransform: 'uppercase' as const,
-            color: 'rgba(248,247,245,0.4)', cursor: 'pointer',
+            color: '#888580', cursor: 'pointer',
             touchAction: 'manipulation',
           }}
         >Cancel</button>
@@ -331,13 +331,13 @@ export default function VendorDreamAiPage() {
         ::-webkit-scrollbar { display: none; }
         @keyframes dot { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
         @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-        input::placeholder { color: rgba(248,247,245,0.3); }
+        input::placeholder { color: #B8B4AE; }
       `}</style>
 
       <div style={{
         display: 'flex', flexDirection: 'column',
         height: 'calc(100dvh - 56px)',
-        background: '#0C0A09',
+        background: '#F8F7F5',
         position: 'relative',
       }}>
 
@@ -345,7 +345,7 @@ export default function VendorDreamAiPage() {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '12px 20px 10px',
-          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+          borderBottom: '0.5px solid #E2DED8',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -374,19 +374,19 @@ export default function VendorDreamAiPage() {
             <span style={{
               fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 200,
               letterSpacing: '0.15em', textTransform: 'uppercase' as const,
-              color: justDoIt ? GOLD : 'rgba(248,247,245,0.3)',
+              color: justDoIt ? GOLD : '#B8B4AE',
             }}>Just do it</span>
             <div style={{
               width: 32, height: 18, borderRadius: 9,
-              background: justDoIt ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.08)',
-              border: `1px solid ${justDoIt ? GOLD : 'rgba(255,255,255,0.1)'}`,
+              background: justDoIt ? 'rgba(201,168,76,0.15)' : '#E8E5DF',
+              border: `1px solid ${justDoIt ? GOLD : '#D4D0CA'}`,
               position: 'relative', transition: 'all 200ms ease',
             }}>
               <div style={{
                 position: 'absolute', top: 2,
                 left: justDoIt ? 14 : 2,
                 width: 12, height: 12, borderRadius: '50%',
-                background: justDoIt ? GOLD : 'rgba(255,255,255,0.3)',
+                background: justDoIt ? GOLD : '#B8B4AE',
                 transition: 'left 200ms ease',
               }} />
             </div>
@@ -404,14 +404,14 @@ export default function VendorDreamAiPage() {
             <div style={{ marginTop: 24, marginBottom: 8 }}>
               <p style={{
                 fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
-                fontWeight: 300, fontSize: 22, color: 'rgba(248,247,245,0.55)',
+                fontWeight: 300, fontSize: 22, color: '#2A2420',
                 lineHeight: 1.3, marginBottom: 6,
               }}>
                 Good to see you, {firstName}.
               </p>
               <p style={{
                 fontFamily: "'DM Sans',sans-serif", fontWeight: 300, fontSize: 13,
-                color: 'rgba(248,247,245,0.35)', lineHeight: 1.5,
+                color: '#888580', lineHeight: 1.5,
               }}>
                 Tell me what you need. I'll handle it.
               </p>
@@ -434,11 +434,11 @@ export default function VendorDreamAiPage() {
                     : '16px 16px 16px 4px',
                   background: m.role === 'user'
                     ? GOLD
-                    : 'rgba(255,255,255,0.07)',
+                    : '#FFFFFF',
                   fontFamily: "'DM Sans',sans-serif",
                   fontSize: 14, fontWeight: 300,
                   lineHeight: 1.55,
-                  color: m.role === 'user' ? '#0C0A09' : '#F8F7F5',
+                  color: m.role === 'user' ? '#0C0A09' : '#111111',
                   whiteSpace: 'pre-wrap' as const,
                 }}>
                   {m.text}
@@ -507,8 +507,8 @@ export default function VendorDreamAiPage() {
                 onClick={() => send(chip)}
                 style={{
                   flexShrink: 0, height: 34, padding: '0 12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '0.5px solid rgba(201,168,76,0.35)',
+                  background: '#FFFFFF',
+                  border: '0.5px solid rgba(201,168,76,0.4)',
                   borderRadius: 100, cursor: 'pointer',
                   touchAction: 'manipulation',
                   fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300,
@@ -525,8 +525,8 @@ export default function VendorDreamAiPage() {
           display: 'flex', gap: 10, alignItems: 'center',
           padding: '10px 16px',
           paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
-          borderTop: '0.5px solid rgba(255,255,255,0.06)',
-          background: '#0C0A09', flexShrink: 0,
+          borderTop: '0.5px solid #E2DED8',
+          background: '#F8F7F5', flexShrink: 0,
         }}>
           <input
             ref={inputRef}
@@ -536,12 +536,12 @@ export default function VendorDreamAiPage() {
             placeholder="Tell me what you need..."
             style={{
               flex: 1, height: 46,
-              background: 'rgba(255,255,255,0.06)',
-              border: '0.5px solid rgba(255,255,255,0.1)',
+              background: '#FFFFFF',
+              border: '0.5px solid #E2DED8',
               borderRadius: 100,
               padding: '0 18px',
               fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 300,
-              color: '#F8F7F5', outline: 'none',
+              color: '#111111', outline: 'none',
             }}
           />
           <button
@@ -550,7 +550,7 @@ export default function VendorDreamAiPage() {
             style={{
               width: 46, height: 46, borderRadius: '50%', border: 'none',
               flexShrink: 0,
-              background: input.trim() && !loading ? GOLD : 'rgba(255,255,255,0.08)',
+              background: input.trim() && !loading ? GOLD : '#E8E5DF',
               cursor: input.trim() && !loading ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 150ms ease', touchAction: 'manipulation',
@@ -558,7 +558,7 @@ export default function VendorDreamAiPage() {
           >
             <span style={{
               fontSize: 16,
-              color: input.trim() && !loading ? '#0C0A09' : 'rgba(255,255,255,0.25)',
+              color: input.trim() && !loading ? '#0C0A09' : '#B8B4AE',
             }}>↑</span>
           </button>
         </div>

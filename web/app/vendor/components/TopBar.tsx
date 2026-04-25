@@ -81,19 +81,20 @@ export default function TopBar() {
 
       <header style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 20px", height: "56px", backgroundColor: "#0C0A09",
+        padding: "0 20px", height: "56px", backgroundColor: "#F8F7F5",
+        borderBottom: "0.5px solid #E2DED8",
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, boxSizing: "border-box",
       }}>
         {/* TDW wordmark */}
         <span style={{
           fontFamily: "'Cormorant Garamond', serif", fontSize: "20px",
-          fontWeight: 300, color: "#F8F7F5", letterSpacing: "0.04em", lineHeight: 1,
+          fontWeight: 300, color: "#111111", letterSpacing: "0.04em", lineHeight: 1,
         }}>TDW</span>
 
         {/* Mode toggle pill */}
         <div style={{
           display: "inline-flex", alignItems: "center",
-          background: "rgba(255,255,255,0.08)", borderRadius: "20px", padding: "3px", gap: 0,
+          background: "#EDEAE4", borderRadius: "20px", padding: "3px", gap: 0,
         }}>
           {(["BUSINESS", "DREAMAI", "DISCOVERY"] as AppMode[]).map((m) => {
             const active = mode === m;
@@ -113,12 +114,13 @@ export default function TopBar() {
                   border: "none",
                   cursor: "pointer",
                   background: active
-                    ? isDreamAiOption ? "#C9A84C" : "#F8F7F5"
+                    ? isDreamAiOption ? "#C9A84C" : "#FFFFFF"
                     : "transparent",
                   color: active
-                    ? "#0C0A09"
-                    : "rgba(255,255,255,0.5)",
-                  transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    ? "#111111"
+                    : "#888580",
+                  transition: "background 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease",
+                  boxShadow: active ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
                   whiteSpace: "nowrap" as const,
                 }}
               >
@@ -133,14 +135,14 @@ export default function TopBar() {
           onClick={() => setProfileOpen(true)}
           style={{
             width: "32px", height: "32px", borderRadius: "50%",
-            border: "1px solid #C9A84C", background: "rgba(201,168,76,0.15)",
+            border: "1px solid #C9A84C", background: "rgba(201,168,76,0.12)",
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0, cursor: "pointer", touchAction: "manipulation",
           }}
         >
           <span style={{
             fontFamily: "'Jost', sans-serif", fontSize: "12px",
-            fontWeight: 400, color: "#F8F7F5", lineHeight: 1,
+            fontWeight: 400, color: "#111111", lineHeight: 1,
           }}>{initials}</span>
         </div>
       </header>
