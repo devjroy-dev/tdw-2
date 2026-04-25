@@ -78,6 +78,13 @@ function VendorMoneyInner() {
   const [expDesc, setExpDesc] = useState('');
   const [expAmt, setExpAmt] = useState('');
   const [expAdding, setExpAdding] = useState(false);
+  const [expType, setExpType] = useState<'client'|'business'>('client');
+  const [expCategory, setExpCategory] = useState('');
+  const [expRelated, setExpRelated] = useState('');
+  const [expSubTab, setExpSubTab] = useState<'client'|'business'>('client');
+
+  const CLIENT_CATEGORIES = ['Travel','Equipment Hire','Assistant / Second Shooter','Printing & Albums','Props & Materials','Food & Hospitality','Other'];
+  const BUSINESS_CATEGORIES = ['Procurement','Studio & Rent','Marketing & Ads','Software & Subscriptions','Equipment Purchase','Professional Development','Other'];
 
   useEffect(() => {
     const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
@@ -185,11 +192,22 @@ function VendorMoneyInner() {
       const r = await fetch(`${BASE}/api/expenses`, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ vendor_id:vendorId, description:expDesc, amount:Number(expAmt), expense_date:today(), category:'general' }),
+        body: JSON.stringify({
+          vendor_id: vendorId,
+          description: expDesc,
+          amount: Number(expAmt),
+          expense_date: today(),
+          category: expCategory || 'Other',
+          expense_type: expType,
+          related_name: expRelated || null,
+        }),
       });
       const d = await r.json();
-      if (d.success||r.ok) { setExpDesc(''); setExpAmt(''); setToast('Expense added.'); fetchAll(vendorId); }
-      else setToast(d.error||'Failed.');
+      if (d.success||r.ok) {
+        setExpDesc(''); setExpAmt(''); setExpCategory(''); setExpRelated('');
+        setToast('Expense added.');
+        fetchAll(vendorId);
+      } else setToast(d.error||'Failed.');
     } catch { setToast('Network error.'); }
     setExpAdding(false);
   };
@@ -205,6 +223,12 @@ function VendorMoneyInner() {
   const session = (() => { try { return JSON.parse(localStorage.getItem('vendor_web_session')||'{}'); } catch { return {}; } })();
   const tier = session.tier || 'essential';
 
+  // Expense summary
+  const cm = currentMonth();
+  const expThisMonth = expenses
+    .filter(e => (e.expense_date||'').slice(0,7) === cm)
+    .reduce((s, e) => s + (Number(e.amount)||0), 0);
+
   return (
     <>
       <style>{`
@@ -218,19 +242,29 @@ function VendorMoneyInner() {
       <div style={{ minHeight:'100vh', background:'#F8F7F5', fontFamily:'DM Sans, sans-serif', paddingBottom:'calc(64px + env(safe-area-inset-bottom) + 80px)' }}>
 
         {/* Hero strip */}
-        <div style={{ background:'#111111', padding:'20px 20px 18px' }}>
-          <div style={{ display:'flex', justifyContent:'space-between' }}>
+        <div style={{ background:'#111111', padding:'20px 20px 16px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:14 }}>
             {[
-              { label:'THIS MONTH', val:thisMonth, gold:false },
-              { label:'PENDING', val:pending, gold:false },
-              { label:'OVERDUE', val:overdue, gold:true },
+              { label:'THIS MONTH', val:thisMonth, color:'#F8F7F5' },
+              { label:'PENDING', val:pending, color:'#F8F7F5' },
+              { label:'OVERDUE', val:overdue, color:'#C9A84C' },
+              { label:'EXPENSES', val:expThisMonth, color:'#888580' },
             ].map(h => (
               <div key={h.label} style={{ textAlign:'center', flex:1 }}>
-                <div style={{ fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, color:'rgba(248,247,245,0.5)', letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:6 }}>{h.label}</div>
-                <div style={{ fontFamily:'Cormorant Garamond,serif', fontWeight:300, fontSize:24, color: h.gold ? '#C9A84C' : '#F8F7F5' }}>{formatAmt(h.val)}</div>
+                <div style={{ fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:8, color:'rgba(248,247,245,0.45)', letterSpacing:'0.18em', textTransform:'uppercase', marginBottom:5 }}>{h.label}</div>
+                <div style={{ fontFamily:'Cormorant Garamond,serif', fontWeight:300, fontSize:20, color:h.color }}>{formatAmt(h.val)}</div>
               </div>
             ))}
           </div>
+          {/* Profit estimate */}
+          {(thisMonth > 0 || expThisMonth > 0) && (
+            <div style={{ borderTop:'0.5px solid rgba(248,247,245,0.1)', paddingTop:10, display:'flex', justifyContent:'center', alignItems:'center', gap:8 }}>
+              <span style={{ fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:8, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(248,247,245,0.4)' }}>EST. PROFIT</span>
+              <span style={{ fontFamily:'Cormorant Garamond,serif', fontWeight:300, fontSize:16, color: (thisMonth - expThisMonth) >= 0 ? '#C9A84C' : '#9B4545' }}>
+                {formatAmt(thisMonth - expThisMonth)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Sub-nav */}
@@ -311,41 +345,86 @@ function VendorMoneyInner() {
           {/* EXPENSES TAB */}
           {tab==='EXPENSES' && (
             <div>
-              {/* Quick-add bar */}
-              <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:20, background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:12, padding:'10px 12px' }}>
-                <input
-                  value={expDesc}
-                  onChange={e => setExpDesc(e.target.value)}
-                  placeholder="Description"
-                  style={{ flex:1, fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', border:'none', outline:'none', background:'transparent' }}
-                />
-                <input
-                  type="number"
-                  value={expAmt}
-                  onChange={e => setExpAmt(e.target.value)}
-                  placeholder="Amount"
-                  style={{ width:90, fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', border:'none', borderLeft:'1px solid #E2DED8', paddingLeft:10, outline:'none', background:'transparent' }}
-                />
-                <button
-                  onClick={handleAddExpense}
-                  disabled={expAdding}
-                  style={{ flexShrink:0, background:'#111111', color:'#F8F7F5', border:'none', borderRadius:8, fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, letterSpacing:'0.15em', padding:'8px 14px', cursor:'pointer', touchAction:'manipulation', opacity:expAdding?0.6:1 }}
-                >
-                  ADD
+              {/* Add form */}
+              <div style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:12, padding:14, marginBottom:16 }}>
+                {/* Type toggle */}
+                <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+                  {(['client','business'] as const).map(t => (
+                    <button key={t} onClick={() => { setExpType(t); setExpCategory(''); }}
+                      style={{ flex:1, padding:'7px 0', borderRadius:20, border: expType===t ? 'none' : '1px solid #E2DED8',
+                        background: expType===t ? '#111111' : 'transparent',
+                        color: expType===t ? '#F8F7F5' : '#888580',
+                        fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase', cursor:'pointer', touchAction:'manipulation' }}>
+                      {t==='client' ? 'Client Job' : 'Business'}
+                    </button>
+                  ))}
+                </div>
+                {/* Category */}
+                <select value={expCategory} onChange={e => setExpCategory(e.target.value)}
+                  style={{ width:'100%', fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color: expCategory ? '#111111' : '#888580',
+                    border:'none', borderBottom:'1px solid #E2DED8', background:'transparent', outline:'none', paddingBottom:8, marginBottom:10, cursor:'pointer' }}>
+                  <option value=''>Category (optional)</option>
+                  {(expType==='client' ? CLIENT_CATEGORIES : BUSINESS_CATEGORIES).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                {/* Description + amount row */}
+                <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+                  <input value={expDesc} onChange={e => setExpDesc(e.target.value)} placeholder='Description'
+                    style={{ flex:1, fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', border:'none', borderBottom:'1px solid #E2DED8', outline:'none', background:'transparent', paddingBottom:6 }} />
+                  <input type='number' value={expAmt} onChange={e => setExpAmt(e.target.value)} placeholder='₹ Amount'
+                    style={{ width:100, fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', border:'none', borderBottom:'1px solid #E2DED8', outline:'none', background:'transparent', paddingBottom:6 }} />
+                </div>
+                {/* Related name */}
+                <input value={expRelated} onChange={e => setExpRelated(e.target.value)}
+                  placeholder={expType==='client' ? 'Client name (optional)' : 'Vendor / supplier name (optional)'}
+                  style={{ width:'100%', fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:300, color:'#111111', border:'none', borderBottom:'1px solid #E2DED8', outline:'none', background:'transparent', paddingBottom:6, marginBottom:12 }} />
+                <button onClick={handleAddExpense} disabled={expAdding}
+                  style={{ width:'100%', background:'#111111', color:'#F8F7F5', border:'none', borderRadius:8,
+                    fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, letterSpacing:'0.15em', padding:'10px 0',
+                    cursor:'pointer', touchAction:'manipulation', opacity:expAdding?0.6:1 }}>
+                  ADD {expType==='client' ? 'CLIENT' : 'BUSINESS'} EXPENSE
                 </button>
               </div>
 
+              {/* Sub-tabs */}
+              <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+                {(['client','business'] as const).map(t => {
+                  const count = expenses.filter(e => (e.expense_type||'client')===t).length;
+                  return (
+                    <button key={t} onClick={() => setExpSubTab(t)}
+                      style={{ flex:1, padding:'8px 0', borderRadius:20,
+                        border: expSubTab===t ? 'none' : '1px solid #E2DED8',
+                        background: expSubTab===t ? '#111111' : 'transparent',
+                        color: expSubTab===t ? '#F8F7F5' : '#888580',
+                        fontFamily:'Jost,sans-serif', fontWeight:200, fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase', cursor:'pointer', touchAction:'manipulation' }}>
+                      {t==='client' ? 'Client Jobs' : 'Business'} {count > 0 ? `(${count})` : ''}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Expense list */}
               {loading ? (
-                [0,1,2].map(i => <div key={i} style={{ height:50, borderRadius:8, background:'#F8F7F5', backgroundImage:'linear-gradient(90deg,#F8F7F5 25%,#EEECE8 50%,#F8F7F5 75%)', backgroundSize:'200% 100%', animation:'shimmer 1.4s infinite', marginBottom:8 }} />)
-              ) : expenses.length===0 ? (
-                <div style={{ paddingTop:40, textAlign:'center', fontFamily:'Cormorant Garamond,serif', fontStyle:'italic', fontSize:18, color:'#888580' }}>No expenses recorded yet.</div>
-              ) : expenses.map((exp, i) => (
-                <div key={exp.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 0', borderBottom: i<expenses.length-1 ? '1px solid #E2DED8' : 'none' }}>
-                  <div>
-                    <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:14, color:'#111111', fontWeight:400 }}>{exp.description}</div>
-                    {exp.category && <div style={{ fontFamily:'Jost,sans-serif', fontSize:9, color:'#888580', textTransform:'uppercase', letterSpacing:'0.1em', marginTop:2 }}>{exp.category}</div>}
+                [0,1,2].map(i => <div key={i} style={{ height:56, borderRadius:10, background:'#F8F7F5', backgroundImage:'linear-gradient(90deg,#F8F7F5 25%,#EEECE8 50%,#F8F7F5 75%)', backgroundSize:'200% 100%', animation:'shimmer 1.4s infinite', marginBottom:8 }} />)
+              ) : expenses.filter(e => (e.expense_type||'client')===expSubTab).length===0 ? (
+                <div style={{ paddingTop:40, textAlign:'center', fontFamily:'Cormorant Garamond,serif', fontStyle:'italic', fontSize:18, color:'#888580' }}>
+                  No {expSubTab} expenses yet.
+                </div>
+              ) : expenses.filter(e => (e.expense_type||'client')===expSubTab).map((exp, i, arr) => (
+                <div key={exp.id} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'12px 0', borderBottom: i<arr.length-1 ? '0.5px solid #E2DED8' : 'none' }}>
+                  <div style={{ flex:1, minWidth:0, marginRight:12 }}>
+                    <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:14, color:'#111111', fontWeight:300 }}>{exp.description}</div>
+                    <div style={{ display:'flex', gap:6, alignItems:'center', marginTop:3, flexWrap:'wrap' }}>
+                      {exp.category && (
+                        <span style={{ fontFamily:'Jost,sans-serif', fontSize:8, color:'#888580', textTransform:'uppercase', letterSpacing:'0.12em', background:'#F4F1EC', padding:'2px 8px', borderRadius:10 }}>{exp.category}</span>
+                      )}
+                      {exp.related_name && (
+                        <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:11, color:'#888580' }}>{exp.related_name}</span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ textAlign:'right' }}>
+                  <div style={{ textAlign:'right', flexShrink:0 }}>
                     <div style={{ fontFamily:'Cormorant Garamond,serif', fontSize:16, color:'#111111', fontWeight:300 }}>{formatAmt(exp.amount)}</div>
                     {exp.expense_date && <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:11, color:'#888580', marginTop:2 }}>{formatDate(exp.expense_date)}</div>}
                   </div>

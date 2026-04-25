@@ -163,6 +163,28 @@ export default function CollabPage() {
     } catch{setToast('Error');}
   }
 
+  async function logCollabExpense(post: Post) {
+    if (!post.budget) { setToast('No budget set on this post.'); return; }
+    try {
+      const r = await fetch(`${API}/api/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: vendorId,
+          description: `Collab: ${post.title}`,
+          amount: post.budget,
+          expense_date: new Date().toISOString().split('T')[0],
+          category: 'Procurement',
+          expense_type: 'business',
+          related_name: null,
+        }),
+      });
+      const d = await r.json();
+      if (d.success || r.ok) setToast('Added to Business Expenses ✓');
+      else setToast(d.error || 'Failed to log expense.');
+    } catch { setToast('Network error.'); }
+  }
+
   const filteredPosts = filterType==='All' ? posts : posts.filter(p=>p.post_type===filterType);
   const lbl: React.CSSProperties = {fontFamily:"'Jost',sans-serif",fontSize:8,fontWeight:200,letterSpacing:'0.2em',textTransform:'uppercase',color:'#888580',display:'block',marginBottom:4};
   const fld: React.CSSProperties = {width:'100%',background:'transparent',border:'none',borderBottom:'1px solid #E2DED8',outline:'none',fontFamily:"'DM Sans',sans-serif",fontWeight:300,fontSize:13,color:'#111',padding:'6px 0',marginBottom:14};
@@ -245,6 +267,15 @@ export default function CollabPage() {
                     <div style={{display:'flex',gap:8}}>
                       <button onClick={()=>updateApplication(a.id,'accepted')} style={{flex:1,height:32,background:'#111',color:'#F8F7F5',border:'none',borderRadius:100,fontFamily:"'Jost',sans-serif",fontSize:8,fontWeight:300,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>Accept</button>
                       <button onClick={()=>updateApplication(a.id,'rejected')} style={{flex:1,height:32,background:'transparent',border:'1px solid #E2DED8',borderRadius:100,fontFamily:"'Jost',sans-serif",fontSize:8,fontWeight:300,letterSpacing:'0.12em',textTransform:'uppercase',color:'#888580',cursor:'pointer'}}>Decline</button>
+                    </div>
+                  )}
+                  {a.status==='accepted' && viewPost?.budget && (
+                    <div style={{marginTop:8,background:'#F8F7F5',border:'0.5px solid #E2DED8',borderRadius:10,padding:'10px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div>
+                        <p style={{fontFamily:"'Jost',sans-serif",fontSize:8,fontWeight:200,letterSpacing:'0.15em',textTransform:'uppercase',color:'#888580',margin:'0 0 2px'}}>Procurement · Business Expense</p>
+                        <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:300,color:'#111',margin:0}}>₹{(viewPost.budget||0).toLocaleString('en-IN')} — {viewPost.title}</p>
+                      </div>
+                      <button onClick={()=>logCollabExpense(viewPost)} style={{flexShrink:0,height:28,background:'#111',color:'#F8F7F5',border:'none',borderRadius:100,padding:'0 12px',fontFamily:"'Jost',sans-serif",fontSize:7,fontWeight:300,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',marginLeft:10}}>Log</button>
                     </div>
                   )}
                 </div>
