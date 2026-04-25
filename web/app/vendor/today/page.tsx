@@ -451,6 +451,89 @@ function DreamAiSheet({
 }
 
 // ─── Quick Actions ───────────────────────────────────────────────────────────
+// ─── WhatsApp Nudge — slim expandable card ───────────────────────────────────
+function WhatsAppNudge({ onDone }: { onDone: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{
+      background: '#0C0A09',
+      border: '1px solid #C9A84C',
+      borderRadius: 10,
+      marginBottom: 10,
+      overflow: 'hidden',
+      transition: 'all 260ms cubic-bezier(0.22,1,0.36,1)',
+    }}>
+      {/* Slim header — always visible */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          width: '100%', background: 'none', border: 'none',
+          padding: '12px 16px', cursor: 'pointer', touchAction: 'manipulation',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#C9A84C', fontSize: 13 }}>✦</span>
+          <span style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+            color: '#F8F7F5',
+          }}>Control TDW through WhatsApp</span>
+          <span style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 7, fontWeight: 400,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: '#2d7a2d', background: 'rgba(34,139,34,0.12)',
+            border: '0.5px solid rgba(34,139,34,0.35)',
+            borderRadius: 100, padding: '2px 7px',
+          }}>Beta</span>
+        </div>
+        <span style={{ color: '#C9A84C', fontSize: 14, transition: 'transform 200ms ease', transform: expanded ? 'rotate(180deg)' : 'none' }}>⌄</span>
+      </button>
+
+      {/* Expanded content */}
+      {expanded && (
+        <div style={{ padding: '0 16px 14px', borderTop: '0.5px solid rgba(201,168,76,0.2)' }}>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+            color: 'rgba(248,247,245,0.55)', margin: '12px 0 6px', lineHeight: 1.5,
+          }}>
+            Your AI business assistant lives on WhatsApp. Add clients, create invoices, check your revenue — all by text message.
+          </p>
+          <p style={{
+            fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300,
+            color: '#C9A84C', margin: '10px 0 2px', letterSpacing: '0.05em',
+          }}>+1 415 523 8886</p>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300,
+            color: 'rgba(248,247,245,0.45)', margin: '0 0 14px',
+          }}>
+            Send: <span style={{ color: '#C9A84C' }}>"join acres-eventually"</span> · Then: <span style={{ color: '#C9A84C' }}>"What can you do?"</span>
+          </p>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <a
+              href="https://wa.me/14155238886?text=join%20acres-eventually"
+              target="_blank" rel="noreferrer"
+              onClick={onDone}
+              style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: '#C9A84C', textDecoration: 'none',
+                border: '0.5px solid #C9A84C', borderRadius: 100,
+                padding: '7px 14px', touchAction: 'manipulation',
+              }}
+            >Open WhatsApp →</a>
+            <button onClick={onDone} style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'rgba(248,247,245,0.3)', background: 'none', border: 'none',
+              cursor: 'pointer', padding: 0, touchAction: 'manipulation',
+            }}>Dismiss</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Horizontally scrollable pill strip — one tap, no confirmations.
 // Sits between the hero greeting and the DreamAi nudge card.
 function QuickActions({
@@ -513,10 +596,8 @@ function QuickActions({
               flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 6,
               height: 38, padding: '0 14px',
-              background: a.label === 'Ask DreamAi' ? '#111111' : '#FFFFFF',
-              border: a.label === 'Ask DreamAi'
-                ? '1px solid #111111'
-                : '0.5px solid #E2DED8',
+              background: '#111111',
+              border: '1px solid #C9A84C',
               borderRadius: 100,
               cursor: 'pointer',
               touchAction: 'manipulation',
@@ -531,10 +612,10 @@ function QuickActions({
             <span style={{
               fontFamily: "'Jost', sans-serif",
               fontSize: 9,
-              fontWeight: a.label === 'Ask DreamAi' ? 400 : 300,
+              fontWeight: 400,
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
-              color: a.label === 'Ask DreamAi' ? '#F8F7F5' : '#111111',
+              color: '#F8F7F5',
               whiteSpace: 'nowrap',
             }}>{a.label}</span>
           </button>
@@ -805,26 +886,7 @@ export default function VendorTodayPage() {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)',
         overflowX: 'hidden',
       }}>
-        {/* Top bar */}
-        <div style={{
-          padding: '0 20px', display: 'flex',
-          alignItems: 'center', justifyContent: 'space-between', marginBottom: 32,
-        }}>
-          <p style={{
-            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
-            letterSpacing: '0.25em', textTransform: 'uppercase', color: '#888580', margin: 0,
-          }}>THE DREAM WEDDING</p>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: '#111111', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <span style={{
-              fontFamily: "'Jost', sans-serif", fontSize: 11,
-              fontWeight: 300, color: '#F8F7F5',
-            }}>{nameInitials}</span>
-          </div>
-        </div>
+
 
         {/* Hero */}
         <div style={{ padding: '0 20px', marginBottom: 32 }}>
@@ -1006,57 +1068,9 @@ export default function VendorTodayPage() {
               </div>
             )}
 
-            {/* Card 3 — Meet DreamAi on WhatsApp */}
+                        {/* Card 3 — WhatsApp DreamAi slim nudge */}
             {!card3Done && (
-              <div style={{
-                background: '#0C0A09', border: '0.5px solid #2A2825',
-                borderRadius: 8, padding: '14px 16px', marginBottom: 10,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 4px' }}>
-                  <p style={{
-                    fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
-                    color: '#F8F7F5', margin: 0,
-                  }}>3. Meet your business assistant</p>
-                  <span style={{
-                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 400,
-                    letterSpacing: '0.12em', textTransform: 'uppercase',
-                    color: '#2d7a2d', background: 'rgba(34,139,34,0.12)',
-                    border: '0.5px solid rgba(34,139,34,0.35)',
-                    borderRadius: 100, padding: '2px 7px', lineHeight: 1.6,
-                  }}>Beta</span>
-                </div>
-                <p style={{
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
-                  color: '#555250', margin: '0 0 10px',
-                }}>Save this number on WhatsApp:</p>
-                <p style={{
-                  fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300,
-                  color: '#C9A84C', margin: '0 0 4px', letterSpacing: '0.05em',
-                }}>+1 415 523 8886</p>
-                <p style={{
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
-                  color: '#555250', margin: '0 0 10px',
-                }}>Send: <span style={{ color: '#C9A84C' }}>"join acres-eventually"</span> · Then: <span style={{ color: '#C9A84C' }}>"What can you do?"</span></p>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
-                  <a
-                    href="https://wa.me/14155238886?text=join%20acres-eventually"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => { localStorage.setItem('whatsapp_activated', 'true'); setCard3Done(true); }}
-                    style={{
-                      fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
-                      letterSpacing: '0.2em', textTransform: 'uppercase',
-                      color: '#C9A84C', textDecoration: 'none',
-                    }}
-                  >OPEN WHATSAPP →</a>
-                  <button onClick={() => { localStorage.setItem('whatsapp_activated', 'true'); setCard3Done(true); }} style={{
-                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
-                    letterSpacing: '0.12em', textTransform: 'uppercase',
-                    color: '#555250', background: 'none', border: 'none',
-                    cursor: 'pointer', padding: 0,
-                  }}>Mark done</button>
-                </div>
-              </div>
+              <WhatsAppNudge onDone={() => { localStorage.setItem('whatsapp_activated', 'true'); setCard3Done(true); }} />
             )}
           </div>
         )}
