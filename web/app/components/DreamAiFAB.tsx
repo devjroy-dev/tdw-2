@@ -11,9 +11,9 @@ interface Msg { role: 'user'|'assistant'; text: string; }
 function Modal({ onClose, userType, userId }: {
   onClose: () => void; userType: 'vendor'|'couple'; userId: string;
 }) {
-  const [msgs, setMsgs]     = useState<Msg[]>([]);
-  const [input, setInput]   = useState('');
-  const [busy, setBusy]     = useState(false);
+  const [msgs, setMsgs]   = useState<Msg[]>([]);
+  const [input, setInput] = useState('');
+  const [busy, setBusy]   = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
 
@@ -49,7 +49,6 @@ function Modal({ onClose, userType, userId }: {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');
         @keyframes fabIn{from{opacity:0;transform:translate(-50%,-48%) scale(0.95)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
         @keyframes dot{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}}
       `}</style>
@@ -91,10 +90,18 @@ function Modal({ onClose, userType, userId }: {
 }
 
 export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'vendor'|'couple'; userId?: string; }) {
-  const pathname  = usePathname();
-  const [open, setOpen]     = useState(false);
-  const [urgent, setUrgent] = useState(false);
-  const tappedRef = useRef(false);
+  const pathname = usePathname();
+  const [open, setOpen]       = useState(false);
+  const [urgent, setUrgent]   = useState(false);
+  const [pos, setPos]         = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+
+  // All drag state in refs — no re-renders during drag
+  const startPosRef  = useRef({ x: 0, y: 0 });
+  const startPtrRef  = useRef({ x: 0, y: 0 });
+  const movedRef     = useRef(false);
+  const dragActiveRef = useRef(false);
+  const longTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resolvedId = userId || (() => {
     if (typeof window === 'undefined') return '';
@@ -113,27 +120,82 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
       .then(r=>r.json()).then(d=>setUrgent((d.data?.needs_attention||[]).length>0)).catch(()=>{});
   }, [resolvedId, userType]);
 
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (open) return;
+    movedRef.current = false;
+    dragActiveRef.current = false;
+    startPosRef.current = { x: pos.x, y: pos.y };
+    startPtrRef.current = { x: e.clientX, y: e.clientY };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    // Long press 500ms → enable drag
+    longTimerRef.current = setTimeout(() => {
+      if (!movedRef.current) {
+        dragActiveRef.current = true;
+        setDragging(true);
+      }
+    }, 500);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const dx = e.clientX - startPtrRef.current.x;
+    const dy = e.clientY - startPtrRef.current.y;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) movedRef.current = true;
+
+    if (dragActiveRef.current) {
+      // Clamp within viewport
+      const margin = 28;
+      const newX = startPosRef.current.x + dx;
+      const newY = startPosRef.current.y + dy;
+      setPos({ x: newX, y: newY });
+    }
+  };
+
+  const onPointerUp = () => {
+    if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
+
+    if (dragActiveRef.current) {
+      // End drag — don't open
+      dragActiveRef.current = false;
+      setDragging(false);
+      return;
+    }
+
+    // Tap — open chat
+    if (!movedRef.current) setOpen(true);
+  };
+
   if (HIDDEN.some(r => pathname?.includes(r))) return null;
 
   return (
     <>
       {open && <Modal onClose={() => setOpen(false)} userType={userType} userId={resolvedId} />}
       <button
-        onPointerDown={e => { e.preventDefault(); tappedRef.current = true; }}
-        onPointerUp={e => { e.preventDefault(); if (tappedRef.current) { tappedRef.current = false; setOpen(true); } }}
-        onPointerCancel={() => { tappedRef.current = false; }}
+        onClick={() => { if (!movedRef.current && !dragActiveRef.current) setOpen(true); }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => {
+          if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
+          dragActiveRef.current = false;
+          setDragging(false);
+        }}
         style={{
-          position:'fixed',
-          bottom:'calc(env(safe-area-inset-bottom,0px) + 88px)', right:24,
-          width:52, height:52, borderRadius:'50%',
-          background:'#111111',
-          border:'1.5px solid rgba(201,168,76,0.3)',
-          cursor:'pointer', zIndex:997,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          touchAction:'manipulation',
-          userSelect:'none', WebkitUserSelect:'none',
-          animation: urgent ? 'fabRing 2s ease-out infinite' : 'none',
-          outline:'none', WebkitTapHighlightColor:'transparent',
+          position: 'fixed',
+          bottom: 'calc(env(safe-area-inset-bottom,0px) + 88px)',
+          right: 24,
+          transform: `translate(${pos.x}px, ${pos.y}px)`,
+          width: 52, height: 52, borderRadius: '50%',
+          background: dragging ? 'rgba(17,17,17,0.9)' : '#111111',
+          border: `1.5px solid ${dragging ? GOLD : 'rgba(201,168,76,0.3)'}`,
+          cursor: dragging ? 'grabbing' : 'pointer',
+          zIndex: 997,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          touchAction: 'none',
+          userSelect: 'none', WebkitUserSelect: 'none',
+          transition: 'border-color 200ms ease, background 200ms ease',
+          animation: urgent && !dragging ? 'fabRing 2s ease-out infinite' : 'none',
+          outline: 'none', WebkitTapHighlightColor: 'transparent',
         }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ pointerEvents:'none', display:'block' }}>
