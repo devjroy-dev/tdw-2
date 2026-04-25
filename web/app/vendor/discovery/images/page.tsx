@@ -30,7 +30,7 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   return (
     <div style={{
       position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
-      background: '#111', color: '#F8F7F5',
+      background: '#111', color: '#111111',
       fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
       padding: '10px 18px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap',
     }}>{msg}</div>
@@ -41,7 +41,7 @@ function Shimmer() {
   return (
     <div style={{
       height: 160, borderRadius: 12,
-      background: 'linear-gradient(90deg, #1A1816 25%, #222 50%, #1A1816 75%)',
+      background: 'linear-gradient(90deg, #F0EEE8 25%, #E8E5DF 50%, #F0EEE8 75%)',
       backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
     }} />
   );
@@ -220,12 +220,12 @@ export default function ImageHubPage() {
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
           zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
         }}>
-          <div style={{ background: '#1A1816', borderRadius: 16, padding: 28, maxWidth: 320, width: '100%', border: '1px solid #2A2825' }}>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#F8F7F5', margin: '0 0 8px' }}>Remove photo?</p>
+          <div style={{ background: '#1A1816', borderRadius: 16, padding: 28, maxWidth: 320, width: '100%', border: '1px solid #E2DED8' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 8px' }}>Remove photo?</p>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 20px' }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => deleteImage(deleteTarget)} style={{
-                flex: 1, height: 44, background: '#9B4545', color: '#F8F7F5', border: 'none',
+                flex: 1, height: 44, background: '#9B4545', color: '#111111', border: 'none',
                 borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 9,
                 letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer',
               }}>Remove</button>
@@ -240,7 +240,7 @@ export default function ImageHubPage() {
       )}
 
       <div style={{
-        background: '#0C0A09', minHeight: '100dvh',
+        background: '#F8F7F5', minHeight: '100dvh',
         paddingTop: 24,
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)',
       }}>
@@ -254,7 +254,7 @@ export default function ImageHubPage() {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <h1 style={{
               fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300,
-              color: '#F8F7F5', margin: 0, lineHeight: 1.1,
+              color: '#111111', margin: 0, lineHeight: 1.1,
             }}>Image Hub</h1>
             {pendingCount > 0 && (
               <span style={{
@@ -321,7 +321,7 @@ export default function ImageHubPage() {
               width: '100%', height: 40,
               background: 'transparent',
               color: '#555250',
-              border: '0.5px solid #2A2825',
+              border: '0.5px solid #E2DED8',
               borderRadius: 100, cursor: 'pointer',
               fontFamily: "'Jost', sans-serif", fontSize: 9,
               fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase',
@@ -341,8 +341,8 @@ export default function ImageHubPage() {
                 onChange={e => setUrlInput(e.target.value)}
                 placeholder="https://..."
                 style={{
-                  width: '100%', background: '#1A1816', border: '1px solid #2A2825',
-                  borderRadius: 8, padding: '12px 14px', color: '#F8F7F5',
+                  width: '100%', background: '#1A1816', border: '1px solid #E2DED8',
+                  borderRadius: 8, padding: '12px 14px', color: '#111111',
                   fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
                   outline: 'none', marginBottom: 10,
                 }}
@@ -393,7 +393,7 @@ export default function ImageHubPage() {
                   style={{
                     position: 'absolute', top: 10, right: 10,
                     width: 28, height: 28, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)', color: '#F8F7F5',
+                    background: 'rgba(0,0,0,0.6)', color: '#111111',
                     border: 'none', cursor: 'pointer', fontSize: 14,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
@@ -451,7 +451,7 @@ export default function ImageHubPage() {
                       style={{
                         width: 26, height: 26, borderRadius: '50%',
                         background: 'rgba(0,0,0,0.6)', border: 'none',
-                        cursor: 'pointer', fontSize: 13, color: '#F8F7F5',
+                        cursor: 'pointer', fontSize: 13, color: '#111111',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >×</button>

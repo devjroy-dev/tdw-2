@@ -58,7 +58,7 @@ function ProfileRing({ percent }: { percent: number }) {
         style={{ transition: 'stroke-dasharray 600ms cubic-bezier(0.22,1,0.36,1)' }}
       />
       <text x="36" y="36" textAnchor="middle" dominantBaseline="central"
-        fontFamily="'Jost', sans-serif" fontSize="14" fontWeight="400" fill="#F8F7F5">
+        fontFamily="'Jost', sans-serif" fontSize="14" fontWeight="400" fill="#111111">
         {percent}%
       </text>
     </svg>
@@ -71,11 +71,11 @@ function StatCard({ label, value, delta }: { label: string; value: number; delta
   const deltaColor = delta > 0 ? '#4CAF50' : delta < 0 ? '#E57373' : '#555250';
   return (
     <div style={{
-      background: '#0C0A09', borderRadius: 12, padding: 16, border: '0.5px solid #2A2825',
+      background: '#F8F7F5', borderRadius: 12, padding: 16, border: '0.5px solid #E2DED8',
     }}>
       <p style={{
         fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300,
-        color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1,
+        color: '#111111', margin: '0 0 4px', lineHeight: 1,
       }}>{value}</p>
       <p style={{
         fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
@@ -94,7 +94,7 @@ function Shimmer({ h = 60, br = 12 }: { h?: number; br?: number }) {
   return (
     <div style={{
       height: h, borderRadius: br,
-      background: 'linear-gradient(90deg, #1A1816 25%, #222 50%, #1A1816 75%)',
+      background: 'linear-gradient(90deg, #F0EEE8 25%, #E8E5DF 50%, #F0EEE8 75%)',
       backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', marginBottom: 12,
     }} />
   );
@@ -118,7 +118,7 @@ function StatusBanner({
   if (profile.is_live) {
     return (
       <div style={{
-        background: 'rgba(76,175,80,0.1)', border: '1px solid rgba(76,175,80,0.3)',
+        background: 'rgba(74,124,89,0.08)', border: '1px solid rgba(76,175,80,0.3)',
         borderRadius: 14, padding: '18px 20px',
       }}>
         <p style={{
@@ -127,7 +127,7 @@ function StatusBanner({
         }}>● LIVE</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-          color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1.5,
+          color: '#111111', margin: '0 0 4px', lineHeight: 1.5,
         }}>You're live. Couples are discovering you.</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
@@ -141,7 +141,7 @@ function StatusBanner({
   if (profile.is_pending) {
     return (
       <div style={{
-        background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)',
+        background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.25)',
         borderRadius: 14, padding: '18px 20px',
       }}>
         <p style={{
@@ -150,7 +150,7 @@ function StatusBanner({
         }}>UNDER REVIEW</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-          color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1.5,
+          color: '#111111', margin: '0 0 4px', lineHeight: 1.5,
         }}>We personally review every Maker.</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
@@ -164,7 +164,7 @@ function StatusBanner({
   if (profile.is_rejected && !profile.is_live) {
     return (
       <div style={{
-        background: 'rgba(229,115,115,0.08)', border: '1px solid rgba(229,115,115,0.25)',
+        background: 'rgba(229,115,115,0.06)', border: '1px solid rgba(229,115,115,0.25)',
         borderRadius: 14, padding: '18px 20px',
       }}>
         <p style={{
@@ -173,7 +173,7 @@ function StatusBanner({
         }}>PROFILE NEEDS WORK</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-          color: '#F8F7F5', margin: '0 0 8px', lineHeight: 1.5,
+          color: '#111111', margin: '0 0 8px', lineHeight: 1.5,
         }}>{profile.rejection_reason || 'Your profile needs some updates before going live.'}</p>
         <button onClick={onSubmit} disabled={submitting || profile.level < 2} style={{
           fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
@@ -189,7 +189,7 @@ function StatusBanner({
   if (profile.level >= 2) {
     return (
       <div style={{
-        background: 'rgba(201,168,76,0.08)', border: '1.5px solid #C9A84C',
+        background: 'rgba(201,168,76,0.06)', border: '1.5px solid #C9A84C',
         borderRadius: 14, padding: '18px 20px',
       }}>
         <p style={{
@@ -198,7 +198,7 @@ function StatusBanner({
         }}>READY TO SUBMIT</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-          color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1.5,
+          color: '#111111', margin: '0 0 4px', lineHeight: 1.5,
         }}>Your profile is ready.{isPrestige ? ' As a Prestige Maker, you go live immediately.' : ' Submit for Discovery.'}</p>
         {!isPrestige && (
           <p style={{
@@ -227,7 +227,7 @@ function StatusBanner({
     const missingL2 = profile.missing_for_level2 || [];
     return (
       <div style={{
-        background: '#1A1816', border: '0.5px solid #2A2825',
+        background: '#1A1816', border: '0.5px solid #E2DED8',
         borderRadius: 14, padding: '18px 20px',
       }}>
         <p style={{
@@ -236,7 +236,7 @@ function StatusBanner({
         }}>STEP 1 OF 2 COMPLETE ✓</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-          color: '#F8F7F5', margin: '0 0 8px', lineHeight: 1.5,
+          color: '#111111', margin: '0 0 8px', lineHeight: 1.5,
         }}>Now write your bio, add vibe tags, and complete your full profile.</p>
         {missingL2.length > 0 && (
           <div style={{ marginBottom: 14 }}>
@@ -262,7 +262,7 @@ function StatusBanner({
   const missingL1 = profile.missing_for_level1 || [];
   return (
     <div style={{
-      background: '#1A1816', border: '0.5px solid #2A2825',
+      background: '#1A1816', border: '0.5px solid #E2DED8',
       borderRadius: 14, padding: '18px 20px',
     }}>
       <p style={{
@@ -271,7 +271,7 @@ function StatusBanner({
       }}>NOT YET DISCOVERABLE</p>
       <p style={{
         fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-        color: '#F8F7F5', margin: '0 0 8px', lineHeight: 1.5,
+        color: '#111111', margin: '0 0 8px', lineHeight: 1.5,
       }}>Complete your profile to get discovered.</p>
       {missingL1.length > 0 && (
         <div style={{ marginBottom: 14 }}>
@@ -376,14 +376,14 @@ export default function DiscoveryDashPage() {
       {toast && (
         <div style={{
           position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
-          background: '#111', color: '#F8F7F5',
+          background: '#111', color: '#111111',
           fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
           padding: '10px 18px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap',
         }}>{toast}</div>
       )}
 
       <div style={{
-        background: '#0C0A09', minHeight: '100dvh',
+        background: '#F8F7F5', minHeight: '100dvh',
         paddingTop: 24,
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)',
       }}>
@@ -396,7 +396,7 @@ export default function DiscoveryDashPage() {
           }}>YOUR DISCOVERY</p>
           <h1 style={{
             fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300,
-            color: '#F8F7F5', margin: 0, lineHeight: 1.1,
+            color: '#111111', margin: 0, lineHeight: 1.1,
           }}>Discover Dash</h1>
         </div>
 
@@ -404,15 +404,15 @@ export default function DiscoveryDashPage() {
         <div style={{ padding: '0 20px 20px' }}>
           {loading ? <Shimmer h={96} /> : (
             <div style={{
-              background: '#111111', borderRadius: 16, padding: 20,
-              border: '0.5px solid #2A2825',
+              background: '#FFFFFF', borderRadius: 16, padding: 20,
+              border: '0.5px solid #E2DED8',
               display: 'flex', alignItems: 'center', gap: 20,
             }}>
               <ProfileRing percent={profile?.completion_pct || 0} />
               <div style={{ flex: 1 }}>
                 <p style={{
                   fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
-                  color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1.2,
+                  color: '#111111', margin: '0 0 4px', lineHeight: 1.2,
                 }}>Profile strength</p>
 
                 {/* Next step hint — one actionable item at a time (Issue 14) */}
@@ -484,8 +484,8 @@ export default function DiscoveryDashPage() {
           <button
             onClick={() => router.push('/vendor/studio/discovery-preview')}
             style={{
-              width: '100%', background: '#111111',
-              borderRadius: 16, padding: '18px 20px', border: '0.5px solid #2A2825',
+              width: '100%', background: '#FFFFFF',
+              borderRadius: 16, padding: '18px 20px', border: '0.5px solid #E2DED8',
               cursor: 'pointer', display: 'flex', alignItems: 'center',
               justifyContent: 'space-between', boxSizing: 'border-box',
             }}
@@ -493,7 +493,7 @@ export default function DiscoveryDashPage() {
             <div style={{ textAlign: 'left' }}>
               <p style={{
                 fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300,
-                color: '#F8F7F5', margin: '0 0 4px',
+                color: '#111111', margin: '0 0 4px',
               }}>See your profile</p>
               <p style={{
                 fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
@@ -520,7 +520,7 @@ export default function DiscoveryDashPage() {
             }}>FOUNDING MAKER</p>
             <p style={{
               fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
-              color: '#F8F7F5', margin: '0 0 2px', lineHeight: 1.5,
+              color: '#111111', margin: '0 0 2px', lineHeight: 1.5,
             }}>Signature free until 1 August 2026.</p>
             <p style={{
               fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,

@@ -95,7 +95,7 @@ export default function TopBar() {
           display: "inline-flex", alignItems: "center",
           background: "rgba(255,255,255,0.08)", borderRadius: "20px", padding: "3px", gap: 0,
         }}>
-          {(["BUSINESS", "DISCOVERY", "DREAMAI"] as AppMode[]).map((m) => {
+          {(["BUSINESS", "DREAMAI", "DISCOVERY"] as AppMode[]).map((m) => {
             const active = mode === m;
             const isDreamAiOption = m === "DREAMAI";
             return (
