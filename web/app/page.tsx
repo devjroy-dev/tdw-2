@@ -183,6 +183,14 @@ export default function Home() {
 
   useEffect(() => { slidesRef.current = slides; }, [slides]);
 
+  // Reset OTP digits whenever OTP screen appears
+  useEffect(() => {
+    if (screen === 'signin_otp' || screen === 'invite_otp') {
+      setOtp(['', '', '', '', '', '']);
+      setTimeout(() => otpRefs.current[0]?.focus(), 150);
+    }
+  }, [screen]);
+
   const startCarousel = useCallback(() => {
     if (intervalRef.current) return; // already running — preserve slide position
     intervalRef.current = setInterval(() => setCur(c => (c + 1) % slidesRef.current.length), 4000);
@@ -283,8 +291,17 @@ export default function Home() {
 
   // ── OTP / PIN (preserved from original) ──────────────────────────────────
   const handleOtpInput = (i: number, val: string) => {
-    const n = [...otp]; n[i] = val.slice(-1); setOtp(n);
-    if (val && i < 5) otpRefs.current[i + 1]?.focus();
+    // Handle paste of full 6-digit code (Android SMS autofill)
+    const digits = val.replace(/\D/g, '');
+    if (digits.length > 1) {
+      const n = ['', '', '', '', '', ''];
+      digits.split('').slice(0, 6).forEach((d, idx) => { n[idx] = d; });
+      setOtp(n);
+      otpRefs.current[Math.min(digits.length, 5)]?.focus();
+      return;
+    }
+    const n = [...otp]; n[i] = digits.slice(-1); setOtp(n);
+    if (digits && i < 5) otpRefs.current[i + 1]?.focus();
   };
   const handleOtpKey = (i: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
@@ -816,6 +833,10 @@ export default function Home() {
                   ))}
                 </div>
                 <GoldBtn label="Verify →" onClick={verifyOtp} disabled={otp.join('').length < 6} />
+                <button
+                  onClick={() => { setOtp(['', '', '', '', '', '']); sendOtp(phone); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', touchAction: 'manipulation', fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 200, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(248,247,245,0.3)', marginTop: 12, display: 'block', width: '100%' }}
+                >Resend code</button>
               </>
             )}
 
