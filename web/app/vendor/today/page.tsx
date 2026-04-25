@@ -697,6 +697,11 @@ export default function VendorTodayPage() {
   const [loading, setLoading]         = useState(true);
   const [dreamAiOpen, setDreamAiOpen] = useState(false);
   const [dreamAiPrefill, setDreamAiPrefill] = useState('');
+
+  // Close DreamAi sheet on mount — ensures clean state when switching from AI/Discovery mode
+  useEffect(() => {
+    setDreamAiOpen(false);
+  }, []);
   const [dreamAiContext, setDreamAiContext] = useState<DreamAiContext | null>(null);
   const [nudge, setNudge]             = useState<{ text: string; query: string } | null>(null);
   const [vendorCreatedAt, setVendorCreatedAt] = useState<string | null>(null);
@@ -718,9 +723,17 @@ export default function VendorTodayPage() {
     // PWA restore — redirect to last visited path if different from today
     const lastPath = typeof window !== 'undefined' ? localStorage.getItem('vendor_last_path') : null;
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    if (lastPath && lastPath !== currentPath && lastPath !== '/vendor/today') {
-      router.replace(lastPath);
-      return;
+    // Only PWA-restore if the saved mode is also BUSINESS — prevents redirect loop
+    // when switching back from DREAMAI/DISCOVERY to BUSINESS.
+    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('vendor_app_mode') : null;
+    const isBusinessMode = !savedMode || savedMode === 'BUSINESS';
+    if (isBusinessMode && lastPath && lastPath !== currentPath && lastPath !== '/vendor/today') {
+      // Only restore to business paths — never to dreamai or discovery
+      const isBusinessPath = !lastPath.startsWith('/vendor/dreamai') && !lastPath.startsWith('/vendor/discovery');
+      if (isBusinessPath) {
+        router.replace(lastPath);
+        return;
+      }
     }
 
     // Fetch vendor profile to get name if missing in session

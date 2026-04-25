@@ -52,6 +52,29 @@ export default function VendorLayout({
       : "BUSINESS";
   });
 
+  // Keep mode in sync with pathname — prevents stale mode state when navigating
+  // e.g. switching DREAMAI → BUSINESS: router.push('/vendor/today') updates pathname,
+  // this effect snaps mode to BUSINESS immediately so layout clears the AI overlay.
+  useEffect(() => {
+    if (!pathname) return;
+    if (pathname.startsWith('/vendor/dreamai')) {
+      setMode('DREAMAI');
+    } else if (pathname.startsWith('/vendor/discovery')) {
+      setMode('DISCOVERY');
+    } else if (
+      pathname.startsWith('/vendor/today') ||
+      pathname.startsWith('/vendor/money') ||
+      pathname.startsWith('/vendor/clients') ||
+      pathname.startsWith('/vendor/leads') ||
+      pathname.startsWith('/vendor/studio') ||
+      pathname.startsWith('/vendor/calendar') ||
+      pathname.startsWith('/vendor/settings') ||
+      pathname.startsWith('/vendor/collab')
+    ) {
+      setMode('BUSINESS');
+    }
+  }, [pathname]);
+
   // PIN pages are full-screen experiences — no shell, no nav, no FAB
   const isPinPage =
     pathname === "/vendor/pin" || pathname === "/vendor/pin-login";
