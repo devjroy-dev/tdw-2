@@ -7,7 +7,7 @@ import BottomNav from "./components/BottomNav";
 import DreamAiFAB from "../components/DreamAiFAB";
 
 // ─── Mode Context ───────────────────────────────────────────────────────────
-export type AppMode = "BUSINESS" | "DISCOVERY";
+export type AppMode = "BUSINESS" | "DISCOVERY" | "DREAMAI";
 
 export const ModeContext = createContext<{
   mode: AppMode;
@@ -29,7 +29,7 @@ export default function VendorLayout({
   const [mode, setMode] = useState<AppMode>(() => {
     if (typeof window === "undefined") return "BUSINESS";
     const saved = localStorage.getItem("vendor_app_mode");
-    return saved === "DISCOVERY" || saved === "BUSINESS"
+    return saved === "DISCOVERY" || saved === "BUSINESS" || saved === "DREAMAI"
       ? (saved as AppMode)
       : "BUSINESS";
   });
@@ -46,11 +46,13 @@ export default function VendorLayout({
     );
   }
 
+  const isDreamAi = mode === "DREAMAI";
+
   return (
     <ModeContext.Provider value={{ mode, setMode }}>
       <div
         style={{
-          backgroundColor: "#F8F7F5",
+          backgroundColor: isDreamAi ? "#0C0A09" : "#F8F7F5",
           fontFamily: "'DM Sans', sans-serif",
           minHeight: "100vh",
         }}
@@ -59,14 +61,15 @@ export default function VendorLayout({
         <main
           style={{
             paddingTop: "56px",
-            paddingBottom: "calc(80px + env(safe-area-inset-bottom))",
+            paddingBottom: isDreamAi ? "0" : "calc(80px + env(safe-area-inset-bottom))",
             overflowX: "hidden",
+            minHeight: isDreamAi ? "calc(100dvh - 56px)" : "auto",
           }}
         >
           {children}
         </main>
-        <BottomNav />
-        <DreamAiFAB userType="vendor" />
+        {!isDreamAi && <BottomNav />}
+        {!isDreamAi && <DreamAiFAB userType="vendor" />}
       </div>
     </ModeContext.Provider>
   );

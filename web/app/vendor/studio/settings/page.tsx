@@ -97,6 +97,24 @@ const TIPS = [
     cta: 'Go to Image Hub',
     href: '/vendor/discovery/images',
   },
+  {
+    id: 'dreamai_tab',
+    icon: '✦',
+    title: 'DreamAi Mode',
+    description: 'Switch to ✦ AI mode to run your entire business by conversation. No buttons, no forms — just talk.',
+    example: '"Mehra booked me Dec 15, ₹80,000, 10% advance" — client added, invoice created, calendar blocked.',
+    cta: 'Open DreamAi',
+    href: '/vendor/dreamai',
+  },
+  {
+    id: 'just_do_it',
+    icon: '⚡',
+    title: 'Just Do It Mode',
+    description: 'Power user mode. DreamAi acts immediately without asking for confirmation. Turn on when you trust the AI.',
+    example: 'Say "send Sharma a payment reminder" — it sends. No Confirm button.',
+    cta: 'Open DreamAi',
+    href: '/vendor/dreamai',
+  },
 ];
 
 export default function TipsAndFeaturesPage() {

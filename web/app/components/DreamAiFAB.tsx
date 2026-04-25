@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 
 const API  = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
-const HIDDEN = ['/pin', '/pin-login', '/login', '/setup', '/demo'];
+const HIDDEN = ['/pin', '/pin-login', '/login', '/setup', '/demo', '/vendor/dreamai'];
 
 interface Msg {
   role: 'user' | 'assistant';

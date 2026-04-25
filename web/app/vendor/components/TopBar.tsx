@@ -44,12 +44,13 @@ export default function TopBar() {
   // Switch mode AND navigate to the correct section
   const handleModeSwitch = (m: AppMode) => {
     setMode(m);
-    // Persist so mode survives page navigation (layout reads this on mount)
     if (typeof window !== 'undefined') {
       localStorage.setItem('vendor_app_mode', m);
     }
     if (m === 'DISCOVERY') {
       router.push('/vendor/discovery/dash');
+    } else if (m === 'DREAMAI') {
+      router.push('/vendor/dreamai');
     } else {
       router.push('/vendor/today');
     }
@@ -94,22 +95,35 @@ export default function TopBar() {
           display: "inline-flex", alignItems: "center",
           background: "rgba(255,255,255,0.08)", borderRadius: "20px", padding: "3px", gap: 0,
         }}>
-          {(["BUSINESS", "DISCOVERY"] as AppMode[]).map((m) => {
+          {(["BUSINESS", "DISCOVERY", "DREAMAI"] as AppMode[]).map((m) => {
             const active = mode === m;
+            const isDreamAiOption = m === "DREAMAI";
             return (
               <button
                 key={m}
                 onClick={() => handleModeSwitch(m)}
                 style={{
-                  fontFamily: "'Jost', sans-serif", fontSize: "10px", fontWeight: 300,
-                  letterSpacing: "0.2em", textTransform: "uppercase",
-                  padding: "6px 16px", borderRadius: "16px", border: "none", cursor: "pointer",
-                  background: active ? "#F8F7F5" : "transparent",
-                  color: active ? "#0C0A09" : "rgba(255,255,255,0.5)",
+                  fontFamily: "'Jost', sans-serif",
+                  fontSize: "9px",
+                  fontWeight: 300,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  padding: "6px 12px",
+                  borderRadius: "16px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: active
+                    ? isDreamAiOption ? "#C9A84C" : "#F8F7F5"
+                    : "transparent",
+                  color: active
+                    ? "#0C0A09"
+                    : "rgba(255,255,255,0.5)",
                   transition: "all 180ms cubic-bezier(0.22, 1, 0.36, 1)",
-                  whiteSpace: "nowrap",
+                  whiteSpace: "nowrap" as const,
                 }}
-              >{m}</button>
+              >
+                {m === "DREAMAI" ? "✦ AI" : m}
+              </button>
             );
           })}
         </div>
