@@ -18,7 +18,7 @@ export default function VendorPinLoginPage() {
   const [loading, setLoading]   = useState(false);
   const [toast, setToast]       = useState('');
   const [attempts, setAttempts] = useState(0);
-  const [slide, setSlide]   = useState(() => Math.floor(Math.random() * SLIDES.length));
+  const [slide, setSlide]   = useState(1);
   const [name, setName]         = useState('');
   const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
 

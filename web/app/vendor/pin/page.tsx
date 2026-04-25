@@ -19,7 +19,7 @@ export default function VendorPinPage() {
   const [shaking, setShaking]       = useState(false);
   const [loading, setLoading]       = useState(false);
   const [toast, setToast]           = useState('');
-  const [slide, setSlide]   = useState(() => Math.floor(Math.random() * SLIDES.length));
+  const [slide, setSlide]   = useState(1);
   const pinRefs     = useRef<(HTMLInputElement | null)[]>([]);
   const confirmRefs = useRef<(HTMLInputElement | null)[]>([]);
 
