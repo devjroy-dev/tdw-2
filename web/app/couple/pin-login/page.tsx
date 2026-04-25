@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 
 const API  = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
-const SLIDES = [
+const FALLBACK_SLIDES = [
   'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=90&fit=crop',
   'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=90&fit=crop',
   'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=90&fit=crop',
@@ -18,7 +18,8 @@ export default function CouplePinLoginPage() {
   const [loading, setLoading]   = useState(false);
   const [toast, setToast]       = useState('');
   const [attempts, setAttempts] = useState(0);
-  const [slide, setSlide]       = useState(() => Math.floor(Math.random() * SLIDES.length));
+  const [slide, setSlide]       = useState(() => Math.floor(Math.random() * FALLBACK_SLIDES.length));
+  const [slides, setSlides]     = useState<string[]>(FALLBACK_SLIDES);
   const [name, setName]         = useState('');
   const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -46,7 +47,11 @@ export default function CouplePinLoginPage() {
   }, []);
 
   useEffect(() => {
-    const t = setInterval(() => setSlide(p => (p + 1) % SLIDES.length), 4500);
+    fetch(API + '/api/v2/cover-photos')
+      .then(r => r.json())
+      .then(d => { if (d.photos?.length) setSlides(d.photos.map((p: any) => p.image_url)); })
+      .catch(() => {});
+    const t = setInterval(() => setSlide(p => (p + 1) % FALLBACK_SLIDES.length), 4500);
     return () => clearInterval(t);
   }, []);
 
@@ -61,6 +66,15 @@ export default function CouplePinLoginPage() {
       });
       const d = await r.json();
       if (d.success) {
+        const existing = JSON.parse(localStorage.getItem('couple_web_session') || localStorage.getItem('couple_session') || '{}');
+        const updated = {
+          ...existing,
+          id: d.userId || existing.id,
+          name: d.name || existing.name || '',
+          pin_set: true,
+        };
+        localStorage.setItem('couple_web_session', JSON.stringify(updated));
+        localStorage.setItem('couple_session', JSON.stringify(updated));
         router.replace('/couple/today');
       } else {
         const next = attempts + 1; setAttempts(next);
@@ -122,7 +136,7 @@ export default function CouplePinLoginPage() {
       )}
 
       <div style={{ position:'fixed',inset:0,background:'#0C0A09',overflow:'hidden' }}>
-        {SLIDES.map((src, i) => (
+        {slides.map((src, i) => (
           <div key={i} style={{ position:'absolute',inset:0,backgroundImage:'url(' + src + ')',backgroundSize:'cover',backgroundPosition:'center',opacity: i === slide ? 0.55 : 0,transition:'opacity 1200ms ease' }} />
         ))}
         <div style={{ position:'absolute',inset:0,background:'rgba(12,10,9,0.45)' }} />

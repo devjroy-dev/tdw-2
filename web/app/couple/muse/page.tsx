@@ -113,7 +113,7 @@ export default function MusePage() {
   // Auth guard
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('couple_session');
+      const raw = localStorage.getItem('couple_session') || localStorage.getItem('couple_web_session');
       if (!raw) {
         router.replace('/couple/login');
         return;

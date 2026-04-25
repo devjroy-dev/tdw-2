@@ -116,16 +116,16 @@ function Modal({ onClose, userType, userId }: {
       const d = await r.json();
       const replyText = d.reply || d.response || 'Something went wrong. Please try again.';
 
-      // Parse action tag
-      const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^}]+\})\]/);
+      // Parse action tag — strip ALL action tags from display text
+      const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^\]]+\})\]/);
+      const cleanText = replyText.replace(/\[ACTION:[^\]]+\]/g, '').trim();
       if (actionMatch) {
         const [, type, label, preview, paramsStr] = actionMatch;
         let params = {};
         try { params = JSON.parse(paramsStr); } catch {}
-        const cleanText = replyText.replace(actionMatch[0], '').trim();
         setMsgs(p => [...p, { role: 'assistant', text: cleanText, actionType: type, actionLabel: label, actionPreview: preview, actionParams: params }]);
       } else {
-        setMsgs(p => [...p, { role: 'assistant', text: replyText }]);
+        setMsgs(p => [...p, { role: 'assistant', text: cleanText }]);
       }
     } catch {
       setMsgs(p => [...p, { role: 'assistant', text: 'Could not connect.' }]);
@@ -219,6 +219,12 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
   const pathname = usePathname();
   const [open, setOpen]       = useState(false);
   const [urgent, setUrgent]   = useState(false);
+
+  // Expose open function globally so other components can trigger FAB
+  useEffect(() => {
+    (window as any).__dreamAiFABOpen = () => setOpen(true);
+    return () => { delete (window as any).__dreamAiFABOpen; };
+  }, []);
   const [pos, setPos]         = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
 

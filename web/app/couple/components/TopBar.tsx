@@ -19,10 +19,11 @@ export default function CoupleTopBar() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('couple_session');
+      const raw = localStorage.getItem('couple_session') || localStorage.getItem('couple_web_session');
       if (raw) {
         const s = JSON.parse(raw);
-        if (s?.name) setName(s.name);
+        const n = s?.name || s?.dreamer_name || s?.vendorName || '';
+        if (n) setName(n);
       }
     } catch {}
   }, []);

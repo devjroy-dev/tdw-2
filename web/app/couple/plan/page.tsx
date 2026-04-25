@@ -26,7 +26,7 @@ interface CoupleSession {
 function getSession(): CoupleSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('couple_session');
+    const raw = localStorage.getItem('couple_session') || localStorage.getItem('couple_web_session');
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }

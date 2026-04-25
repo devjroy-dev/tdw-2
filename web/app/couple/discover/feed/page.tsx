@@ -143,7 +143,7 @@ function GlassOverlay({ vendor, visible, onClose, onEnquire, userId }: {
       {/* Circle toast */}
       {circleToast && (
         <div style={{ position:'absolute',top:16,left:'50%',transform:'translateX(-50%)',background:'rgba(255,255,255,0.15)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',border:'0.5px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'6px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,color:'rgba(248,247,245,0.8)',whiteSpace:'nowrap',zIndex:30 }}>
-          Circle coming soon
+          Add someone to your Circle first — tap Circle in the menu
         </div>
       )}
 
@@ -274,7 +274,7 @@ function DiscoveryFeedContent() {
   // Auth
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('couple_session');
+      const raw = localStorage.getItem('couple_session') || localStorage.getItem('couple_web_session');
       if (raw) { const s = JSON.parse(raw); if (s?.id) { setUserId(s.id); userIdRef.current = s.id; } }
     } catch {}
   }, []);

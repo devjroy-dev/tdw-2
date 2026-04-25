@@ -77,7 +77,7 @@ export default function BespokePage() {
   // Auth guard
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('couple_session');
+      const raw = localStorage.getItem('couple_session') || localStorage.getItem('couple_web_session');
       if (!raw) {
         router.replace('/couple/login');
         return;
@@ -506,7 +506,7 @@ export default function BespokePage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <button
-                  onClick={() => showToast('Image upload coming soon')}
+                  onClick={() => showToast('Your moodboard is almost ready — available in Platinum.')}
                   style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 14,
@@ -528,7 +528,7 @@ export default function BespokePage() {
                 </button>
 
                 <button
-                  onClick={() => showToast('Link paste coming soon')}
+                  onClick={() => showToast('Your moodboard is almost ready — available in Platinum.')}
                   style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 14,
