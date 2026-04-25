@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { usePathname } from "next/navigation";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import DreamAiFAB from "../components/DreamAiFAB";
@@ -24,12 +25,26 @@ export default function VendorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Read persisted mode from localStorage so it survives page navigation
+  const pathname = usePathname();
   const [mode, setMode] = useState<AppMode>(() => {
-    if (typeof window === 'undefined') return 'BUSINESS';
-    const saved = localStorage.getItem('vendor_app_mode');
-    return (saved === 'DISCOVERY' || saved === 'BUSINESS') ? saved as AppMode : 'BUSINESS';
+    if (typeof window === "undefined") return "BUSINESS";
+    const saved = localStorage.getItem("vendor_app_mode");
+    return saved === "DISCOVERY" || saved === "BUSINESS"
+      ? (saved as AppMode)
+      : "BUSINESS";
   });
+
+  // PIN pages are full-screen experiences — no shell, no nav, no FAB
+  const isPinPage =
+    pathname === "/vendor/pin" || pathname === "/vendor/pin-login";
+
+  if (isPinPage) {
+    return (
+      <ModeContext.Provider value={{ mode, setMode }}>
+        {children}
+      </ModeContext.Provider>
+    );
+  }
 
   return (
     <ModeContext.Provider value={{ mode, setMode }}>

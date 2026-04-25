@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
-const SLIDES = [
+const FALLBACK_SLIDES = [
   'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=90&fit=crop',
   'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=90&fit=crop',
   'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=90&fit=crop',
@@ -33,8 +33,14 @@ export default function VendorPinPage() {
     pinRefs.current[0]?.focus();
   }, []);
 
+  // Fetch live cover photos
+  const [slides, setSlides] = useState<string[]>(FALLBACK_SLIDES);
   useEffect(() => {
-    const t = setInterval(() => setSlide(p => (p + 1) % SLIDES.length), 4500);
+    fetch(API + '/api/v2/cover-photos')
+      .then(r => r.json())
+      .then(d => { if (d.photos?.length) { setSlides(d.photos.map((p: any) => p.image_url)); } })
+      .catch(() => {});
+    const t = setInterval(() => setSlide(p => (p + 1) % slides.length), 4500);
     return () => clearInterval(t);
   }, []);
 
@@ -110,7 +116,7 @@ export default function VendorPinPage() {
       )}
 
       <div style={{ position:'fixed',inset:0,background:'#0C0A09',overflow:'hidden' }}>
-        {SLIDES.map((src, i) => (
+        {slides.map((src, i) => (
           <div key={i} style={{ position:'absolute',inset:0,backgroundImage:'url(' + src + ')',backgroundSize:'cover',backgroundPosition:'center',opacity: i === slide ? 0.55 : 0,transition:'opacity 1200ms ease' }} />
         ))}
         <div style={{ position:'absolute',inset:0,background:'rgba(12,10,9,0.45)' }} />

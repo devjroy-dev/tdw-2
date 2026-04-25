@@ -20,7 +20,12 @@ function getSession(): VendorSession | null {
     // Check both keys — login paths are inconsistent about which one they write.
     // vendor_session is set by some OTP paths; vendor_web_session by others.
     const raw = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    // Normalise name — could be stored as vendorName or name
+    if (!s.vendorName && s.name) s.vendorName = s.name;
+    if (!s.name && s.vendorName) s.name = s.vendorName;
+    return s;
   } catch { return null; }
 }
 

@@ -3,8 +3,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
+const API = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
-const SLIDES = [
+const FALLBACK_SLIDES = [
   'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=90&fit=crop',
   'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=90&fit=crop',
   'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=90&fit=crop',
@@ -33,8 +34,14 @@ export default function VendorPinLoginPage() {
     pinRefs.current[0]?.focus();
   }, []);
 
+  // Fetch live cover photos
+  const [slides, setSlides] = useState<string[]>(FALLBACK_SLIDES);
   useEffect(() => {
-    const t = setInterval(() => setSlide(p => (p + 1) % SLIDES.length), 4500);
+    fetch(API + '/api/v2/cover-photos')
+      .then(r => r.json())
+      .then(d => { if (d.photos?.length) { setSlides(d.photos.map((p: any) => p.image_url)); } })
+      .catch(() => {});
+    const t = setInterval(() => setSlide(p => (p + 1) % slides.length), 4500);
     return () => clearInterval(t);
   }, []);
 
@@ -49,6 +56,23 @@ export default function VendorPinLoginPage() {
       });
       const d = await r.json();
       if (d.success) {
+        // Update session with real name and category from backend
+        try {
+          const existing = JSON.parse(localStorage.getItem('vendor_web_session') || localStorage.getItem('vendor_session') || '{}');
+          const updated = {
+            ...existing,
+            vendorId: d.userId || existing.vendorId || existing.id,
+            id: d.userId || existing.id,
+            userId: d.userId || existing.userId,
+            vendorName: d.name || existing.vendorName || existing.name || '',
+            name: d.name || existing.name || existing.vendorName || '',
+            category: d.category || existing.category || '',
+          };
+          localStorage.setItem('vendor_web_session', JSON.stringify(updated));
+          localStorage.setItem('vendor_session', JSON.stringify(updated));
+          // Update displayed name immediately
+          if (d.name) setName(d.name);
+        } catch {}
         router.replace('/vendor/today');
       } else {
         const next = attempts + 1; setAttempts(next);
@@ -109,7 +133,7 @@ export default function VendorPinLoginPage() {
       )}
 
       <div style={{ position:'fixed',inset:0,background:'#0C0A09',overflow:'hidden' }}>
-        {SLIDES.map((src, i) => (
+        {slides.map((src, i) => (
           <div key={i} style={{ position:'absolute',inset:0,backgroundImage:'url(' + src + ')',backgroundSize:'cover',backgroundPosition:'center',opacity: i === slide ? 0.55 : 0,transition:'opacity 1200ms ease' }} />
         ))}
         <div style={{ position:'absolute',inset:0,background:'rgba(12,10,9,0.45)' }} />
