@@ -675,6 +675,14 @@ export default function VendorTodayPage() {
     setSession(s);
     if (!s) return;
 
+    // PWA restore — redirect to last visited path if different from today
+    const lastPath = typeof window !== 'undefined' ? localStorage.getItem('vendor_last_path') : null;
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    if (lastPath && lastPath !== currentPath && lastPath !== '/vendor/today') {
+      router.replace(lastPath);
+      return;
+    }
+
     // Fetch vendor profile to get name if missing in session
     if (!s.vendorName) {
       fetch(`${API}/api/vendors/${s.vendorId}`)

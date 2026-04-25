@@ -27,6 +27,14 @@ interface ProfileLevel {
   rejection_reason: string | null;
   photo_count: number;
   about_word_count: number;
+  // New canonical fields
+  level1_complete?: boolean;
+  level2_complete?: boolean;
+  level3_complete?: boolean;
+  missing_for_level1?: string[];
+  missing_for_level2?: string[];
+  submitted?: boolean;
+  rejected?: boolean;
 }
 interface Snapshot {
   views: number; saves: number; enquiries: number;
@@ -216,6 +224,7 @@ function StatusBanner({
 
   // State 1: Level 1 complete
   if (profile.level === 1) {
+    const missingL2 = profile.missing_for_level2 || [];
     return (
       <div style={{
         background: '#1A1816', border: '0.5px solid #2A2825',
@@ -224,22 +233,33 @@ function StatusBanner({
         <p style={{
           fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
           letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 6px',
-        }}>STEP 1 OF 2 COMPLETE</p>
+        }}>STEP 1 OF 2 COMPLETE ✓</p>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-          color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1.5,
-        }}>Basic info done. Finish your bio to unlock Submit.</p>
+          color: '#F8F7F5', margin: '0 0 8px', lineHeight: 1.5,
+        }}>Now write your bio, add vibe tags, and complete your full profile.</p>
+        {missingL2.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            {missingL2.map((item: string, i: number) => (
+              <p key={i} style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+                color: '#8C8480', margin: '0 0 3px', lineHeight: 1.4,
+              }}>· {item}</p>
+            ))}
+          </div>
+        )}
         <button onClick={() => router.push('/vendor/studio')} style={{
           fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
           letterSpacing: '0.2em', textTransform: 'uppercase',
           color: '#C9A84C', background: 'none', border: 'none',
-          padding: 0, cursor: 'pointer', marginTop: 10,
-        }}>COMPLETE PROFILE →</button>
+          padding: 0, cursor: 'pointer',
+        }}>FINISH PROFILE →</button>
       </div>
     );
   }
 
   // State 0: Level 0 — nothing done yet
+  const missingL1 = profile.missing_for_level1 || [];
   return (
     <div style={{
       background: '#1A1816', border: '0.5px solid #2A2825',
@@ -251,18 +271,24 @@ function StatusBanner({
       }}>NOT YET DISCOVERABLE</p>
       <p style={{
         fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300,
-        color: '#F8F7F5', margin: '0 0 4px', lineHeight: 1.5,
-      }}>Complete your profile to get discovered by couples.</p>
-      <p style={{
-        fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
-        color: '#555250', margin: '0 0 14px',
-      }}>Add 4 photos, a hero image, your city, and a starting price to reach Level 1.</p>
-      <button onClick={() => router.push('/vendor/discovery/images')} style={{
+        color: '#F8F7F5', margin: '0 0 8px', lineHeight: 1.5,
+      }}>Complete your profile to get discovered.</p>
+      {missingL1.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          {missingL1.map((item: string, i: number) => (
+            <p key={i} style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
+              color: '#8C8480', margin: '0 0 3px', lineHeight: 1.4,
+            }}>· {item}</p>
+          ))}
+        </div>
+      )}
+      <button onClick={() => router.push('/vendor/studio')} style={{
         fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
         letterSpacing: '0.2em', textTransform: 'uppercase',
         color: '#C9A84C', background: 'none', border: 'none',
         padding: 0, cursor: 'pointer',
-      }}>ADD YOUR FIRST PHOTO →</button>
+      }}>COMPLETE PROFILE →</button>
     </div>
   );
 }

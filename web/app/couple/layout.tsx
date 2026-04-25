@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
@@ -29,6 +29,15 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
     } catch { return 'PLAN'; }
   });
   const pathname = usePathname();
+
+  // PWA persistence — save last path on every navigation
+  useEffect(() => {
+    if (!pathname) return;
+    const skipPaths = ['/couple/pin', '/couple/pin-login', '/couple/login'];
+    if (!skipPaths.some(p => pathname.startsWith(p))) {
+      try { localStorage.setItem('couple_last_path', pathname); } catch {}
+    }
+  }, [pathname]);
 
   const setModePersisted = (m: CoupleAppMode) => {
     try { localStorage.setItem('couple_app_mode', m); } catch {}

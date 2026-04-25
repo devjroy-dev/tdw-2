@@ -308,29 +308,19 @@ export default function VendorLeadsPage() {
     setExtracted(null);
   }
 
-  // Book this couple → converts a lead into a full client record.
-  // Pre-filled from whatever data the lead already has.
+  // Book this couple → converts a lead into a full client record and marks lead converted.
   async function bookClient(client: Client) {
     if (!session || booking) return;
     setBooking(true);
     try {
-      const res = await fetch(`${API}/api/vendor-clients`, {
+      const res = await fetch(`${API}/api/v2/vendor/leads/${client.id}/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendor_id: session.vendorId,
-          name: client.name || 'Unknown',
-          event_type: client.event_type || null,
-          event_date: client.event_date || null,
-          budget: client.budget || null,
-          city: client.city || null,
-          notes: client.notes || null,
-          status: 'active',
-        }),
+        body: JSON.stringify({ vendor_id: session.vendorId }),
       });
       const json = await res.json();
       if (json.success) {
-        showToast('Booked ✓ Added to Clients');
+        showToast(json.message || 'Booked ✓ Added to Clients');
         setBookingTarget(null);
         loadClients(session.vendorId);
       } else {

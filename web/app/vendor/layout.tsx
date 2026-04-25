@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
@@ -26,6 +26,24 @@ export default function VendorLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  // PWA persistence — save last path on every navigation
+  useEffect(() => {
+    if (!pathname) return;
+    const skipPaths = ['/vendor/pin', '/vendor/pin-login', '/vendor/onboarding', '/vendor/login'];
+    if (!skipPaths.some(p => pathname.startsWith(p))) {
+      localStorage.setItem('vendor_last_path', pathname);
+      // Sync mode from path
+      if (pathname.startsWith('/vendor/discovery')) {
+        localStorage.setItem('vendor_app_mode', 'DISCOVERY');
+      } else if (pathname.startsWith('/vendor/dreamai')) {
+        localStorage.setItem('vendor_app_mode', 'DREAMAI');
+      } else {
+        localStorage.setItem('vendor_app_mode', 'BUSINESS');
+      }
+    }
+  }, [pathname]);
+
   const [mode, setMode] = useState<AppMode>(() => {
     if (typeof window === "undefined") return "BUSINESS";
     const saved = localStorage.getItem("vendor_app_mode");

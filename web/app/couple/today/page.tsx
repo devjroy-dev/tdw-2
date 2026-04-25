@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -207,9 +208,22 @@ export default function TodayPage() {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
+  const router = useRouter();
+
   useEffect(() => {
-    try { const s=getSession(); if(!s?.id){window.location.replace('/couple/login');return;} setSession(s); } catch { window.location.replace('/couple/login'); }
-  },[]);
+    try {
+      const s=getSession();
+      if(!s?.id){window.location.replace('/couple/login');return;}
+      setSession(s);
+      // PWA restore — redirect to last visited path if different from today
+      const lastPath = localStorage.getItem('couple_last_path');
+      const currentPath = window.location.pathname;
+      if (lastPath && lastPath !== currentPath && lastPath !== '/couple/today') {
+        router.replace(lastPath);
+        return;
+      }
+    } catch { window.location.replace('/couple/login'); }
+  },[router]);
 
   useEffect(() => {
     if (!session) return;

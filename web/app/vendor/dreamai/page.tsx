@@ -173,6 +173,14 @@ export default function VendorDreamAiPage() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const originalMsgRef = useRef<string>('');
+
+  // Heuristic: did the user's message imply multiple actions?
+  function impliesMultipleActions(text: string): boolean {
+    const multiKeywords = ['and', 'also', 'then', 'plus', 'aur', 'bhi', 'saath'];
+    const lower = text.toLowerCase();
+    return multiKeywords.some(k => lower.includes(k));
+  }
 
   useEffect(() => {
     const s = getSession();
@@ -217,6 +225,11 @@ export default function VendorDreamAiPage() {
     const msg = (text || input).trim();
     if (!msg || loading) return;
     setInput('');
+
+    // Track original message for multi-action heuristic
+    if (msg !== 'Continue with any remaining actions from my last request.') {
+      originalMsgRef.current = msg;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -437,7 +450,7 @@ export default function VendorDreamAiPage() {
                 <ActionCard
                   msg={m}
                   vendorId={vendorId}
-                  onConfirm={result => {
+                  onConfirm={async result => {
                     setMessages(prev => prev.map(msg =>
                       msg.id === m.id ? { ...msg, actionDone: true } : msg
                     ));
@@ -447,8 +460,13 @@ export default function VendorDreamAiPage() {
                     }]);
                     // Refresh context after action
                     if (vendorId) {
-                      fetch(API + '/api/v2/dreamai/vendor-context/' + vendorId)
-                        .then(r => r.json()).then(setContext).catch(() => {});
+                      const ctx = await fetch(API + '/api/v2/dreamai/vendor-context/' + vendorId)
+                        .then(r => r.json()).catch(() => null);
+                      if (ctx) setContext(ctx);
+                    }
+                    // Auto-continue if original message implied multiple actions
+                    if (impliesMultipleActions(originalMsgRef.current)) {
+                      await send('Continue with any remaining actions from my last request.');
                     }
                   }}
                   onDismiss={() => {
