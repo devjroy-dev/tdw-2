@@ -267,8 +267,12 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
       .then(r=>r.json()).then(d=>setUrgent((d.data?.needs_attention||[]).length>0)).catch(()=>{});
   }, [resolvedId, userType]);
 
+  const DRAG_THRESHOLD = 10;   // px — above finger jitter
+  const LONG_PRESS_MS  = 600;  // ms — longer than a normal tap
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (open) return;
+    e.stopPropagation();
     movedRef.current = false;
     dragActiveRef.current = false;
     startPosRef.current = { x: pos.x, y: pos.y };
@@ -276,19 +280,22 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     longTimerRef.current = setTimeout(() => {
       if (!movedRef.current) { dragActiveRef.current = true; setDragging(true); }
-    }, 500);
+    }, LONG_PRESS_MS);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    e.stopPropagation();
     const dx = e.clientX - startPtrRef.current.x;
     const dy = e.clientY - startPtrRef.current.y;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) movedRef.current = true;
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) movedRef.current = true;
     if (dragActiveRef.current) setPos({ x: startPosRef.current.x + dx, y: startPosRef.current.y + dy });
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
     if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
     if (dragActiveRef.current) { dragActiveRef.current = false; setDragging(false); return; }
+    // Tap: only open if finger didn't move
     if (!movedRef.current) setOpen(true);
   };
 
@@ -298,11 +305,12 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
     <>
       {open && <Modal onClose={() => setOpen(false)} userType={userType} userId={resolvedId} />}
       <button
-        onClick={() => { if (!movedRef.current && !dragActiveRef.current) setOpen(true); }}
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={() => {
+        onPointerCancel={(e) => {
+          e.stopPropagation();
           if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
           dragActiveRef.current = false;
           setDragging(false);
@@ -316,7 +324,7 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
           background: dragging ? 'rgba(17,17,17,0.9)' : '#111111',
           border: `1.5px solid ${dragging ? GOLD : 'rgba(201,168,76,0.3)'}`,
           cursor: dragging ? 'grabbing' : 'pointer',
-          zIndex: 997,
+          zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           touchAction: 'none',
           userSelect: 'none', WebkitUserSelect: 'none',
