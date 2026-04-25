@@ -564,6 +564,19 @@ export default function VendorTodayPage() {
     setSession(s);
     if (!s) return;
 
+    // Fetch vendor profile to get name if missing in session
+    if (!s.vendorName) {
+      fetch(`${API}/api/vendors/${s.vendorId}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.name) {
+            const updated = { ...s, vendorName: d.name, name: d.name };
+            localStorage.setItem('vendor_session', JSON.stringify(updated));
+            localStorage.setItem('vendor_web_session', JSON.stringify(updated));
+            setSession(prev => prev ? { ...prev, vendorName: d.name } : prev);
+          }
+        }).catch(() => {});
+    }
     fetch(`${API}/api/v2/vendor/today/${s.vendorId}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
@@ -994,10 +1007,19 @@ export default function VendorTodayPage() {
                 background: '#0C0A09', border: '0.5px solid #2A2825',
                 borderRadius: 8, padding: '14px 16px', marginBottom: 10,
               }}>
-                <p style={{
-                  fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
-                  color: '#F8F7F5', margin: '0 0 4px',
-                }}>3. Meet your business assistant</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 4px' }}>
+                  <p style={{
+                    fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300,
+                    color: '#F8F7F5', margin: 0,
+                  }}>3. Meet your business assistant</p>
+                  <span style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 400,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: '#2d7a2d', background: 'rgba(34,139,34,0.12)',
+                    border: '0.5px solid rgba(34,139,34,0.35)',
+                    borderRadius: 100, padding: '2px 7px', lineHeight: 1.6,
+                  }}>Beta</span>
+                </div>
                 <p style={{
                   fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
                   color: '#555250', margin: '0 0 10px',
