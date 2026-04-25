@@ -195,6 +195,39 @@ export default function VendorDreamAiPage() {
       .catch(() => setContextLoading(false));
   }, [router]);
 
+  // PHASE 5: Proactive briefing card — fires once after context loads, only if no messages yet
+  useEffect(() => {
+    if (!context || messages.length > 0) return;
+
+    const urgent: string[] = [];
+
+    if (context.overdue_invoices?.length > 0) {
+      const n = context.overdue_invoices.length;
+      urgent.push(`${n} overdue invoice${n > 1 ? 's' : ''}`);
+    }
+
+    const newEnqs = (context.enquiries || []).filter((e: any) => !e.replied);
+    if (newEnqs.length > 0) {
+      urgent.push(`${newEnqs.length} unanswered enquir${newEnqs.length > 1 ? 'ies' : 'y'}`);
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const todayEvents = (context.calendar || []).filter((e: any) => e.date === today);
+    if (todayEvents.length > 0) {
+      urgent.push(`event today: ${todayEvents[0].client_name}`);
+    }
+
+    if (urgent.length === 0) return;
+
+    const briefing = `Good morning. You have ${urgent.join(', ')}. How would you like to handle it?`;
+    setMessages([{
+      id: 'briefing',
+      role: 'ai',
+      text: briefing,
+      timestamp: new Date(),
+    }]);
+  }, [context]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
