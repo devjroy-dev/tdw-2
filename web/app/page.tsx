@@ -370,9 +370,15 @@ export default function Home() {
       };
       localStorage.setItem(sessionKey, JSON.stringify(sessionData));
       localStorage.setItem(isVendor ? 'vendor_session' : 'couple_session', JSON.stringify(sessionData));
-      router.push(pinSet
-        ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')
-        : (isVendor ? '/vendor/pin' : '/couple/pin'));
+      // For new vendors with no name — go through onboarding first
+      const needsOnboarding = isVendor && !pinSet && !record.name;
+      if (needsOnboarding) {
+        router.push('/vendor/onboarding');
+      } else {
+        router.push(pinSet
+          ? (isVendor ? '/vendor/pin-login' : '/couple/pin-login')
+          : (isVendor ? '/vendor/pin' : '/couple/pin'));
+      }
     } catch { showToast('Verification failed.'); }
   };
 
