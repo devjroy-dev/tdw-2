@@ -269,19 +269,7 @@ export default function TodayPage() {
 
       <div style={{ minHeight:'100dvh', background:'#F8F7F5', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
 
-        {/* Top bar */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 0' }}>
-          <span style={{ fontFamily:"'Jost',sans-serif", fontSize:11, fontWeight:300, letterSpacing:'0.3em', textTransform:'uppercase', color:'#C8C4BE' }}>TDW</span>
-          <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-            <button onClick={()=>openDreamAi()} style={{ background:'none', border:'0.5px solid #E2DED8', borderRadius:100, padding:'5px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:5, touchAction:'manipulation' }}>
-              <span style={{ fontSize:11 }}>✦</span>
-              <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580' }}>DreamAi</span>
-            </button>
-            <div style={{ width:32, height:32, borderRadius:'50%', background:'#F4F1EC', border:'1px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span style={{ fontFamily:"'Jost',sans-serif", fontSize:12, fontWeight:400, color:'#8C8480' }}>{initial}</span>
-            </div>
-          </div>
-        </div>
+
 
         <div className="fade-in" style={{ padding:'0 20px' }}>
           {loading ? (
