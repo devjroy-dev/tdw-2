@@ -109,7 +109,16 @@ export default function ClientDetailPage() {
 
   const { client, invoices, contract, deliveries, enquiry } = data;
   const totalInvoiced = (invoices||[]).reduce((s:number,i:any)=>s+(i.amount||0),0);
-  const totalPaid = (invoices||[]).reduce((s:number,i:any)=>s+(i.status==='paid'?(i.amount||0):0),0);
+  // Parse advance from description field for pending invoices
+  function getInvoicePaid(inv: any): number {
+    if (inv.status === 'paid') return inv.amount || 0;
+    if (inv.description) {
+      const m = inv.description.match(/Advance received[:\s]*₹?([\d,]+)/i);
+      if (m) return parseInt(m[1].replace(/,/g, '')) || 0;
+    }
+    return 0;
+  }
+  const totalPaid = (invoices||[]).reduce((s:number,i:any)=>s+getInvoicePaid(i),0);
   const totalDue = totalInvoiced - totalPaid;
   const deliveriesDone = (deliveries||[]).filter((d:any)=>d.status==='delivered').length;
 
