@@ -30,7 +30,8 @@ function ProgressRing({ pct, size=44 }: { pct: number; size?: number }) {
   );
 }
 
-interface Client { id: string; name: string; phone?: string; event_type?: string; event_date?: string; status?: string; total_invoiced?: number; total_paid?: number; total_due?: number; progress?: number; last_activity?: string; }
+interface Client {
+  profile_incomplete?: boolean; id: string; name: string; phone?: string; event_type?: string; event_date?: string; status?: string; total_invoiced?: number; total_paid?: number; total_due?: number; progress?: number; last_activity?: string; }
 
 function getVendorSession() {
   if (typeof window==='undefined') return null;
