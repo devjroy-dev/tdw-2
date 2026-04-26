@@ -12,6 +12,7 @@ interface ChatMessage {
   text: string;
   timestamp: Date;
   actionType?: string;
+  extraActions?: Array<{type: string; label: string; preview: string; params: any}>;
   actionLabel?: string;
   actionPreview?: string;
   actionParams?: Record<string, any>;
@@ -28,12 +29,8 @@ function getSession() {
 }
 
 // ─── Robust ACTION tag parser ─────────────────────────────────────────────────
-function parseActionTag(text: string) {
-  const start = text.indexOf('[ACTION:');
-  if (start === -1) return null;
-  const end = text.lastIndexOf(']');
-  if (end === -1 || end <= start) return null;
-  const tagContent = text.slice(start + 8, end);
+function parseSingleActionTag(tag: string) {
+  const tagContent = tag.slice(8, -1); // remove [ACTION: and ]
   const firstPipe = tagContent.indexOf('|');
   const secondPipe = tagContent.indexOf('|', firstPipe + 1);
   const lastBrace = tagContent.lastIndexOf('{');
@@ -44,9 +41,20 @@ function parseActionTag(text: string) {
   const paramsStr = tagContent.slice(lastBrace);
   let params = {};
   try { params = JSON.parse(paramsStr); } catch {}
-  const cleanText = (text.slice(0, start) + text.slice(end + 1))
-    .replace(/\[ACTION:[^\]]+\]/g, '').trim();
-  return { type, label, preview, params, cleanText };
+  return { type, label, preview, params };
+}
+
+function parseActionTag(text: string) {
+  // Find all [ACTION:...] tags
+  const tagRegex = /\[ACTION:[^\[\]]*\{[^\[\]]*\}\]/g;
+  const matches = [...text.matchAll(tagRegex)];
+  if (matches.length === 0) return null;
+  const cleanText = text.replace(tagRegex, '').trim();
+  const actions = matches.map(m => parseSingleActionTag(m[0])).filter(Boolean);
+  if (actions.length === 0) return null;
+  // Return first action — additional ones stored in extraActions
+  const [first, ...rest] = actions as any[];
+  return { ...first, cleanText, extraActions: rest };
 }
 
 // ─── Action Card ──────────────────────────────────────────────────────────────
@@ -342,6 +350,7 @@ export default function VendorDreamAiPage() {
           actionLabel: parsed.label,
           actionPreview: parsed.preview,
           actionParams: parsed.params,
+          extraActions: parsed.extraActions || [],
         }]);
       } else {
         setMessages(prev => [...prev, {
@@ -501,9 +510,21 @@ export default function VendorDreamAiPage() {
                         .then(r => r.json()).catch(() => null);
                       if (ctx) setContext(ctx);
                     }
-                    // Auto-continue if original message implied multiple actions
-                    if (impliesMultipleActions(originalMsgRef.current)) {
-                      await send('Continue with any remaining actions from my last request.');
+                    // If there are more queued actions, inject the next one directly
+                    const remaining = m.extraActions || [];
+                    if (remaining.length > 0) {
+                      const next = remaining[0];
+                      setMessages(prev => [...prev, {
+                        id: (Date.now() + 2).toString(),
+                        role: 'ai',
+                        text: `Next: ${next.label}`,
+                        timestamp: new Date(),
+                        actionType: next.type,
+                        actionLabel: next.label,
+                        actionPreview: next.preview,
+                        actionParams: next.params,
+                        extraActions: remaining.slice(1),
+                      }]);
                     }
                   }}
                   onDismiss={() => {
