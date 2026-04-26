@@ -177,7 +177,7 @@ export default function VendorDreamAiPage() {
 
   // Heuristic: did the user's message imply multiple actions?
   function impliesMultipleActions(text: string): boolean {
-    const multiKeywords = ['and', 'also', 'then', 'plus', 'aur', 'bhi', 'saath'];
+    const multiKeywords = ['and', 'also', 'then', 'plus', 'aur', 'bhi', 'saath', 'create', 'add', 'book', 'invoice', 'block', 'new booking', 'new client'];
     const lower = text.toLowerCase();
     return multiKeywords.some(k => lower.includes(k));
   }
