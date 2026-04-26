@@ -121,10 +121,13 @@ export default function ClientsPage() {
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {filtered.map(c=>(
-              <button key={c.id} onClick={()=>router.push(`/vendor/clients/${c.id}`)} style={{ background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left', width:'100%' }}>
+              <button key={c.id} onClick={()=>router.push(`/vendor/clients/${c.id}`)} style={{ background:'#FFFFFF', border:`1px solid ${c.profile_incomplete?'rgba(220,53,53,0.3)':'#E2DED8'}`, borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left', width:'100%' }}>
                 <ProgressRing pct={c.progress||0} size={44}/>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:300, color:'#111', margin:'0 0 3px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</p>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:300, color:'#111', margin:'0 0 3px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</p>
+                    {c.profile_incomplete && <span style={{ width:7, height:7, borderRadius:'50%', background:'#DC3535', flexShrink:0, marginBottom:3, display:'inline-block' }} />}
+                  </div>
                   <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:0 }}>
                     {c.event_type||'Wedding'}{c.event_date?` · ${formatDate(c.event_date)}`:''}
                   </p>
