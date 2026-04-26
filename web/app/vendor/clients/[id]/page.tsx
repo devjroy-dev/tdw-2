@@ -109,7 +109,7 @@ export default function ClientDetailPage() {
 
   const { client, invoices, contract, deliveries, enquiry } = data;
   const totalInvoiced = (invoices||[]).reduce((s:number,i:any)=>s+(i.amount||0),0);
-  const totalPaid = (invoices||[]).reduce((s:number,i:any)=>s+(i.paid_amount||0),0);
+  const totalPaid = (invoices||[]).reduce((s:number,i:any)=>s+(i.status==='paid'?(i.amount||0):0),0);
   const totalDue = totalInvoiced - totalPaid;
   const deliveriesDone = (deliveries||[]).filter((d:any)=>d.status==='delivered').length;
 
