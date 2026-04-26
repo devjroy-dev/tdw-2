@@ -321,6 +321,10 @@ export default function VendorDreamAiPage() {
               timestamp: new Date(),
             }]);
           }
+          // Auto-continue for remaining actions in Just Do It mode
+          if (impliesMultipleActions(originalMsgRef.current)) {
+            await send('Continue with any remaining actions from my last request.');
+          }
         } else {
           setMessages(prev => [...prev, {
             id: (Date.now() + 1).toString(),
