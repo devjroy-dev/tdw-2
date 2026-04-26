@@ -52,6 +52,9 @@ export default function ClientDetailPage() {
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview'|'invoices'|'messages'|'deliveries'>('overview');
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
 
   useEffect(()=>{
     const s = getVendorSession();
@@ -69,6 +72,23 @@ export default function ClientDetailPage() {
       await fetch(`${BASE}/api/vendor-clients/${clientId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({notes})});
       setToast('Notes saved');
     } catch { setToast('Could not save'); } finally { setSavingNotes(false); }
+  }
+
+  async function saveEdit() {
+    try {
+      await fetch(`${BASE}/api/vendor-clients/${clientId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) });
+      setData((prev: any) => ({ ...prev, client: { ...prev.client, ...editForm } }));
+      setEditing(false);
+      setToast('Client updated');
+    } catch { setToast('Could not save'); }
+  }
+
+  async function deleteClient() {
+    try {
+      await fetch(`${BASE}/api/vendor-clients/${clientId}`, { method: 'DELETE' });
+      setToast('Client deleted');
+      setTimeout(() => router.replace('/vendor/clients'), 1000);
+    } catch { setToast('Could not delete'); }
   }
 
   if (loading) return (
@@ -126,6 +146,11 @@ export default function ClientDetailPage() {
                 {client.event_type||'Wedding'}{client.event_date?` · ${formatDate(client.event_date)}`:''}
               </p>
             </div>
+          </div>
+          {/* Edit + Delete */}
+          <div style={{ display:'flex', gap:8, marginTop:10 }}>
+            <button onClick={() => { setEditForm({ name: client.name, phone: client.phone||'', event_type: client.event_type||'Wedding', event_date: client.event_date||'', budget: client.budget||'', venue: client.venue||'' }); setEditing(true); }} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#111', background:'#F4F1EC', border:'none', borderRadius:100, padding:'6px 14px', cursor:'pointer' }}>Edit</button>
+            <button onClick={() => setDeleting(true)} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#DC3535', background:'rgba(220,53,53,0.08)', border:'none', borderRadius:100, padding:'6px 14px', cursor:'pointer' }}>Delete</button>
           </div>
           {/* Contact actions */}
           <div style={{ display:'flex', gap:8, marginTop:14 }}>
@@ -258,6 +283,46 @@ export default function ClientDetailPage() {
           )}
         </div>
       </div>
+      {/* Edit Modal */}
+      {editing && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end' }}>
+          <div style={{ background:'#F8F7F5', borderRadius:'20px 20px 0 0', padding:'24px 20px', width:'100%', maxHeight:'80vh', overflowY:'auto' }}>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 20px' }}>Edit Client</p>
+            {[
+              { label:'Name', key:'name', type:'text' },
+              { label:'Phone', key:'phone', type:'tel' },
+              { label:'Event Type', key:'event_type', type:'text' },
+              { label:'Event Date', key:'event_date', type:'date' },
+              { label:'Budget (₹)', key:'budget', type:'number' },
+              { label:'Venue', key:'venue', type:'text' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom:16 }}>
+                <p style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:200, letterSpacing:'0.22em', textTransform:'uppercase', color:'#888580', margin:'0 0 4px' }}>{f.label}</p>
+                <input type={f.type} value={editForm[f.key]||''} onChange={e => setEditForm((p:any) => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width:'100%', background:'#FFFFFF', border:'1px solid #E2DED8', borderRadius:10, padding:'10px 14px', fontFamily:"'DM Sans',sans-serif", fontSize:13, color:'#111', outline:'none' }} />
+              </div>
+            ))}
+            <div style={{ display:'flex', gap:10, marginTop:8 }}>
+              <button onClick={saveEdit} style={{ flex:1, height:44, background:'#111', color:'#F8F7F5', border:'none', borderRadius:100, fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', cursor:'pointer' }}>Save</button>
+              <button onClick={() => setEditing(false)} style={{ height:44, padding:'0 20px', background:'transparent', border:'1px solid #E2DED8', borderRadius:100, fontFamily:"'Jost',sans-serif", fontSize:9, color:'#888580', cursor:'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {deleting && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 24px' }}>
+          <div style={{ background:'#FFFFFF', borderRadius:20, padding:'28px 24px', width:'100%', maxWidth:340, textAlign:'center' }}>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 8px' }}>Delete {client.name}?</p>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#888580', margin:'0 0 24px', lineHeight:1.5 }}>This will remove the client record. Invoices will not be deleted.</p>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={deleteClient} style={{ flex:1, height:44, background:'#DC3535', color:'#FFFFFF', border:'none', borderRadius:100, fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', cursor:'pointer' }}>Delete</button>
+              <button onClick={() => setDeleting(false)} style={{ flex:1, height:44, background:'transparent', border:'1px solid #E2DED8', borderRadius:100, fontFamily:"'Jost',sans-serif", fontSize:9, color:'#888580', cursor:'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
