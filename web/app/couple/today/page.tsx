@@ -215,10 +215,18 @@ export default function TodayPage() {
       const s=getSession();
       if(!s?.id){window.location.replace('/couple/login');return;}
       setSession(s);
-      // PWA restore — redirect to last visited path if different from today
+      // PWA restore — only restore to PLAN-side paths, never DISCOVER paths
       const lastPath = localStorage.getItem('couple_last_path');
       const currentPath = window.location.pathname;
-      if (lastPath && lastPath !== currentPath && lastPath !== '/couple/today') {
+      const VALID_PLAN_RESTORE_PATHS = [
+        '/couple/plan',
+        '/couple/me',
+        '/couple/messages',
+        '/couple/muse',
+        '/couple/bespoke',
+        '/couple/circle',
+      ];
+      if (lastPath && lastPath !== currentPath && VALID_PLAN_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
         router.replace(lastPath);
         return;
       }

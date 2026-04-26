@@ -38,10 +38,12 @@ export default function CoupleTopBar() {
   // Navigation only — setMode is handled by layout.tsx pathname useEffect
   const handleToggle = (m: CoupleAppMode) => {
     localStorage.setItem('couple_app_mode', m);
-    if (m === 'DISCOVER') {
-      router.push('/couple/discover/hub');
-    } else {
+    if (m === 'PLAN') {
+      // Clear saved path so couple/today PWA restore never redirects back to DISCOVER
+      localStorage.removeItem('couple_last_path');
       router.push('/couple/today');
+    } else {
+      router.push('/couple/discover/hub');
     }
   };
 
