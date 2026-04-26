@@ -361,7 +361,7 @@ export default function DreamAiFAB({ userType='vendor', userId }: { userType?:'v
         style={{
           position: 'fixed',
           bottom: 'calc(env(safe-area-inset-bottom,0px) + 88px)',
-          right: 24,
+          left: 24,
           transform: `translate(${pos.x}px, ${pos.y}px)`,
           width: 52, height: 52, borderRadius: '50%',
           background: dragging ? 'rgba(17,17,17,0.9)' : '#111111',
