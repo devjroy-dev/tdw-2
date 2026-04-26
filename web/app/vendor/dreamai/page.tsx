@@ -75,6 +75,7 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
     send_client_reminder:  '/api/v2/dreamai/vendor-action/send-client-reminder',
     log_expense:           '/api/v2/dreamai/vendor-action/log-expense',
     reply_to_enquiry:      '/api/v2/dreamai/vendor-action/reply-to-enquiry',
+    record_payment:        '/api/v2/dreamai/vendor-action/record-payment',
   };
 
   async function execute() {
@@ -258,6 +259,7 @@ export default function VendorDreamAiPage() {
       send_client_reminder:  '/api/v2/dreamai/vendor-action/send-client-reminder',
       log_expense:           '/api/v2/dreamai/vendor-action/log-expense',
       reply_to_enquiry:      '/api/v2/dreamai/vendor-action/reply-to-enquiry',
+      record_payment:        '/api/v2/dreamai/vendor-action/record-payment',
     };
     return eps[type] || null;
   }
