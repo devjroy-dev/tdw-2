@@ -203,6 +203,22 @@ export default function Home() {
     intervalRef.current = setInterval(() => setCur(c => (c + 1) % slidesRef.current.length), 4000);
   }, []);
 
+  const pauseCarousel = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Pause carousel when exploring screen is active — prevents bleed-through
+  useEffect(() => {
+    if (screen === 'exploring') {
+      pauseCarousel();
+    } else {
+      startCarousel();
+    }
+  }, [screen, pauseCarousel, startCarousel]);
+
   useEffect(() => {
     // Fetch cover photos
     fetch(`${BACKEND}/api/v2/cover-photos`)
@@ -472,7 +488,7 @@ export default function Home() {
           ...S,
           backgroundImage: `url(${url})`,
           backgroundSize: 'cover', backgroundPosition: 'center',
-          opacity: i === cur ? 1 : 0,
+          opacity: screen === 'exploring' ? 0 : (i === cur ? 1 : 0),
           transition: `opacity 3s ${ease}`,
           willChange: 'opacity',
           // Blur when a glass panel is active

@@ -41,9 +41,8 @@ export default function TopBar() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  // Switch mode AND navigate to the correct section
+  // Navigation only — setMode is handled exclusively by layout.tsx pathname useEffect
   const handleModeSwitch = (m: AppMode) => {
-    setMode(m);
     if (typeof window !== 'undefined') {
       localStorage.setItem('vendor_app_mode', m);
     }
@@ -124,7 +123,19 @@ export default function TopBar() {
                   whiteSpace: "nowrap" as const,
                 }}
               >
-                {m === "DREAMAI" ? "✦ AI" : m}
+                {m === "DREAMAI" ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    ✦ AI
+                    <span style={{
+                      fontFamily: "'Jost', sans-serif", fontSize: 6, fontWeight: 400,
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                      color: mode === 'DREAMAI' ? '#0C0A09' : '#C9A84C',
+                      background: mode === 'DREAMAI' ? 'rgba(12,10,9,0.15)' : 'rgba(201,168,76,0.1)',
+                      borderRadius: 100, padding: '1px 5px',
+                      border: `0.5px solid ${mode === 'DREAMAI' ? 'rgba(12,10,9,0.2)' : 'rgba(201,168,76,0.3)'}`,
+                    }}>beta</span>
+                  </span>
+                ) : m}
               </button>
             );
           })}

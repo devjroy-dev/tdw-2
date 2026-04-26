@@ -181,7 +181,8 @@ export default function MusePage() {
         body: JSON.stringify({
           save_id: item.id,
           couple_id: session!.id,
-          event: item.event || 'general',
+          vendor_id: item.vendor_id,
+          event: item.event || (item as any).function_tag || 'general',
         }),
       });
       if (!res.ok) throw new Error('shortlist failed');

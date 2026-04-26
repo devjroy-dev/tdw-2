@@ -477,6 +477,126 @@ function DreamAiSheet({
 
 // ─── Quick Actions ───────────────────────────────────────────────────────────
 // ─── WhatsApp Nudge — slim expandable card ───────────────────────────────────
+function WhatsAppCard({ onDismiss }: { onDismiss: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{
+      background: '#0C0A09',
+      borderRadius: 12,
+      marginBottom: 12,
+      overflow: 'hidden',
+      border: '0.5px solid rgba(255,255,255,0.08)',
+    }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          width: '100%', background: 'none', border: 'none',
+          padding: '13px 16px', cursor: 'pointer', touchAction: 'manipulation',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14 }}>💬</span>
+          <span style={{
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+            fontWeight: 300, color: '#F8F7F5',
+          }}>DreamAi on WhatsApp</span>
+          <span style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 7, fontWeight: 400,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: '#C9A84C', background: 'rgba(201,168,76,0.1)',
+            border: '0.5px solid rgba(201,168,76,0.3)',
+            borderRadius: 100, padding: '2px 7px',
+          }}>Beta</span>
+        </div>
+        <span style={{
+          color: 'rgba(248,247,245,0.4)', fontSize: 14,
+          transition: 'transform 200ms ease',
+          display: 'inline-block',
+          transform: expanded ? 'rotate(180deg)' : 'none',
+        }}>⌄</span>
+      </button>
+
+      {expanded && (
+        <div style={{ padding: '0 16px 16px', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ marginBottom: 14 }}>
+            <p style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: 'rgba(248,247,245,0.3)', margin: '12px 0 4px',
+            }}>Step 1 — Save the number</p>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 20,
+              fontWeight: 300, color: '#C9A84C', margin: 0, letterSpacing: '0.04em',
+            }}>+1 415 523 8886</p>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <p style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: 'rgba(248,247,245,0.3)', margin: '0 0 4px',
+            }}>Step 2 — Send the join code</p>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'rgba(255,255,255,0.04)', borderRadius: 8,
+              padding: '8px 12px',
+            }}>
+              <span style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+                fontWeight: 300, color: '#F8F7F5', letterSpacing: '0.04em',
+              }}>join acres-eventually</span>
+              <button
+                onClick={() => navigator.clipboard?.writeText('join acres-eventually')}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: "'Jost', sans-serif", fontSize: 8,
+                  color: 'rgba(248,247,245,0.3)', letterSpacing: '0.1em',
+                  textTransform: 'uppercase', padding: 0,
+                }}>Copy</button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <p style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: 'rgba(248,247,245,0.3)', margin: '0 0 4px',
+            }}>Step 3 — Try it</p>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: 12,
+              fontWeight: 300, color: 'rgba(248,247,245,0.45)', margin: 0,
+            }}>
+              Send: <span style={{ color: '#F8F7F5' }}>"What can you do?"</span>
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <a
+              href="https://wa.me/14155238886?text=join%20acres-eventually"
+              target="_blank" rel="noreferrer"
+              style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+                letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: '#0C0A09', background: '#C9A84C',
+                textDecoration: 'none', borderRadius: 100,
+                padding: '8px 16px', touchAction: 'manipulation',
+              }}
+            >Open WhatsApp →</a>
+            <button onClick={onDismiss} style={{
+              fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'rgba(248,247,245,0.25)', background: 'none',
+              border: 'none', cursor: 'pointer', padding: 0,
+            }}>Dismiss</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Keep WhatsAppNudge for onboarding banner (card3)
 function WhatsAppNudge({ onDone }: { onDone: () => void }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -697,6 +817,9 @@ export default function VendorTodayPage() {
   const [loading, setLoading]         = useState(true);
   const [dreamAiOpen, setDreamAiOpen] = useState(false);
   const [dreamAiPrefill, setDreamAiPrefill] = useState('');
+  const [showWhatsAppCard, setShowWhatsAppCard] = useState(
+    typeof window !== 'undefined' && !localStorage.getItem('whatsapp_card_dismissed')
+  );
 
   // Close DreamAi sheet on mount — ensures clean state when switching from AI/Discovery mode
   useEffect(() => {
@@ -723,6 +846,9 @@ export default function VendorTodayPage() {
     // PWA restore — redirect to last visited path if different from today
     const lastPath = typeof window !== 'undefined' ? localStorage.getItem('vendor_last_path') : null;
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    // Guard: if user just switched to BUSINESS from DREAMAI/DISCOVERY, skip restore
+    const currentMode = typeof window !== 'undefined' ? localStorage.getItem('vendor_app_mode') : null;
+    if (currentMode !== 'DREAMAI' && currentMode !== 'DISCOVERY') {
     // Only PWA-restore if the saved mode is also BUSINESS — prevents redirect loop
     // when switching back from DREAMAI/DISCOVERY to BUSINESS.
     const savedMode = typeof window !== 'undefined' ? localStorage.getItem('vendor_app_mode') : null;
@@ -748,6 +874,7 @@ export default function VendorTodayPage() {
         return;
       }
     }
+    } // end mode guard
 
     // Fetch vendor profile to get name if missing in session
     if (!s.vendorName) {
@@ -1092,6 +1219,19 @@ export default function VendorTodayPage() {
                 textDecoration: 'none', flexShrink: 0, marginLeft: 12,
               }}>SUBMIT →</a>
             </div>
+          </div>
+        )}
+
+        {/* ─── Standalone WhatsApp DreamAi card ──────────────────────────────
+            Persistent, collapsible, dismissable. Shown to all vendors.
+            Separate from onboarding banner so it persists beyond day 14.
+        ─────────────────────────────────────────────────────────────────────── */}
+        {showWhatsAppCard && (
+          <div style={{ padding: '0 20px', marginBottom: 4 }}>
+            <WhatsAppCard onDismiss={() => {
+              localStorage.setItem('whatsapp_card_dismissed', 'true');
+              setShowWhatsAppCard(false);
+            }} />
           </div>
         )}
 

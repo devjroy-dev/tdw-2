@@ -35,9 +35,14 @@ export default function CoupleTopBar() {
 
   const isPlan = mode === 'PLAN';
 
+  // Navigation only — setMode is handled by layout.tsx pathname useEffect
   const handleToggle = (m: CoupleAppMode) => {
-    setMode(m);
-    router.push(m === 'PLAN' ? '/couple/today' : '/couple/discover/hub');
+    localStorage.setItem('couple_app_mode', m);
+    if (m === 'DISCOVER') {
+      router.push('/couple/discover/hub');
+    } else {
+      router.push('/couple/today');
+    }
   };
 
   const initials = getInitials(name);

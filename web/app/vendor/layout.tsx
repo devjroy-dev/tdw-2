@@ -59,8 +59,10 @@ export default function VendorLayout({
     if (!pathname) return;
     if (pathname.startsWith('/vendor/dreamai')) {
       setMode('DREAMAI');
+      localStorage.setItem('vendor_app_mode', 'DREAMAI');
     } else if (pathname.startsWith('/vendor/discovery')) {
       setMode('DISCOVERY');
+      localStorage.setItem('vendor_app_mode', 'DISCOVERY');
     } else if (
       pathname.startsWith('/vendor/today') ||
       pathname.startsWith('/vendor/money') ||
@@ -72,6 +74,7 @@ export default function VendorLayout({
       pathname.startsWith('/vendor/collab')
     ) {
       setMode('BUSINESS');
+      localStorage.setItem('vendor_app_mode', 'BUSINESS');
     }
   }, [pathname]);
 
