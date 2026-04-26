@@ -39,6 +39,10 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // ── Hot Dates ────────────────────────────────────────────
+  const [hotDates, setHotDates] = useState<Map<string, { label: string; intensity: string }>>(new Map());
+  const [selectedHotDate, setSelectedHotDate] = useState<{ date: string; label: string; intensity: string } | null>(null);
+
   // ── FAB state ───────────────────────────────────────────
   const [fabOpen, setFabOpen] = useState(false);
   const [creationType, setCreationType] = useState<CreationType>(null);
@@ -98,6 +102,28 @@ export default function CalendarPage() {
   useEffect(() => {
     if (vendorId) fetchBookings(vendorId);
   }, [vendorId, fetchBookings]);
+
+  const fetchHotDates = useCallback(async () => {
+    try {
+      const from = new Date();
+      from.setMonth(from.getMonth() - 1);
+      const to = new Date();
+      to.setMonth(to.getMonth() + 13);
+      const r = await fetch(
+        `${BACKEND}/api/v2/hot-dates?from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}`
+      );
+      const d = await r.json();
+      if (d.success) {
+        const map = new Map<string, { label: string; intensity: string }>();
+        (d.data || []).forEach((hd: any) => { map.set(hd.date, { label: hd.label, intensity: hd.intensity }); });
+        setHotDates(map);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (vendorId) fetchHotDates();
+  }, [vendorId, fetchHotDates]);
 
   // ── Calendar computed values ────────────────────────────
   const year = currentDate.getFullYear();
@@ -331,15 +357,40 @@ export default function CalendarPage() {
               if (day === null) return <div key={`empty-${idx}`} />;
 
               const key = `${year}-${month}-${day}`;
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
               const hasBooking = bookingDates.has(key);
               const isBlocked = blockedDates.has(key);
+              const isHotDate = hotDates.has(dateStr);
+              const hotDateInfo = isHotDate ? hotDates.get(dateStr)! : null;
+              const hotColour = hotDateInfo?.intensity === 'peak' ? '#FF6B35' : hotDateInfo?.intensity === 'high' ? '#C9A84C' : '#D4A96A';
 
               return (
-                <div key={key} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  padding: '6px 0', position: 'relative',
-                }}>
+                <div
+                  key={key}
+                  onClick={() => {
+                    if (isHotDate && hotDateInfo) {
+                      setSelectedHotDate({ date: dateStr, ...hotDateInfo });
+                    }
+                  }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    padding: '6px 0', position: 'relative',
+                    background: isHotDate
+                      ? hotDateInfo?.intensity === 'peak' ? 'rgba(255,107,53,0.08)' : 'rgba(201,168,76,0.08)'
+                      : 'transparent',
+                    border: isHotDate ? `1px solid ${hotColour}44` : '1px solid transparent',
+                    borderRadius: 6,
+                    cursor: isHotDate ? 'pointer' : 'default',
+                  }}
+                >
+                  {isHotDate && (
+                    <span style={{
+                      position: 'absolute', top: 2, right: 3,
+                      fontSize: 7, lineHeight: 1,
+                      opacity: hotDateInfo?.intensity === 'peak' ? 1 : 0.7,
+                    }}>🔥</span>
+                  )}
                   <div style={{
                     width: 28, height: 28, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -351,16 +402,10 @@ export default function CalendarPage() {
                     }}>{day}</span>
                   </div>
                   {hasBooking && !isBlocked && (
-                    <div style={{
-                      width: 4, height: 4, borderRadius: '50%',
-                      background: '#C9A84C', marginTop: 2,
-                    }} />
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#C9A84C', marginTop: 2 }} />
                   )}
                   {isBlocked && (
-                    <span style={{
-                      fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 400,
-                      color: '#9B4545', marginTop: 1, lineHeight: 1,
-                    }}>×</span>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 400, color: '#9B4545', marginTop: 1, lineHeight: 1 }}>×</span>
                   )}
                 </div>
               );
@@ -369,9 +414,7 @@ export default function CalendarPage() {
         )}
 
         {/* Legend */}
-        <div style={{
-          display: 'flex', gap: 16, padding: '12px 24px 0', alignItems: 'center',
-        }}>
+        <div style={{ display: 'flex', gap: 16, padding: '12px 24px 0', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#C9A84C' }} />
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>Booking</span>
@@ -380,7 +423,66 @@ export default function CalendarPage() {
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#9B4545', fontWeight: 400 }}>×</span>
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>Blocked</span>
           </div>
+          {hotDates.size > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: '#FF6B35' }} />
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>Peak muhurat</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: '#C9A84C' }} />
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>High demand</span>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Hot Date nudge card */}
+        {selectedHotDate && (
+          <div style={{
+            position: 'fixed', bottom: 80, left: 16, right: 16, zIndex: 50,
+            background: '#0C0A09',
+            border: `1px solid ${selectedHotDate.intensity === 'peak' ? '#FF6B35' : '#C9A84C'}44`,
+            borderRadius: 14, padding: '16px 18px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 14 }}>🔥</span>
+                  <span style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 400,
+                    letterSpacing: '0.2em', textTransform: 'uppercase',
+                    color: selectedHotDate.intensity === 'peak' ? '#FF6B35' : '#C9A84C',
+                  }}>{selectedHotDate.intensity === 'peak' ? 'Peak Demand Day' : 'High Demand Day'}</span>
+                </div>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, color: '#F8F7F5', margin: '0 0 6px' }}>{selectedHotDate.label}</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: 'rgba(248,247,245,0.5)', margin: 0, lineHeight: 1.5 }}>
+                  This is an auspicious Hindu wedding date. Demand from couples is significantly higher. Consider adjusting your pricing for this date.
+                </p>
+              </div>
+              <button onClick={() => setSelectedHotDate(null)} style={{ background: 'none', border: 'none', color: 'rgba(248,247,245,0.3)', fontSize: 18, cursor: 'pointer', padding: '0 0 0 12px', flexShrink: 0 }}>×</button>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
+              <button
+                onClick={() => {
+                  setSelectedHotDate(null);
+                  setFormDate(selectedHotDate.date);
+                  setCreationType('booking');
+                  setFabOpen(true);
+                }}
+                style={{
+                  fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 400,
+                  letterSpacing: '0.18em', textTransform: 'uppercase',
+                  color: '#0C0A09', background: '#C9A84C',
+                  border: 'none', borderRadius: 100, padding: '8px 16px',
+                  cursor: 'pointer', touchAction: 'manipulation',
+                }}
+              >Block This Date →</button>
+              <button onClick={() => setSelectedHotDate(null)} style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(248,247,245,0.35)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}>Dismiss</button>
+            </div>
+          </div>
+        )}
 
         {/* Upcoming section */}
         <div style={{ padding: '28px 24px 0' }}>

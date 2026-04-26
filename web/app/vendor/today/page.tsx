@@ -32,11 +32,12 @@ function getSession(): VendorSession | null {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AttentionItem {
   id: string;
-  type: 'invoice' | 'enquiry' | 'shoot';
+  type: 'invoice' | 'enquiry' | 'shoot' | 'hot_date';
   title: string;
   subtitle: string;
   amount?: number;
   cta: string;
+  intensity?: string;
 }
 interface ScheduleItem {
   id: string;
@@ -115,11 +116,16 @@ function deltaLabel(d: number) {
 }
 
 // ─── Attention Card ───────────────────────────────────────────────────────────
-function AttentionCard({ item }: { item: AttentionItem }) {
+function AttentionCard({ item, onCalendar }: { item: AttentionItem; onCalendar?: () => void }) {
   const isOverdue = item.type === 'invoice';
+  const isHotDate = item.type === 'hot_date';
+  const hotColour = item.intensity === 'peak' ? '#FF6B35' : '#C9A84C';
+  const hotBg = item.intensity === 'peak' ? 'rgba(255,107,53,0.06)' : 'rgba(201,168,76,0.06)';
   return (
     <div style={{
-      background: '#FFFFFF', border: '0.5px solid #E2DED8',
+      background: isHotDate ? hotBg : '#FFFFFF',
+      border: '0.5px solid #E2DED8',
+      borderLeft: isHotDate ? `3px solid ${hotColour}` : '0.5px solid #E2DED8',
       borderRadius: 8, padding: 16, marginBottom: 10,
       willChange: 'transform', touchAction: 'manipulation',
     }}>
@@ -147,14 +153,17 @@ function AttentionCard({ item }: { item: AttentionItem }) {
             padding: '3px 8px', borderRadius: 100,
           }}>OVERDUE</span>
         )}
-        <button style={{
-          fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
-          letterSpacing: '0.2em', textTransform: 'uppercase',
-          color: '#555250', background: 'none', border: 'none',
-          cursor: 'pointer', padding: 0,
-          marginLeft: isOverdue ? 0 : 'auto',
-          touchAction: 'manipulation',
-        }}>{item.cta} →</button>
+        <button
+          onClick={isHotDate && onCalendar ? onCalendar : undefined}
+          style={{
+            fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
+            letterSpacing: '0.2em', textTransform: 'uppercase',
+            color: isHotDate ? hotColour : '#555250',
+            background: 'none', border: 'none',
+            cursor: isHotDate ? 'pointer' : 'default', padding: 0,
+            marginLeft: isOverdue ? 0 : 'auto',
+            touchAction: 'manipulation',
+          }}>{item.cta} →</button>
       </div>
     </div>
   );
@@ -1318,7 +1327,7 @@ export default function VendorTodayPage() {
               fontWeight: 300, fontStyle: 'italic', color: '#888580', margin: 0,
             }}>All clear for now.</p>
           ) : (
-            attention.slice(0, 3).map(item => <AttentionCard key={item.id} item={item} />)
+            attention.slice(0, 3).map(item => <AttentionCard key={item.id} item={item} onCalendar={() => router.push('/vendor/studio/calendar')} />)
           )}
         </div>
 

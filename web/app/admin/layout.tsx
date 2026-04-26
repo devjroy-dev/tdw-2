@@ -33,6 +33,7 @@ const NAV = [
     { label: 'Messages',         path: '/admin/messages', icon: '💬' },
     { label: 'Image Approvals',  path: '/admin/images',   icon: '⬡' },
     { label: 'Featured',         path: '/admin/featured', icon: '★' },
+    { label: 'Hot Dates',        path: '/admin/hot-dates', icon: '🔥' },
   ]},
   { group: 'MONEY', items: [
     { label: 'Revenue', path: '/admin/money', icon: '₹' },
