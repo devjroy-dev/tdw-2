@@ -843,38 +843,23 @@ export default function VendorTodayPage() {
     setSession(s);
     if (!s) return;
 
-    // PWA restore — redirect to last visited path if different from today
+    // PWA restore — redirect to last visited BUSINESS path if different from today.
+    // NEVER restore to dreamai or discovery paths — those have their own mode switching.
     const lastPath = typeof window !== 'undefined' ? localStorage.getItem('vendor_last_path') : null;
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    // Guard: if user just switched to BUSINESS from DREAMAI/DISCOVERY, skip restore
-    const currentMode = typeof window !== 'undefined' ? localStorage.getItem('vendor_app_mode') : null;
-    if (currentMode !== 'DREAMAI' && currentMode !== 'DISCOVERY') {
-    // Only PWA-restore if the saved mode is also BUSINESS — prevents redirect loop
-    // when switching back from DREAMAI/DISCOVERY to BUSINESS.
-    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('vendor_app_mode') : null;
-    const isBusinessMode = !savedMode || savedMode === 'BUSINESS';
-    const VALID_RESTORE_PATHS = [
-      '/vendor/today',
+    const VALID_BUSINESS_RESTORE_PATHS = [
       '/vendor/clients',
       '/vendor/money',
       '/vendor/studio',
-      '/vendor/discovery/dash',
-      '/vendor/discovery/images',
-      '/vendor/discovery/leads',
-      '/vendor/discovery/collab',
-      '/vendor/dreamai',
+      '/vendor/leads',
+      '/vendor/calendar',
+      '/vendor/settings',
+      '/vendor/collab',
     ];
-    if (isBusinessMode && lastPath && lastPath !== currentPath && lastPath !== '/vendor/today') {
-      if (VALID_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
-        router.replace(lastPath);
-        return;
-      } else {
-        // Stale or broken path — default to today
-        router.replace('/vendor/today');
-        return;
-      }
+    if (lastPath && lastPath !== currentPath && VALID_BUSINESS_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
+      router.replace(lastPath);
+      return;
     }
-    } // end mode guard
 
     // Fetch vendor profile to get name if missing in session
     if (!s.vendorName) {

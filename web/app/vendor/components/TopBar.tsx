@@ -45,6 +45,11 @@ export default function TopBar() {
   const handleModeSwitch = (m: AppMode) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('vendor_app_mode', m);
+      // Clear saved path when switching to non-BUSINESS so PWA restore
+      // on /vendor/today can never redirect back to DREAMAI or DISCOVERY
+      if (m === 'BUSINESS') {
+        localStorage.removeItem('vendor_last_path');
+      }
     }
     if (m === 'DISCOVERY') {
       router.push('/vendor/discovery/dash');
