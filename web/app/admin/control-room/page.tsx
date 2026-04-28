@@ -246,7 +246,7 @@ function TabVendorTiers() {
         />
         <TierCard
           tier="Signature" color="#C9A84C" badge="Recommended"
-          price="₹1,999/mo" priceNote="Monthly subscription"
+          price="₹1,499/mo" priceNote="Monthly subscription"
           features={[
             'Everything in Essential',
             'Full profile — Page 2 unlocked',
@@ -275,7 +275,7 @@ function TabVendorTiers() {
       <Card>
         <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580', margin: '0 0 12px' }}>Subscription Pricing</p>
         <PriceField label="Essential monthly" value="499" />
-        <PriceField label="Signature monthly" value="1999" />
+        <PriceField label="Signature monthly" value="1499" />
         <PriceField label="Prestige monthly" value="3999" note="Invite only. Assigned by you from admin." />
       </Card>
 
@@ -305,7 +305,7 @@ function TabPricing() {
       <Card gold>
         <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 16px' }}>Stream 1 — Vendor Subscriptions (MRR)</p>
         <PriceField label="Essential" value="499" note="/month. Baseline product." />
-        <PriceField label="Signature" value="1999" note="/month. Full SaaS layer." />
+        <PriceField label="Signature" value="1499" note="/month. Full SaaS layer." />
         <PriceField label="Prestige" value="3999" note="/month. Invite only." />
       </Card>
 

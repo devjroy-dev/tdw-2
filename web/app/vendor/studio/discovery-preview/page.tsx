@@ -136,7 +136,7 @@ export default function DiscoveryPreviewPage() {
               fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
               letterSpacing: '0.15em', color: 'rgba(248,247,245,0.4)',
               margin: '0 0 16px',
-            }}>Couples see your name only after spending a token</p>
+            }}>This is how couples discover you</p>
 
             {/* Photo navigation */}
             <div style={{ display: 'flex', gap: 10 }}>

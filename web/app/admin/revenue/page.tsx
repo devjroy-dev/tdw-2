@@ -53,7 +53,7 @@ export default function AdminRevenuePage() {
 
   const vc = data?.vendor_counts || { essential: 0, signature: 0, prestige: 0 };
   const cc = data?.couple_counts || { basic: 0, gold: 0, platinum: 0 };
-  const vendorMRR = (vc.essential * 499) + (vc.signature * 1999) + (vc.prestige * 3999);
+  const vendorMRR = (vc.essential * 499) + (vc.signature * 1499) + (vc.prestige * 3999);
 
   return (
     <>
@@ -91,7 +91,7 @@ export default function AdminRevenuePage() {
             <tbody>
               {loading ? null : [
                 { label: 'Essential', count: vc.essential, price: 499 },
-                { label: 'Signature', count: vc.signature, price: 1999 },
+                { label: 'Signature', count: vc.signature, price: 1499 },
                 { label: 'Prestige', count: vc.prestige, price: 3999 },
               ].map(row => (
                 <tr key={row.label} style={{ borderTop: '1px solid #F0EEE8' }}>

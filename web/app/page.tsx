@@ -198,6 +198,19 @@ export default function Home() {
     }
   }, [screen]);
 
+  // ── Vendor subdomain auto-routing ─────────────────────────────────────────
+  // If on vendor.thedreamwedding.in, pre-select Maker and skip to sign-in.
+  // Vendors sharing the link or refreshing mid-session land directly on the
+  // phone entry screen with the correct role already locked — no tap required.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hostname = window.location.hostname;
+    if (hostname === 'vendor.thedreamwedding.in' || hostname.startsWith('vendor.')) {
+      setRole('Maker');
+      setScreen('signin_phone');
+    }
+  }, []);
+
   const startCarousel = useCallback(() => {
     if (intervalRef.current) return; // already running — preserve slide position
     intervalRef.current = setInterval(() => setCur(c => (c + 1) % slidesRef.current.length), 4000);

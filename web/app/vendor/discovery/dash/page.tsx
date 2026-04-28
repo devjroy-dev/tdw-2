@@ -525,7 +525,7 @@ export default function DiscoveryDashPage() {
             <p style={{
               fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
               color: '#555250', margin: 0,
-            }}>After that, ₹1,999/month or Essential free.</p>
+            }}>After that, ₹1,499/month (₹1,199/month founding rate) or Essential free.</p>
           </div>
         </div>
 

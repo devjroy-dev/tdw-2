@@ -31,7 +31,7 @@ export default function SubscriptionsPage() {
       .then(d => {
         if (d.success) {
           const active = (d.data || []).filter((m: any) => m.subscription_active).map((m: any) => ({
-            id: m.id, vendor_id: m.id, vendor_name: m.name, tier: m.tier, amount: m.tier === 'prestige' ? 3999 : m.tier === 'signature' ? 1999 : 499, status: 'active', created_at: m.created_at,
+            id: m.id, vendor_id: m.id, vendor_name: m.name, tier: m.tier, amount: m.tier === 'prestige' ? 3999 : m.tier === 'signature' ? 1499 : 499, status: 'active', created_at: m.created_at,
           }));
           setSubs(active);
         }
