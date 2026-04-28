@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 
 const BACKEND = 'https://dream-wedding-production-89ae.up.railway.app';
 
-const FALLBACK_SLIDES = [
+const FALLBACK_SLIDES: string[] = [
   
   
   

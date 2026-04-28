@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
 
-const FALLBACK_SLIDES = [
+const FALLBACK_SLIDES: string[] = [
   
   
   
