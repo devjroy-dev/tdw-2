@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
 const FALLBACK_SLIDES = [
-  'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=90&fit=crop',
-  'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=90&fit=crop',
-  'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=90&fit=crop',
-  'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=1200&q=90&fit=crop',
+  
+  
+  
+  
 ];
 
 export default function VendorPinPage() {
