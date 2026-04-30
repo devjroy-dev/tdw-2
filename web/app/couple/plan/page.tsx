@@ -2359,12 +2359,6 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
       setBookingSheetOpen(true);
       return;
     }
-    // For 'paid' and others — show event picker
-    if (newStatus === 'paid' && events.length > 0) {
-      setPendingStatus(newStatus);
-      setShowEventPicker(true);
-      return;
-    }
     await commitStatusChange(newStatus, null);
   }
 
@@ -2416,14 +2410,14 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
       if (advance > 0) {
         await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Advance — ${vendor.category || 'vendor'}${eventNames.length ? ' · ' + eventNames.join(', ') : ''}`, actual_amount: advance, payment_status: 'paid', category: (vendor.category || 'other').toLowerCase(), event: eventNames[0] || 'General' }),
+          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Advance — ${vendor.category || 'vendor'}${eventNames.length ? ' · ' + eventNames.join(', ') : ''}`, actual_amount: advance, payment_status: 'paid', category: (vendor.category || 'other').toLowerCase(), event: 'General' }),
         });
       }
       const balance = total - advance;
       if (balance > 0) {
         await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Balance — ${vendor.category || 'vendor'}`, actual_amount: balance, payment_status: 'committed', due_date: balanceDueDate || null, category: (vendor.category || 'other').toLowerCase(), event: eventNames[0] || 'General' }),
+          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Balance — ${vendor.category || 'vendor'}`, actual_amount: balance, payment_status: 'committed', due_date: balanceDueDate || null, category: (vendor.category || 'other').toLowerCase(), event: 'General' }),
         });
       }
       showToast('Booked! Expenses logged in Money.');
