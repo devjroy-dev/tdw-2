@@ -536,10 +536,10 @@ export default function CirclePage() {
             actor: 'You',
             action: 'booked',
             subject: v.name || 'a Maker',
-            vendor_id: v.vendor_id || null,
-            vendor_image: null,
+            vendor_id: v.vendor_id || undefined,
+            vendor_image: undefined,
             vendor_category: v.category || null,
-            vendor_event: (v.events || []).join(', ') || null,
+            vendor_event: (v.events || []).join(', ') || undefined,
             timestamp: v.updated_at || v.created_at,
             reactions: {},
           });
