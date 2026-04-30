@@ -2938,7 +2938,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, allVendors,
             </p>
           )}
           <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>
-            {[event.task_count != null && `${event.task_count} Tasks`, event.vendor_count != null && `${event.vendor_count} Vendors`, event.guest_count != null && `${event.guest_count} Guests`].filter(Boolean).join(' • ')}
+            {[`${eventTasks.length} Tasks`, `${bookedVendors.length} Vendors`, `${eventGuests.length} Guests`].join(' • ')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, padding: '12px 20px', borderBottom: '1px solid #E2DED8' }}>
@@ -3050,7 +3050,12 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses, allVendors, refet
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
                     {ev.venue && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>{ev.venue}</p>}
                     <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#8C8480', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
-                      {[ev.task_count != null && `${ev.task_count} Tasks`, ev.vendor_count != null && `${ev.vendor_count} Vendors`, ev.guest_count != null && `${ev.guest_count} Guests`].filter(Boolean).join(' · ')}
+                      {(() => {
+                        const tCount = allTasks.filter(t => (t.events?.name || t.event_name) === ev.name).length;
+                        const vCount = allVendors.filter(v => (v.status === 'booked' || v.status === 'paid') && (v.events || []).includes(ev.name)).length;
+                        const gCount = allGuests.filter(g => (g.events || []).includes(ev.name)).length;
+                        return [tCount > 0 && `${tCount} Tasks`, vCount > 0 && `${vCount} Vendors`, gCount > 0 && `${gCount} Guests`].filter(Boolean).join(' · ') || 'No items yet';
+                      })()}
                     </p>
                   </button>
                 </div>
