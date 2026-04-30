@@ -504,10 +504,13 @@ export default function CirclePage() {
             type: 'save',
             actor: 'You',
             action: 'saved',
-            subject: save.vendor?.name || 'a Maker',
+            subject: save.vendor?.name || (() => {
+              if (save.image_url) { try { return new URL(save.image_url).hostname.replace('www.',''); } catch {} }
+              return 'Inspiration';
+            })(),
             subject_id: save.id,
             vendor_id: save.vendor_id,
-            vendor_image: save.vendor_image || save.vendor?.featured_photos?.[0] || null,
+            vendor_image: save.vendor_image || save.vendor?.featured_photos?.[0] || (save.vendor_id ? null : save.image_url) || null,
             timestamp: save.created_at,
             reactions: {},
           });
