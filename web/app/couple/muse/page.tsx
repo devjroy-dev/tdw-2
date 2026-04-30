@@ -361,6 +361,9 @@ export default function MusePage() {
               const vendorName = vendor?.name || null;
               const vendorCategory = vendor?.category || null;
               const vendorCity = vendor?.city || null;
+              // DreamAi/WhatsApp saved items — no vendor, just a URL
+              const isLinkSave = !item.vendor_id && item.vendor_image;
+              const linkDomain = isLinkSave ? (() => { try { return new URL(item.vendor_image!).hostname.replace('www.', ''); } catch { return 'Link'; } })() : null;
 
               return (
                 <div
@@ -383,7 +386,13 @@ export default function MusePage() {
                     paddingBottom: '66.66%',
                     background: '#F0EDE8',
                   }}>
-                    {image ? (
+                    {isLinkSave ? (
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F4F1EC', padding: 16 }}>
+                        <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: '#C9A84C', marginBottom: 8 }}>✦</span>
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 6px' }}>{linkDomain}</p>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#888580', margin: 0, textAlign: 'center', wordBreak: 'break-all', maxHeight: 40, overflow: 'hidden' }}>{item.vendor_image}</p>
+                      </div>
+                    ) : image ? (
                       <img
                         src={image}
                         alt={vendorName || ''}
