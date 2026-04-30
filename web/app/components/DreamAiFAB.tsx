@@ -123,6 +123,7 @@ function Modal({ onClose, userType, userId }: {
   const [msgs, setMsgs]     = useState<Msg[]>([]);
   const [input, setInput]   = useState('');
   const [busy, setBusy]     = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [ctx, setCtx]       = useState<any>(null);
   const [ctxLoading, setCtxLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -144,6 +145,41 @@ function Modal({ onClose, userType, userId }: {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, busy]);
 
   const chips = getContextChips(userType, ctx);
+
+  async function handleImageUpload(file: File) {
+    if (uploadingImage || busy) return;
+    setUploadingImage(true);
+    setMsgs(p => [...p, { role: 'user', text: '📷 Image' }]);
+    try {
+      const CLOUDINARY_CLOUD = 'dccso5ljv';
+      const CLOUDINARY_PRESET = 'dream_wedding_uploads';
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: formData });
+      const cloudJson = await cloudRes.json();
+      const imageUrl = cloudJson.secure_url;
+      if (!imageUrl) throw new Error('Upload failed');
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch(API + '/api/v2/dreamai/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId, userType, context: ctx, history: msgs.slice(-10),
+          image_base64: base64, image_media_type: file.type || 'image/jpeg',
+          message: `I sent an image. The uploaded URL is: ${imageUrl}. If it looks like a receipt or invoice, log it as an expense using add_expense. If it looks like wedding inspiration, save it to my Muse board using save_to_muse with source_url set to "${imageUrl}".`,
+        }),
+      });
+      const d = await r.json();
+      setMsgs(p => [...p, { role: 'ai', text: d.reply || 'Image processed!' }]);
+    } catch {
+      setMsgs(p => [...p, { role: 'ai', text: 'Could not process image.' }]);
+    } finally { setUploadingImage(false); }
+  }
 
   async function send(text?: string) {
     const msg = (text || input).trim();
@@ -261,6 +297,16 @@ function Modal({ onClose, userType, userId }: {
 
         {/* Input */}
         <div style={{ padding:'8px 18px 14px',display:'flex',gap:8,alignItems:'center',borderTop:'0.5px solid rgba(255,255,255,0.06)',flexShrink:0 }}>
+          {userType === 'couple' && (
+            <label style={{ flexShrink: 0, cursor: 'pointer' }}>
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
+              />
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: uploadingImage ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.07)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 16 }}>{uploadingImage ? '⏳' : '📷'}</span>
+              </div>
+            </label>
+          )}
           <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="Ask anything..." style={{ flex:1,background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:100,padding:'9px 14px',fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:300,color:'#F8F7F5',outline:'none' }} />
           <button onClick={()=>send()} disabled={!input.trim()||busy} style={{ width:38,height:38,borderRadius:'50%',border:'none',flexShrink:0,background:input.trim()&&!busy?GOLD:'rgba(255,255,255,0.07)',cursor:input.trim()&&!busy?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 150ms ease',touchAction:'manipulation' }}>
             <span style={{ fontSize:13,color:input.trim()&&!busy?'#0C0A09':'rgba(255,255,255,0.25)',lineHeight:1 }}>↑</span>
