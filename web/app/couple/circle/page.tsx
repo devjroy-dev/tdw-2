@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Heart, Share2 } from 'lucide-react';
+import { io as socketIO } from 'socket.io-client';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -654,9 +655,8 @@ export default function CirclePage() {
     loadReactions(coupleId);
     loadMessages(coupleId);
     // Connect socket
-    const { io: ioConnect } = require('socket.io-client') as any;
     try {
-      const sock = ioConnect(API, { transports: ['websocket', 'polling'] });
+      const sock = socketIO(API, { transports: ['websocket', 'polling'] });
       socketRef.current = sock;
       sock.emit('join_circle', { coupleId });
       sock.on('circle_message', (msg: CircleMessage) => {
