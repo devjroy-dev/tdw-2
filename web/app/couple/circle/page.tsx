@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Heart, Share2 } from 'lucide-react';
-import { io as socketIO } from 'socket.io-client';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -494,7 +493,6 @@ export default function CirclePage() {
   const [sendingMsg, setSendingMsg] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
-  const socketRef = React.useRef<any>(null);
 
   // Auth
   useEffect(() => {
@@ -648,22 +646,14 @@ export default function CirclePage() {
     } catch {}
   }, []);
 
-  // Socket.io for live chat
+  // Load reactions + messages, poll for new messages every 10s
   useEffect(() => {
     if (!session?.id) return;
     const coupleId = session.id;
     loadReactions(coupleId);
     loadMessages(coupleId);
-    // Connect socket
-    try {
-      const sock = socketIO(API, { transports: ['websocket', 'polling'] });
-      socketRef.current = sock;
-      sock.emit('join_circle', { coupleId });
-      sock.on('circle_message', (msg: CircleMessage) => {
-        setMessages(prev => [...prev, msg]);
-      });
-    } catch {}
-    return () => { if (socketRef.current) socketRef.current.disconnect(); };
+    const interval = setInterval(() => loadMessages(coupleId), 10000);
+    return () => clearInterval(interval);
   }, [session?.id, loadReactions, loadMessages]);
 
   const handleReact = useCallback((itemId: string, emoji: string) => {
