@@ -2303,7 +2303,7 @@ function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, events,
 }
 
 // ─── VendorDetailSheet ────────────────────────────────────────────────────────
-function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onClose, onUpdated, onDeleted }: {
+function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onClose, onUpdated, onDeleted, onMoneyRefetch }: {
   vendor: CoupleVendor;
   userId: string;
   allTasks: Task[];
@@ -2312,6 +2312,7 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
   onClose: () => void;
   onUpdated: (v: CoupleVendor) => void;
   onDeleted: (id: string) => void;
+  onMoneyRefetch: () => void;
 }) {
   const [visible, setVisible] = useState(false);
   const [notes, setNotes] = useState(vendor.notes || '');
@@ -2383,6 +2384,22 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
         body: JSON.stringify({ status: newStatus, event_id: eventId }),
       });
       onUpdated({ ...vendor, status: newStatus });
+      // When marked paid — mark all matching expenses as paid too
+      if (newStatus === 'paid' && allExpenses.length > 0) {
+        const matching = allExpenses.filter(e =>
+          e.vendor_name && vendor.name &&
+          e.vendor_name.toLowerCase().includes(vendor.name.toLowerCase().split(' ')[0]) &&
+          e.payment_status !== 'paid'
+        );
+        await Promise.all(matching.map(e =>
+          fetch(`${RAILWAY_URL}/api/couple/expenses/${e.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_status: 'paid' }),
+          })
+        ));
+        if (matching.length > 0) onMoneyRefetch();
+      }
     } catch { showToast('Could not update status'); setStatus(vendor.status); }
   }
 
@@ -2631,12 +2648,13 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
 }
 
 // ─── VendorsTab ───────────────────────────────────────────────────────────────
-function VendorsTab({ userId, allTasks, allExpenses, events, refetch }: {
+function VendorsTab({ userId, allTasks, allExpenses, events, refetch, onMoneyRefetch }: {
   userId: string;
   allTasks: Task[];
   allExpenses: Expense[];
   events: EventOption[];
   refetch: number;
+  onMoneyRefetch: () => void;
 }) {
   const [vendors, setVendors] = useState<CoupleVendor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2730,6 +2748,7 @@ function VendorsTab({ userId, allTasks, allExpenses, events, refetch }: {
           onClose={() => setSelected(null)}
           onUpdated={handleUpdated}
           onDeleted={handleDeleted}
+          onMoneyRefetch={onMoneyRefetch}
         />
       )}
     </>
@@ -3442,9 +3461,9 @@ export default function CouplePlanPage() {
     fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${uid}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setAllTasks(d); }).catch(() => {});
     fetch(`${RAILWAY_URL}/api/couple/vendors/${uid}`).then(r => r.json()).then(d => { const rows = d.data || d; if (Array.isArray(rows)) setAllVendors(rows); }).catch(() => {});
     fetch(`${RAILWAY_URL}/api/v2/couple/guests/${uid}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setAllGuests(d); }).catch(() => {});
-    fetch(`${RAILWAY_URL}/api/v2/couple/money/${uid}`).then(r => r.json()).then(d => {
-      const rows = [...(d?.thisWeek || []), ...(d?.next30 || [])];
-      setAllExpenses(rows);
+    fetch(`${RAILWAY_URL}/api/couple/expenses/${uid}`).then(r => r.json()).then(d => {
+      const rows = (d?.data || d || []) as any[];
+      setAllExpenses(rows.map((e: any) => ({ ...e, event_name: e.event || e.event_name || null, actual_amount: e.actual_amount || 0 })));
     }).catch(() => {});
     fetch(`${RAILWAY_URL}/api/v2/couple/events/${uid}`).then(r => r.json()).then(d => {
       if (Array.isArray(d)) setAllEvents(d.map((ev: any) => ({ id: ev.id, name: ev.name })));
@@ -3551,7 +3570,7 @@ export default function CouplePlanPage() {
         <div style={{ padding: '8px 16px 0' }}>
           {activeTab === 'tasks' && <TasksTab userId={userId} events={allEvents} onOpenDreamAi={openDreamAi} refetch={tasksRefetch} onExpenseAdded={() => setMoneyRefetch(n => n + 1)} />}
           {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} refetch={moneyRefetch} />}
-          {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} events={allEvents} refetch={vendorsRefetch} />}
+          {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} events={allEvents} refetch={vendorsRefetch} onMoneyRefetch={() => setMoneyRefetch(n => n + 1)} />}
           {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
           {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} allVendors={allVendors} refetch={eventsRefetch} />}
           {activeTab === 'muse' && <MuseTab userId={userId} />}
