@@ -1314,7 +1314,7 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
   );
 
   return (
-    <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+    <div>
       {/* Status filter row + DreamAi */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 6 }}>
