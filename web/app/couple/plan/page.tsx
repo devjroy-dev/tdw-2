@@ -725,6 +725,7 @@ function DreamAiSheet({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [context, setContext] = useState<object | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -773,6 +774,39 @@ function DreamAiSheet({
       setMessages(prev => [...prev, { role: 'ai', text: 'Unable to reach DreamAi.' }]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleImageUpload(file: File) {
+    if (uploadingImage || loading) return;
+    setUploadingImage(true);
+    setMessages(prev => [...prev, { role: 'user', text: '📷 Image' }]);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const mediaType = file.type || 'image/jpeg';
+      // Send to DreamAi chat with image content
+      const res = await fetch(`${RAILWAY_URL}/api/v2/dreamai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId, userType: 'couple',
+          message: 'I sent an image. Please classify it: if it looks like a receipt or invoice, use save_to_muse with a note that it is a receipt — actually log it as an expense via add_expense. If it looks like wedding inspiration (decor, fashion, makeup, venue, photography), save it to my Muse board using save_to_muse.',
+          context,
+          image_base64: base64,
+          image_media_type: mediaType,
+        }),
+      });
+      const json = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', text: json.reply || 'Image processed!' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Could not process image.' }]);
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -892,6 +926,15 @@ function DreamAiSheet({
           paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
           background: '#FFFFFF',
         }}>
+          {/* Image upload button */}
+          <label style={{ flexShrink: 0, cursor: 'pointer' }}>
+            <input type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
+            />
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: uploadingImage ? '#F4F1EC' : '#F8F7F5', border: '0.5px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 18 }}>{uploadingImage ? '⏳' : '📷'}</span>
+            </div>
+          </label>
           <input
             ref={inputRef}
             value={input}
