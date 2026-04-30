@@ -2904,7 +2904,7 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
           const shown = statuses.slice(0, 2);
           const more = statuses.length - 2;
           return (
-            <div key={guest.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', borderBottom: i < filtered.length - 1 ? '1px solid #E2DED8' : 'none' }}>
+            <div key={guest.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', borderBottom: i < filtered.length - 1 ? '1px solid #E2DED8' : 'none', position: 'relative' }}>
               {selectMode && (
                 <button onClick={() => toggleGuest(guest.id)} style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 4, border: selectedGuests.has(guest.id) ? 'none' : '1.5px solid #E2DED8', background: selectedGuests.has(guest.id) ? '#C9A84C' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>
                   {selectedGuests.has(guest.id) && <span style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1 }}>&#10003;</span>}
@@ -2920,6 +2920,7 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
                 ))}
                 {more > 0 && <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, color: '#8C8480' }}>+{more}</span>}
               </div>
+              <button onClick={async () => { if (!confirm('Remove ' + guest.name + ' from guest list?')) return; await fetch(`${RAILWAY_URL}/api/v2/couple/guests/${guest.id}`, { method: 'DELETE' }); setGuests(prev => prev.filter(g => g.id !== guest.id)); }} style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', background: 'none', border: '0.5px solid #E2DED8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', color: '#C8C4BE', fontSize: 16 }}>&#215;</button>
             </div>
           );
         })
@@ -3260,6 +3261,16 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses, allVendors, refet
   );
 }
 
+// ─── Smart Cloudinary thumbnail ──────────────────────────────────────────────
+function smartThumb(url: string, size = 400): string {
+  if (!url) return url;
+  if (url.includes('cloudinary.com')) {
+    // Insert transformation after /upload/
+    return url.replace('/upload/', `/upload/c_fill,g_auto,w_${size},h_${size},q_auto/`);
+  }
+  return url;
+}
+
 // ─── MuseTab ──────────────────────────────────────────────────────────────────
 type MuseSaveItem = {
   id: string;
@@ -3356,7 +3367,7 @@ function MuseTab({ userId }: { userId: string }) {
                     </a>
                   </div>
                 ) : img ? (
-                  <img src={img} alt={name || ''} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={smartThumb(img)} alt={name || ''} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: '#C8C4BE' }}>&#10022;</span>

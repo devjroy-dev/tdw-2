@@ -445,6 +445,14 @@ function ActivityRow({ item, onReact, onViewVendor }: {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+function smartThumb(url: string, size = 600): string {
+  if (!url) return url;
+  if (url.includes('cloudinary.com')) {
+    return url.replace('/upload/', `/upload/c_fill,g_auto,w_${size},h_${size},q_auto/`);
+  }
+  return url;
+}
+
 function VendorImageOrFallback({ imageUrl, name }: { imageUrl?: string; name: string }) {
   const [failed, setFailed] = React.useState(false);
   if (!imageUrl || failed) {
@@ -458,7 +466,7 @@ function VendorImageOrFallback({ imageUrl, name }: { imageUrl?: string; name: st
       </div>
     );
   }
-  return <img src={imageUrl} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} onError={() => setFailed(true)} />;
+  return <img src={smartThumb(imageUrl || "")} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} onError={() => setFailed(true)} />;
 }
 
 export default function CirclePage() {

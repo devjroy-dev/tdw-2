@@ -47,6 +47,14 @@ function formatINR(n?: number): string {
   return '₹' + n.toLocaleString('en-IN');
 }
 
+function smartThumb(url: string, size = 400): string {
+  if (!url) return url;
+  if (url.includes('cloudinary.com')) {
+    return url.replace('/upload/', `/upload/c_fill,g_auto,w_${size},h_${size},q_auto/`);
+  }
+  return url;
+}
+
 function getVendorImage(item: MuseItem): string {
   if (item.vendor_image) return item.vendor_image;
   if (item.vendor?.portfolio_images?.[0]) return item.vendor.portfolio_images[0];
@@ -394,7 +402,7 @@ export default function MusePage() {
                       </div>
                     ) : image ? (
                       <img
-                        src={image}
+                        src={smartThumb(image)}
                         alt={vendorName || ''}
                         style={{
                           position: 'absolute',
