@@ -1582,7 +1582,7 @@ function BudgetSetupSheet({ visible, onClose, userId, currentTotal, onSaved }: {
         .catch(() => {});
       fetch(`${RAILWAY_URL}/api/v2/couple/profile/${userId}`)
         .then(r => r.json())
-        .then(d => { if (d.wedding_date) setWeddingDate(d.wedding_date); })
+        .then(d => { const wd = d.couple?.wedding_date || d.wedding_date; if (wd) setWeddingDate(wd); })
         .catch(() => {});
     }
   }, [visible, userId, currentTotal]);
