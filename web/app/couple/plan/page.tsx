@@ -2352,8 +2352,14 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
   const handleClose = () => { setVisible(false); setTimeout(onClose, 300); };
 
   async function handleStatusChange(newStatus: string) {
-    // If setting to Booked or Paid, show event picker first
-    if ((newStatus === 'booked' || newStatus === 'paid') && events.length > 0) {
+    // For 'booked' — skip event picker, go straight to booking sheet (has its own multi-event picker)
+    if (newStatus === 'booked') {
+      setPendingBookingEventId(null);
+      setBookingSheetOpen(true);
+      return;
+    }
+    // For 'paid' and others — show event picker
+    if (newStatus === 'paid' && events.length > 0) {
       setPendingStatus(newStatus);
       setShowEventPicker(true);
       return;
