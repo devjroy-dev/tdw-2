@@ -783,6 +783,21 @@ function DreamAiSheet({
     setUploadingImage(true);
     setMessages(prev => [...prev, { role: 'user', text: '📷 Image' }]);
     try {
+      // Step 1: Upload to Cloudinary to get a permanent URL
+      const CLOUDINARY_CLOUD = 'dccso5ljv';
+      const CLOUDINARY_PRESET = 'dream_wedding_uploads';
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+        method: 'POST', body: formData,
+      });
+      const cloudJson = await cloudRes.json();
+      const imageUrl = cloudJson.secure_url;
+
+      if (!imageUrl) throw new Error('Upload failed');
+
+      // Step 2: Send URL + base64 to DreamAi for classification
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve((reader.result as string).split(',')[1]);
@@ -790,13 +805,15 @@ function DreamAiSheet({
         reader.readAsDataURL(file);
       });
       const mediaType = file.type || 'image/jpeg';
-      // Send to DreamAi chat with image content
+
       const res = await fetch(`${RAILWAY_URL}/api/v2/dreamai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId, userType: 'couple',
-          message: 'I sent an image. Please classify it: if it looks like a receipt or invoice, use save_to_muse with a note that it is a receipt — actually log it as an expense via add_expense. If it looks like wedding inspiration (decor, fashion, makeup, venue, photography), save it to my Muse board using save_to_muse.',
+          message: `I sent an image. The uploaded URL is: ${imageUrl}
+
+Please classify it: if it looks like a receipt or invoice, log it as an expense using add_expense. If it looks like wedding inspiration (decor, fashion, makeup, venue, photography), save it to my Muse board using save_to_muse with source_url set to "${imageUrl}".`,
           context,
           image_base64: base64,
           image_media_type: mediaType,
