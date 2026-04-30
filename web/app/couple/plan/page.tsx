@@ -2139,17 +2139,19 @@ function AddVendorSheet({ visible, onClose, userId, events, onSuccess }: {
 }
 
 // ─── BookingDetailSheet ───────────────────────────────────────────────────────
-function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, onConfirm }: {
+function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, events, onConfirm }: {
   visible: boolean; onClose: () => void; vendorName: string; quotedTotal: number;
-  onConfirm: (total: number, advance: number, balanceDueDate: string) => void;
+  events: EventOption[];
+  onConfirm: (total: number, advance: number, balanceDueDate: string, eventName: string) => void;
 }) {
   const [total, setTotal] = useState(quotedTotal > 0 ? String(quotedTotal) : '');
   const [advance, setAdvance] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) { setTotal(quotedTotal > 0 ? String(quotedTotal) : ''); setAdvance(''); setDueDate(''); }
+    if (visible) { setTotal(quotedTotal > 0 ? String(quotedTotal) : ''); setAdvance(''); setDueDate(''); setSelectedEvent(''); }
   }, [visible, quotedTotal]);
 
   const totalNum = Number(total) || 0;
@@ -2159,7 +2161,7 @@ function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, onConfi
   async function handleSave() {
     if (!totalNum || saving) return;
     setSaving(true);
-    await onConfirm(totalNum, advanceNum, dueDate);
+    await onConfirm(totalNum, advanceNum, dueDate, selectedEvent);
     setSaving(false);
   }
 
@@ -2204,6 +2206,20 @@ function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, onConfi
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 2px' }}>Balance due</p>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, color: '#C9A84C', margin: 0 }}>₹{balance.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+        )}
+
+        {events.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 8px' }}>Which event?</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {events.map(ev => (
+                <button key={ev.id} onClick={() => setSelectedEvent(selectedEvent === ev.name ? '' : ev.name)}
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 100, border: selectedEvent === ev.name ? 'none' : '1px solid #E2DED8', background: selectedEvent === ev.name ? '#0C0A09' : 'transparent', color: selectedEvent === ev.name ? '#F8F7F5' : '#8C8480', cursor: 'pointer', touchAction: 'manipulation' }}>
+                  {ev.name}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -2303,14 +2319,14 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
     } catch { showToast('Could not update status'); setStatus(vendor.status); }
   }
 
-  async function handleBookingConfirmed(total: number, advance: number, balanceDueDate: string) {
+  async function handleBookingConfirmed(total: number, advance: number, balanceDueDate: string, eventName: string) {
     setBookingSheetOpen(false);
     setStatus('booked');
     try {
       await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'booked', event_id: pendingBookingEventId, quoted_total: total }),
+        body: JSON.stringify({ status: 'booked', event_id: pendingBookingEventId, quoted_total: total, events: eventName ? [eventName] : [] }),
       });
       onUpdated({ ...vendor, status: 'booked', quoted_total: total });
       if (advance > 0) {
@@ -2539,6 +2555,7 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
           onClose={() => setBookingSheetOpen(false)}
           vendorName={vendor.name}
           quotedTotal={vendor.quoted_total || 0}
+          events={events}
           onConfirm={handleBookingConfirmed}
         />
       </div>
@@ -2787,7 +2804,9 @@ interface EventSheetProps {
   allTasks: Task[];
   allGuests: Guest[];
   allExpenses: Expense[];
+  allVendors: CoupleVendor[];
   onClose: () => void;
+  onEventUpdated?: (id: string, name: string, date: string, venue: string) => void;
 }
 
 // ─── TaskCardReadOnly — used inside EventDetailSheet (no actions) ─────────────
@@ -2813,9 +2832,16 @@ function TaskCardReadOnly({ task }: { task: Task }) {
 }
 
 // ─── EventDetailSheet ─────────────────────────────────────────────────────────
-function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: EventSheetProps) {
+function EventDetailSheet({ event, allTasks, allGuests, allExpenses, allVendors, onClose, onEventUpdated }: EventSheetProps) {
   const [sheetTab, setSheetTab] = useState<SheetTab>('tasks');
   const [visible, setVisible] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState(event.name || '');
+  const [editDate, setEditDate] = useState(event.date ? event.date.split('T')[0] : '');
+  const [editVenue, setEditVenue] = useState(event.venue || '');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 2500); }
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 10);
@@ -2827,9 +2853,33 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
     setTimeout(onClose, 280);
   };
 
+  async function handleSaveEdit() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/events/${event.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_name: editName, event_date: editDate || null, venue: editVenue || null }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast('Could not save'); }
+      else {
+        event.name = editName; event.date = editDate; event.venue = editVenue;
+        onEventUpdated?.(event.id, editName, editDate, editVenue);
+        showToast('Saved!'); setEditOpen(false);
+      }
+    } catch { showToast('Network error'); }
+    finally { setSaving(false); }
+  }
+
   const eventTasks = allTasks.filter(t => (t.events?.name || t.event_name) === event.name);
   const eventGuests = allGuests.filter(g => (g.events || []).includes(event.name));
   const eventExpenses = allExpenses.filter(e => e.event_name === event.name);
+  const bookedVendors = (allVendors || []).filter(v =>
+    (v.status === 'booked' || v.status === 'paid') &&
+    ((v.events || []).includes(event.name) || (v.events || []).length === 0)
+  );
 
   const sheetChipStyle = (active: boolean): React.CSSProperties => ({
     fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
@@ -2855,10 +2905,38 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E2DED8' }} />
         </div>
         <div style={{ padding: '4px 20px 16px', borderBottom: '1px solid #E2DED8' }}>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{event.name}</p>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>
-            {formatEventDateLong(event.date)}{event.venue ? ` · ${event.venue}` : ''}
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px', flex: 1 }}>{editOpen ? editName : event.name}</p>
+            <button onClick={() => setEditOpen(o => !o)} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', background: 'none', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '4px 10px', cursor: 'pointer', marginTop: 4, touchAction: 'manipulation', flexShrink: 0 }}>
+              {editOpen ? 'CANCEL' : 'EDIT'}
+            </button>
+          </div>
+          {editOpen ? (
+            <div style={{ marginBottom: 12 }}>
+              <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Event name"
+                style={{ ...fieldInput, marginBottom: 10, fontSize: 14 }}
+                onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+                onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+              />
+              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                style={{ ...fieldInput, marginBottom: 10, colorScheme: 'light' }}
+                onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+                onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+              />
+              <input value={editVenue} onChange={e => setEditVenue(e.target.value)} placeholder="Venue (optional)"
+                style={{ ...fieldInput, marginBottom: 12 }}
+                onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+                onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+              />
+              <button onClick={handleSaveEdit} disabled={saving} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F8F7F5', background: '#111111', border: 'none', borderRadius: 100, padding: '8px 20px', cursor: 'pointer', touchAction: 'manipulation' }}>
+                {saving ? '...' : 'SAVE CHANGES'}
+              </button>
+            </div>
+          ) : (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>
+              {formatEventDateLong(event.date)}{event.venue ? ` · ${event.venue}` : ''}
+            </p>
+          )}
           <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>
             {[event.task_count != null && `${event.task_count} Tasks`, event.vendor_count != null && `${event.vendor_count} Vendors`, event.guest_count != null && `${event.guest_count} Guests`].filter(Boolean).join(' • ')}
           </p>
@@ -2875,17 +2953,17 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{eventTasks.map(t => <TaskCardReadOnly key={t.id} task={t} />)}</div>
           )}
           {sheetTab === 'vendors' && (
-            eventExpenses.length === 0
-              ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No vendors linked yet.</p>
+            bookedVendors.length === 0
+              ? <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', textAlign: 'center', marginTop: 40 }}>No vendors booked yet.</p>
               : <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {eventExpenses.map((exp, i) => (
-                    <div key={exp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: i < eventExpenses.length - 1 ? '1px solid #E2DED8' : 'none' }}>
+                  {bookedVendors.map((v, i) => (
+                    <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: i < bookedVendors.length - 1 ? '1px solid #E2DED8' : 'none' }}>
                       <div>
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{exp.vendor_name || '—'}</p>
-                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{exp.purpose || ''}</p>
+                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{v.name}</p>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{v.category || ''}</p>
                       </div>
-                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px', borderRadius: 100, ...(exp.status === 'paid' ? { background: '#F4F1EC', color: '#8C8480' } : { background: '#FFF8EC', color: '#C9A84C' }) }}>
-                        {exp.status === 'paid' ? 'BOOKED' : 'ENQUIRED'}
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px', borderRadius: 100, ...(v.status === 'paid' ? { background: '#F4F1EC', color: '#8C8480' } : { background: '#0C0A09', color: '#F8F7F5' }) }}>
+                        {v.status === 'paid' ? 'PAID' : 'BOOKED'}
                       </span>
                     </div>
                   ))}
@@ -2915,12 +2993,13 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, onClose }: 
                 </div>
           )}
         </div>
+      {toast && <Toast msg={toast} />}
       </div>
     </>
   );
 }
 
-function EventsTab({ userId, allTasks, allGuests, allExpenses, refetch }: { userId: string; allTasks: Task[]; allGuests: Guest[]; allExpenses: Expense[]; refetch: number }) {
+function EventsTab({ userId, allTasks, allGuests, allExpenses, allVendors, refetch }: { userId: string; allTasks: Task[]; allGuests: Guest[]; allExpenses: Expense[]; allVendors: CoupleVendor[]; refetch: number }) {
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<WeddingEvent | null>(null);
@@ -2981,7 +3060,18 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses, refetch }: { user
         )}
       </div>
       {selectedEvent && (
-        <EventDetailSheet event={selectedEvent} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} onClose={() => setSelectedEvent(null)} />
+        <EventDetailSheet
+          event={selectedEvent}
+          allTasks={allTasks}
+          allGuests={allGuests}
+          allExpenses={allExpenses}
+          allVendors={allVendors}
+          onClose={() => setSelectedEvent(null)}
+          onEventUpdated={(id, name, date, venue) => {
+            setEvents(prev => prev.map(e => e.id === id ? { ...e, name, date, venue } : e));
+            setSelectedEvent(prev => prev ? { ...prev, name, date, venue } : prev);
+          }}
+        />
       )}
     </>
   );
@@ -3008,6 +3098,7 @@ export default function CouplePlanPage() {
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
   const [session, setSession] = useState<CoupleSession | null | undefined>(undefined);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [allVendors, setAllVendors] = useState<CoupleVendor[]>([]);
   const [allGuests, setAllGuests] = useState<Guest[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [allEvents, setAllEvents] = useState<EventOption[]>([]);
@@ -3035,6 +3126,7 @@ export default function CouplePlanPage() {
     if (!session?.id) return;
     const uid = session.id;
     fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${uid}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setAllTasks(d); }).catch(() => {});
+    fetch(`${RAILWAY_URL}/api/couple/vendors/${uid}`).then(r => r.json()).then(d => { const rows = d.data || d; if (Array.isArray(rows)) setAllVendors(rows); }).catch(() => {});
     fetch(`${RAILWAY_URL}/api/v2/couple/guests/${uid}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setAllGuests(d); }).catch(() => {});
     fetch(`${RAILWAY_URL}/api/v2/couple/money/${uid}`).then(r => r.json()).then(d => {
       const rows = [...(d?.thisWeek || []), ...(d?.next30 || [])];
@@ -3146,7 +3238,7 @@ export default function CouplePlanPage() {
           {activeTab === 'money' && <MoneyTab userId={userId} dreamerType={dreamerType} onOpenDreamAi={openDreamAi} refetch={moneyRefetch} />}
           {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} events={allEvents} refetch={vendorsRefetch} />}
           {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
-          {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} refetch={eventsRefetch} />}
+          {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} allVendors={allVendors} refetch={eventsRefetch} />}
         </div>
       </div>
 
