@@ -2378,21 +2378,38 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
         body: JSON.stringify({ status: newStatus, event_id: eventId }),
       });
       onUpdated({ ...vendor, status: newStatus });
-      // When marked paid — mark all matching expenses as paid too
-      if (newStatus === 'paid' && allExpenses.length > 0) {
+      // When marked paid — mark matching expenses paid, or create one if none exist
+      if (newStatus === 'paid') {
         const matching = allExpenses.filter(e =>
           e.vendor_name && vendor.name &&
           e.vendor_name.toLowerCase().includes(vendor.name.toLowerCase().split(' ')[0]) &&
           e.payment_status !== 'paid'
         );
-        await Promise.all(matching.map(e =>
-          fetch(`${RAILWAY_URL}/api/couple/expenses/${e.id}`, {
-            method: 'PATCH',
+        if (matching.length > 0) {
+          await Promise.all(matching.map(e =>
+            fetch(`${RAILWAY_URL}/api/couple/expenses/${e.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ payment_status: 'paid' }),
+            })
+          ));
+        } else if (vendor.quoted_total && vendor.quoted_total > 0) {
+          // No expense rows exist — create one so Money tab reflects the payment
+          await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ payment_status: 'paid' }),
-          })
-        ));
-        if (matching.length > 0) onMoneyRefetch();
+            body: JSON.stringify({
+              couple_id: userId,
+              vendor_name: vendor.name,
+              description: `${vendor.category || 'Vendor'} — full payment`,
+              actual_amount: vendor.quoted_total,
+              payment_status: 'paid',
+              category: (vendor.category || 'other').toLowerCase(),
+              event: 'General',
+            }),
+          });
+        }
+        onMoneyRefetch();
       }
     } catch { showToast('Could not update status'); setStatus(vendor.status); }
   }
