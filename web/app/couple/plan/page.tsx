@@ -1314,7 +1314,7 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
   );
 
   return (
-    <div>
+    <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
       {/* Status filter row + DreamAi */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -1526,54 +1526,219 @@ function BudgetRing({ pct, size = 48 }: { pct: number; size?: number }) {
 }
 
 // ─── Set Budget Sheet ─────────────────────────────────────────────────────────
-function SetBudgetSheet({ visible, onClose, userId, current, onSaved }: {
-  visible: boolean; onClose: () => void; userId: string; current: number; onSaved: (n: number) => void;
-}) {
-  const [val, setVal] = useState(current > 0 ? String(current) : '');
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
+// ─── Budget category defaults ─────────────────────────────────────────────────
+const DEFAULT_BUDGET_CATEGORIES = [
+  { category_key: 'venue', display_name: 'Venue', pct: 50 },
+  { category_key: 'attire', display_name: 'Attire & Jewellery', pct: 17 },
+  { category_key: 'decor', display_name: 'Decor & Florals', pct: 15 },
+  { category_key: 'photo', display_name: 'Photography & Video', pct: 10 },
+  { category_key: 'beauty', display_name: 'MUA, Hair & Mehendi', pct: 6 },
+  { category_key: 'entertainment', display_name: 'Entertainment', pct: 2 },
+  { category_key: 'invitations', display_name: 'Invitations & Stationery', pct: 1 },
+  { category_key: 'other', display_name: 'Other & Contingency', pct: 5 },
+];
 
-  useEffect(() => { if (visible) setVal(current > 0 ? String(current) : ''); }, [visible, current]);
+function getVenueTier(perPlate: number): string {
+  if (perPlate < 3000) return 'Banquet hall, basic buffet';
+  if (perPlate < 5000) return 'Mid-range hotel, mixed cuisine';
+  if (perPlate < 7500) return 'Premium hotel, multi-cuisine + live counters';
+  return 'Luxury hotel, full service';
+}
+
+function getWeddingSeason(weddingDate?: string): 'peak' | 'offseason' | 'deep_offseason' | null {
+  if (!weddingDate) return null;
+  const d = new Date(weddingDate);
+  const m = d.getMonth() + 1; const day = d.getDate();
+  if ((m === 10 && day >= 15) || m === 11 || m === 12 || m === 1 || m === 2 || m === 3 || (m === 4 && day <= 30)) return 'peak';
+  if (m === 5 || m === 6 || (m === 7 && day < 15)) return 'offseason';
+  return 'deep_offseason';
+}
+
+type BudgetCategory = {
+  category_key: string;
+  display_name: string;
+  pct: number;
+  allocated_amount: number;
+};
+
+function BudgetSetupSheet({ visible, onClose, userId, currentTotal, onSaved }: {
+  visible: boolean; onClose: () => void; userId: string; currentTotal: number; onSaved: (n: number) => void;
+}) {
+  const [step, setStep] = React.useState<'budget' | 'categories'>('budget');
+  const [totalVal, setTotalVal] = React.useState(currentTotal > 0 ? String(currentTotal) : '');
+  const [guestCount, setGuestCount] = React.useState('');
+  const [weddingDate, setWeddingDate] = React.useState('');
+  const [categories, setCategories] = React.useState<BudgetCategory[]>([]);
+  const [saving, setSaving] = React.useState(false);
+  const [toast, setToast] = React.useState('');
+
+  React.useEffect(() => {
+    if (visible) {
+      setStep('budget');
+      setTotalVal(currentTotal > 0 ? String(currentTotal) : '');
+      fetch(`${RAILWAY_URL}/api/couple/budget-categories/${userId}`)
+        .then(r => r.json())
+        .then(d => { if (d.success && d.data?.length > 0) setCategories(d.data); })
+        .catch(() => {});
+      fetch(`${RAILWAY_URL}/api/v2/couple/profile/${userId}`)
+        .then(r => r.json())
+        .then(d => { if (d.wedding_date) setWeddingDate(d.wedding_date); })
+        .catch(() => {});
+    }
+  }, [visible, userId, currentTotal]);
+
+  const total = Number(totalVal) || 0;
+  const guests = Number(guestCount) || 0;
+  const perPlate = guests > 0 ? Math.round((total * 0.50) / guests) : 0;
+  const venueTier = perPlate > 0 ? getVenueTier(perPlate) : null;
+  const season = getWeddingSeason(weddingDate);
+
+  function initCategories() {
+    if (!total) return;
+    setCategories(DEFAULT_BUDGET_CATEGORIES.map(c => ({
+      ...c,
+      allocated_amount: Math.round(total * c.pct / 100),
+    })));
+    setStep('categories');
+  }
+
+  function updatePct(key: string, pct: number) {
+    setCategories(prev => prev.map(c => c.category_key === key
+      ? { ...c, pct, allocated_amount: Math.round(total * pct / 100) } : c));
+  }
+  function updateAmount(key: string, amount: number) {
+    setCategories(prev => prev.map(c => c.category_key === key
+      ? { ...c, allocated_amount: amount, pct: total > 0 ? Math.round(amount / total * 100) : 0 } : c));
+  }
+
+  const allocatedTotal = categories.reduce((s, c) => s + c.allocated_amount, 0);
+  const overBy = allocatedTotal - total;
+  const allocationColor = overBy > 0 ? '#C9A84C' : '#3C3835';
 
   async function handleSave() {
-    if (!val || saving) return;
+    if (!total || saving) return;
     setSaving(true);
     try {
-      const res = await fetch(`${RAILWAY_URL}/api/couple/budget/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ total_budget: Number(val) }),
+      await fetch(`${RAILWAY_URL}/api/couple/budget/${userId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ total_budget: total }),
       });
-      const json = await res.json();
-      if (json.success === false) { setToast(json.error || 'Error saving'); setTimeout(() => setToast(''), 2500); }
-      else { onSaved(Number(val)); onClose(); }
+      if (categories.length > 0) {
+        await fetch(`${RAILWAY_URL}/api/couple/budget-categories/${userId}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categories }),
+        });
+      }
+      onSaved(total); onClose();
     } catch { setToast('Network error'); setTimeout(() => setToast(''), 2500); }
     finally { setSaving(false); }
   }
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(17,17,17,0.4)', opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)' }} />
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 401, background: '#FFFFFF', borderRadius: '24px 24px 0 0', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding: '20px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(17,17,17,0.4)', opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 280ms' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 401, background: '#FFFFFF', borderRadius: '24px 24px 0 0', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 20px 0', flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
         </div>
-        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 20px' }}>Set total budget</p>
-        <div style={{ position: 'relative', marginBottom: 28 }}>
-          <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 18, fontWeight: 300, color: '#888580' }}>₹</span>
-          <input
-            value={val} onChange={e => setVal(e.target.value.replace(/[^0-9]/g, ''))}
-            inputMode="numeric" placeholder="0"
-            style={{ ...fieldInput, paddingLeft: 22, fontSize: 22 }}
-            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
-            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
-          />
-        </div>
-        <div style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-          <button onClick={handleSave} disabled={!val || saving} style={submitBtn(!val || saving)}>
-            {saving ? '...' : 'SAVE BUDGET'}
-          </button>
-        </div>
+
+        {step === 'budget' ? (
+          <div style={{ padding: '16px 20px 0', overflowY: 'auto', flex: 1 }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300, color: '#111111', margin: '0 0 24px' }}>Set your budget</p>
+
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 6px' }}>Total budget</p>
+            <div style={{ position: 'relative', marginBottom: 24 }}>
+              <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 18, fontWeight: 300, color: '#888580' }}>₹</span>
+              <input value={totalVal} onChange={e => setTotalVal(e.target.value.replace(/[^0-9]/g, ''))}
+                inputMode="numeric" placeholder="0"
+                style={{ ...fieldInput, paddingLeft: 22, fontSize: 22 }}
+                onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+                onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+              />
+            </div>
+
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 6px' }}>Approximate guest count</p>
+            <input value={guestCount} onChange={e => setGuestCount(e.target.value.replace(/[^0-9]/g, ''))}
+              inputMode="numeric" placeholder="e.g. 300"
+              style={{ ...fieldInput, marginBottom: 24 }}
+              onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+              onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+            />
+
+            {perPlate > 0 && (
+              <div style={{ background: '#F4F1EC', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 4px' }}>Suggested per-plate</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>₹{perPlate.toLocaleString('en-IN')}</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>{venueTier}</p>
+              </div>
+            )}
+
+            {(season === 'offseason' || season === 'deep_offseason') && (
+              <div style={{ background: '#FFF8EC', border: '1px solid #E8D9A0', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#7A6520', margin: 0 }}>
+                  ✦ {season === 'deep_offseason' ? 'Deep off-season — significant vendor pricing flexibility expected.' : 'Off-season wedding — vendors typically offer 15–30% discounts.'}
+                </p>
+              </div>
+            )}
+
+            <div style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+              {total > 0 && (
+                <button onClick={initCategories} style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F8F7F5', background: '#111111', border: 'none', borderRadius: 100, padding: '14px 24px', cursor: 'pointer', width: '100%', touchAction: 'manipulation' }}>
+                  SET CATEGORY BUDGETS →
+                </button>
+              )}
+              <button onClick={handleSave} disabled={!total || saving} style={submitBtn(!total || saving)}>
+                {saving ? '...' : 'SAVE TOTAL ONLY'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding: '16px 20px 12px', flexShrink: 0, borderBottom: '1px solid #E2DED8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+                <button onClick={() => setStep('budget')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#888580', fontSize: 20, lineHeight: 1, touchAction: 'manipulation' }}>‹</button>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: 0 }}>Category breakdown</p>
+              </div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: allocationColor, margin: '4px 0 0 30px' }}>
+                Allocated: ₹{allocatedTotal.toLocaleString('en-IN')} / ₹{total.toLocaleString('en-IN')}
+                {overBy > 0 ? ` · ₹${overBy.toLocaleString('en-IN')} over` : overBy < 0 ? ` · ₹${Math.abs(overBy).toLocaleString('en-IN')} unallocated` : ' · balanced'}
+              </p>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
+              {categories.map(cat => (
+                <div key={cat.category_key} style={{ marginBottom: 22 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#3C3835', margin: 0 }}>{cat.display_name}</p>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input value={cat.pct} onChange={e => updatePct(cat.category_key, Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                        inputMode="numeric"
+                        style={{ width: 36, fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#3C3835', border: 'none', borderBottom: '1px solid #E2DED8', background: 'transparent', textAlign: 'center', outline: 'none', padding: '2px 0' }}
+                      />
+                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#888580' }}>%</span>
+                      <span style={{ color: '#C8C4BE', fontSize: 12 }}>|</span>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: '#888580' }}>₹</span>
+                      <input value={cat.allocated_amount} onChange={e => updateAmount(cat.category_key, Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                        inputMode="numeric"
+                        style={{ width: 76, fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#3C3835', border: 'none', borderBottom: '1px solid #E2DED8', background: 'transparent', textAlign: 'right', outline: 'none', padding: '2px 0' }}
+                      />
+                    </div>
+                  </div>
+                  <input type="range" min={0} max={80} value={cat.pct}
+                    onChange={e => updatePct(cat.category_key, Number(e.target.value))}
+                    style={{ width: '100%', accentColor: '#C9A84C', height: 4, cursor: 'pointer' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '12px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '1px solid #E2DED8', flexShrink: 0 }}>
+              <button onClick={handleSave} disabled={saving} style={submitBtn(saving)}>
+                {saving ? '...' : 'SAVE BUDGET'}
+              </button>
+            </div>
+          </>
+        )}
         {toast && <Toast msg={toast} />}
       </div>
     </>
@@ -1591,6 +1756,7 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [toast, setToast] = useState('');
+  const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
 
@@ -1599,7 +1765,9 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
     Promise.all([
       fetch(`${RAILWAY_URL}/api/v2/couple/money/${userId}`).then(r => r.json()),
       fetch(`${RAILWAY_URL}/api/couple/expenses/${userId}`).then(r => r.json()),
-    ]).then(([money, exps]) => {
+      fetch(`${RAILWAY_URL}/api/couple/budget-categories/${userId}`).then(r => r.json()).catch(() => ({ success: false })),
+    ]).then(([money, exps, cats]) => {
+      if (cats?.success && cats.data?.length > 0) setBudgetCategories(cats.data);
       setData(money);
       const rows = (exps?.data || exps || []) as Expense[];
       setAllExpenses(rows.map((e: any) => ({
@@ -1734,6 +1902,31 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
         </div>
       )}
 
+      {/* Category breakdown */}
+      {budgetCategories.length > 0 && d.totalBudget > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: '0 0 12px' }}>BY CATEGORY</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {budgetCategories.map(cat => {
+              const catSpent = allExpenses.filter(e => e.category === cat.category_key || e.bucket === cat.category_key).reduce((s, e) => s + (e.actual_amount || e.amount || 0), 0);
+              const catPct = cat.allocated_amount > 0 ? Math.min(100, (catSpent / cat.allocated_amount) * 100) : 0;
+              return (
+                <div key={cat.category_key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#3C3835', margin: 0, width: 136, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.display_name}</p>
+                  <div style={{ flex: 1, height: 4, borderRadius: 4, background: '#E2DED8', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${catPct}%`, background: catPct > 90 ? '#C9A84C' : '#0C0A09', borderRadius: 4, transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)' }} />
+                  </div>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#8C8480', margin: 0, width: 60, textAlign: 'right', flexShrink: 0 }}>{fmtINR(cat.allocated_amount)}</p>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={() => setBudgetSheetOpen(true)} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', background: 'none', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '5px 12px', cursor: 'pointer', marginTop: 10, touchAction: 'manipulation' }}>
+            EDIT CATEGORIES
+          </button>
+        </div>
+      )}
+
       {/* Upcoming payments */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1805,7 +1998,7 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
         </div>
       )}
 
-      <SetBudgetSheet visible={budgetSheetOpen} onClose={() => setBudgetSheetOpen(false)} userId={userId} current={d.totalBudget} onSaved={n => { setData(prev => prev ? { ...prev, totalBudget: n } : prev); }} />
+      <BudgetSetupSheet visible={budgetSheetOpen} onClose={() => setBudgetSheetOpen(false)} userId={userId} currentTotal={d.totalBudget} onSaved={n => { setData(prev => prev ? { ...prev, totalBudget: n } : prev); loadData(); }} />
       <Toast msg={toast} />
     </div>
   );
