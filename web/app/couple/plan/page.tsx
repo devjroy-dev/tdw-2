@@ -2252,6 +2252,8 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
   const [toast, setToast] = useState('');
   const [showEventPicker, setShowEventPicker] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
+  const [pendingBookingEventId, setPendingBookingEventId] = useState<string | null>(null);
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 2500); }
 
@@ -2290,9 +2292,14 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
   }
 
   async function commitStatusChange(newStatus: string, eventId: string | null) {
-    setStatus(newStatus);
     setShowEventPicker(false);
     setPendingStatus(null);
+    if (newStatus === 'booked') {
+      setPendingBookingEventId(eventId);
+      setBookingSheetOpen(true);
+      return;
+    }
+    setStatus(newStatus);
     try {
       await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
         method: 'PATCH',
@@ -2301,6 +2308,34 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
       });
       onUpdated({ ...vendor, status: newStatus });
     } catch { showToast('Could not update status'); setStatus(vendor.status); }
+  }
+
+  async function handleBookingConfirmed(total: number, advance: number, balanceDueDate: string) {
+    setBookingSheetOpen(false);
+    setStatus('booked');
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'booked', event_id: pendingBookingEventId, quoted_total: total }),
+      });
+      onUpdated({ ...vendor, status: 'booked', quoted_total: total });
+      if (advance > 0) {
+        await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Advance — ${vendor.category || 'vendor'}`, actual_amount: advance, payment_status: 'paid', category: (vendor.category || 'other').toLowerCase() }),
+        });
+      }
+      const balance = total - advance;
+      if (balance > 0) {
+        await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Balance — ${vendor.category || 'vendor'}`, actual_amount: balance, payment_status: 'committed', due_date: balanceDueDate || null, category: (vendor.category || 'other').toLowerCase() }),
+        });
+      }
+      showToast('Booked! Expenses logged in Money.');
+    } catch { showToast('Booked, but could not log expenses.'); }
+    setPendingBookingEventId(null);
   }
 
   async function handleSaveNotes() {
