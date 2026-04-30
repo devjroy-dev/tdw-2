@@ -1314,7 +1314,7 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
   );
 
   return (
-    <div>
+    <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
       {/* Status filter row + DreamAi */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -1740,6 +1740,13 @@ function BudgetSetupSheet({ visible, onClose, userId, currentTotal, onSaved }: {
           </>
         )}
         {toast && <Toast msg={toast} />}
+        <BookingDetailSheet
+          visible={bookingSheetOpen}
+          onClose={() => setBookingSheetOpen(false)}
+          vendorName={vendor.name}
+          quotedTotal={vendor.quoted_total || 0}
+          onConfirm={handleBookingConfirmed}
+        />
       </div>
     </>
   );
