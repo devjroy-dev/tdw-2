@@ -72,6 +72,7 @@ export default function CouplePinLoginPage() {
           id: d.userId || existing.id,
           name: d.name || existing.name || '',
           pin_set: true,
+          dreamer_type: d.dreamer_type || existing.dreamer_type || 'basic',
         };
         localStorage.setItem('couple_web_session', JSON.stringify(updated));
         localStorage.setItem('couple_session', JSON.stringify(updated));
