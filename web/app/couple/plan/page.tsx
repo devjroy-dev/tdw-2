@@ -2771,8 +2771,7 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
     setImporting(true);
     try {
       const text = await file.text();
-      const lines = text.split(/?
-/).filter(l => l.trim());
+      const lines = text.split('\n').filter(l => l.trim());
       const dataLines = lines[0]?.toLowerCase().includes('name') ? lines.slice(1) : lines;
       const rows = dataLines.map(line => {
         const parts = line.split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
