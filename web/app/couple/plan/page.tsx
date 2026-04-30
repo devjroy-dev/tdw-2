@@ -32,7 +32,7 @@ function getSession(): CoupleSession | null {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Tab = 'tasks' | 'money' | 'vendors' | 'people' | 'events';
+type Tab = 'tasks' | 'money' | 'vendors' | 'people' | 'events' | 'muse';
 
 interface Task {
   id: string;
@@ -3125,6 +3125,117 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses, allVendors, refet
   );
 }
 
+// ─── MuseTab ──────────────────────────────────────────────────────────────────
+type MuseSaveItem = {
+  id: string;
+  vendor_id?: string | null;
+  image_url?: string | null;
+  function_tag?: string;
+  created_at: string;
+  vendor?: { name?: string; category?: string; featured_photos?: string[]; portfolio_images?: string[] } | null;
+};
+
+function MuseTab({ userId }: { userId: string }) {
+  const [items, setItems] = useState<MuseSaveItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${RAILWAY_URL}/api/couple/muse/${userId}`)
+      .then(r => r.json())
+      .then(d => { setItems(d.data || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [userId]);
+
+  async function handleRemove(id: string) {
+    setRemoving(id);
+    await fetch(`${RAILWAY_URL}/api/couple/muse/${id}`, { method: 'DELETE' }).catch(() => {});
+    setItems(prev => prev.filter(i => i.id !== id));
+    setRemoving(null);
+  }
+
+  function getImage(item: MuseSaveItem): string {
+    if (!item.vendor_id && item.image_url) return '';
+    if (item.image_url) return item.image_url;
+    if (item.vendor?.featured_photos?.[0]) return item.vendor.featured_photos[0];
+    if (item.vendor?.portfolio_images?.[0]) return item.vendor.portfolio_images[0];
+    return '';
+  }
+
+  function isLink(item: MuseSaveItem): boolean {
+    return !item.vendor_id && !!item.image_url;
+  }
+
+  function getDomain(url: string): string {
+    try { return new URL(url).hostname.replace('www.', ''); } catch { return 'Link'; }
+  }
+
+  if (loading) return (
+    <div style={{ paddingTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {[0,1,2,3].map(i => <Shimmer key={i} h={160} br={12} />)}
+    </div>
+  );
+
+  if (items.length === 0) return (
+    <div style={{ textAlign: 'center', marginTop: 72 }}>
+      <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300, fontStyle: 'italic', color: '#3C3835', margin: '0 0 8px' }}>Your board is empty.</p>
+      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#8C8480', margin: '0 0 16px', lineHeight: 1.6 }}>Save vendors from Discovery, or send inspiration links to DreamAi.</p>
+      <button onClick={() => router.push('/couple/muse')} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', background: 'none', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '6px 14px', cursor: 'pointer', touchAction: 'manipulation' }}>
+        OPEN FULL MUSE BOARD
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: 0 }}>{items.length} SAVED</p>
+        <button onClick={() => router.push('/couple/muse')} style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', background: 'none', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '4px 10px', cursor: 'pointer', touchAction: 'manipulation' }}>
+          FULL BOARD
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {items.map(item => {
+          const img = getImage(item);
+          const link = isLink(item);
+          const name = item.vendor?.name || null;
+          return (
+            <div key={item.id} style={{ borderRadius: 12, overflow: 'hidden', border: '0.5px solid #E2DED8', background: '#FFFFFF', position: 'relative', opacity: removing === item.id ? 0.4 : 1, transition: 'opacity 200ms' }}>
+              <div style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F4F1EC' }}>
+                {link ? (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 12, gap: 6 }}>
+                    <span style={{ fontSize: 20 }}>&#x1F517;</span>
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888580', margin: 0, textAlign: 'center' }}>{getDomain(item.image_url!)}</p>
+                    <a href={item.image_url!} target="_blank" rel="noreferrer" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 300, color: '#C9A84C', textDecoration: 'none', textAlign: 'center', wordBreak: 'break-all', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as React.CSSProperties}>
+                      {item.image_url}
+                    </a>
+                  </div>
+                ) : img ? (
+                  <img src={img} alt={name || ''} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: '#C8C4BE' }}>&#10022;</span>
+                  </div>
+                )}
+                <button onClick={() => handleRemove(item.id)} style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', color: '#FFFFFF', fontSize: 14, lineHeight: 1 }}>
+                  &#215;
+                </button>
+              </div>
+              {name && (
+                <div style={{ padding: '8px 10px' }}>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: 300, color: '#0C0A09', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Plan Page ───────────────────────────────────────────────────────────
 
 const TABS: { key: Tab; label: string }[] = [
@@ -3133,6 +3244,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'vendors', label: 'Vendors' },
   { key: 'people', label: 'Guests' },
   { key: 'events', label: 'Events' },
+  { key: 'muse', label: 'Muse' },
 ];
 
 const NAV_ITEMS = [
@@ -3287,6 +3399,7 @@ export default function CouplePlanPage() {
           {activeTab === 'vendors' && <VendorsTab userId={userId} allTasks={allTasks} allExpenses={allExpenses} events={allEvents} refetch={vendorsRefetch} />}
           {activeTab === 'people' && <PeopleTab userId={userId} refetch={guestsRefetch} />}
           {activeTab === 'events' && <EventsTab userId={userId} allTasks={allTasks} allGuests={allGuests} allExpenses={allExpenses} allVendors={allVendors} refetch={eventsRefetch} />}
+          {activeTab === 'muse' && <MuseTab userId={userId} />}
         </div>
       </div>
 
