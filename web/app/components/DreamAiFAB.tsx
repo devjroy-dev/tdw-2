@@ -149,7 +149,7 @@ function Modal({ onClose, userType, userId }: {
   async function handleImageUpload(file: File) {
     if (uploadingImage || busy) return;
     setUploadingImage(true);
-    setMsgs(p => [...p, { role: 'user', text: '📷 Image' }]);
+    setMsgs(p => [...p, { role: 'user' as const, text: '📷 Image' }]);
     try {
       const CLOUDINARY_CLOUD = 'dccso5ljv';
       const CLOUDINARY_PRESET = 'dream_wedding_uploads';
@@ -175,9 +175,9 @@ function Modal({ onClose, userType, userId }: {
         }),
       });
       const d = await r.json();
-      setMsgs(p => [...p, { role: 'ai', text: d.reply || 'Image processed!' }]);
+      setMsgs(p => [...p, { role: 'assistant' as const, text: d.reply || 'Image processed!' }]);
     } catch {
-      setMsgs(p => [...p, { role: 'ai', text: 'Could not process image.' }]);
+      setMsgs(p => [...p, { role: 'assistant' as const, text: 'Could not process image.' }]);
     } finally { setUploadingImage(false); }
   }
 
