@@ -364,26 +364,7 @@ function ActivityRow({ item, onReact, onViewVendor }: {
                 border: '0.5px solid #E2DED8',
               }}
             >
-              {item.vendor_image ? (
-                <img
-                  src={item.vendor_image} alt=""
-                  style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling!.style.display = 'flex'; }}
-                />
-              ) : null}
-              {/* Fallback text card — shown when no image or image fails */}
-              <div style={{
-                display: item.vendor_image ? 'none' : 'flex',
-                flexDirection: 'column', padding: '14px 16px', gap: 4,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: '#C9A84C' }}>✦</span>
-                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, color: '#0C0A09', margin: 0 }}>{item.subject}</p>
-                </div>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 0 26px' }}>
-                  Saved to Muse
-                </p>
-              </div>
+              <VendorImageOrFallback imageUrl={item.vendor_image} name={item.subject} />
               {item.vendor_id && (
                 <div style={{
                   position: 'absolute', bottom: 8, right: 8,
@@ -457,6 +438,22 @@ function ActivityRow({ item, onReact, onViewVendor }: {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+function VendorImageOrFallback({ imageUrl, name }: { imageUrl?: string; name: string }) {
+  const [failed, setFailed] = React.useState(false);
+  if (!imageUrl || failed) {
+    return (
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: '#C9A84C' }}>✦</span>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, color: '#0C0A09', margin: 0 }}>{name}</p>
+        </div>
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 0 26px' }}>Saved to Muse</p>
+      </div>
+    );
+  }
+  return <img src={imageUrl} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} onError={() => setFailed(true)} />;
+}
+
 export default function CirclePage() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
