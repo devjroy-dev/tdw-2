@@ -30,6 +30,8 @@ interface ActivityItem {
   subject_id?: string;
   vendor_id?: string;
   vendor_image?: string;
+  vendor_category?: string;
+  vendor_event?: string;
   timestamp: string;
   reactions: Record<string, number>;
 }
