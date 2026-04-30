@@ -1258,15 +1258,29 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  function loadTasks() {
+  async function loadTasks(triggerSeedIfEmpty = false) {
     setLoading(true);
-    fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${userId}`)
-      .then(r => r.json())
-      .then(d => { setTasks(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => setLoading(false));
+    try {
+      const r = await fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${userId}`);
+      const d = await r.json();
+      const taskList = Array.isArray(d) ? d : [];
+      if (triggerSeedIfEmpty && taskList.length === 0) {
+        await fetch(`${RAILWAY_URL}/api/couple/checklist/seed/${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const r2 = await fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${userId}`);
+        const d2 = await r2.json();
+        setTasks(Array.isArray(d2) ? d2 : []);
+      } else {
+        setTasks(taskList);
+      }
+    } catch { }
+    finally { setLoading(false); }
   }
 
-  useEffect(() => { loadTasks(); }, [userId, refetch]);
+  useEffect(() => { loadTasks(true); }, [userId, refetch]);
 
   function handleCompleted(id: string) {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'done', is_complete: true } : t));

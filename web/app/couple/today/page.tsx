@@ -215,20 +215,20 @@ export default function TodayPage() {
       const s=getSession();
       if(!s?.id){window.location.replace('/couple/login');return;}
       setSession(s);
-      // PWA restore — only restore to PLAN-side paths, never DISCOVER paths
-      const lastPath = localStorage.getItem('couple_last_path');
-      const currentPath = window.location.pathname;
-      const VALID_PLAN_RESTORE_PATHS = [
-        '/couple/plan',
-        '/couple/me',
-        '/couple/messages',
-        '/couple/muse',
-        '/couple/bespoke',
-        '/couple/circle',
-      ];
-      if (lastPath && lastPath !== currentPath && VALID_PLAN_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
-        router.replace(lastPath);
-        return;
+      // PWA restore: only fires on fresh app launch, not in-session Today taps.
+      const isInSession = sessionStorage.getItem('couple_session_active');
+      if (!isInSession) {
+        sessionStorage.setItem('couple_session_active', '1');
+        const lastPath = localStorage.getItem('couple_last_path');
+        const currentPath = window.location.pathname;
+        const VALID_PLAN_RESTORE_PATHS = [
+          '/couple/plan', '/couple/me', '/couple/messages',
+          '/couple/muse', '/couple/bespoke', '/couple/circle',
+        ];
+        if (lastPath && lastPath !== currentPath && VALID_PLAN_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
+          router.replace(lastPath);
+          return;
+        }
       }
     } catch { window.location.replace('/couple/login'); }
   },[router]);
@@ -407,15 +407,6 @@ export default function TodayPage() {
         </div>
       </div>
 
-      {/* Bottom nav */}
-      <nav style={{ position:'fixed', bottom:0, left:0, right:0, background:'#F8F7F5', borderTop:'1px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'space-around', paddingBottom:'env(safe-area-inset-bottom)', zIndex:100 }}>
-        {[{key:'today',label:'Today',href:'/couple/today'},{key:'plan',label:'Plan',href:'/couple/plan'},{key:'bespoke',label:'Bespoke',href:'/couple/bespoke'},{key:'me',label:'Me',href:'/couple/me'}].map(item=>(
-          <a key={item.key} href={item.href} style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'12px 20px', gap:4, textDecoration:'none' }}>
-            <span style={{ fontFamily:"'Jost',sans-serif", fontSize:10, fontWeight:item.key==='today'?400:300, letterSpacing:'0.15em', textTransform:'uppercase', color:item.key==='today'?'#111':'#888580' }}>{item.label}</span>
-            {item.key==='today'&&<span style={{ width:4, height:4, borderRadius:'50%', background:'#C9A84C', display:'block' }}/>}
-          </a>
-        ))}
-      </nav>
     </>
   );
 }

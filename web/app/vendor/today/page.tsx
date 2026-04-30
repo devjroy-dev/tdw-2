@@ -852,22 +852,21 @@ export default function VendorTodayPage() {
     setSession(s);
     if (!s) return;
 
-    // PWA restore — redirect to last visited BUSINESS path if different from today.
+    // PWA restore: only fires on fresh app launch, not in-session Today taps.
     // NEVER restore to dreamai or discovery paths — those have their own mode switching.
-    const lastPath = typeof window !== 'undefined' ? localStorage.getItem('vendor_last_path') : null;
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    const VALID_BUSINESS_RESTORE_PATHS = [
-      '/vendor/clients',
-      '/vendor/money',
-      '/vendor/studio',
-      '/vendor/leads',
-      '/vendor/calendar',
-      '/vendor/settings',
-      '/vendor/collab',
-    ];
-    if (lastPath && lastPath !== currentPath && VALID_BUSINESS_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
-      router.replace(lastPath);
-      return;
+    const isInSession = sessionStorage.getItem('vendor_session_active');
+    if (!isInSession) {
+      sessionStorage.setItem('vendor_session_active', '1');
+      const lastPath = typeof window !== 'undefined' ? localStorage.getItem('vendor_last_path') : null;
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const VALID_BUSINESS_RESTORE_PATHS = [
+        '/vendor/clients', '/vendor/money', '/vendor/studio',
+        '/vendor/leads', '/vendor/calendar', '/vendor/settings', '/vendor/collab',
+      ];
+      if (lastPath && lastPath !== currentPath && VALID_BUSINESS_RESTORE_PATHS.some(p => lastPath.startsWith(p))) {
+        router.replace(lastPath);
+        return;
+      }
     }
 
     // Fetch vendor profile to get name if missing in session
