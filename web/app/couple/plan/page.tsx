@@ -2145,6 +2145,93 @@ function AddVendorSheet({ visible, onClose, userId, events, onSuccess }: {
   );
 }
 
+// ─── BookingDetailSheet ───────────────────────────────────────────────────────
+function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, onConfirm }: {
+  visible: boolean; onClose: () => void; vendorName: string; quotedTotal: number;
+  onConfirm: (total: number, advance: number, balanceDueDate: string) => void;
+}) {
+  const [total, setTotal] = useState(quotedTotal > 0 ? String(quotedTotal) : '');
+  const [advance, setAdvance] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) { setTotal(quotedTotal > 0 ? String(quotedTotal) : ''); setAdvance(''); setDueDate(''); }
+  }, [visible, quotedTotal]);
+
+  const totalNum = Number(total) || 0;
+  const advanceNum = Math.min(Number(advance) || 0, totalNum);
+  const balance = totalNum - advanceNum;
+
+  async function handleSave() {
+    if (!totalNum || saving) return;
+    setSaving(true);
+    await onConfirm(totalNum, advanceNum, dueDate);
+    setSaving(false);
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(17,17,17,0.4)', opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 280ms' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 501, background: '#FFFFFF', borderRadius: '24px 24px 0 0', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding: '16px 20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
+        </div>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 4px' }}>Booking {vendorName}</p>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '0 0 24px' }}>Log the financials — we'll add them to Money automatically.</p>
+
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 6px' }}>Total contract amount *</p>
+        <div style={{ position: 'relative', marginBottom: 20 }}>
+          <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 300, color: '#888580' }}>₹</span>
+          <input value={total} onChange={e => setTotal(e.target.value.replace(/[^0-9]/g, ''))}
+            inputMode="numeric" placeholder="0"
+            style={{ ...fieldInput, paddingLeft: 18, fontSize: 18 }}
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 6px' }}>Advance paid</p>
+        <div style={{ position: 'relative', marginBottom: 20 }}>
+          <span style={{ position: 'absolute', bottom: 13, left: 4, fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 300, color: '#888580' }}>₹</span>
+          <input value={advance} onChange={e => setAdvance(e.target.value.replace(/[^0-9]/g, ''))}
+            inputMode="numeric" placeholder="0"
+            style={{ ...fieldInput, paddingLeft: 18 }}
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+
+        {totalNum > 0 && (
+          <div style={{ background: '#F4F1EC', borderRadius: 10, padding: '10px 14px', marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 2px' }}>Advance</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, color: '#3C3835', margin: 0 }}>₹{advanceNum.toLocaleString('en-IN')}</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 2px' }}>Balance due</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, color: '#C9A84C', margin: 0 }}>₹{balance.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+        )}
+
+        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 6px' }}>Balance due date</p>
+        <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+          style={{ ...fieldInput, marginBottom: 28, colorScheme: 'light' }}
+          onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+          onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+        />
+
+        <div style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <button onClick={handleSave} disabled={!totalNum || saving} style={submitBtn(!totalNum || saving)}>
+            {saving ? '...' : 'CONFIRM BOOKING'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── VendorDetailSheet ────────────────────────────────────────────────────────
 function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onClose, onUpdated, onDeleted }: {
   vendor: CoupleVendor;
