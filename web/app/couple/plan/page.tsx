@@ -3174,8 +3174,14 @@ function MuseTab({ userId }: { userId: string }) {
     setRemoving(null);
   }
 
+  function isDirectImage(url: string): boolean {
+    return url.includes('cloudinary.com') || /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(url);
+  }
+
   function getImage(item: MuseSaveItem): string {
-    if (!item.vendor_id && item.image_url) return '';
+    if (!item.vendor_id && item.image_url) {
+      return isDirectImage(item.image_url) ? item.image_url : '';
+    }
     if (item.image_url) return item.image_url;
     if (item.vendor?.featured_photos?.[0]) return item.vendor.featured_photos[0];
     if (item.vendor?.portfolio_images?.[0]) return item.vendor.portfolio_images[0];
@@ -3183,8 +3189,10 @@ function MuseTab({ userId }: { userId: string }) {
   }
 
   function isLink(item: MuseSaveItem): boolean {
-    return !item.vendor_id && !!item.image_url;
+    if (!item.vendor_id && item.image_url) return !isDirectImage(item.image_url);
+    return false;
   }
+
 
   function getDomain(url: string): string {
     try { return new URL(url).hostname.replace('www.', ''); } catch { return 'Link'; }
@@ -3336,6 +3344,7 @@ export default function CouplePlanPage() {
     else if (activeTab === 'vendors') setVendorSheetOpen(true);
     else if (activeTab === 'people') setGuestSheetOpen(true);
     else if (activeTab === 'events') setEventSheetOpen(true);
+    else if (activeTab === 'muse') openDreamAi('Save this to my Muse board: ');
   }
 
   return (

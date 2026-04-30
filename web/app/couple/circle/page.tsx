@@ -343,6 +343,11 @@ function ActivityRow({ item, onReact, onViewVendor }: {
             <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 300 }}>
               {item.subject}
             </span>
+            {(item.vendor_category || item.vendor_event) && (
+              <span style={{ fontWeight: 300, color: '#888580' }}>
+                {item.vendor_event ? ` · ${item.vendor_event}` : ''}{item.vendor_category ? ` · ${item.vendor_category}` : ''}
+              </span>
+            )}
           </p>
 
           {/* Timestamp */}
