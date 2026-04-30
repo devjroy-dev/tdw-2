@@ -2820,6 +2820,11 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
           const more = statuses.length - 2;
           return (
             <div key={guest.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', borderBottom: i < filtered.length - 1 ? '1px solid #E2DED8' : 'none' }}>
+              {selectMode && (
+                <button onClick={() => toggleGuest(guest.id)} style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 4, border: selectedGuests.has(guest.id) ? 'none' : '1.5px solid #E2DED8', background: selectedGuests.has(guest.id) ? '#C9A84C' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>
+                  {selectedGuests.has(guest.id) && <span style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1 }}>&#10003;</span>}
+                </button>
+              )}
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4F1EC', border: '1px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 400, color: '#8C8480' }}>{initials(guest.name)}</span>
               </div>
@@ -2834,6 +2839,27 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
           );
         })
       )}
+      {/* Broadcast Sheet */}
+      <>
+        <div onClick={() => setBroadcastOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(17,17,17,0.4)', opacity: broadcastOpen ? 1 : 0, pointerEvents: broadcastOpen ? 'auto' : 'none', transition: 'opacity 280ms' }} />
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 401, background: '#FFFFFF', borderRadius: '24px 24px 0 0', transform: broadcastOpen ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding: '16px 20px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}><div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} /></div>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 4px' }}>Broadcast via WhatsApp</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '0 0 16px' }}>
+            {selectMode && selectedGuests.size > 0 ? `Sending to ${selectedGuests.size} selected guests` : `Sending to all ${guests.filter((g: Guest) => g.phone).length} guests with phones`}
+          </p>
+          <textarea value={broadcastText} onChange={e => setBroadcastText(e.target.value)}
+            placeholder="Hi there! Just a reminder — our wedding is on June 14th. Please confirm attendance."
+            rows={5}
+            style={{ width: '100%', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111111', border: '0.5px solid #E2DED8', borderRadius: 12, padding: '12px 14px', outline: 'none', resize: 'none', boxSizing: 'border-box' as const, background: '#F8F7F5', lineHeight: 1.6, marginBottom: 16 }}
+          />
+          <div style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+            <button onClick={handleBroadcast} disabled={!broadcastText.trim() || sending} style={submitBtn(!broadcastText.trim() || sending)}>
+              {sending ? 'SENDING...' : 'SEND BROADCAST'}
+            </button>
+          </div>
+        </div>
+      </>
     </div>
   );
 }
