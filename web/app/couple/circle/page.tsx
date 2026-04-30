@@ -36,6 +36,16 @@ interface ActivityItem {
   reactions: Record<string, number>;
 }
 
+interface CircleMessage {
+  id: string;
+  couple_id: string;
+  sender_user_id?: string;
+  sender_name: string;
+  sender_role: string;
+  content: string;
+  created_at: string;
+}
+
 const ROLE_LABELS: Record<string, string> = {
   partner: 'Partner',
   family: 'Family',
@@ -478,6 +488,12 @@ export default function CirclePage() {
   const [activityLoading, setActivityLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ code: string; link: string; name: string } | null>(null);
+  const [messages, setMessages] = useState<CircleMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+  const socketRef = React.useRef<any>(null);
 
   // Auth
   useEffect(() => {
@@ -603,14 +619,95 @@ export default function CirclePage() {
     }
   }, [session, loadMembers, loadActivity]);
 
+  // Load reactions and merge into activity
+  const loadReactions = React.useCallback(async (uid: string) => {
+    try {
+      const res = await fetch(`${API}/api/circle/reactions/${uid}`);
+      const json = await res.json();
+      if (json.success && json.data.length > 0) {
+        const reactionMap: Record<string, Record<string, number>> = {};
+        for (const r of json.data) {
+          if (!reactionMap[r.item_id]) reactionMap[r.item_id] = {};
+          reactionMap[r.item_id][r.emoji] = (reactionMap[r.item_id][r.emoji] || 0) + 1;
+        }
+        setActivity(prev => prev.map(item => ({
+          ...item,
+          reactions: reactionMap[item.id] || item.reactions,
+        })));
+      }
+    } catch {}
+  }, []);
+
+  // Load circle messages
+  const loadMessages = React.useCallback(async (uid: string) => {
+    try {
+      const res = await fetch(`${API}/api/circle/messages/${uid}`);
+      const json = await res.json();
+      if (json.success) setMessages(json.data || []);
+    } catch {}
+  }, []);
+
+  // Socket.io for live chat
+  useEffect(() => {
+    if (!session?.id) return;
+    const coupleId = session.id;
+    loadReactions(coupleId);
+    loadMessages(coupleId);
+    // Connect socket
+    const { io: ioConnect } = require('socket.io-client') as any;
+    try {
+      const sock = ioConnect(API, { transports: ['websocket', 'polling'] });
+      socketRef.current = sock;
+      sock.emit('join_circle', { coupleId });
+      sock.on('circle_message', (msg: CircleMessage) => {
+        setMessages(prev => [...prev, msg]);
+      });
+    } catch {}
+    return () => { if (socketRef.current) socketRef.current.disconnect(); };
+  }, [session?.id, loadReactions, loadMessages]);
+
   const handleReact = useCallback((itemId: string, emoji: string) => {
+    // Optimistic update
     setActivity(prev => prev.map(item => {
       if (item.id !== itemId) return item;
       const reactions = { ...item.reactions };
       reactions[emoji] = (reactions[emoji] || 0) + 1;
       return { ...item, reactions };
     }));
-  }, []);
+    // Persist
+    if (session?.id) {
+      fetch(`${API}/api/circle/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: session.id, item_id: itemId, emoji, actor_name: session.name || 'You' }),
+      }).catch(() => {});
+    }
+  }, [session]);
+
+  async function sendMessage() {
+    if (!chatInput.trim() || !session?.id || sendingMsg) return;
+    setSendingMsg(true);
+    const optimistic: CircleMessage = {
+      id: `temp-${Date.now()}`,
+      couple_id: session.id,
+      sender_user_id: session.id,
+      sender_name: session.name || 'You',
+      sender_role: 'partner',
+      content: chatInput.trim(),
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimistic]);
+    const text = chatInput.trim();
+    setChatInput('');
+    try {
+      await fetch(`${API}/api/circle/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: session.id, sender_user_id: session.id, sender_name: session.name || 'You', sender_role: 'partner', content: text }),
+      });
+    } catch {}
+    setSendingMsg(false);
+  }
 
   const handleRemoveMember = async (inviteId: string) => {
     if (!session?.id) return;
@@ -834,6 +931,106 @@ export default function CirclePage() {
           }}
         />
       )}
+
+      {/* ── Circle Chat ─────────────────────────────────────── */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        background: '#FFFFFF', borderTop: '0.5px solid #E2DED8',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.06)',
+      }}>
+        {/* Chat toggle bar */}
+        <button
+          onClick={() => { setShowChat(v => !v); setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }}
+          style={{
+            width: '100%', background: 'none', border: 'none', padding: '12px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer', touchAction: 'manipulation',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888580' }}>
+              Circle Chat
+            </span>
+            {messages.length > 0 && (
+              <span style={{ background: '#C9A84C', color: '#FFFFFF', borderRadius: 20, padding: '1px 7px', fontSize: 9, fontFamily: "'DM Sans',sans-serif" }}>
+                {messages.length}
+              </span>
+            )}
+          </div>
+          <span style={{ color: '#C8C4BE', fontSize: 12 }}>{showChat ? '▼' : '▲'}</span>
+        </button>
+
+        {/* Chat panel */}
+        {showChat && (
+          <div>
+            {/* Messages */}
+            <div style={{ maxHeight: 280, overflowY: 'auto', padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {messages.length === 0 ? (
+                <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 300, fontStyle: 'italic', color: '#C8C4BE', textAlign: 'center', margin: '16px 0' }}>
+                  Start the conversation.
+                </p>
+              ) : messages.map(msg => {
+                const isMe = msg.sender_user_id === session?.id;
+                return (
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                    {!isMe && (
+                      <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C8C4BE', margin: '0 0 3px 4px' }}>
+                        {msg.sender_name}
+                      </p>
+                    )}
+                    <div style={{
+                      background: isMe ? '#111111' : '#F4F1EC',
+                      color: isMe ? '#F8F7F5' : '#111111',
+                      borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                      padding: '9px 14px', maxWidth: '80%',
+                      fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 300, lineHeight: 1.5,
+                    }}>
+                      {msg.content}
+                    </div>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: '#C8C4BE', margin: '3px 4px 0' }}>
+                      {timeAgo(msg.created_at)}
+                    </p>
+                  </div>
+                );
+              })}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ display: 'flex', gap: 8, padding: '8px 16px 16px', borderTop: '0.5px solid #F0EDE8' }}>
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder="Message your circle..."
+                style={{
+                  flex: 1, background: '#F8F7F5', border: '0.5px solid #E2DED8',
+                  borderRadius: 24, padding: '10px 16px',
+                  fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 300, color: '#111111',
+                  outline: 'none',
+                }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!chatInput.trim() || sendingMsg}
+                style={{
+                  background: chatInput.trim() ? '#111111' : '#F0EDE8',
+                  color: chatInput.trim() ? '#F8F7F5' : '#C8C4BE',
+                  border: 'none', borderRadius: '50%', width: 42, height: 42,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: chatInput.trim() ? 'pointer' : 'default', flexShrink: 0,
+                  fontSize: 16, touchAction: 'manipulation', transition: 'background 200ms',
+                }}
+              >
+                ↑
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Spacer so content isn't hidden behind chat bar */}
+      <div style={{ height: showChat ? 400 : 56 }} />
 
       {/* Invite link sheet */}
       {inviteResult && (
