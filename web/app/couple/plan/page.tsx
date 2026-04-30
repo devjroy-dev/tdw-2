@@ -2756,6 +2756,63 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeEvent, setActiveEvent] = useState('all');
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
+  const [selectedGuests, setSelectedGuests] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastText, setBroadcastText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  function showMsg(m: string) { setImportMsg(m); setTimeout(() => setImportMsg(''), 3000); }
+
+  async function handleCSVImport(file: File) {
+    if (importing) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const lines = text.split(/?
+/).filter(l => l.trim());
+      const dataLines = lines[0]?.toLowerCase().includes('name') ? lines.slice(1) : lines;
+      const rows = dataLines.map(line => {
+        const parts = line.split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
+        return { name: parts[0] || '', phone: parts[1] || '', side: (parts[2] || 'bride').toLowerCase() };
+      }).filter(r => r.name);
+      if (rows.length === 0) { showMsg('No valid rows. Format: Name, Phone, Side'); return; }
+      const res = await fetch(`${RAILWAY_URL}/api/v2/couple/guests/bulk`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: userId, guests: rows }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showMsg(`Added ${json.added} guests${json.skipped > 0 ? `, ${json.skipped} skipped` : ''}`);
+        fetch(`${RAILWAY_URL}/api/v2/couple/guests/${userId}`).then(r => r.json()).then(d => { if (Array.isArray(d)) setGuests(d); });
+      } else { showMsg(json.error || 'Import failed'); }
+    } catch { showMsg('Import failed'); }
+    finally { setImporting(false); }
+  }
+
+  async function handleBroadcast() {
+    if (!broadcastText.trim() || sending) return;
+    setSending(true);
+    try {
+      const ids = selectMode && selectedGuests.size > 0 ? Array.from(selectedGuests) : [];
+      const res = await fetch(`${RAILWAY_URL}/api/v2/couple/guests/broadcast`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: userId, guest_ids: ids, message: broadcastText }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showMsg(`Sent to ${json.sent} guests${json.failed > 0 ? `, ${json.failed} failed` : ''}`);
+        setBroadcastOpen(false); setBroadcastText(''); setSelectedGuests(new Set()); setSelectMode(false);
+      } else { showMsg(json.error || 'Failed to send'); }
+    } catch { showMsg('Network error'); }
+    finally { setSending(false); }
+  }
+
+  function toggleGuest(id: string) {
+    setSelectedGuests(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -2787,6 +2844,35 @@ function PeopleTab({ userId, refetch }: { userId: string; refetch: number }) {
 
   return (
     <div>
+      {/* CSV Import + Select + Broadcast */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <label style={{ cursor: 'pointer' }}>
+          <input type="file" accept=".csv,text/csv" style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleCSVImport(f); e.target.value = ''; }}
+          />
+          <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: importing ? '#C9A84C' : '#888580', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '5px 12px', cursor: 'pointer' }}>
+            {importing ? 'IMPORTING...' : '↑ IMPORT CSV'}
+          </div>
+        </label>
+        <button onClick={() => { setSelectMode(s => !s); setSelectedGuests(new Set()); }}
+          style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: selectMode ? '#F8F7F5' : '#888580', background: selectMode ? '#0C0A09' : 'none', border: selectMode ? 'none' : '0.5px solid #E2DED8', borderRadius: 100, padding: '5px 12px', cursor: 'pointer', touchAction: 'manipulation' }}>
+          {selectMode ? `✓ ${selectedGuests.size} SELECTED` : 'SELECT'}
+        </button>
+        {selectMode && (
+          <>
+            <button onClick={() => setSelectedGuests(selectedGuests.size === guests.length ? new Set() : new Set(guests.map(g => g.id)))}
+              style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', background: 'none', border: '0.5px solid #E2DED8', borderRadius: 100, padding: '5px 12px', cursor: 'pointer', touchAction: 'manipulation' }}>
+              {selectedGuests.size === guests.length ? 'DESELECT ALL' : 'SELECT ALL'}
+            </button>
+            <button onClick={() => setBroadcastOpen(true)}
+              style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#F8F7F5', background: '#C9A84C', border: 'none', borderRadius: 100, padding: '5px 12px', cursor: 'pointer', touchAction: 'manipulation' }}>
+              BROADCAST
+            </button>
+          </>
+        )}
+      </div>
+      {importMsg && <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#3C3835', background: '#F4F1EC', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>{importMsg}</div>}
+
       <div style={{ background: '#F4F1EC', border: '1px solid #E2DED8', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-around', marginBottom: 16 }}>
         {[{ label: 'Total', val: guests.length }, { label: 'Confirmed', val: confirmed }, { label: 'Pending', val: pending }].map(s => (
           <div key={s.label} style={{ textAlign: 'center' }}>
