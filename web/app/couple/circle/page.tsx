@@ -353,17 +353,37 @@ function ActivityRow({ item, onReact, onViewVendor }: {
             {timeAgo(item.timestamp)}
           </p>
 
-          {/* Vendor image if available */}
-          {item.vendor_image && (
+          {/* Vendor card */}
+          {item.type === 'save' && (
             <div
               onClick={() => item.vendor_id && onViewVendor(item.vendor_id)}
               style={{
-                width: '100%', height: 120, borderRadius: 8, overflow: 'hidden',
+                width: '100%', borderRadius: 8, overflow: 'hidden',
                 marginBottom: 10, cursor: item.vendor_id ? 'pointer' : 'default',
-                position: 'relative',
+                position: 'relative', background: '#F4F1EC',
+                border: '0.5px solid #E2DED8',
               }}
             >
-              <img src={item.vendor_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {item.vendor_image ? (
+                <img
+                  src={item.vendor_image} alt=""
+                  style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling!.style.display = 'flex'; }}
+                />
+              ) : null}
+              {/* Fallback text card — shown when no image or image fails */}
+              <div style={{
+                display: item.vendor_image ? 'none' : 'flex',
+                flexDirection: 'column', padding: '14px 16px', gap: 4,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: '#C9A84C' }}>✦</span>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, color: '#0C0A09', margin: 0 }}>{item.subject}</p>
+                </div>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 0 26px' }}>
+                  Saved to Muse
+                </p>
+              </div>
               {item.vendor_id && (
                 <div style={{
                   position: 'absolute', bottom: 8, right: 8,
@@ -376,6 +396,17 @@ function ActivityRow({ item, onReact, onViewVendor }: {
                 }}>
                   View
                 </div>
+              )}
+            </div>
+          )}
+          {item.type === 'enquiry' && item.vendor_image && (
+            <div
+              onClick={() => item.vendor_id && onViewVendor(item.vendor_id)}
+              style={{ width: '100%', height: 120, borderRadius: 8, overflow: 'hidden', marginBottom: 10, cursor: item.vendor_id ? 'pointer' : 'default', position: 'relative' }}
+            >
+              <img src={item.vendor_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {item.vendor_id && (
+                <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(17,17,17,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderRadius: 20, padding: '4px 10px', fontFamily: "'Jost',sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: 'rgba(248,247,245,0.9)' }}>View</div>
               )}
             </div>
           )}
