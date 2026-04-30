@@ -2639,7 +2639,7 @@ function VendorsTab({ userId, allTasks, allExpenses, events, refetch }: {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
-                      {[v.category, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
+                      {[v.category, (v.events || [])[0] || null, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   {/* Status pill */}
@@ -2878,7 +2878,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, allVendors,
   const eventExpenses = allExpenses.filter(e => e.event_name === event.name);
   const bookedVendors = (allVendors || []).filter(v =>
     (v.status === 'booked' || v.status === 'paid') &&
-    ((v.events || []).includes(event.name) || (v.events || []).length === 0)
+    (v.events || []).includes(event.name)
   );
 
   const sheetChipStyle = (active: boolean): React.CSSProperties => ({
