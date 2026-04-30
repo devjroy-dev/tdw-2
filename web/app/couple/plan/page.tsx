@@ -2203,16 +2203,16 @@ function AddVendorSheet({ visible, onClose, userId, events, onSuccess }: {
 function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, events, onConfirm }: {
   visible: boolean; onClose: () => void; vendorName: string; quotedTotal: number;
   events: EventOption[];
-  onConfirm: (total: number, advance: number, balanceDueDate: string, eventName: string) => void;
+  onConfirm: (total: number, advance: number, balanceDueDate: string, eventNames: string[]) => void;
 }) {
   const [total, setTotal] = useState(quotedTotal > 0 ? String(quotedTotal) : '');
   const [advance, setAdvance] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [selectedEvent, setSelectedEvent] = useState('');
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) { setTotal(quotedTotal > 0 ? String(quotedTotal) : ''); setAdvance(''); setDueDate(''); setSelectedEvent(''); }
+    if (visible) { setTotal(quotedTotal > 0 ? String(quotedTotal) : ''); setAdvance(''); setDueDate(''); setSelectedEvents([]); }
   }, [visible, quotedTotal]);
 
   const totalNum = Number(total) || 0;
@@ -2222,7 +2222,7 @@ function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, events,
   async function handleSave() {
     if (!totalNum || saving) return;
     setSaving(true);
-    await onConfirm(totalNum, advanceNum, dueDate, selectedEvent);
+    await onConfirm(totalNum, advanceNum, dueDate, selectedEvents);
     setSaving(false);
   }
 
@@ -2276,8 +2276,8 @@ function BookingDetailSheet({ visible, onClose, vendorName, quotedTotal, events,
             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', margin: '0 0 8px' }}>Which event?</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {events.map(ev => (
-                <button key={ev.id} onClick={() => setSelectedEvent(selectedEvent === ev.name ? '' : ev.name)}
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 100, border: selectedEvent === ev.name ? 'none' : '1px solid #E2DED8', background: selectedEvent === ev.name ? '#0C0A09' : 'transparent', color: selectedEvent === ev.name ? '#F8F7F5' : '#8C8480', cursor: 'pointer', touchAction: 'manipulation' }}>
+                <button key={ev.id} onClick={() => setSelectedEvents(prev => prev.includes(ev.name) ? prev.filter(e => e !== ev.name) : [...prev, ev.name])}
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 100, border: selectedEvents.includes(ev.name) ? 'none' : '1px solid #E2DED8', background: selectedEvents.includes(ev.name) ? '#0C0A09' : 'transparent', color: selectedEvents.includes(ev.name) ? '#F8F7F5' : '#8C8480', cursor: 'pointer', touchAction: 'manipulation' }}>
                   {ev.name}
                 </button>
               ))}
@@ -2380,20 +2380,20 @@ function VendorDetailSheet({ vendor, userId, allTasks, allExpenses, events, onCl
     } catch { showToast('Could not update status'); setStatus(vendor.status); }
   }
 
-  async function handleBookingConfirmed(total: number, advance: number, balanceDueDate: string, eventName: string) {
+  async function handleBookingConfirmed(total: number, advance: number, balanceDueDate: string, eventNames: string[]) {
     setBookingSheetOpen(false);
     setStatus('booked');
     try {
       await fetch(`${RAILWAY_URL}/api/couple/vendors/${vendor.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'booked', event_id: pendingBookingEventId, quoted_total: total, events: eventName ? [eventName] : [] }),
+        body: JSON.stringify({ status: 'booked', event_id: pendingBookingEventId, quoted_total: total, events: eventNames || [] }),
       });
       onUpdated({ ...vendor, status: 'booked', quoted_total: total });
       if (advance > 0) {
         await fetch(`${RAILWAY_URL}/api/couple/expenses`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Advance — ${vendor.category || 'vendor'}`, actual_amount: advance, payment_status: 'paid', category: (vendor.category || 'other').toLowerCase() }),
+          body: JSON.stringify({ couple_id: userId, vendor_name: vendor.name, description: `Advance — ${vendor.category || 'vendor'}${eventNames.length ? ' · ' + eventNames.join(', ') : ''}`, actual_amount: advance, payment_status: 'paid', category: (vendor.category || 'other').toLowerCase() }),
         });
       }
       const balance = total - advance;
@@ -2700,7 +2700,7 @@ function VendorsTab({ userId, allTasks, allExpenses, events, refetch }: {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
-                      {[v.category, (v.events || [])[0] || null, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
+                      {[v.category, (v.events || []).length > 0 ? (v.events || []).join(', ') : null, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   {/* Status pill */}
