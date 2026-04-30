@@ -314,8 +314,8 @@ function ActivityRow({ item, onReact, onViewVendor }: {
 }) {
   const [showReactions, setShowReactions] = useState(false);
 
-  const typeIcon = item.type === 'save' ? '♥' : item.type === 'enquiry' ? '✉' : '✦';
-  const typeColor = item.type === 'save' ? '#C9A84C' : item.type === 'enquiry' ? '#555250' : '#888580';
+  const typeIcon = item.action === 'booked' ? '✓' : item.type === 'save' ? '♥' : item.type === 'enquiry' ? '✉' : '✦';
+  const typeColor = item.action === 'booked' ? '#0C0A09' : item.type === 'save' ? '#C9A84C' : item.type === 'enquiry' ? '#555250' : '#888580';
 
   return (
     <div style={{
@@ -495,15 +495,16 @@ export default function CirclePage() {
   // Build activity feed from moodboard_items + vendor_enquiries + co_planners
   const loadActivity = useCallback(async (uid: string) => {
     try {
-      const [museSaves, enquiries, coplanners] = await Promise.all([
+      const [museSaves, enquiries, coplanners, bookedVendors] = await Promise.all([
         fetch(`${API}/api/couple/muse/${uid}`).then(r => r.json()),
         fetch(`${API}/api/enquiries/couple/${uid}`).then(r => r.json()),
         fetch(`${API}/api/co-planner/list/${uid}`).then(r => r.json()),
+        fetch(`${API}/api/couple/vendors/${uid}`).then(r => r.json()).catch(() => ({ success: false })),
       ]);
 
       const items: ActivityItem[] = [];
 
-      // Muse saves
+      // Muse saves (inspiration board)
       if (museSaves.success) {
         for (const save of (museSaves.data || []).slice(0, 10)) {
           items.push({
@@ -518,7 +519,28 @@ export default function CirclePage() {
             subject_id: save.id,
             vendor_id: save.vendor_id,
             vendor_image: save.vendor_image || save.vendor?.featured_photos?.[0] || (save.vendor_id ? null : save.image_url) || null,
+            vendor_category: save.vendor?.category || null,
             timestamp: save.created_at,
+            reactions: {},
+          });
+        }
+      }
+
+      // Booked vendors from couple_vendors
+      const vendorRows = bookedVendors?.data || bookedVendors || [];
+      if (Array.isArray(vendorRows)) {
+        for (const v of vendorRows.filter((v: any) => v.status === 'booked' || v.status === 'paid').slice(0, 10)) {
+          items.push({
+            id: `vendor-${v.id}`,
+            type: 'save',
+            actor: 'You',
+            action: 'booked',
+            subject: v.name || 'a Maker',
+            vendor_id: v.vendor_id || null,
+            vendor_image: null,
+            vendor_category: v.category || null,
+            vendor_event: (v.events || []).join(', ') || null,
+            timestamp: v.updated_at || v.created_at,
             reactions: {},
           });
         }
