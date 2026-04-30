@@ -579,9 +579,44 @@ function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
   const [category, setCategory] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [toast, setToast] = useState('');
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  async function handleScanReceipt(file: File) {
+    if (scanning) return;
+    setScanning(true);
+    showToast('Reading receipt...');
+    try {
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const mediaType = file.type || 'image/jpeg';
+      const res = await fetch(`${RAILWAY_URL}/api/v2/couple/receipt-scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: base64, media_type: mediaType }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const d = json.data;
+        if (d.vendor_name) setVendorName(d.vendor_name);
+        if (d.total_amount) setAmount(String(d.total_amount));
+        if (d.notes) setPurpose(d.notes);
+        if (d.category) setCategory(d.category);
+        if (d.date) setDueDate(d.date);
+        showToast('Receipt scanned — review and confirm.');
+      } else {
+        showToast('Could not read receipt. Fill in manually.');
+      }
+    } catch { showToast('Scan failed. Fill in manually.'); }
+    finally { setScanning(false); }
+  }
 
   async function handleSubmit() {
     if (!vendorName.trim() || !purpose.trim() || !amount || submitting) return;
@@ -614,6 +649,18 @@ function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
     <>
       <SheetWrap visible={visible} onClose={onClose} title="Add Entry" height="88vh">
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          {/* Scan Receipt button */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, cursor: 'pointer', width: 'fit-content' }}>
+            <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleScanReceipt(f); e.target.value = ''; }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '0.5px solid #E2DED8', borderRadius: 100, padding: '6px 14px', background: scanning ? '#F4F1EC' : 'transparent' }}>
+              <span style={{ fontSize: 14 }}>📷</span>
+              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: scanning ? '#C9A84C' : '#888580' }}>
+                {scanning ? 'Reading...' : 'Scan Receipt'}
+              </span>
+            </div>
+          </label>
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Vendor / Payee</label>
             <input value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="e.g. Nathan Cross Photography" style={fieldInput}
@@ -2639,7 +2686,7 @@ function VendorsTab({ userId, allTasks, allExpenses, events, refetch }: {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</p>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
-                      {[v.category, (v.events || [])[0] || null, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
+                      {[v.category, v.quoted_total ? fmtINR(v.quoted_total) : null].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   {/* Status pill */}
@@ -2878,7 +2925,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, allVendors,
   const eventExpenses = allExpenses.filter(e => e.event_name === event.name);
   const bookedVendors = (allVendors || []).filter(v =>
     (v.status === 'booked' || v.status === 'paid') &&
-    (v.events || []).includes(event.name)
+    ((v.events || []).includes(event.name) || (v.events || []).length === 0)
   );
 
   const sheetChipStyle = (active: boolean): React.CSSProperties => ({
@@ -2938,7 +2985,7 @@ function EventDetailSheet({ event, allTasks, allGuests, allExpenses, allVendors,
             </p>
           )}
           <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C8480', margin: 0 }}>
-            {[`${eventTasks.length} Tasks`, `${bookedVendors.length} Vendors`, `${eventGuests.length} Guests`].join(' • ')}
+            {[event.task_count != null && `${event.task_count} Tasks`, event.vendor_count != null && `${event.vendor_count} Vendors`, event.guest_count != null && `${event.guest_count} Guests`].filter(Boolean).join(' • ')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, padding: '12px 20px', borderBottom: '1px solid #E2DED8' }}>
@@ -3050,12 +3097,7 @@ function EventsTab({ userId, allTasks, allGuests, allExpenses, allVendors, refet
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#0C0A09', margin: '0 0 4px' }}>{ev.name}</p>
                     {ev.venue && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#8C8480', margin: '0 0 12px' }}>{ev.venue}</p>}
                     <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#8C8480', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
-                      {(() => {
-                        const tCount = allTasks.filter(t => (t.events?.name || t.event_name) === ev.name).length;
-                        const vCount = allVendors.filter(v => (v.status === 'booked' || v.status === 'paid') && (v.events || []).includes(ev.name)).length;
-                        const gCount = allGuests.filter(g => (g.events || []).includes(ev.name)).length;
-                        return [tCount > 0 && `${tCount} Tasks`, vCount > 0 && `${vCount} Vendors`, gCount > 0 && `${gCount} Guests`].filter(Boolean).join(' · ') || 'No items yet';
-                      })()}
+                      {[ev.task_count != null && `${ev.task_count} Tasks`, ev.vendor_count != null && `${ev.vendor_count} Vendors`, ev.guest_count != null && `${ev.guest_count} Guests`].filter(Boolean).join(' · ')}
                     </p>
                   </button>
                 </div>
