@@ -1471,7 +1471,7 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
           ))}
         </div>
         <button
-          onClick={() => onOpenDreamAi('Help me prioritise my tasks')}
+          onClick={() => onOpenDreamAi('')}
           style={{
             fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300,
             letterSpacing: '0.12em', textTransform: 'uppercase',
