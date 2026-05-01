@@ -437,6 +437,47 @@ export default function CalendarPage() {
           )}
         </div>
 
+        {/* Export Calendar */}
+        {vendorId && (
+          <div style={{ padding: '16px 24px 0' }}>
+            <button
+              onClick={() => {
+                const url = `${BACKEND}/api/v2/vendor/calendar.ics/${vendorId}`;
+                window.open(url, '_blank');
+              }}
+              style={{
+                width: '100%',
+                border: '0.5px solid #E2DED8',
+                background: 'transparent',
+                borderRadius: 10,
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <p style={{
+                  fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                  letterSpacing: '0.22em', textTransform: 'uppercase' as const,
+                  color: '#888580', margin: '0 0 3px',
+                }}>SYNC YOUR CALENDAR</p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                  color: '#111111', margin: 0,
+                }}>Export to Apple / Google Calendar</p>
+              </div>
+              <span style={{
+                fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                letterSpacing: '0.15em', textTransform: 'uppercase' as const,
+                color: '#C9A84C',
+              }}>↓ .ICS</span>
+            </button>
+          </div>
+        )}
+
         {/* Hot Date nudge card */}
         {selectedHotDate && (
           <div style={{
