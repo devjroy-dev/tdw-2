@@ -1,9 +1,124 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Settings, LogOut } from 'lucide-react';
 import { useCoupleMode, type CoupleAppMode } from '../layout';
+
+const API = 'https://dream-wedding-production-89ae.up.railway.app';
+
+interface ChatMessage { role: 'user' | 'ai'; text: string; }
+
+function DreamAiSheet({ visible, onClose, userId }: { visible: boolean; onClose: () => void; userId: string }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [ctx, setCtx] = useState<any>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!visible || !userId) return;
+    fetch(`${API}/api/v2/dreamai/couple-context/${userId}`)
+      .then(r => r.json()).then(setCtx).catch(() => {});
+    setTimeout(() => inputRef.current?.focus(), 300);
+  }, [visible, userId]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
+
+  async function handleImageUpload(file: File) {
+    if (uploadingImage || loading) return;
+    setUploadingImage(true);
+    setMessages(p => [...p, { role: 'user', text: '📷 Image' }]);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'dream_wedding_uploads');
+      const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dccso5ljv/image/upload', { method: 'POST', body: formData });
+      const cloudJson = await cloudRes.json();
+      const imageUrl = cloudJson.secure_url;
+      if (!imageUrl) throw new Error('Upload failed');
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch(`${API}/api/v2/dreamai/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userType: 'couple', context: ctx, history: messages.slice(-10), image_base64: base64, image_media_type: file.type || 'image/jpeg', message: `I sent an image. The uploaded URL is: ${imageUrl}. If it looks like a receipt or invoice, log it as an expense. If it looks like wedding inspiration, save it to my Muse board.` }),
+      });
+      const d = await r.json();
+      setMessages(p => [...p, { role: 'ai', text: d.reply || 'Image processed!' }]);
+    } catch { setMessages(p => [...p, { role: 'ai', text: 'Could not process image.' }]); }
+    finally { setUploadingImage(false); }
+  }
+
+  async function send(text: string) {
+    const msg = text.trim(); if (!msg || loading) return;
+    setInput(''); setMessages(p => [...p, { role: 'user', text: msg }]); setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/v2/dreamai/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userType: 'couple', message: msg, context: ctx, history: messages.slice(-10) }),
+      });
+      const json = await res.json();
+      setMessages(p => [...p, { role: 'ai', text: json.reply || 'Something went wrong.' }]);
+    } catch { setMessages(p => [...p, { role: 'ai', text: 'Unable to reach DreamAi.' }]); }
+    finally { setLoading(false); }
+  }
+
+  if (!visible) return null;
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(17,17,17,0.4)' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201, background: '#FFFFFF', borderRadius: '24px 24px 0 0', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: 36, height: 4, background: '#E2DED8', borderRadius: 2, margin: '12px auto 0' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '0.5px solid #E2DED8', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: '#C9A84C' }}>✦</span>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111' }}>DreamAi</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888580', fontSize: 20, padding: 4 }}>×</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {messages.length === 0 && (
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, fontStyle: 'italic', color: '#C8C4BE', textAlign: 'center', marginTop: 32 }}>Ask anything about your wedding.</p>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div style={{ maxWidth: '80%', background: m.role === 'user' ? '#111111' : '#F4F1EC', color: m.role === 'user' ? '#F8F7F5' : '#111111', borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '10px 14px', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, lineHeight: 1.5 }}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          {loading && <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#C8C4BE' }}>...</div>}
+          <div ref={bottomRef} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '0.5px solid #E2DED8', paddingBottom: 'calc(10px + env(safe-area-inset-bottom))', alignItems: 'center', flexShrink: 0 }}>
+          {uploadingImage ? (
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F4F1EC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 16 }}>⏳</span></div>
+          ) : (
+            <>
+              <label style={{ flexShrink: 0, cursor: 'pointer' }}>
+                <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F4F1EC', border: '0.5px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 15 }}>📸</span></div>
+              </label>
+              <label style={{ flexShrink: 0, cursor: 'pointer' }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F4F1EC', border: '0.5px solid #E2DED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 15 }}>🖼️</span></div>
+              </label>
+            </>
+          )}
+          <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(input); }} placeholder="Ask anything about your wedding..." style={{ flex: 1, height: 44, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111', background: '#F8F7F5', border: '0.5px solid #E2DED8', borderRadius: 22, padding: '0 16px', outline: 'none' }} />
+          <button onClick={() => send(input)} disabled={loading || !input.trim()} style={{ width: 44, height: 44, borderRadius: '50%', background: input.trim() ? '#C9A84C' : '#E2DED8', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ color: '#FFF', fontSize: 16 }}>↑</span></button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function getInitials(name?: string): string {
   if (!name) return 'D';
@@ -14,7 +129,9 @@ export default function CoupleTopBar() {
   const { mode, setMode } = useCoupleMode();
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [dreamAiOpen, setDreamAiOpen] = useState(false);
   const [name, setName] = useState('');
+  const [userId, setUserId] = useState('');
   const [toast, setToast] = useState('');
 
   useEffect(() => {
@@ -24,6 +141,8 @@ export default function CoupleTopBar() {
         const s = JSON.parse(raw);
         const n = s?.name || s?.dreamer_name || s?.vendorName || '';
         if (n) setName(n);
+        const id = s?.userId || s?.id || '';
+        if (id) setUserId(id);
       }
     } catch {}
   }, []);
@@ -87,24 +206,19 @@ export default function CoupleTopBar() {
         }}>TDW</span>
 
         {/* Toggle pill */}
-        <div style={{
-          display: 'inline-flex', alignItems: 'center',
-          background: 'rgba(17,17,17,0.06)',
-          borderRadius: 20, padding: 3, gap: 0,
-        }}>
-          {(['PLAN', 'DISCOVER'] as CoupleAppMode[]).map(m => {
-            const active = mode === m;
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(17,17,17,0.06)', borderRadius: 20, padding: 3, gap: 0 }}>
+          {(['PLAN', 'DISCOVER'] as CoupleAppMode[]).map((m, idx) => {
+            const active = mode === m && !dreamAiOpen;
             return (
-              <button key={m} onClick={() => handleToggle(m)} style={{
-                fontFamily: "'Jost', sans-serif",
-                fontSize: 10, fontWeight: 200, letterSpacing: '0.2em',
-                textTransform: 'uppercase', padding: '6px 16px',
-                borderRadius: 16, border: 'none', cursor: 'pointer',
-                whiteSpace: 'nowrap', touchAction: 'manipulation',
-                background: active ? '#111111' : 'transparent',
-                color: active ? '#F8F7F5' : '#888580',
-                transition: 'all 180ms cubic-bezier(0.22,1,0.36,1)',
-              }}>{m}</button>
+              <>
+                <button key={m} onClick={() => { setDreamAiOpen(false); handleToggle(m); }} style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '6px 16px', borderRadius: 16, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation', background: active ? '#111111' : 'transparent', color: active ? '#F8F7F5' : '#888580', transition: 'all 180ms cubic-bezier(0.22,1,0.36,1)' }}>{m}</button>
+                {idx === 0 && (
+                  <button onClick={() => setDreamAiOpen(true)} style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '6px 14px', borderRadius: 16, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation', background: dreamAiOpen ? '#C9A84C' : 'transparent', color: dreamAiOpen ? '#0C0A09' : '#C9A84C', transition: 'all 180ms cubic-bezier(0.22,1,0.36,1)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 10 }}>✦</span>
+                    <span>AI</span>
+                  </button>
+                )}
+              </>
             );
           })}
         </div>
@@ -123,6 +237,8 @@ export default function CoupleTopBar() {
           }}>{initials}</span>
         </div>
       </header>
+
+      <DreamAiSheet visible={dreamAiOpen} onClose={() => setDreamAiOpen(false)} userId={userId} />
 
       {/* Profile sheet backdrop */}
       {profileOpen && (
