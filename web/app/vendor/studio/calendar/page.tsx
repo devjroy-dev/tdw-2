@@ -49,6 +49,11 @@ export default function CalendarPage() {
   const [fabLoading, setFabLoading] = useState(false);
   const [toast, setToast] = useState('');
 
+  // ── iCal Import ─────────────────────────────────────────
+  const [importMode, setImportMode] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
+
   // ── Form fields ─────────────────────────────────────────
   const [formTitle, setFormTitle] = useState('');
   const [formDate, setFormDate] = useState('');
@@ -60,6 +65,30 @@ export default function CalendarPage() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleIcsImport = async (file: File) => {
+    if (!vendorId) return;
+    setImportLoading(true);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      const res = await fetch(`${BACKEND}/api/v2/vendor/calendar/import/${vendorId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ics_content: text }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setImportResult(`✓ ${json.imported} dates imported from your calendar.`);
+        if (vendorId) fetchBookings(vendorId);
+      } else {
+        setImportResult('Could not import. Please try again.');
+      }
+    } catch {
+      setImportResult('Could not read the file. Make sure it is a valid .ics file.');
+    }
+    setImportLoading(false);
   };
 
   const resetForm = () => {
@@ -475,6 +504,80 @@ export default function CalendarPage() {
                 color: '#C9A84C',
               }}>↓ .ICS</span>
             </button>
+          </div>
+        )}
+
+        {/* Import Calendar */}
+        {vendorId && (
+          <div style={{ padding: '8px 24px 0' }}>
+            {!importMode ? (
+              <button
+                onClick={() => { setImportMode(true); setImportResult(null); }}
+                style={{
+                  width: '100%', border: '0.5px solid #E2DED8',
+                  background: 'transparent', borderRadius: 10,
+                  padding: '12px 16px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', cursor: 'pointer', touchAction: 'manipulation',
+                }}
+              >
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{
+                    fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                    letterSpacing: '0.22em', textTransform: 'uppercase' as const,
+                    color: '#888580', margin: '0 0 3px',
+                  }}>IMPORT YOUR CALENDAR</p>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
+                    color: '#111111', margin: 0,
+                  }}>Upload Apple / Google Calendar file</p>
+                </div>
+                <span style={{
+                  fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
+                  letterSpacing: '0.15em', textTransform: 'uppercase' as const,
+                  color: '#C9A84C',
+                }}>↑ .ICS</span>
+              </button>
+            ) : (
+              <div style={{ border: '0.5px solid #E2DED8', borderRadius: 10, padding: '16px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, color: '#111111', margin: 0 }}>Import Calendar</p>
+                  <button onClick={() => { setImportMode(false); setImportResult(null); }} style={{ background: 'none', border: 'none', color: '#888580', fontSize: 18, cursor: 'pointer' }}>×</button>
+                </div>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '0 0 4px', lineHeight: 1.6 }}>
+                  <strong style={{ color: '#111', fontWeight: 400 }}>Google Calendar:</strong> Open Google Calendar on desktop → Settings → select your calendar → scroll to &quot;Export calendar&quot; → upload the .ics file below.
+                </p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '0 0 14px', lineHeight: 1.6 }}>
+                  <strong style={{ color: '#111', fontWeight: 400 }}>Apple Calendar:</strong> Open Calendar on Mac → File → Export → Export → upload the .ics file below.
+                </p>
+                <label style={{
+                  display: 'block', width: '100%',
+                  border: '0.5px dashed #C9A84C', borderRadius: 8,
+                  padding: '14px', textAlign: 'center' as const,
+                  cursor: 'pointer', touchAction: 'manipulation',
+                }}>
+                  <input
+                    type="file"
+                    accept=".ics"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleIcsImport(file);
+                    }}
+                  />
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200, letterSpacing: '0.2em', textTransform: 'uppercase' as const, color: '#C9A84C', margin: '0 0 4px' }}>
+                    {importLoading ? 'Importing...' : 'TAP TO SELECT FILE'}
+                  </p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: 0 }}>
+                    .ics files only
+                  </p>
+                </label>
+                {importResult && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: importResult.startsWith('✓') ? '#111111' : '#9B4545', margin: '10px 0 0', textAlign: 'center' as const }}>
+                    {importResult}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
