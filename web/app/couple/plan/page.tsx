@@ -5,6 +5,20 @@ import { useRouter } from 'next/navigation';
 
 const RAILWAY_URL = 'https://dream-wedding-production-89ae.up.railway.app';
 
+function renderMarkdown(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return <>
+    {parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ fontWeight: 500 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part.split('\n').map((line, j, arr) => (
+        <React.Fragment key={`${i}-${j}`}>{line}{j < arr.length - 1 && <br />}</React.Fragment>
+      ));
+    })}
+  </>;
+}
+
 // ─── CRITICAL: DB FIELD NAME INCONSISTENCY ────────────────────────────────────
 // v2 GET endpoints filter Supabase with `user_id`.
 // POST/PATCH/DELETE endpoints send `couple_id` in request body.
@@ -971,7 +985,7 @@ Please classify it: if it looks like a receipt or invoice, log it as an expense 
                   <p style={{
                     fontFamily: "'DM Sans', sans-serif", fontSize: 14,
                     fontWeight: 300, color: '#111111', margin: 0, lineHeight: 1.5,
-                  }}>{m.text || ''}</p>
+                  }}>{renderMarkdown(m.text || '')}</p>
                 </div>
               </div>
               {m.action && (

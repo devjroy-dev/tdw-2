@@ -6,6 +6,20 @@ const API  = 'https://dream-wedding-production-89ae.up.railway.app';
 const GOLD = '#C9A84C';
 const HIDDEN = ['/pin', '/pin-login', '/login', '/setup', '/demo', '/vendor/dreamai'];
 
+function renderMarkdown(text: string): React.ReactNode {
+  // Split by **bold** and render
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ fontWeight: 500 }}>{part.slice(2, -2)}</strong>;
+    }
+    // Handle newlines
+    return part.split('\n').map((line, j) => (
+      <React.Fragment key={`${i}-${j}`}>{line}{j < part.split('\n').length - 1 && <br />}</React.Fragment>
+    ));
+  });
+}
+
 interface Msg {
   role: 'user' | 'assistant';
   text: string;
@@ -265,7 +279,7 @@ function Modal({ onClose, userType, userId }: {
             <div key={i}>
               <div style={{ display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start',marginBottom:m.actionType?2:0 }}>
                 <div style={{ maxWidth:'82%',padding:'9px 13px',borderRadius:m.role==='user'?'13px 13px 2px 13px':'13px 13px 13px 2px',background:m.role==='user'?GOLD:'rgba(255,255,255,0.06)',fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:300,lineHeight:1.5,color:m.role==='user'?'#0C0A09':'#F8F7F5',whiteSpace:'pre-wrap' }}>
-                  {m.text}
+                  {renderMarkdown(m.text)}
                 </div>
               </div>
               {m.actionType && m.actionPreview && (
