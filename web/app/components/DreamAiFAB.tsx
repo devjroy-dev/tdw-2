@@ -7,15 +7,16 @@ const GOLD = '#C9A84C';
 const HIDDEN = ['/pin', '/pin-login', '/login', '/setup', '/demo', '/vendor/dreamai'];
 
 function renderMarkdown(text: string): React.ReactNode {
-  // Split by **bold** and render
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return <strong key={i} style={{ fontWeight: 500 }}>{part.slice(2, -2)}</strong>;
     }
-    // Handle newlines
-    return part.split('\n').map((line, j) => (
-      <React.Fragment key={`${i}-${j}`}>{line}{j < part.split('\n').length - 1 && <br />}</React.Fragment>
+    const lines = part.split('\n');
+    return lines.map((line, j) => (
+      j < lines.length - 1
+        ? <span key={`${i}-${j}`}>{line}<br /></span>
+        : <span key={`${i}-${j}`}>{line}</span>
     ));
   });
 }
