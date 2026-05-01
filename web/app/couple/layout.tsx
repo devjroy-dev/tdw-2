@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
-import DreamAiFAB from '../components/DreamAiFAB';
 
 // ─── Mode Context ─────────────────────────────────────────────────────────────
 export type CoupleAppMode = 'PLAN' | 'DISCOVER';
@@ -90,7 +89,7 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
           {children}
         </main>
         <BottomNav />
-        <DreamAiFAB userType="couple" />
+
       </div>
     </CoupleModeContext.Provider>
   );
