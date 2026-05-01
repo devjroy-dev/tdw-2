@@ -90,7 +90,11 @@ function DreamAiSheet({ visible, onClose, userId }: { visible: boolean; onClose:
           {messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
               <div style={{ maxWidth: '80%', background: m.role === 'user' ? '#111111' : '#F4F1EC', color: m.role === 'user' ? '#F8F7F5' : '#111111', borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '10px 14px', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, lineHeight: 1.5 }}>
-                {m.text}
+                {m.text.split('\n').map((line: string, li: number) => {
+                  if (line.startsWith('## ')) return <p key={li} style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: m.role === 'user' ? 'rgba(248,247,245,0.7)' : '#888580', margin: '10px 0 4px' }}>{line.slice(3)}</p>;
+                  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                  return <span key={li}>{parts.map((p, pi) => p.startsWith('**') && p.endsWith('**') ? <strong key={pi}>{p.slice(2,-2)}</strong> : p)}<br /></span>;
+                })}
               </div>
             </div>
           ))}

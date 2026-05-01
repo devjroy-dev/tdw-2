@@ -834,7 +834,20 @@ function DreamAiSheet({
         body: JSON.stringify({ userId, userType: 'couple', message: msg, context }),
       });
       const json = await res.json();
-      const replyText = json.reply || 'Something went wrong.';
+      let replyText = json.reply || 'Something went wrong.';
+
+      // If backend returned "Done." — retry once to get actual answer
+      if (replyText.trim() === 'Done.' || replyText.trim() === 'Done') {
+        const retry = await fetch(`${RAILWAY_URL}/api/v2/dreamai/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, userType: 'couple', message: msg, context, history: [{ role: 'user', text: msg }] }),
+        });
+        const retryJson = await retry.json();
+        if (retryJson.reply && retryJson.reply.trim() !== 'Done.' && retryJson.reply.trim() !== 'Done') {
+          replyText = retryJson.reply;
+        }
+      }
 
       // Detect action block in reply — format: [ACTION:type|label|preview|params_json]
       const actionMatch = replyText.match(/\[ACTION:(\w+)\|([^|]+)\|([^|]+)\|(\{[^}]+\})\]/);
