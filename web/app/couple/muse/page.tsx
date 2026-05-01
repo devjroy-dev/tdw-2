@@ -117,6 +117,15 @@ export default function MusePage() {
   const [showDiscoverPopup, setShowDiscoverPopup] = useState(false);
   const [shortlisting, setShortlisting] = useState<string | null>(null);
   const [confirmProfileItem, setConfirmProfileItem] = useState<MuseItem | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleLongPressStart(imageUrl: string) {
+    longPressTimer.current = setTimeout(() => setPreviewImage(imageUrl), 400);
+  }
+  function handleLongPressEnd() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
 
   // Auth guard
   useEffect(() => {
@@ -237,6 +246,19 @@ export default function MusePage() {
       `}</style>
 
       {toast && <Toast msg={toast} onDone={() => setToast('')} />}
+
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          onTouchEnd={() => setPreviewImage(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '80vh' }}>
+            <img src={previewImage} style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 12, objectFit: 'contain' }} alt="Preview" />
+            <button onClick={() => setPreviewImage(null)} style={{ position: 'absolute', top: -14, right: -14, width: 32, height: 32, borderRadius: '50%', background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', color: '#111' }}>✕</button>
+          </div>
+        </div>
+      )}
 
       <div style={{
         fontFamily: "'DM Sans', sans-serif",
@@ -388,12 +410,19 @@ export default function MusePage() {
                   }}
                 >
                   {/* Image — 3:2 ratio, full width */}
-                  <div style={{
-                    position: 'relative',
-                    width: '100%',
-                    paddingBottom: '66.66%',
-                    background: '#F0EDE8',
-                  }}>
+                  <div
+                    onTouchStart={() => image && handleLongPressStart(image)}
+                    onTouchEnd={handleLongPressEnd}
+                    onTouchMove={handleLongPressEnd}
+                    onMouseDown={() => image && handleLongPressStart(image)}
+                    onMouseUp={handleLongPressEnd}
+                    onMouseLeave={handleLongPressEnd}
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      paddingBottom: '66.66%',
+                      background: '#F0EDE8',
+                    }}>
                     {isLinkSave ? (
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F4F1EC', padding: 16 }}>
                         <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: '#C9A84C', marginBottom: 8 }}>✦</span>
@@ -410,6 +439,7 @@ export default function MusePage() {
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
+                          objectPosition: 'center top',
                         }}
                       />
                     ) : (
