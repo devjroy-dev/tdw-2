@@ -297,15 +297,30 @@ function Modal({ onClose, userType, userId }: {
 
         {/* Input */}
         <div style={{ padding:'8px 18px 14px',display:'flex',gap:8,alignItems:'center',borderTop:'0.5px solid rgba(255,255,255,0.06)',flexShrink:0 }}>
-          {userType === 'couple' && (
-            <label style={{ flexShrink: 0, cursor: 'pointer' }}>
-              <input type="file" accept="image/*" style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
-              />
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: uploadingImage ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.07)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 16 }}>{uploadingImage ? '⏳' : '📷'}</span>
-              </div>
-            </label>
+          {userType === 'couple' && !uploadingImage && (
+            <>
+              <label style={{ flexShrink: 0, cursor: 'pointer', title: 'Camera' }}>
+                <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
+                />
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 15 }}>📸</span>
+                </div>
+              </label>
+              <label style={{ flexShrink: 0, cursor: 'pointer', title: 'Gallery' }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
+                />
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 15 }}>🖼️</span>
+                </div>
+              </label>
+            </>
+          )}
+          {userType === 'couple' && uploadingImage && (
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(201,168,76,0.2)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: 16 }}>⏳</span>
+            </div>
           )}
           <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="Ask anything..." style={{ flex:1,background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:100,padding:'9px 14px',fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:300,color:'#F8F7F5',outline:'none' }} />
           <button onClick={()=>send()} disabled={!input.trim()||busy} style={{ width:38,height:38,borderRadius:'50%',border:'none',flexShrink:0,background:input.trim()&&!busy?GOLD:'rgba(255,255,255,0.07)',cursor:input.trim()&&!busy?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 150ms ease',touchAction:'manipulation' }}>

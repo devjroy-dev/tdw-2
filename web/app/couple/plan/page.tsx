@@ -581,8 +581,38 @@ function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
   const [dueDate, setDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [showScanOptions, setShowScanOptions] = useState(false);
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  async function handleScanReceipt(file: File) {
+    if (scanning) return;
+    setShowScanOptions(false);
+    setScanning(true);
+    showToast('Reading receipt...');
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`${RAILWAY_URL}/api/v2/couple/receipt-scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: base64, media_type: file.type || 'image/jpeg' }),
+      });
+      const json = await res.json();
+      if (json.vendor_name) setVendorName(json.vendor_name);
+      if (json.amount) setAmount(String(json.amount));
+      if (json.description) setPurpose(json.description);
+      if (json.category) setCategory(json.category);
+      if (json.date) setDueDate(json.date);
+      showToast('Receipt scanned — review and confirm.');
+    } catch { showToast('Could not read receipt. Fill in manually.'); }
+    finally { setScanning(false); }
+  }
 
   async function handleSubmit() {
     if (!vendorName.trim() || !purpose.trim() || !amount || submitting) return;
@@ -615,6 +645,38 @@ function AddBudgetSheet({ visible, onClose, userId, events, onSuccess }: {
     <>
       <SheetWrap visible={visible} onClose={onClose} title="Add Entry" height="88vh">
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+          {/* Scan Receipt */}
+          <div style={{ marginBottom: 20 }}>
+            {!showScanOptions ? (
+              <button onClick={() => setShowScanOptions(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '0.5px solid #E2DED8', borderRadius: 100, padding: '7px 16px', background: scanning ? '#F4F1EC' : 'transparent', cursor: 'pointer', touchAction: 'manipulation' }}>
+                <span style={{ fontSize: 14 }}>📷</span>
+                <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: scanning ? '#C9A84C' : '#888580' }}>
+                  {scanning ? 'Reading...' : 'Scan Receipt'}
+                </span>
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <label style={{ cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleScanReceipt(f); e.target.value = ''; }} />
+                  <div style={{ border: '0.5px solid #E2DED8', borderRadius: 100, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                    <span style={{ fontSize: 13 }}>📸</span>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580' }}>Camera</span>
+                  </div>
+                </label>
+                <label style={{ cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleScanReceipt(f); e.target.value = ''; }} />
+                  <div style={{ border: '0.5px solid #E2DED8', borderRadius: 100, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                    <span style={{ fontSize: 13 }}>🖼️</span>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580' }}>Gallery</span>
+                  </div>
+                </label>
+                <button onClick={() => setShowScanOptions(false)} style={{ background: 'none', border: 'none', color: '#C8C4BE', fontSize: 16, cursor: 'pointer', padding: '4px 8px' }}>✕</button>
+              </div>
+            )}
+          </div>
+
           <div style={fieldWrapper}>
             <label style={fieldLabel}>Vendor / Payee</label>
             <input value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="e.g. Nathan Cross Photography" style={fieldInput}

@@ -111,9 +111,43 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [uploadingImage, setUploadingImage] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (visible && prefill) setInput(prefill); },[visible,prefill]);
+
+  async function handleImageUpload(file: File) {
+    if (uploadingImage || loading) return;
+    setUploadingImage(true);
+    setMessages(p => [...p, { role: 'user', text: '📷 Image' }]);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'dream_wedding_uploads');
+      const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dccso5ljv/image/upload', { method: 'POST', body: formData });
+      const cloudJson = await cloudRes.json();
+      const imageUrl = cloudJson.secure_url;
+      if (!imageUrl) throw new Error('Upload failed');
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch(`${API}/api/v2/dreamai/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId, userType: 'couple', context, history: messages.slice(-10),
+          image_base64: base64, image_media_type: file.type || 'image/jpeg',
+          message: `I sent an image. The uploaded URL is: ${imageUrl}. If it looks like a receipt or invoice, log it as an expense using add_expense. If it looks like wedding inspiration, save it to my Muse board using save_to_muse with source_url set to "${imageUrl}".`,
+        }),
+      });
+      const d = await r.json();
+      setMessages(p => [...p, { role: 'ai', text: d.reply || 'Image processed!' }]);
+    } catch {
+      setMessages(p => [...p, { role: 'ai', text: 'Could not process image.' }]);
+    } finally { setUploadingImage(false); }
+  }
   useEffect(() => { bottomRef.current?.scrollIntoView({behavior:'smooth'}); },[messages,loading]);
 
   async function send(text: string) {
@@ -176,7 +210,29 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
           )}
           <div ref={bottomRef} />
         </div>
-        <div style={{ display:'flex', gap:10, padding:'12px 16px', borderTop:'0.5px solid #E2DED8', paddingBottom:'calc(12px + env(safe-area-inset-bottom))', background:'#FFFFFF' }}>
+        <div style={{ display:'flex', gap:8, padding:'12px 16px', borderTop:'0.5px solid #E2DED8', paddingBottom:'calc(12px + env(safe-area-inset-bottom))', background:'#FFFFFF', alignItems:'center' }}>
+          {uploadingImage ? (
+            <div style={{ width:40, height:40, borderRadius:'50%', background:'#F4F1EC', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <span style={{ fontSize:16 }}>⏳</span>
+            </div>
+          ) : (
+            <>
+              <label style={{ flexShrink:0, cursor:'pointer' }}>
+                <input type="file" accept="image/*" capture="environment" style={{ display:'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+                <div style={{ width:40, height:40, borderRadius:'50%', background:'#F4F1EC', border:'0.5px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontSize:15 }}>📸</span>
+                </div>
+              </label>
+              <label style={{ flexShrink:0, cursor:'pointer' }}>
+                <input type="file" accept="image/*" style={{ display:'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+                <div style={{ width:40, height:40, borderRadius:'50%', background:'#F4F1EC', border:'0.5px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontSize:15 }}>🖼️</span>
+                </div>
+              </label>
+            </>
+          )}
           <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')send(input);}} placeholder="Ask anything about your wedding..." style={{ flex:1, height:44, fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:300, color:'#111', background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:22, padding:'0 16px', outline:'none' }} />
           <button onClick={()=>send(input)} disabled={loading||!input.trim()} style={{ width:44, height:44, borderRadius:'50%', background:input.trim()?'#C9A84C':'#E2DED8', border:'none', cursor:input.trim()?'pointer':'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><span style={{ color:'#FFF', fontSize:16 }}>↑</span></button>
         </div>
