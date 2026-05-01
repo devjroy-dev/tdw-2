@@ -299,7 +299,7 @@ function Modal({ onClose, userType, userId }: {
         <div style={{ padding:'8px 18px 14px',display:'flex',gap:8,alignItems:'center',borderTop:'0.5px solid rgba(255,255,255,0.06)',flexShrink:0 }}>
           {userType === 'couple' && !uploadingImage && (
             <>
-              <label style={{ flexShrink: 0, cursor: 'pointer', title: 'Camera' }}>
+              <label style={{ flexShrink: 0, cursor: 'pointer' }}>
                 <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
                 />
@@ -307,7 +307,7 @@ function Modal({ onClose, userType, userId }: {
                   <span style={{ fontSize: 15 }}>📸</span>
                 </div>
               </label>
-              <label style={{ flexShrink: 0, cursor: 'pointer', title: 'Gallery' }}>
+              <label style={{ flexShrink: 0, cursor: 'pointer' }}>
                 <input type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
                 />
