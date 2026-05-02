@@ -7,7 +7,7 @@ const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
 interface HeroData { state: 'no_date'|'date_only'|'event'|'past'; days_until: number|null; event_name: string|null; wedding_date: string|null; }
 interface Moment { type: string; priority: number; title: string; body: string; action: string; task_id?: string; enquiry_id?: string; expense_id?: string; event_id?: string; due_date?: string; amount?: number; event_name?: string; }
-interface MuseSave { id: string; vendor_id: string; created_at: string; vendor: { id: string; name: string; category: string; city?: string; featured_photos?: string[]; portfolio_images?: string[]; starting_price?: number; } | null; }
+interface MuseSave { id: string; vendor_id: string; created_at: string; image_url?: string; source_url?: string; title?: string; vendor: { id: string; name: string; category: string; city?: string; featured_photos?: string[]; portfolio_images?: string[]; starting_price?: number; } | null; }
 interface EventItem { id: string; event_name: string; event_date: string; venue?: string; }
 interface Payment { id: string; vendor_name?: string; actual_amount?: number; due_date?: string; description?: string; }
 interface QuietActivity { type: string; text: string; at: string; enquiry_id?: string; }
@@ -35,6 +35,11 @@ function formatShortDate(d: string) { return new Date(d).toLocaleDateString('en-
 function fmtINR(n: number) { return '₹'+n.toLocaleString('en-IN'); }
 function timeAgo(dateStr: string) { const diff=Date.now()-new Date(dateStr).getTime(); const h=Math.floor(diff/3600000); const d=Math.floor(diff/86400000); if(h<1)return'Just now'; if(h<24)return`${h}h ago`; if(d<7)return`${d}d ago`; return formatShortDate(dateStr); }
 
+function smartThumb(url: string, size: number = 400): string {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  return url.replace('/upload/', `/upload/c_fill,g_auto,w_${size},h_${size},q_auto/`);
+}
+
 function Shimmer({ h, w='100%', br=8 }: { h: number; w?: string|number; br?: number }) {
   return <div style={{ height:h, width:w, borderRadius:br, background:'linear-gradient(90deg,#EEECE8 25%,#F8F7F5 50%,#EEECE8 75%)', backgroundSize:'200% 100%', animation:'shimmer 1.4s infinite' }} />;
 }
@@ -45,7 +50,6 @@ function Toast({ msg, onDone }: { msg: string|null; onDone: () => void }) {
   return <div style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background:'#111', color:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, padding:'10px 20px', borderRadius:100, zIndex:9999, whiteSpace:'nowrap' }}>{msg}</div>;
 }
 
-// Robust ACTION tag parser — couple side
 function parseActionTag(text: string) {
   const start = text.indexOf('[ACTION:');
   if (start === -1) return null;
@@ -103,6 +107,111 @@ function CoupleActionCard({ msg, userId, onConfirm, onDismiss }: {
         <button onClick={onDismiss} style={{ height: 36, padding: '0 14px', background: 'transparent', border: '0.5px solid #E2DED8', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, color: '#888580', cursor: 'pointer' }}>Cancel</button>
       </div>
     </div>
+  );
+}
+
+// Add Expense Sheet
+function AddExpenseSheet({ visible, onClose, userId, onDone }: { visible: boolean; onClose: ()=>void; userId: string; onDone: ()=>void; }) {
+  const [vendor, setVendor] = useState('');
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState('Venue');
+  const [saving, setSaving] = useState(false);
+  const categories = ['Venue','Catering','Photography','MUA','Decor','Attire','Music','Transport','Honeymoon','Other'];
+  async function save() {
+    if (!vendor.trim() || !amount) return;
+    setSaving(true);
+    try {
+      await fetch(`${API}/api/couple/expenses`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: userId, vendor_name: vendor.trim(), actual_amount: parseFloat(amount), category, payment_status: 'committed', event: 'General' }),
+      });
+      onDone(); onClose(); setVendor(''); setAmount(''); setCategory('Venue');
+    } catch {} finally { setSaving(false); }
+  }
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(17,17,17,0.4)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))' }}>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><div style={{ width:36, height:4, borderRadius:2, background:'#E2DED8' }} /></div>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 20px' }}>Add Expense</p>
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Vendor / Description</label>
+        <input value={vendor} onChange={e=>setVendor(e.target.value)} placeholder="e.g. Swati Roy MUA" style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:14 }} />
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Amount (₹)</label>
+        <input value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9.]/g,''))} placeholder="0" type="tel" style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:14 }} />
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:8 }}>Category</label>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:20 }}>
+          {categories.map(c=>(
+            <button key={c} onClick={()=>setCategory(c)} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.1em', textTransform:'uppercase', padding:'6px 12px', borderRadius:100, border:`0.5px solid ${category===c?'#C9A84C':'#E2DED8'}`, background:category===c?'#C9A84C':'transparent', color:category===c?'#111':'#888580', cursor:'pointer' }}>{c}</button>
+          ))}
+        </div>
+        <button onClick={save} disabled={saving||!vendor.trim()||!amount} style={{ width:'100%', height:48, borderRadius:100, background:vendor.trim()&&amount?'#111':'#E2DED8', color:vendor.trim()&&amount?'#F8F7F5':'#888580', border:'none', fontFamily:"'Jost',sans-serif", fontSize:11, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', cursor:vendor.trim()&&amount?'pointer':'not-allowed' }}>{saving?'Saving…':'Save Expense'}</button>
+      </div>
+    </>
+  );
+}
+
+// Add Task Sheet
+function AddTaskSheet({ visible, onClose, userId, onDone }: { visible: boolean; onClose: ()=>void; userId: string; onDone: ()=>void; }) {
+  const [text, setText] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    if (!text.trim()) return;
+    setSaving(true);
+    try {
+      await fetch(`${API}/api/couple/checklist`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couple_id: userId, text: text.trim(), due_date: dueDate || null, is_complete: false }),
+      });
+      onDone(); onClose(); setText(''); setDueDate('');
+    } catch {} finally { setSaving(false); }
+  }
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(17,17,17,0.4)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))' }}>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><div style={{ width:36, height:4, borderRadius:2, background:'#E2DED8' }} /></div>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 20px' }}>Add Task</p>
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Task</label>
+        <input value={text} onChange={e=>setText(e.target.value)} placeholder="e.g. Confirm mehendi artist" autoFocus style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:14 }} />
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Due date (optional)</label>
+        <input value={dueDate} onChange={e=>setDueDate(e.target.value)} type="date" style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:20 }} />
+        <button onClick={save} disabled={saving||!text.trim()} style={{ width:'100%', height:48, borderRadius:100, background:text.trim()?'#111':'#E2DED8', color:text.trim()?'#F8F7F5':'#888580', border:'none', fontFamily:"'Jost',sans-serif", fontSize:11, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', cursor:text.trim()?'pointer':'not-allowed' }}>{saving?'Saving…':'Add Task'}</button>
+      </div>
+    </>
+  );
+}
+
+// Add to Muse Sheet
+function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; onClose: ()=>void; userId: string; onDone: ()=>void; }) {
+  const [url, setUrl] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    if (!url.trim()) return;
+    setSaving(true);
+    try {
+      await fetch(`${API}/api/v2/couple/muse`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, source_url: url.trim(), title: note.trim() || null, type: 'link' }),
+      });
+      onDone(); onClose(); setUrl(''); setNote('');
+    } catch {} finally { setSaving(false); }
+  }
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(17,17,17,0.4)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))' }}>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><div style={{ width:36, height:4, borderRadius:2, background:'#E2DED8' }} /></div>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 4px' }}>Add to Muse</p>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#888580', margin:'0 0 20px' }}>Save an Instagram link, Pinterest board, or any inspiration.</p>
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Link</label>
+        <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://instagram.com/..." autoFocus style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:14 }} />
+        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Note (optional)</label>
+        <input value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Love this lehenga colour" style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:20 }} />
+        <button onClick={save} disabled={saving||!url.trim()} style={{ width:'100%', height:48, borderRadius:100, background:url.trim()?'#111':'#E2DED8', color:url.trim()?'#F8F7F5':'#888580', border:'none', fontFamily:"'Jost',sans-serif", fontSize:11, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', cursor:url.trim()?'pointer':'not-allowed' }}>{saving?'Saving…':'Save to Muse'}</button>
+      </div>
+    </>
   );
 }
 
@@ -241,7 +350,6 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
   );
 }
 
-
 function MomentCard({ moment, onAction }: { moment: Moment; onAction: (m: Moment)=>void; }) {
   const accent = moment.priority <= 1 ? '#C9A84C' : '#8C8480';
   return (
@@ -262,8 +370,10 @@ export default function TodayPage() {
   const [dreamAiPrefill, setDreamAiPrefill] = useState('');
   const [dreamAiContext, setDreamAiContext] = useState<any>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [addMuseOpen, setAddMuseOpen] = useState(false);
   const showToast = useCallback((msg: string) => setToast(msg), []);
-
   const router = useRouter();
 
   useEffect(() => {
@@ -271,7 +381,6 @@ export default function TodayPage() {
       const s=getSession();
       if(!s?.id){window.location.replace('/couple/login');return;}
       setSession(s);
-      // PWA restore: only fires on fresh app launch, not in-session Today taps.
       const isInSession = sessionStorage.getItem('couple_session_active');
       if (!isInSession) {
         sessionStorage.setItem('couple_session_active', '1');
@@ -313,8 +422,24 @@ export default function TodayPage() {
 
   function openDreamAi(prefill?: string) { setDreamAiPrefill(prefill||''); setDreamAiOpen(true); }
 
+  function refreshData() {
+    if (!session) return;
+    fetch(`${API}/api/v2/couple/today/${session.id}`).then(r=>r.json()).then(setData).catch(()=>{});
+  }
+
   const moments = (data?.three_moments||[]).filter(m=>!m.task_id||!completedIds.has(m.task_id!));
-  const initial = (session?.name?.[0]||'D').toUpperCase();
+  const budget = data?.budget;
+  const budgetPct = budget?.total ? Math.min(100, Math.round((budget.committed / budget.total) * 100)) : 0;
+  const paidPct = budget?.total ? Math.min(100, Math.round((budget.paid / budget.total) * 100)) : 0;
+
+  // Quick actions config
+  const quickActions = [
+    { label: '+ Expense', icon: '₹', onTap: () => setAddExpenseOpen(true), coming: false },
+    { label: '+ Task', icon: '✓', onTap: () => setAddTaskOpen(true), coming: false },
+    { label: 'Family', icon: '◎', onTap: () => router.push('/couple/circle'), coming: false },
+    { label: '+ Muse', icon: '✦', onTap: () => setAddMuseOpen(true), coming: false },
+    { label: 'Find Makers', icon: '⌕', onTap: () => {}, coming: true },
+  ];
 
   return (
     <>
@@ -330,20 +455,20 @@ export default function TodayPage() {
 
       <Toast msg={toast} onDone={()=>setToast(null)} />
       <DreamAiSheet visible={dreamAiOpen} onClose={()=>setDreamAiOpen(false)} context={dreamAiContext} userId={session?.id||''} prefill={dreamAiPrefill} />
+      <AddExpenseSheet visible={addExpenseOpen} onClose={()=>setAddExpenseOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Expense added');refreshData();}} />
+      <AddTaskSheet visible={addTaskOpen} onClose={()=>setAddTaskOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Task added');refreshData();}} />
+      <AddMuseSheet visible={addMuseOpen} onClose={()=>setAddMuseOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Saved to Muse');refreshData();}} />
 
       <div style={{ minHeight:'100dvh', background:'#F8F7F5', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
-
-
-
         <div className="fade-in" style={{ padding:'0 20px' }}>
           {loading ? (
             <div style={{ paddingTop:32, display:'flex', flexDirection:'column', gap:12 }}>
-              <Shimmer h={80} br={12}/><Shimmer h={120} br={12}/><Shimmer h={64} br={12}/>
+              <Shimmer h={80} br={12}/><Shimmer h={56} br={12}/><Shimmer h={120} br={12}/><Shimmer h={64} br={12}/>
             </div>
           ) : (
             <>
               {/* Hero */}
-              <div style={{ textAlign:'center', padding:'32px 0 28px' }}>
+              <div style={{ textAlign:'center', padding:'32px 0 24px' }}>
                 {data?.hero.state==='no_date' && (
                   <>
                     <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:36, fontWeight:300, fontStyle:'italic', color:'#111', margin:'0 0 10px', lineHeight:1.2 }}>Your wedding story starts here.</p>
@@ -370,7 +495,64 @@ export default function TodayPage() {
                 )}
               </div>
 
-              {/* Three Moments */}
+              {/* Quick Actions */}
+              <div style={{ marginBottom:28 }}>
+                <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none', paddingBottom:4 }}>
+                  {quickActions.map((a, i) => (
+                    <button
+                      key={i}
+                      onClick={a.coming ? undefined : a.onTap}
+                      disabled={a.coming}
+                      style={{
+                        flexShrink: 0,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        gap: 6, width: 72, height: 72,
+                        background: a.coming ? '#F0EDE8' : '#FFFFFF',
+                        border: `0.5px solid ${a.coming ? '#E2DED8' : '#E2DED8'}`,
+                        borderRadius: 16, cursor: a.coming ? 'not-allowed' : 'pointer',
+                        position: 'relative', padding: 0,
+                        opacity: a.coming ? 0.6 : 1,
+                      }}
+                    >
+                      <span style={{ fontSize: 18, color: a.coming ? '#C8C4BE' : '#C9A84C' }}>{a.icon}</span>
+                      <span style={{ fontFamily:"'Jost',sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.08em', textTransform: 'uppercase', color: a.coming ? '#C8C4BE' : '#555250', textAlign: 'center', lineHeight: 1.2, padding: '0 4px' }}>{a.label}</span>
+                      {a.coming && (
+                        <div style={{ position:'absolute', top:-6, right:-6, background:'#E2DED8', borderRadius:100, padding:'2px 5px' }}>
+                          <span style={{ fontFamily:"'Jost',sans-serif", fontSize:6, fontWeight:400, letterSpacing:'0.08em', textTransform:'uppercase', color:'#888580' }}>Soon</span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Budget Snapshot */}
+              {budget && budget.total > 0 && (
+                <div style={{ background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:12, padding:16, marginBottom:28 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                    <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:0 }}>Budget</p>
+                    <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:0 }}>{fmtINR(budget.committed)} of {fmtINR(budget.total)}</p>
+                  </div>
+                  {/* Track */}
+                  <div style={{ height:6, background:'#F0EDE8', borderRadius:100, overflow:'hidden', marginBottom:10 }}>
+                    <div style={{ height:'100%', width:`${budgetPct}%`, background:'#E2DED8', borderRadius:100, position:'relative' }}>
+                      <div style={{ position:'absolute', top:0, left:0, height:'100%', width:`${budget.committed > 0 ? Math.round((budget.paid/budget.committed)*100) : 0}%`, background:'#C9A84C', borderRadius:100 }} />
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:16 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ width:8, height:8, borderRadius:'50%', background:'#C9A84C', flexShrink:0 }} />
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:300, color:'#888580' }}>{fmtINR(budget.paid)} paid</span>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ width:8, height:8, borderRadius:'50%', background:'#E2DED8', flexShrink:0 }} />
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:300, color:'#888580' }}>{fmtINR(budget.committed - budget.paid)} pending</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Needs Attention */}
               {moments.length>0 && (
                 <div style={{ marginBottom:28 }}>
                   <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:'0 0 12px' }}>Needs Your Attention</p>
@@ -378,24 +560,57 @@ export default function TodayPage() {
                 </div>
               )}
 
-              {/* From Your Muse */}
-              {data?.muse_saves&&data.muse_saves.length>0 && (
+              {/* Next Event Card */}
+              {data?.next_event && (
+                <div style={{ background:'#111', borderRadius:12, padding:16, marginBottom:28 }}>
+                  <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#888580', margin:'0 0 8px' }}>Next Event</p>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+                    <div>
+                      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#F8F7F5', margin:'0 0 4px' }}>{data.next_event.event_name}</p>
+                      <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:0 }}>{formatDate(data.next_event.event_date)}</p>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:300, color:'#C9A84C', margin:'0 0 2px', lineHeight:1 }}>
+                        {Math.max(0, Math.round((new Date(data.next_event.event_date).getTime() - Date.now()) / 86400000))}
+                      </p>
+                      <p style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', margin:0 }}>days away</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* From Your Muse — fixed with image_url fallback */}
+              {data?.muse_saves && data.muse_saves.length > 0 && (
                 <div style={{ marginBottom:28 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
                     <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:0 }}>From Your Muse</p>
-                    <button onClick={()=>openDreamAi(`I saved ${data.muse_saves[0]?.vendor?.name||'a vendor'} to my Muse. Should I enquire?`)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'0.5px solid #E2DED8', borderRadius:100, padding:'3px 10px', cursor:'pointer', touchAction:'manipulation' }}>
-                      <span style={{ fontSize:9 }}>✦</span>
-                      <span style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580' }}>Ask DreamAi</span>
-                    </button>
+                    <a href="/couple/muse" style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', textDecoration:'none' }}>See all →</a>
                   </div>
                   <div style={{ display:'flex', gap:10, overflowX:'auto', scrollbarWidth:'none', paddingBottom:4 }}>
-                    {data.muse_saves.map(save=>{
-                      const img=save.vendor?.featured_photos?.[0]||save.vendor?.portfolio_images?.[0];
+                    {data.muse_saves.map(save => {
+                      const img =
+                        save.image_url ||
+                        save.vendor?.featured_photos?.[0] ||
+                        save.vendor?.portfolio_images?.[0] ||
+                        null;
+                      const thumb = img ? smartThumb(img, 300) : null;
+                      const name = save.vendor?.name || save.title || '—';
+                      const sub = save.vendor?.category || '';
                       return (
-                        <a key={save.id} href={save.vendor_id?`/couple/vendor/${save.vendor_id}`:'/couple/muse'} style={{ flexShrink:0, width:120, textDecoration:'none' }}>
-                          <div style={{ width:120, height:150, borderRadius:12, overflow:'hidden', background:'#E2DED8', marginBottom:6, backgroundImage:img?`url(${img})`:'none', backgroundSize:'cover', backgroundPosition:'center' }}/>
-                          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:14, fontWeight:300, color:'#111', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{save.vendor?.name||'—'}</p>
-                          <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.1em', textTransform:'uppercase', color:'#888580', margin:0 }}>{save.vendor?.category||''}</p>
+                        <a key={save.id} href={save.vendor_id ? `/couple/vendor/${save.vendor_id}` : '/couple/muse'} style={{ flexShrink:0, width:120, textDecoration:'none' }}>
+                          <div style={{
+                            width:120, height:150, borderRadius:12, overflow:'hidden',
+                            background: thumb ? 'none' : '#E2DED8',
+                            backgroundImage: thumb ? `url(${thumb})` : 'none',
+                            backgroundSize:'cover', backgroundPosition:'center top',
+                            marginBottom:6,
+                            display: thumb ? 'block' : 'flex',
+                            alignItems:'center', justifyContent:'center',
+                          }}>
+                            {!thumb && <span style={{ fontSize:24 }}>✦</span>}
+                          </div>
+                          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:14, fontWeight:300, color:'#111', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</p>
+                          {sub && <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.1em', textTransform:'uppercase', color:'#888580', margin:0 }}>{sub}</p>}
                         </a>
                       );
                     })}
@@ -403,8 +618,33 @@ export default function TodayPage() {
                 </div>
               )}
 
-              {/* This Week */}
-              {data?.this_week_events&&data.this_week_events.length>0 && (
+              {/* Latest Message */}
+              {data?.quiet_activity && data.quiet_activity.length > 0 && (
+                <div style={{ marginBottom:28 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                    <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:0 }}>Latest Message</p>
+                    <a href="/couple/messages" style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', textDecoration:'none' }}>All messages →</a>
+                  </div>
+                  <a
+                    href={data.quiet_activity[0].enquiry_id ? `/couple/messages?thread=${data.quiet_activity[0].enquiry_id}` : '/couple/messages'}
+                    style={{ textDecoration:'none', display:'block' }}
+                  >
+                    <div style={{ background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:12, padding:14, display:'flex', alignItems:'center', gap:12 }}>
+                      <div style={{ width:36, height:36, borderRadius:'50%', background:'#F0EDE8', border:'0.5px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <span style={{ fontSize:14 }}>✦</span>
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{data.quiet_activity[0].text}</p>
+                        <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.08em', color:'#C8C4BE', margin:0 }}>{timeAgo(data.quiet_activity[0].at)}</p>
+                      </div>
+                      <span style={{ color:'#C8C4BE', fontSize:14, flexShrink:0 }}>→</span>
+                    </div>
+                  </a>
+                </div>
+              )}
+
+              {/* This Week Events */}
+              {data?.this_week_events && data.this_week_events.length > 0 && (
                 <div style={{ marginBottom:28 }}>
                   <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:'0 0 12px' }}>This Week</p>
                   {data.this_week_events.map(ev=>(
@@ -423,7 +663,7 @@ export default function TodayPage() {
               )}
 
               {/* Upcoming Payments */}
-              {data?.upcoming_payments&&data.upcoming_payments.length>0 && (
+              {data?.upcoming_payments && data.upcoming_payments.length > 0 && (
                 <div style={{ marginBottom:28 }}>
                   <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:'0 0 12px' }}>Upcoming Payments</p>
                   {data.upcoming_payments.map((p,i)=>(
@@ -441,28 +681,13 @@ export default function TodayPage() {
                 </div>
               )}
 
-              {/* Quiet Activity */}
-              {data?.quiet_activity&&data.quiet_activity.length>0 && (
-                <div style={{ marginBottom:28 }}>
-                  <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:'0 0 12px' }}>Recent Activity</p>
-                  {data.quiet_activity.map((a,i)=>(
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:i<data.quiet_activity.length-1?'0.5px solid #E2DED8':'none' }}>
-                      <span style={{ fontSize:14, flexShrink:0 }}>✦</span>
-                      <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#3C3835', margin:0, flex:1, lineHeight:1.4 }}>{a.text}</p>
-                      <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, color:'#C8C4BE', flexShrink:0 }}>{timeAgo(a.at)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {moments.length===0&&(!data?.muse_saves||data.muse_saves.length===0)&&(!data?.this_week_events||data.this_week_events.length===0) && (
+              {moments.length===0 && (!data?.muse_saves||data.muse_saves.length===0) && (!data?.this_week_events||data.this_week_events.length===0) && (
                 <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580', textAlign:'center', marginTop:16 }}>You're all caught up.</p>
               )}
             </>
           )}
         </div>
       </div>
-
     </>
   );
 }
