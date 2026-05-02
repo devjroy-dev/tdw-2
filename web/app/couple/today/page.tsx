@@ -10,7 +10,7 @@ interface Moment { type: string; priority: number; title: string; body: string; 
 interface MuseSave { id: string; vendor_id: string; created_at: string; image_url?: string; source_url?: string; title?: string; vendor: { id: string; name: string; category: string; city?: string; featured_photos?: string[]; portfolio_images?: string[]; starting_price?: number; } | null; }
 interface EventItem { id: string; event_name: string; event_date: string; venue?: string; }
 interface Payment { id: string; vendor_name?: string; actual_amount?: number; due_date?: string; description?: string; }
-interface QuietActivity { type: string; text: string; at: string; enquiry_id?: string; }
+interface QuietActivity { type: string; text: string; at: string; enquiry_id?: string; vendor_id?: string; vendor_name?: string; vendor_category?: string; from?: string; }
 interface TodayData { hero: HeroData; three_moments: Moment[]; muse_saves: MuseSave[]; this_week_events: EventItem[]; upcoming_payments: Payment[]; budget: { total: number; committed: number; paid: number }; next_event: EventItem|null; quiet_activity: QuietActivity[]; priority_tasks: any[]; }
 interface Session { id: string; name?: string; dreamer_type?: string; }
 interface ChatMessage { role: 'user'|'ai'; text: string; actionType?: string; actionLabel?: string; actionPreview?: string; actionParams?: Record<string,any>; }
@@ -361,6 +361,44 @@ function MomentCard({ moment, onAction }: { moment: Moment; onAction: (m: Moment
   );
 }
 
+function CircleActivity({ coupleId }: { coupleId: string }) {
+  const [messages, setMessages] = useState<any[]>([]);
+  useEffect(() => {
+    if (!coupleId) return;
+    fetch(`${API}/api/circle/messages/${coupleId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.length > 0) {
+          setMessages(d.data.slice(-2).reverse());
+        }
+      })
+      .catch(() => {});
+  }, [coupleId]);
+  if (messages.length === 0) return null;
+  return (
+    <div style={{ marginBottom:28 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+        <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:0 }}>From Your Circle</p>
+        <a href="/couple/circle" style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', textDecoration:'none' }}>Open Circle →</a>
+      </div>
+      {messages.map((m, i) => (
+        <div key={m.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0', borderBottom: i < messages.length - 1 ? '0.5px solid #E2DED8' : 'none' }}>
+          <div style={{ width:28, height:28, borderRadius:'50%', background:'#F0EDE8', border:'0.5px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:12, color:'#888580' }}>{m.sender_name?.[0]?.toUpperCase() || '◎'}</span>
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
+              <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.08em', textTransform:'uppercase', color:'#555250' }}>{m.sender_name || 'Circle'}</span>
+              <span style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, color:'#C8C4BE' }}>{timeAgo(m.created_at)}</span>
+            </div>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#3C3835', margin:0, lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.content}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function TodayPage() {
   const [session, setSession] = useState<Session|null>(null);
   const [data, setData] = useState<TodayData|null>(null);
@@ -497,7 +535,7 @@ export default function TodayPage() {
 
               {/* Quick Actions */}
               <div style={{ marginBottom:28 }}>
-                <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none', paddingBottom:4 }}>
+                <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none', paddingBottom:4, paddingRight:16 }}>
                   {quickActions.map((a, i) => (
                     <button
                       key={i}
@@ -619,29 +657,38 @@ export default function TodayPage() {
               )}
 
               {/* Latest Message */}
-              {data?.quiet_activity && data.quiet_activity.length > 0 && (
-                <div style={{ marginBottom:28 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                    <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:0 }}>Latest Message</p>
-                    <a href="/couple/messages" style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', textDecoration:'none' }}>All messages →</a>
-                  </div>
-                  <a
-                    href={data.quiet_activity[0].enquiry_id ? `/couple/messages?thread=${data.quiet_activity[0].enquiry_id}` : '/couple/messages'}
-                    style={{ textDecoration:'none', display:'block' }}
-                  >
-                    <div style={{ background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:12, padding:14, display:'flex', alignItems:'center', gap:12 }}>
-                      <div style={{ width:36, height:36, borderRadius:'50%', background:'#F0EDE8', border:'0.5px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        <span style={{ fontSize:14 }}>✦</span>
-                      </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{data.quiet_activity[0].text}</p>
-                        <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.08em', color:'#C8C4BE', margin:0 }}>{timeAgo(data.quiet_activity[0].at)}</p>
-                      </div>
-                      <span style={{ color:'#C8C4BE', fontSize:14, flexShrink:0 }}>→</span>
+              {data?.quiet_activity && data.quiet_activity.length > 0 && (() => {
+                const latest = data.quiet_activity[0];
+                const fromVendor = latest.from === 'vendor';
+                const preview = latest.vendor_name
+                  ? (fromVendor ? `${latest.vendor_name}: ${latest.text}` : `You: ${latest.text}`)
+                  : latest.text;
+                return (
+                  <div style={{ marginBottom:28 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                      <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:200, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C8C4BE', margin:0 }}>Latest Message</p>
+                      <a href="/couple/messages" style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', textDecoration:'none' }}>All messages →</a>
                     </div>
-                  </a>
-                </div>
-              )}
+                    <a href={latest.enquiry_id ? `/couple/messages?thread=${latest.enquiry_id}` : '/couple/messages'} style={{ textDecoration:'none', display:'block' }}>
+                      <div style={{ background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:12, padding:14, display:'flex', alignItems:'center', gap:12 }}>
+                        <div style={{ width:36, height:36, borderRadius:'50%', background:'#F0EDE8', border:'0.5px solid #E2DED8', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                          <span style={{ fontSize:13, fontFamily:"'Cormorant Garamond',serif", fontWeight:300, color:'#888580' }}>{latest.vendor_name?.[0]?.toUpperCase() || '✦'}</span>
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          {latest.vendor_name && <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, fontWeight:300, color:'#111', margin:'0 0 2px' }}>{latest.vendor_name}{latest.vendor_category ? ` · ${latest.vendor_category}` : ''}</p>}
+                          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{fromVendor ? latest.text : `You: ${latest.text}`}</p>
+                          <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.08em', color:'#C8C4BE', margin:0 }}>{timeAgo(latest.at)}</p>
+                        </div>
+                        {fromVendor && <div style={{ width:8, height:8, borderRadius:'50%', background:'#C9A84C', flexShrink:0 }} />}
+                        {!fromVendor && <span style={{ color:'#C8C4BE', fontSize:14, flexShrink:0 }}>→</span>}
+                      </div>
+                    </a>
+                  </div>
+                );
+              })()}
+
+              {/* Circle Activity */}
+              <CircleActivity coupleId={session?.id||''} />
 
               {/* This Week Events */}
               {data?.this_week_events && data.this_week_events.length > 0 && (
