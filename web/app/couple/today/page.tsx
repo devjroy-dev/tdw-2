@@ -475,7 +475,7 @@ export default function TodayPage() {
     { label: '+ Expense', icon: '₹', onTap: () => setAddExpenseOpen(true), coming: false },
     { label: '+ Task', icon: '✓', onTap: () => setAddTaskOpen(true), coming: false },
     { label: 'Family', icon: '◎', onTap: () => router.push('/couple/circle'), coming: false },
-    { label: '+ Muse', icon: '✦', onTap: () => setAddMuseOpen(true), coming: false },
+    { label: '+ Muse', icon: '✦', onTap: () => openDreamAi('Paste your inspiration link here'), coming: false },
     { label: 'Find Makers', icon: '⌕', onTap: () => {}, coming: true },
   ];
 
