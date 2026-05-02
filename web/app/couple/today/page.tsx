@@ -182,34 +182,76 @@ function AddTaskSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
   );
 }
 
-// Add to Muse Sheet
+// Add to Muse Sheet — minimal focused input
 function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; onClose: ()=>void; userId: string; onDone: ()=>void; }) {
   const [url, setUrl] = useState('');
-  const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (visible) { setTimeout(() => inputRef.current?.focus(), 320); setSaved(false); setUrl(''); }
+  }, [visible]);
+
   async function save() {
-    if (!url.trim()) return;
+    if (!url.trim() || saving) return;
     setSaving(true);
     try {
       await fetch(`${API}/api/v2/couple/muse`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, source_url: url.trim(), title: note.trim() || null, type: 'link' }),
+        body: JSON.stringify({ user_id: userId, source_url: url.trim() }),
       });
-      onDone(); onClose(); setUrl(''); setNote('');
+      setSaved(true);
+      setTimeout(() => { onDone(); onClose(); setSaved(false); setUrl(''); }, 1000);
     } catch {} finally { setSaving(false); }
   }
+
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(17,17,17,0.4)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms' }} />
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))' }}>
-        <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><div style={{ width:36, height:4, borderRadius:2, background:'#E2DED8' }} /></div>
-        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 4px' }}>Add to Muse</p>
-        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#888580', margin:'0 0 20px' }}>Save an Instagram link, Pinterest board, or any inspiration.</p>
-        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Link</label>
-        <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://instagram.com/..." autoFocus style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:14 }} />
-        <label style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888580', display:'block', marginBottom:6 }}>Note (optional)</label>
-        <input value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Love this lehenga colour" style={{ width:'100%', boxSizing:'border-box', height:44, borderRadius:10, border:'0.5px solid #E2DED8', background:'#F8F7F5', fontFamily:"'DM Sans',sans-serif", fontSize:14, color:'#111', padding:'0 14px', outline:'none', marginBottom:20 }} />
-        <button onClick={save} disabled={saving||!url.trim()} style={{ width:'100%', height:48, borderRadius:100, background:url.trim()?'#111':'#E2DED8', color:url.trim()?'#F8F7F5':'#888580', border:'none', fontFamily:"'Jost',sans-serif", fontSize:11, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', cursor:url.trim()?'pointer':'not-allowed' }}>{saving?'Saving…':'Save to Muse'}</button>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(17,17,17,0.3)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms' }} />
+      <div style={{
+        position:'fixed', bottom:0, left:0, right:0, zIndex:301,
+        background:'#FFFFFF', borderRadius:'20px 20px 0 0',
+        transform:visible?'translateY(0)':'translateY(100%)',
+        transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        padding:'16px 16px calc(16px + env(safe-area-inset-bottom))',
+      }}>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
+          <div style={{ width:32, height:4, borderRadius:2, background:'#E2DED8' }} />
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+          <span style={{ fontSize:14, color:'#C9A84C' }}>✦</span>
+          <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, color:'#111' }}>Save to Muse</span>
+          <button onClick={onClose} style={{ marginLeft:'auto', background:'none', border:'none', color:'#C8C4BE', fontSize:13, cursor:'pointer', padding:4 }}>✕</button>
+        </div>
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+          <input
+            ref={inputRef}
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && save()}
+            placeholder="Paste Instagram, Pinterest or any link…"
+            style={{
+              flex:1, height:44, borderRadius:22,
+              border:'0.5px solid #E2DED8', background:'#F8F7F5',
+              fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300,
+              color:'#111', padding:'0 16px', outline:'none',
+            }}
+          />
+          <button
+            onClick={save}
+            disabled={saving || !url.trim()}
+            style={{
+              width:44, height:44, borderRadius:'50%', flexShrink:0,
+              background: saved ? '#4CAF50' : url.trim() ? '#C9A84C' : '#E2DED8',
+              border:'none', cursor: url.trim() ? 'pointer' : 'default',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              transition:'background 0.2s',
+            }}
+          >
+            <span style={{ color:'#FFF', fontSize:16 }}>{saved ? '✓' : saving ? '…' : '↑'}</span>
+          </button>
+        </div>
       </div>
     </>
   );
@@ -475,7 +517,7 @@ export default function TodayPage() {
     { label: '+ Expense', icon: '₹', onTap: () => setAddExpenseOpen(true), coming: false },
     { label: '+ Task', icon: '✓', onTap: () => setAddTaskOpen(true), coming: false },
     { label: 'Family', icon: '◎', onTap: () => router.push('/couple/circle'), coming: false },
-    { label: '+ Muse', icon: '✦', onTap: () => openDreamAi('Paste your inspiration link here'), coming: false },
+    { label: '+ Muse', icon: '✦', onTap: () => setAddMuseOpen(true), coming: false },
     { label: 'Find Makers', icon: '⌕', onTap: () => {}, coming: true },
   ];
 
