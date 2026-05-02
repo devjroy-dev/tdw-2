@@ -220,7 +220,6 @@ function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
       const cloudJson = await cloudRes.json();
       const imageUrl = cloudJson.secure_url;
       if (!imageUrl) throw new Error('Upload failed');
-      const { createClient } = await import('@supabase/supabase-js');
       // Use backend endpoint to insert
       const res = await fetch(`${API}/api/v2/couple/muse-image`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
