@@ -182,29 +182,58 @@ function AddTaskSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
   );
 }
 
-// Add to Muse Sheet — minimal focused input
+// Add to Muse Sheet — link paste + camera/gallery upload
 function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; onClose: ()=>void; userId: string; onDone: ()=>void; }) {
   const [url, setUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (visible) { setTimeout(() => inputRef.current?.focus(), 320); setSaved(false); setUrl(''); }
   }, [visible]);
 
-  async function save() {
+  async function saveLink() {
     if (!url.trim() || saving) return;
     setSaving(true);
     try {
-      await fetch(`${API}/api/v2/couple/muse`, {
+      const ogRes = await fetch(`${API}/api/v2/couple/muse`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, source_url: url.trim() }),
       });
+      const d = await ogRes.json();
+      if (!d.success) throw new Error(d.error);
       setSaved(true);
       setTimeout(() => { onDone(); onClose(); setSaved(false); setUrl(''); }, 1000);
     } catch {} finally { setSaving(false); }
   }
+
+  async function handleImageUpload(file: File) {
+    if (uploading) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'dream_wedding_uploads');
+      const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dccso5ljv/image/upload', { method: 'POST', body: formData });
+      const cloudJson = await cloudRes.json();
+      const imageUrl = cloudJson.secure_url;
+      if (!imageUrl) throw new Error('Upload failed');
+      const { createClient } = await import('@supabase/supabase-js');
+      // Use backend endpoint to insert
+      const res = await fetch(`${API}/api/v2/couple/muse-image`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, image_url: imageUrl }),
+      });
+      const d = await res.json();
+      if (!d.success) throw new Error(d.error);
+      setSaved(true);
+      setTimeout(() => { onDone(); onClose(); setSaved(false); }, 1000);
+    } catch {} finally { setUploading(false); }
+  }
+
+  const busy = saving || uploading;
 
   return (
     <>
@@ -214,22 +243,24 @@ function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
         background:'#FFFFFF', borderRadius:'20px 20px 0 0',
         transform:visible?'translateY(0)':'translateY(100%)',
         transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)',
-        padding:'16px 16px calc(16px + env(safe-area-inset-bottom))',
+        padding:'16px 16px calc(20px + env(safe-area-inset-bottom))',
       }}>
         <div style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
           <div style={{ width:32, height:4, borderRadius:2, background:'#E2DED8' }} />
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
           <span style={{ fontSize:14, color:'#C9A84C' }}>✦</span>
           <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, color:'#111' }}>Save to Muse</span>
           <button onClick={onClose} style={{ marginLeft:'auto', background:'none', border:'none', color:'#C8C4BE', fontSize:13, cursor:'pointer', padding:4 }}>✕</button>
         </div>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+
+        {/* Link input row */}
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
           <input
             ref={inputRef}
             value={url}
             onChange={e => setUrl(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && save()}
+            onKeyDown={e => e.key === 'Enter' && saveLink()}
             placeholder="Paste Instagram, Pinterest or any link…"
             style={{
               flex:1, height:44, borderRadius:22,
@@ -239,18 +270,55 @@ function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
             }}
           />
           <button
-            onClick={save}
-            disabled={saving || !url.trim()}
+            onClick={saveLink}
+            disabled={busy || !url.trim()}
             style={{
               width:44, height:44, borderRadius:'50%', flexShrink:0,
               background: saved ? '#4CAF50' : url.trim() ? '#C9A84C' : '#E2DED8',
-              border:'none', cursor: url.trim() ? 'pointer' : 'default',
+              border:'none', cursor: url.trim() && !busy ? 'pointer' : 'default',
               display:'flex', alignItems:'center', justifyContent:'center',
               transition:'background 0.2s',
             }}
           >
             <span style={{ color:'#FFF', fontSize:16 }}>{saved ? '✓' : saving ? '…' : '↑'}</span>
           </button>
+        </div>
+
+        {/* Divider */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          <div style={{ flex:1, height:'0.5px', background:'#E2DED8' }} />
+          <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#C8C4BE' }}>or upload</span>
+          <div style={{ flex:1, height:'0.5px', background:'#E2DED8' }} />
+        </div>
+
+        {/* Camera + Gallery buttons */}
+        <div style={{ display:'flex', gap:10 }}>
+          <label style={{ flex:1, cursor: busy ? 'not-allowed' : 'pointer' }}>
+            <input type="file" accept="image/*" capture="environment" style={{ display:'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+            <div style={{
+              height:44, borderRadius:22, border:'0.5px solid #E2DED8',
+              background:'#F8F7F5', display:'flex', alignItems:'center',
+              justifyContent:'center', gap:8,
+              opacity: busy ? 0.5 : 1,
+            }}>
+              <span style={{ fontSize:16 }}>{uploading ? '⏳' : '📸'}</span>
+              <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580' }}>Camera</span>
+            </div>
+          </label>
+          <label style={{ flex:1, cursor: busy ? 'not-allowed' : 'pointer' }}>
+            <input type="file" accept="image/*" style={{ display:'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+            <div style={{
+              height:44, borderRadius:22, border:'0.5px solid #E2DED8',
+              background:'#F8F7F5', display:'flex', alignItems:'center',
+              justifyContent:'center', gap:8,
+              opacity: busy ? 0.5 : 1,
+            }}>
+              <span style={{ fontSize:16 }}>{uploading ? '⏳' : '🖼️'}</span>
+              <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580' }}>Gallery</span>
+            </div>
+          </label>
         </div>
       </div>
     </>
