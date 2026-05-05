@@ -325,20 +325,100 @@ function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
 }
 
 // Directive 3.3 — Grace token slide-in card (NEVER use debt language)
-function GraceCard({ graceUsed, onTopUp, onDismiss }: { graceUsed: number; onTopUp: () => void; onDismiss: () => void; }) {
-  return (
-    <div style={{ position:'fixed', bottom:90, left:16, right:16, zIndex:310, background:'#111111', borderRadius:16, border:'0.5px solid rgba(201,168,76,0.3)', padding:'20px 20px 16px', boxShadow:'0 8px 32px rgba(0,0,0,0.24)', animation:'slideUp 320ms cubic-bezier(0.22,1,0.36,1)' }}>
-      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-        <span style={{ color:'#C9A84C', fontSize:18 }}>✦</span>
-        <div style={{ flex:1 }}>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#F8F7F5', margin:'0 0 4px', lineHeight:1.5 }}>You used {graceUsed} token{graceUsed !== 1 ? 's' : ''} of grace this week.</p>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'rgba(248,247,245,0.5)', margin:0, lineHeight:1.5 }}>They refresh on the 1st. Or top up if you'd like more.</p>
+function GraceCard({ graceCard, graceRemaining, tier, onTopUp, onDismiss }: {
+  graceCard: number; graceRemaining: number; tier: string;
+  onTopUp: (amount?: number) => void; onDismiss: () => void;
+}) {
+  const isLite = tier === 'lite';
+  const isSig = tier === 'signature';
+  const isPlatinum = tier === 'platinum';
+
+  // Card 1 copy — auto-dismiss toast, no buttons
+  const card1Copy = isLite
+    ? `You used ${isLite ? 5 : isSig ? 10 : 35} tokens of grace this week. Here are ${isLite ? 5 : isSig ? 10 : 35} tokens. It felt rude to cut you mid conversation.`
+    : isSig
+    ? `You used 10 tokens of grace this week. Here are 10 tokens. It felt rude to cut you mid conversation.`
+    : `You used 35 tokens of grace this week. Here are 35 tokens. It felt rude to cut you mid conversation.`;
+
+  // Card 2 copy — with buttons
+  const card2Copy = isLite
+    ? "You sure are a Signature bride. Here are 5 more — a little extra, just for you."
+    : isSig
+    ? "You sure are a Platinum bride. Here are 5 more — a little extra, just for you."
+    : "You belong to a class of your own. Here are 15 more — because you deserve them.";
+
+  // Card 3 copy — hard cap, top up buttons
+  const card3Copy = "We've sent you all the grace we have for this month. Just top up to continue your journey.";
+
+  const cardStyle: React.CSSProperties = {
+    position: 'fixed', bottom: 90, left: 16, right: 16, zIndex: 310,
+    background: '#111111', borderRadius: 16,
+    border: '0.5px solid rgba(201,168,76,0.3)',
+    padding: '20px 20px 16px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.24)',
+    animation: 'slideUp 320ms cubic-bezier(0.22,1,0.36,1)',
+  };
+
+  const bodyStyle: React.CSSProperties = {
+    fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300,
+    color: '#F8F7F5', margin: 0, lineHeight: 1.6,
+  };
+
+  const btnGold: React.CSSProperties = {
+    fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 400,
+    letterSpacing: '0.18em', textTransform: 'uppercase',
+    background: '#C9A84C', color: '#0C0A09', border: 'none',
+    borderRadius: 100, padding: '8px 18px', cursor: 'pointer', touchAction: 'manipulation',
+  };
+
+  const btnGhost: React.CSSProperties = {
+    fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300,
+    letterSpacing: '0.12em', textTransform: 'uppercase',
+    color: 'rgba(248,247,245,0.35)', background: 'none', border: 'none', cursor: 'pointer',
+  };
+
+  if (graceCard === 1) {
+    // Auto-dismiss — no buttons, shown as toast
+    return (
+      <div style={cardStyle}>
+        <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <span style={{ color: '#C9A84C', fontSize: 18 }}>✦</span>
+          <p style={bodyStyle}>{card1Copy}</p>
         </div>
       </div>
-      <div style={{ display:'flex', gap:10, marginTop:16, alignItems:'center' }}>
-        <button onClick={onTopUp} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.18em', textTransform:'uppercase', background:'#C9A84C', color:'#0C0A09', border:'none', borderRadius:100, padding:'8px 18px', cursor:'pointer', touchAction:'manipulation' }}>Top up ₹100</button>
-        <button onClick={onDismiss} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(248,247,245,0.35)', background:'none', border:'none', cursor:'pointer' }}>No worries</button>
+    );
+  }
+
+  if (graceCard === 2) {
+    return (
+      <div style={cardStyle}>
+        <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+          <span style={{ color: '#C9A84C', fontSize: 18 }}>✦</span>
+          <p style={bodyStyle}>{card2Copy}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={() => onTopUp(100)} style={btnGold}>Top up ₹100</button>
+          <button onClick={onDismiss} style={btnGhost}>♡ TDW</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Card 3 — hard cap
+  return (
+    <div style={cardStyle}>
+      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+        <span style={{ color: '#C9A84C', fontSize: 18 }}>✦</span>
+        <p style={bodyStyle}>{card3Copy}</p>
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
+        <button onClick={() => onTopUp(100)} style={btnGold}>Top up ₹100</button>
+        <button onClick={() => onTopUp(350)} style={btnGold}>₹350</button>
+        <button onClick={() => onTopUp(800)} style={btnGold}>₹800</button>
+        <button onClick={onDismiss} style={btnGhost}>Maybe later</button>
       </div>
     </div>
   );
@@ -359,7 +439,11 @@ function UpgradePrompt({ currentTier, onUpgrade, onDismiss }: { currentTier: str
   );
 }
 
-function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible: boolean; onClose: ()=>void; context: any; userId: string; prefill?: string; }) {
+function DreamAiSheet({ visible, onClose, context, userId, prefill, onGrace, onUpgradeNudge }: {
+  visible: boolean; onClose: ()=>void; context: any; userId: string; prefill?: string;
+  onGrace?: (card: number, remaining: number, tier: string) => void;
+  onUpgradeNudge?: () => void;
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -443,6 +527,14 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
         setMessages(p => [...p, { role: 'ai', text: cleanText, actionType: parsed.type, actionLabel: parsed.label, actionPreview: parsed.preview, actionParams: parsed.params }]);
       } else {
         setMessages(p => [...p, { role: 'ai', text: cleanText }]);
+      }
+      // P0.3 — Wire grace card signal
+      if (json.grace_used && json.grace_card && onGrace) {
+        onGrace(json.grace_card, json.grace_remaining ?? 0, json.tier || 'lite');
+      }
+      // P0.4 — Wire upgrade nudge signal
+      if (json.upgrade_nudge && onUpgradeNudge) {
+        onUpgradeNudge();
       }
     } catch { setMessages(p => [...p, { role: 'ai', text: 'Unable to reach DreamAi.' }]); }
     finally { setLoading(false); }
@@ -614,6 +706,8 @@ export default function TodayPage() {
   const [dreamAiContext, setDreamAiContext] = useState<any>(null);
   const [showGraceCard, setShowGraceCard] = useState(false);
   const [graceUsed, setGraceUsed] = useState(0);
+  const [graceCard, setGraceCard] = useState(1);
+  const [graceTier, setGraceTier] = useState('lite');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [sessionPromptShown, setSessionPromptShown] = useState(false);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
@@ -705,9 +799,29 @@ export default function TodayPage() {
       `}</style>
 
       <Toast msg={toast} onDone={()=>setToast(null)} />
-      <DreamAiSheet visible={dreamAiOpen} onClose={()=>setDreamAiOpen(false)} context={dreamAiContext} userId={session?.id||''} prefill={dreamAiPrefill} />
+      <DreamAiSheet
+        visible={dreamAiOpen}
+        onClose={()=>setDreamAiOpen(false)}
+        context={dreamAiContext}
+        userId={session?.id||''}
+        prefill={dreamAiPrefill}
+        onGrace={(card, remaining, tier) => {
+          setGraceCard(card);
+          setGraceUsed(remaining);
+          setGraceTier(tier);
+          setShowGraceCard(true);
+          // Card 1 auto-dismisses after 5 seconds
+          if (card === 1) setTimeout(() => setShowGraceCard(false), 5000);
+        }}
+        onUpgradeNudge={() => {
+          if (!showGraceCard) setShowUpgradePrompt(true);
+        }}
+      />
       {showGraceCard && (
-        <GraceCard graceUsed={graceUsed}
+        <GraceCard
+          graceCard={graceCard}
+          graceRemaining={graceUsed}
+          tier={graceTier}
           onTopUp={() => { setShowGraceCard(false); router.push('/couple/me'); }}
           onDismiss={() => setShowGraceCard(false)} />
       )}
