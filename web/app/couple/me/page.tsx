@@ -104,7 +104,7 @@ export default function CoupleMe() {
           <div style={{
             width:72,height:72,borderRadius:'50%',background:'#111111',
             margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',
-            border: tier === 'Platinum' ? '2px solid #111111' : tier === 'Gold' ? '2px solid #C9A84C' : 'none',
+            border: tier === 'Platinum' ? '2px solid #111111' : tier === 'Signature' ? '2px solid #C9A84C' : 'none',
           }}>
             <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:300,color:'#F8F7F5' }}>
               {initials}
@@ -184,7 +184,7 @@ export default function CoupleMe() {
             <div
               onClick={() => showToast('Upgrade available soon — Razorpay integration in progress.')}
               style={{
-                background: tier === 'Basic' ? '#111111' : 'linear-gradient(135deg,#C9A84C,#a8893a)',
+                background: tier === 'Lite' ? '#111111' : 'linear-gradient(135deg,#C9A84C,#a8893a)',
                 borderRadius:12,padding:'16px 20px',marginBottom:20,
                 cursor:'pointer',touchAction:'manipulation',
                 display:'flex',alignItems:'center',justifyContent:'space-between',
@@ -192,13 +192,13 @@ export default function CoupleMe() {
             >
               <div>
                 <p style={{ fontFamily:"'Jost',sans-serif",fontSize:9,fontWeight:300,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(248,247,245,0.6)',margin:'0 0 4px' }}>
-                  {tier === 'Basic' ? 'Upgrade to Gold' : 'Upgrade to Platinum'}
+                  {tier === 'Lite' ? 'Upgrade to Signature' : 'Upgrade to Platinum'}
                 </p>
                 <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:300,color:'#F8F7F5',margin:0 }}>
-                  {tier === 'Basic' ? '₹999 one-time' : '₹2,999 one-time'}
+                  {tier === 'Lite' ? '₹999 one-time' : '₹2,999 one-time'}
                 </p>
                 <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:300,color:'rgba(248,247,245,0.55)',margin:'4px 0 0' }}>
-                  {tier === 'Basic' ? 'Unlock discovery tokens & more' : 'Unlock Couture, DreamAi & Memory Box'}
+                  {tier === 'Lite' ? 'Unlock discovery tokens & more' : 'Unlock Couture, DreamAi & Memory Box'}
                 </p>
               </div>
               <ChevronRight size={18} color="rgba(248,247,245,0.5)" strokeWidth={1.5} />
