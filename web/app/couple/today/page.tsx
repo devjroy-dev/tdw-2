@@ -633,7 +633,6 @@ export default function TodayPage() {
       if (!isInSession && localStorage.getItem('couple_default_home') === 'dreamai') {
         setDreamAiOpen(true);
       }
-      const isInSession = sessionStorage.getItem('couple_session_active');
       if (!isInSession) {
         sessionStorage.setItem('couple_session_active', '1');
         const lastPath = localStorage.getItem('couple_last_path');
