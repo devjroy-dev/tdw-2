@@ -11,11 +11,13 @@ const BACKEND = 'https://dream-wedding-production-89ae.up.railway.app';
 
 interface Booking {
   id: string;
-  client_name: string;
+  name: string;
   event_date: string;
   event_type: string;
   venue: string;
   status: string;
+  phone?: string;
+  notes?: string;
 }
 
 interface AvailBlock {
@@ -140,7 +142,7 @@ export default function CalendarPage() {
   const fetchBookings = useCallback(async (vid: string) => {
     try {
       const [bookingsRes, availRes] = await Promise.all([
-        fetch(`${BACKEND}/api/bookings/vendor/${vid}`),
+        fetch(`${BACKEND}/api/vendor-clients/${vid}`),
         fetch(`${BACKEND}/api/vendor-discover/availability/${vid}`),
       ]);
       const [json, availJson] = await Promise.all([
@@ -154,10 +156,11 @@ export default function CalendarPage() {
 
       const blocked = new Set<string>();
 
+      // Mark vendor_clients entries with event_date on the calendar
       if (json.success && Array.isArray(json.data)) {
         json.data.forEach((b: Booking) => {
-          if (b.status === 'blocked') {
-            const d = new Date(b.event_date);
+          if (b.event_date) {
+            const d = new Date(b.event_date + 'T00:00:00');
             blocked.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
           }
         });
@@ -213,9 +216,9 @@ export default function CalendarPage() {
 
   const bookingDates = new Set(
     bookings
-      .filter(b => b.status !== 'blocked')
+      .filter(b => b.event_date)
       .map(b => {
-        const d = new Date(b.event_date);
+        const d = new Date(b.event_date + 'T00:00:00');
         return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
       })
   );
@@ -224,7 +227,7 @@ export default function CalendarPage() {
   type UpcomingItem = { date: string; label: string; sub: string; type: 'booking' | 'blocked' };
   const upcomingBookings: UpcomingItem[] = bookings
     .filter(b => b.status !== 'blocked' && new Date(b.event_date) >= new Date(today.toDateString()))
-    .map(b => ({ date: b.event_date, label: b.client_name, sub: b.event_type || '', type: 'booking' as const }));
+    .map(b => ({ date: b.event_date, label: b.name || b.client_name || 'Client', sub: b.event_type || '', type: 'booking' as const }));
   const upcomingBlocks: UpcomingItem[] = availBlocks
     .filter(b => b.blocked_date && new Date(b.blocked_date + 'T00:00:00') >= new Date(today.toDateString()))
     .map(b => ({ date: b.blocked_date, label: b.reason ? b.reason.replace('Imported: ', '') : 'Blocked', sub: '', type: 'blocked' as const }));
@@ -259,13 +262,13 @@ export default function CalendarPage() {
         });
         showToast(creationType === 'task' ? 'Task added.' : 'To-do added.');
       } else if (creationType === 'booking') {
-        await fetch(`${BACKEND}/api/bookings`, {
+        await fetch(`${BACKEND}/api/vendor-clients`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             vendor_id: vendorId,
-            client_name: formTitle,
-            client_phone: formPhone,
+            name: formTitle,
+            phone: formPhone,
             event_type: formEventType,
             event_date: formDate,
             notes: formNote,
@@ -674,7 +677,7 @@ export default function CalendarPage() {
                     <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FFFFFF', borderRadius: 10, padding: '10px 14px', border: '0.5px solid #E2DED8' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C9A84C', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400, color: '#111111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.client_name}</p>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400, color: '#111111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name || b.client_name}</p>
                         {b.event_type && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#888580', margin: 0 }}>{b.event_type}</p>}
                       </div>
                       <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9A84C', flexShrink: 0 }}>Booking</span>
