@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, X } from 'lucide-react';
 
@@ -142,6 +142,7 @@ function CapsuleCard({ id, title, subtitle, isOpen, onToggle, onBrowse, comingSo
 
 export default function DiscoverHub() {
   const router = useRouter();
+  const [userSegment, setUserSegment] = useState<string>('india');
   const [openCard, setOpenCard] = useState<CardId | null>(null);
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<{id:string;name:string;category:string;city?:string}[]>([]);
@@ -167,6 +168,13 @@ export default function DiscoverHub() {
     return defaultFilters;
   };
   const [filters, setFiltersState] = useState<Record<CardId, FilterState>>(loadFilters);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('couple_session') || localStorage.getItem('couple_web_session');
+      if (raw) { const s = JSON.parse(raw); if (s?.user_segment) setUserSegment(s.user_segment); }
+    } catch {}
+  }, []);
   const setFilters = (updater: (prev: Record<CardId, FilterState>) => Record<CardId, FilterState>) => {
     setFiltersState(prev => {
       const next = updater(prev);
@@ -191,6 +199,24 @@ export default function DiscoverHub() {
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap');`}</style>
       <div style={{ fontFamily:"'DM Sans',sans-serif",background:'#F8F7F5',minHeight:'100dvh',padding:'28px 16px',paddingBottom:'calc(80px + env(safe-area-inset-bottom,0px))' }}>
+
+        {/* P1.2 — Global Discover Header — shown only for global segment users */}
+        {userSegment === 'global' && (
+          <div style={{ width:'100%', textAlign:'center', padding:'14px 0 18px', marginBottom:4 }}>
+            <p style={{
+              fontFamily:"'Cormorant Garamond',serif",
+              fontSize: 20,
+              fontWeight: 300,
+              fontStyle: 'italic',
+              color: '#C9A84C',
+              margin: 0,
+              lineHeight: 1.3,
+              letterSpacing: '0.01em',
+            }}>
+              The Curated Catalogue — coming soon to your region.
+            </p>
+          </div>
+        )}
 
         {/* Search bar */}
         <div style={{ position:'relative', marginBottom:20 }}>
