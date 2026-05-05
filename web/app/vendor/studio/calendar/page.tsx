@@ -427,11 +427,12 @@ export default function CalendarPage() {
                 <div
                   key={key}
                   onClick={() => {
-                    if (isHotDate && hotDateInfo) {
+                    const hasUserEvent = hasBooking || isBlocked;
+                    if (hasUserEvent) {
+                      // User event always wins — show unified day sheet
+                      setSelectedBlock({ id: dateStr, blocked_date: dateStr, reason: null } as AvailBlock);
+                    } else if (isHotDate && hotDateInfo) {
                       setSelectedHotDate({ date: dateStr, ...hotDateInfo });
-                    } else if (isBlocked) {
-                      const block = availBlocks.find(b => b.blocked_date === dateStr);
-                      if (block) setSelectedBlock(block);
                     }
                   }}
                   style={{
@@ -442,7 +443,7 @@ export default function CalendarPage() {
                       : 'transparent',
                     border: isHotDate ? `1px solid ${hotColour}44` : '1px solid transparent',
                     borderRadius: 6,
-                    cursor: isHotDate || isBlocked ? 'pointer' : 'default',
+                    cursor: hasBooking || isBlocked || isHotDate ? 'pointer' : 'default',
                   }}
                 >
                   {isHotDate && (
@@ -614,36 +615,64 @@ export default function CalendarPage() {
         )}
 
         {/* Hot Date nudge card */}
-        {/* Blocked date detail sheet */}
-        {selectedBlock && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
-            <div onClick={() => setSelectedBlock(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(12,10,9,0.5)' }} />
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: '#F8F7F5', borderRadius: '20px 20px 0 0',
-              padding: '28px 24px calc(env(safe-area-inset-bottom,16px) + 32px)',
-            }}>
-              <div style={{ width: 36, height: 3, borderRadius: 2, background: '#D8D4CE', margin: '0 auto 24px' }} />
-              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#9B4545', margin: '0 0 8px' }}>
-                BLOCKED
-              </p>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 6px' }}>
-                {new Date(selectedBlock.blocked_date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
-              {selectedBlock.reason && (
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#555150', margin: '0 0 24px', lineHeight: 1.5 }}>
-                  {selectedBlock.reason.replace('Imported: ', '')}
+        {/* Unified day sheet — shows all events on tapped date */}
+        {selectedBlock && (() => {
+          const tapDate = selectedBlock.blocked_date;
+          const dayBookings = bookings.filter(b => b.event_date && b.event_date.slice(0,10) === tapDate);
+          const dayBlocks = availBlocks.filter(b => b.blocked_date === tapDate);
+          const hotInfo = hotDates.get(tapDate);
+          const displayDate = new Date(tapDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+          return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
+              <div onClick={() => setSelectedBlock(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(12,10,9,0.4)' }} />
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                background: '#F8F7F5', borderRadius: '20px 20px 0 0',
+                padding: '20px 20px calc(env(safe-area-inset-bottom,16px) + 24px)',
+              }}>
+                <div style={{ width: 32, height: 3, borderRadius: 2, background: '#D8D4CE', margin: '0 auto 16px' }} />
+                {/* Date header */}
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '0 0 2px' }}>
+                  {displayDate}
                 </p>
-              )}
-              <button
-                onClick={() => setSelectedBlock(null)}
-                style={{ width: '100%', height: 44, borderRadius: 100, border: '0.5px solid #E2DED8', background: 'transparent', fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer' }}
-              >
-                Close
-              </button>
+                {hotInfo && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: hotInfo.intensity === 'peak' ? '#FF6B35' : '#C9A84C', margin: '0 0 12px' }}>
+                    🔥 {hotInfo.intensity === 'peak' ? 'Peak muhurat' : 'High demand day'}{hotInfo.label ? ` — ${hotInfo.label}` : ''}
+                  </p>
+                )}
+                {!hotInfo && <div style={{ marginBottom: 12 }} />}
+                {/* Events list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {dayBookings.map(b => (
+                    <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FFFFFF', borderRadius: 10, padding: '10px 14px', border: '0.5px solid #E2DED8' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C9A84C', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400, color: '#111111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.client_name}</p>
+                        {b.event_type && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#888580', margin: 0 }}>{b.event_type}</p>}
+                      </div>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9A84C', flexShrink: 0 }}>Booking</span>
+                    </div>
+                  ))}
+                  {dayBlocks.map(b => (
+                    <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FFFFFF', borderRadius: 10, padding: '10px 14px', border: '0.5px solid #E2DED8' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 3, background: '#9B4545', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400, color: '#111111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.reason ? b.reason.replace('Imported: ', '') : 'Blocked'}</p>
+                      </div>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9B4545', flexShrink: 0 }}>Blocked</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setSelectedBlock(null)}
+                  style={{ width: '100%', height: 40, borderRadius: 100, border: '0.5px solid #E2DED8', background: 'transparent', fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', marginTop: 16 }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {selectedHotDate && (
           <div style={{
