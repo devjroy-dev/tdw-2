@@ -1,9 +1,14 @@
 'use client';
-// Tips & Features — a permanent reference page in Studio.
-// All 10 tip cards explaining what TDW can do for vendors.
-// Each card is self-contained: icon, title, description, example, CTA.
-// This page never changes — it's the vendor's reference guide.
-import { useRouter } from 'next/navigation';
+// Tips & Features + Account Settings — Studio Settings page.
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+
+const BASE = 'https://dream-wedding-production-89ae.up.railway.app';
+
+function getVendorSession() {
+  if (typeof window === 'undefined') return null;
+  try { const r = localStorage.getItem('vendor_session') || localStorage.getItem('vendor_web_session'); return r ? JSON.parse(r) : null; } catch { return null; }
+}
 
 const TIPS = [
   {
@@ -117,8 +122,47 @@ const TIPS = [
   },
 ];
 
-export default function TipsAndFeaturesPage() {
+function TipsAndFeaturesInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [vendorId, setVendorId] = useState('');
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState('');
+  const [gmailLoading, setGmailLoading] = useState(true);
+  const [gmailWorking, setGmailWorking] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  useEffect(() => {
+    const s = getVendorSession();
+    if (!s?.vendorId && !s?.id) return;
+    const vid = s.vendorId || s.id;
+    setVendorId(vid);
+
+    // Check gmail status
+    fetch(`${BASE}/api/v2/vendor/gmail/status/${vid}`)
+      .then(r => r.json())
+      .then(d => { setGmailConnected(d.connected); setGmailEmail(d.email || ''); setGmailLoading(false); })
+      .catch(() => setGmailLoading(false));
+
+    // Handle OAuth redirect result
+    const gmailParam = searchParams.get('gmail');
+    if (gmailParam === 'connected') showToast('Google account connected ✓');
+    if (gmailParam === 'error') showToast('Could not connect Google account. Try again.');
+  }, [searchParams]);
+
+  async function disconnectGmail() {
+    if (!vendorId || gmailWorking) return;
+    setGmailWorking(true);
+    try {
+      await fetch(`${BASE}/api/v2/vendor/gmail/disconnect/${vendorId}`, { method: 'DELETE' });
+      setGmailConnected(false);
+      setGmailEmail('');
+      showToast('Google account disconnected');
+    } catch { showToast('Error disconnecting'); }
+    finally { setGmailWorking(false); }
+  }
 
   return (
     <>
@@ -148,6 +192,35 @@ export default function TipsAndFeaturesPage() {
             fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300,
             color: '#888580', margin: '8px 0 0',
           }}>Everything TDW can do for your business.</p>
+        </div>
+
+        {/* Google Account Connection — P1.4 */}
+        <div style={{ padding: '0 20px 20px' }}>
+          <div style={{ background: '#FFFFFF', border: '0.5px solid #E2DED8', borderRadius: 14, padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: gmailConnected ? 8 : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16, color: '#C9A84C' }}>✉</span>
+                <div>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, color: '#111111', margin: 0 }}>Google Account</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#888580', margin: '2px 0 0' }}>Send contracts via Gmail</p>
+                </div>
+              </div>
+              {gmailLoading ? (
+                <div style={{ width: 44, height: 24, borderRadius: 100, background: '#E2DED8' }} />
+              ) : gmailConnected ? (
+                <button onClick={disconnectGmail} disabled={gmailWorking} style={{ height: 28, padding: '0 14px', background: 'transparent', border: '0.5px solid #E2DED8', borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer' }}>
+                  {gmailWorking ? '…' : 'Disconnect'}
+                </button>
+              ) : (
+                <button onClick={() => { if (vendorId) window.location.href = `${BASE}/api/v2/vendor/gmail/connect/${vendorId}`; }} style={{ height: 28, padding: '0 14px', background: '#111', border: 'none', borderRadius: 100, fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#F8F7F5', cursor: 'pointer' }}>
+                  Connect
+                </button>
+              )}
+            </div>
+            {gmailConnected && gmailEmail && (
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#4A7C59', margin: 0 }}>✓ Connected · {gmailEmail}</p>
+            )}
+          </div>
         </div>
 
         {/* Tip cards */}
@@ -207,6 +280,15 @@ export default function TipsAndFeaturesPage() {
         </div>
 
       </div>
+      {toast && <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: '#111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 300, padding: '10px 16px', borderRadius: 8, zIndex: 400, whiteSpace: 'nowrap' }}>{toast}</div>}
     </>
+  );
+}
+
+export default function TipsAndFeaturesPage() {
+  return (
+    <Suspense fallback={null}>
+      <TipsAndFeaturesInner />
+    </Suspense>
   );
 }
