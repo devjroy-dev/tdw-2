@@ -537,33 +537,7 @@ function WhatsAppCard({ onDismiss }: { onDismiss: () => void }) {
             <p style={{
               fontFamily: "'Cormorant Garamond', serif", fontSize: 20,
               fontWeight: 300, color: '#C9A84C', margin: 0, letterSpacing: '0.04em',
-            }}>+1 415 523 8886</p>
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <p style={{
-              fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
-              letterSpacing: '0.18em', textTransform: 'uppercase',
-              color: 'rgba(248,247,245,0.3)', margin: '0 0 4px',
-            }}>Step 2 — Send the join code</p>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'rgba(255,255,255,0.04)', borderRadius: 8,
-              padding: '8px 12px',
-            }}>
-              <span style={{
-                fontFamily: "'DM Sans', sans-serif", fontSize: 13,
-                fontWeight: 300, color: '#F8F7F5', letterSpacing: '0.04em',
-              }}>join acres-eventually</span>
-              <button
-                onClick={() => navigator.clipboard?.writeText('join acres-eventually')}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: "'Jost', sans-serif", fontSize: 8,
-                  color: 'rgba(248,247,245,0.3)', letterSpacing: '0.1em',
-                  textTransform: 'uppercase', padding: 0,
-                }}>Copy</button>
-            </div>
+            }}>+1 478 778 8550</p>
           </div>
 
           <div style={{ marginBottom: 16 }}>
@@ -571,7 +545,7 @@ function WhatsAppCard({ onDismiss }: { onDismiss: () => void }) {
               fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 300,
               letterSpacing: '0.18em', textTransform: 'uppercase',
               color: 'rgba(248,247,245,0.3)', margin: '0 0 4px',
-            }}>Step 3 — Try it</p>
+            }}>Step 2 — Try it</p>
             <p style={{
               fontFamily: "'DM Sans', sans-serif", fontSize: 12,
               fontWeight: 300, color: 'rgba(248,247,245,0.45)', margin: 0,
@@ -582,7 +556,7 @@ function WhatsAppCard({ onDismiss }: { onDismiss: () => void }) {
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <a
-              href="https://wa.me/14155238886?text=join%20acres-eventually"
+              href="https://wa.me/14787788550"
               target="_blank" rel="noreferrer"
               style={{
                 fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 400,
@@ -655,16 +629,16 @@ function WhatsAppNudge({ onDone }: { onDone: () => void }) {
           <p style={{
             fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300,
             color: '#C9A84C', margin: '10px 0 2px', letterSpacing: '0.05em',
-          }}>+1 415 523 8886</p>
+          }}>+1 478 778 8550</p>
           <p style={{
             fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300,
             color: 'rgba(248,247,245,0.45)', margin: '0 0 14px',
           }}>
-            Send: <span style={{ color: '#C9A84C' }}>"join acres-eventually"</span> · Then: <span style={{ color: '#C9A84C' }}>"What can you do?"</span>
+            Send: <span style={{ color: '#C9A84C' }}>"What can you do?"</span>
           </p>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <a
-              href="https://wa.me/14155238886?text=join%20acres-eventually"
+              href="https://wa.me/14787788550"
               target="_blank" rel="noreferrer"
               onClick={onDone}
               style={{

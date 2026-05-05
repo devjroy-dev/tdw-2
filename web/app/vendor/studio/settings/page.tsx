@@ -13,7 +13,7 @@ const TIPS = [
     description: 'Run your entire business from WhatsApp. Create invoices, add clients, block dates — all by sending a text. No dashboard needed.',
     example: 'Text: "Sharma ji ka invoice banao, 5 lakh"',
     cta: 'Activate DreamAi',
-    href: 'https://wa.me/14155238886?text=join%20acres-eventually',
+    href: 'https://wa.me/14787788550',
     external: true,
   },
   {
