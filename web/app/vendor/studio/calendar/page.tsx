@@ -200,9 +200,16 @@ export default function CalendarPage() {
       })
   );
 
-  const upcoming = [...bookings]
+  // Merge bookings + iCal availability blocks into unified upcoming list
+  type UpcomingItem = { date: string; label: string; sub: string; type: 'booking' | 'blocked' };
+  const upcomingBookings: UpcomingItem[] = bookings
     .filter(b => b.status !== 'blocked' && new Date(b.event_date) >= new Date(today.toDateString()))
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+    .map(b => ({ date: b.event_date, label: b.client_name, sub: b.event_type || '', type: 'booking' as const }));
+  const upcomingBlocks: UpcomingItem[] = availBlocks
+    .filter(b => b.blocked_date && new Date(b.blocked_date + 'T00:00:00') >= new Date(today.toDateString()))
+    .map(b => ({ date: b.blocked_date, label: b.reason ? b.reason.replace('Imported: ', '') : 'Blocked', sub: '', type: 'blocked' as const }));
+  const upcoming: UpcomingItem[] = [...upcomingBookings, ...upcomingBlocks]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -741,7 +748,7 @@ export default function CalendarPage() {
             }}>Nothing scheduled yet.</p>
           ) : (
             upcoming.map((b, i) => (
-              <div key={b.id} style={{
+              <div key={b.date + i} style={{
                 display: 'flex', alignItems: 'center', gap: 16,
                 padding: '12px 0',
                 borderBottom: i < upcoming.length - 1 ? '1px solid #E2DED8' : 'none',
@@ -749,26 +756,20 @@ export default function CalendarPage() {
                 <span style={{
                   fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300,
                   color: '#888580', flexShrink: 0, minWidth: 48,
-                }}>{formatDate(b.event_date)}</span>
+                }}>{formatDate(b.date)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
                     fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400,
                     color: '#111111', margin: '0 0 2px',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{b.event_type || 'Event'} — {b.client_name}</p>
-                  {b.venue && (
-                    <p style={{
-                      fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300,
-                      color: '#888580', margin: 0,
-                    }}>{b.venue}</p>
-                  )}
+                  }}>{b.label}{b.sub ? ` — ${b.sub}` : ''}</p>
                 </div>
                 <span style={{
                   fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 200,
                   letterSpacing: '0.15em', textTransform: 'uppercase',
-                  color: b.status === 'confirmed' ? '#111111' : '#888580',
+                  color: b.type === 'blocked' ? '#9B4545' : '#C9A84C',
                   flexShrink: 0,
-                }}>{b.status}</span>
+                }}>{b.type === 'blocked' ? 'Blocked' : 'Booking'}</span>
               </div>
             ))
           )}
