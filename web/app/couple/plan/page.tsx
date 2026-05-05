@@ -1983,10 +1983,6 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
   const next30Payments = unpaid.filter(e => { if (!e.due_date) return false; const dt = new Date(e.due_date); dt.setHours(0,0,0,0); return dt > in7 && dt <= in30; });
   const payments = payFilter === 'week' ? thisWeekPayments : next30Payments;
 
-  // Event committed amounts from allExpenses
-  const eventCommitted = (evName: string) =>
-    allExpenses.filter(e => e.event_name === evName).reduce((s, e) => s + (e.actual_amount || e.amount || 0), 0);
-
   return (
     <div>
       <UpgradeCard userId={userId} currentTier={currentTier} onUpgraded={() => setCurrentTier(currentTier === 'lite' ? 'signature' : 'platinum')} />
@@ -2026,31 +2022,6 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
           </p>
         )}
       </div>
-
-      {/* Envelope cards per event */}
-      {d.events.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C8C4BE', margin: '0 0 12px' }}>BY EVENT</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {d.events.map(ev => {
-              const committed = eventCommitted(ev.name);
-              const pct = ev.budget > 0 ? Math.min(100, (committed / ev.budget) * 100) : 0;
-              return (
-                <div key={ev.id} style={{ background: '#FFFFFF', border: '1px solid #E2DED8', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <BudgetRing pct={pct} size={48} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#0C0A09', margin: '0 0 2px' }}>{ev.name}</p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#8C8480', margin: 0 }}>
-                      {fmtINR(committed)} of {ev.budget > 0 ? fmtINR(ev.budget) : '—'}
-                    </p>
-                  </div>
-                  <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, color: '#C9A84C' }}>{Math.round(pct)}%</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Category breakdown */}
       {budgetCategories.length > 0 && d.totalBudget > 0 && (
