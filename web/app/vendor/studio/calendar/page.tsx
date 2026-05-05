@@ -18,6 +18,12 @@ interface Booking {
   status: string;
 }
 
+interface AvailBlock {
+  id: string;
+  blocked_date: string;
+  reason: string | null;
+}
+
 const shimmerStyle: React.CSSProperties = {
   background: 'linear-gradient(90deg, #F8F7F5 25%, #EEECE8 50%, #F8F7F5 75%)',
   backgroundSize: '200% 100%',
@@ -36,6 +42,8 @@ export default function CalendarPage() {
   const [vendorId, setVendorId] = useState<string | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
+  const [availBlocks, setAvailBlocks] = useState<AvailBlock[]>([]);
+  const [selectedBlock, setSelectedBlock] = useState<AvailBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -124,10 +132,8 @@ export default function CalendarPage() {
         setBookings(json.data);
       }
 
-      // Build blocked set from both sources
       const blocked = new Set<string>();
 
-      // Source 1: bookings with status=blocked
       if (json.success && Array.isArray(json.data)) {
         json.data.forEach((b: Booking) => {
           if (b.status === 'blocked') {
@@ -137,10 +143,9 @@ export default function CalendarPage() {
         });
       }
 
-      // Source 2: vendor_availability_blocks (iCal imports + DreamAi blocks)
-      // blocked_date stored as YYYY-MM-DD (1-indexed month), calendar key uses 0-indexed month
       if (availJson.success && Array.isArray(availJson.data)) {
-        availJson.data.forEach((b: { blocked_date: string }) => {
+        setAvailBlocks(availJson.data);
+        availJson.data.forEach((b: AvailBlock) => {
           if (!b.blocked_date) return;
           const [y, m, d] = b.blocked_date.split('-').map(Number);
           blocked.add(`${y}-${m - 1}-${d}`);
@@ -424,6 +429,9 @@ export default function CalendarPage() {
                   onClick={() => {
                     if (isHotDate && hotDateInfo) {
                       setSelectedHotDate({ date: dateStr, ...hotDateInfo });
+                    } else if (isBlocked) {
+                      const block = availBlocks.find(b => b.blocked_date === dateStr);
+                      if (block) setSelectedBlock(block);
                     }
                   }}
                   style={{
@@ -434,7 +442,7 @@ export default function CalendarPage() {
                       : 'transparent',
                     border: isHotDate ? `1px solid ${hotColour}44` : '1px solid transparent',
                     borderRadius: 6,
-                    cursor: isHotDate ? 'pointer' : 'default',
+                    cursor: isHotDate || isBlocked ? 'pointer' : 'default',
                   }}
                 >
                   {isHotDate && (
@@ -606,6 +614,37 @@ export default function CalendarPage() {
         )}
 
         {/* Hot Date nudge card */}
+        {/* Blocked date detail sheet */}
+        {selectedBlock && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
+            <div onClick={() => setSelectedBlock(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(12,10,9,0.5)' }} />
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: '#F8F7F5', borderRadius: '20px 20px 0 0',
+              padding: '28px 24px calc(env(safe-area-inset-bottom,16px) + 32px)',
+            }}>
+              <div style={{ width: 36, height: 3, borderRadius: 2, background: '#D8D4CE', margin: '0 auto 24px' }} />
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#9B4545', margin: '0 0 8px' }}>
+                BLOCKED
+              </p>
+              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 6px' }}>
+                {new Date(selectedBlock.blocked_date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              {selectedBlock.reason && (
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#555150', margin: '0 0 24px', lineHeight: 1.5 }}>
+                  {selectedBlock.reason.replace('Imported: ', '')}
+                </p>
+              )}
+              <button
+                onClick={() => setSelectedBlock(null)}
+                style={{ width: '100%', height: 44, borderRadius: 100, border: '0.5px solid #E2DED8', background: 'transparent', fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
         {selectedHotDate && (
           <div style={{
             position: 'fixed', bottom: 80, left: 16, right: 16, zIndex: 50,
