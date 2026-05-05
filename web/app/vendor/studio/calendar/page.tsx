@@ -111,19 +111,43 @@ export default function CalendarPage() {
 
   const fetchBookings = useCallback(async (vid: string) => {
     try {
-      const res = await fetch(`${BACKEND}/api/bookings/vendor/${vid}`);
-      const json = await res.json();
+      const [bookingsRes, availRes] = await Promise.all([
+        fetch(`${BACKEND}/api/bookings/vendor/${vid}`),
+        fetch(`${BACKEND}/api/vendor-discover/availability/${vid}`),
+      ]);
+      const [json, availJson] = await Promise.all([
+        bookingsRes.json(),
+        availRes.json(),
+      ]);
+
       if (json.success && Array.isArray(json.data)) {
         setBookings(json.data);
-        const blocked = new Set<string>();
+      }
+
+      // Build blocked set from both sources
+      const blocked = new Set<string>();
+
+      // Source 1: bookings with status=blocked
+      if (json.success && Array.isArray(json.data)) {
         json.data.forEach((b: Booking) => {
           if (b.status === 'blocked') {
             const d = new Date(b.event_date);
             blocked.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
           }
         });
-        setBlockedDates(blocked);
       }
+
+      // Source 2: vendor_availability_blocks (iCal imports + DreamAi blocks)
+      // blocked_date stored as YYYY-MM-DD (1-indexed month), calendar key uses 0-indexed month
+      if (availJson.success && Array.isArray(availJson.data)) {
+        availJson.data.forEach((b: { blocked_date: string }) => {
+          if (!b.blocked_date) return;
+          const [y, m, d] = b.blocked_date.split('-').map(Number);
+          blocked.add(`${y}-${m - 1}-${d}`);
+        });
+      }
+
+      setBlockedDates(blocked);
     } catch {}
     setLoading(false);
   }, []);
