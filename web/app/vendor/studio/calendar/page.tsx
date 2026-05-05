@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Plus,
@@ -45,6 +45,7 @@ export default function CalendarPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [availBlocks, setAvailBlocks] = useState<AvailBlock[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0); // P0-CALENDAR: force re-render after booking save
   const [selectedBlock, setSelectedBlock] = useState<AvailBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -210,14 +211,17 @@ export default function CalendarPage() {
   const firstDay = new Date(year, month, 1).getDay();
   const monthName = currentDate.toLocaleString('default', { month: 'long' });
 
-  const bookingDates = new Set(
+  // P0-CALENDAR: useMemo ensures bookingDates recomputes whenever bookings state updates
+  // refreshKey increment in submitForm guarantees re-render after async fetchBookings completes
+  const bookingDates = useMemo(() => new Set(
     bookings
       .filter(b => b.event_date)
       .map(b => {
         const d = new Date(b.event_date + 'T00:00:00');
         return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
       })
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [bookings, refreshKey]);
 
   // Merge bookings + iCal availability blocks into unified upcoming list
   type UpcomingItem = { date: string; label: string; sub: string; type: 'booking' | 'blocked' };
@@ -285,20 +289,21 @@ export default function CalendarPage() {
         }
         showToast('Booking added.');
         await fetchBookings(vendorId);
+        setRefreshKey(k => k + 1); // P0-CALENDAR: force bookingDates recompute
       } else if (creationType === 'block') {
-        await fetch(`${BACKEND}/api/bookings`, {
+        // P0-CALENDAR: block-date writes to vendor_availability_blocks (correct table)
+        await fetch(`${BACKEND}/api/v2/dreamai/vendor-action/block-date`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             vendor_id: vendorId,
-            event_date: formDate,
-            notes: formNote,
-            status: 'blocked',
-
+            blocked_date: formDate,
+            reason: formNote || null,
           }),
         });
         showToast('Date blocked.');
         await fetchBookings(vendorId);
+        setRefreshKey(k => k + 1); // P0-CALENDAR: force availBlocks recompute
       }
       resetForm();
       setFabOpen(false);
