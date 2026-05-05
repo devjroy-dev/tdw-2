@@ -14,8 +14,30 @@ interface VendorSession {
   tier?: string;
 }
 
+function getSessionFromUrl(): VendorSession | null {
+  // Read demo session encoded in URL param (ds). This is the primary path on
+  // Safari where localStorage is blocked in private mode.
+  if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ds = params.get('ds');
+    if (!ds) return null;
+    const raw = decodeURIComponent(atob(ds));
+    const s = JSON.parse(raw);
+    // Best-effort: write to localStorage now that we have the data.
+    // Subsequent navigation within the app will pick it up normally.
+    try { localStorage.setItem('vendor_web_session', raw); } catch (_) {}
+    if (!s.vendorName && s.name) s.vendorName = s.name;
+    if (!s.name && s.vendorName) s.name = s.vendorName;
+    return s;
+  } catch { return null; }
+}
+
 function getSession(): VendorSession | null {
   if (typeof window === 'undefined') return null;
+  // URL param takes precedence — ensures Safari demo works without localStorage.
+  const fromUrl = getSessionFromUrl();
+  if (fromUrl) return fromUrl;
   try {
     // Check both keys — login paths are inconsistent about which one they write.
     // vendor_session is set by some OTP paths; vendor_web_session by others.

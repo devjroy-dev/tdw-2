@@ -12,11 +12,14 @@ export default function EssentialDemoPage() {
       city: 'Delhi NCR',
       tier: 'essential',
     });
-    try {
-      localStorage.setItem('vendor_web_session', session);
-    } catch(e) {}
+
+    // Best-effort localStorage write — Safari private mode will silently fail.
+    // Session is carried via URL param (ds) so the demo works regardless.
+    try { localStorage.setItem('vendor_web_session', session); } catch (_) {}
+
+    const encoded = btoa(encodeURIComponent(session));
     setStatus('Redirecting to Essential dashboard...');
-    window.location.replace('/vendor/dashboard?demo=1');
+    window.location.replace('/vendor/dashboard?demo=1&ds=' + encoded);
   }, []);
 
   return (
