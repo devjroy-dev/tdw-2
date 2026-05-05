@@ -29,6 +29,7 @@ export default function CoupleOnboardingPage() {
   const [name, setName]               = useState('');
   const [residenceCountry, setResidenceCountry] = useState('India');
   const [weddingCountry, setWeddingCountry]     = useState('India');
+  const [weddingStyle, setWeddingStyle]         = useState('Hindu');
   const [partnerName, setPartnerName] = useState('');
   const [dateMode, setDateMode]       = useState<DateMode>(null);
   const [exactDate, setExactDate]     = useState('');
@@ -96,6 +97,7 @@ export default function CoupleOnboardingPage() {
           wedding_date: buildWeddingDate(),
           residence_country: residenceCountry,
           wedding_country: weddingCountry,
+          wedding_style: weddingStyle.toLowerCase(),
           user_segment: (residenceCountry === 'India' && weddingCountry === 'India') ? 'india' : (residenceCountry !== 'India') ? (weddingCountry === 'India' ? 'nri' : 'global') : 'india',
         }),
       });
@@ -113,6 +115,7 @@ export default function CoupleOnboardingPage() {
   };
 
   const COUNTRY_OPTIONS = ['India','United States','United Kingdom','Canada','Australia','UAE','Singapore','Other'];
+  const WEDDING_STYLES = ['Hindu','Muslim','Christian','Sikh','Jain','Buddhist','Jewish','Civil','Fusion','Other'];
   const canSubmit = name.trim().length > 0;
 
   return (
@@ -235,6 +238,18 @@ export default function CoupleOnboardingPage() {
                 {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+            {/* P1.1 — Wedding style dropdown */}
+            <div style={{ marginBottom:24 }}>
+              <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(248,247,245,0.4)', margin:'0 0 6px' }}>What's your wedding style?</p>
+              <select
+                value={weddingStyle}
+                onChange={e => setWeddingStyle(e.target.value)}
+                style={{ width:'100%', height:44, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111111', background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:10, padding:'0 12px', outline:'none' }}
+              >
+                {WEDDING_STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
             {/* CTA */}
             <button
               onClick={handleSubmit}
