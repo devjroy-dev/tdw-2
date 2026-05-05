@@ -12,7 +12,7 @@ interface EventItem { id: string; event_name: string; event_date: string; venue?
 interface Payment { id: string; vendor_name?: string; actual_amount?: number; due_date?: string; description?: string; }
 interface QuietActivity { type: string; text: string; at: string; enquiry_id?: string; vendor_id?: string; vendor_name?: string; vendor_category?: string; from?: string; }
 interface TodayData { hero: HeroData; three_moments: Moment[]; muse_saves: MuseSave[]; this_week_events: EventItem[]; upcoming_payments: Payment[]; budget: { total: number; committed: number; paid: number }; next_event: EventItem|null; quiet_activity: QuietActivity[]; priority_tasks: any[]; }
-interface Session { id: string; name?: string; dreamer_type?: string; }
+interface Session { id: string; name?: string; dreamer_type?: string; couple_tier?: string; }
 interface ChatMessage { role: 'user'|'ai'; text: string; actionType?: string; actionLabel?: string; actionPreview?: string; actionParams?: Record<string,any>; }
 
 function getSession(): Session|null {
@@ -452,7 +452,7 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
   return (
     <>
       <div onClick={onClose} style={{ ...s, background:'rgba(17,17,17,0.4)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms cubic-bezier(0.22,1,0.36,1)' }} />
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, height:'92dvh', background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, height:'92dvh', background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
         <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}><div style={{ width:36, height:4, borderRadius:2, background:'#E2DED8' }} /></div>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 20px 12px', borderBottom:'0.5px solid #E2DED8' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:16 }}>✦</span><span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111' }}>DreamAi</span></div>

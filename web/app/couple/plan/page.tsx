@@ -1624,18 +1624,18 @@ function UpgradeCard({ userId, currentTier, onUpgraded }: { userId: string; curr
   const [toast, setToast] = useState('');
   const isSignature = currentTier === 'signature';
   if (currentTier === 'platinum') return null;
-  const target = isGold ? 'platinum' : 'gold';
-  const label = target === 'gold' ? 'Gold — ₹999' : 'Platinum — ₹2,999';
-  const amount = target === 'gold' ? 999 : 2999;
-  const paymentType = target === 'gold' ? 'couple_gold' : 'couple_platinum';
-  const benefits = target === 'gold'
+  const target = isSignature ? 'platinum' : 'signature';
+  const label = target === 'signature' ? 'Signature — ₹999' : 'Platinum — ₹2,999';
+  const amount = target === 'signature' ? 999 : 2999;
+  const paymentType = target === 'signature' ? 'couple_signature' : 'couple_platinum';
+  const benefits = target === 'signature'
     ? ['Priority discovery', 'Unlock full vendor profiles', 'Booking history']
     : ['DreamAi — your AI wedding planner', 'Couture appointments', 'Memory Box'];
   const handleUpgrade = async () => {
     setPaying(true);
     await openRazorpay({
       userId, paymentType, amount, label,
-      onSuccess: () => { setPaying(false); setToast('Welcome to ' + (target === 'gold' ? 'Gold' : 'Platinum') + '!'); setTimeout(() => { setToast(''); onUpgraded(); }, 2000); },
+      onSuccess: () => { setPaying(false); setToast('Welcome to ' + (target === 'signature' ? 'Signature' : 'Platinum') + '!'); setTimeout(() => { setToast(''); onUpgraded(); }, 2000); },
       onError: (msg) => { setPaying(false); setToast(msg); setTimeout(() => setToast(''), 4000); },
     });
   };
@@ -1644,7 +1644,7 @@ function UpgradeCard({ userId, currentTier, onUpgraded }: { userId: string; curr
       <div style={{ background: '#0C0A09', borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', margin: '0 0 8px' }}>UPGRADE</p>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: '#F8F7F5', margin: '0 0 16px', lineHeight: 1.2 }}>
-          {target === 'gold' ? 'Unlock the full journey.' : 'Your AI wedding planner awaits.'}
+          {target === 'signature' ? 'Unlock the full journey.' : 'Your AI wedding planner awaits.'}
         </p>
         <div style={{ marginBottom: 20 }}>
           {benefits.map(b => <p key={b} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 4px' }}>· {b}</p>)}
