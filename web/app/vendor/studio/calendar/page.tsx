@@ -118,7 +118,7 @@ export default function CalendarPage() {
     const bookingMatch = bookings.filter(b => b.event_date && b.event_date.slice(0,10) === val && b.status !== 'blocked');
     const all = [
       ...blockMatch.map(b => b.reason ? b.reason.replace('Imported: ', '') : 'Blocked date'),
-      ...bookingMatch.map(b => b.name || b.client_name || ''),
+      ...bookingMatch.map(b => b.name || ''),
     ];
     if (all.length > 0) {
       setConflictWarning(`You already have: ${all.join(', ')} on this date. You can still add another slot.`);
@@ -223,7 +223,7 @@ export default function CalendarPage() {
   type UpcomingItem = { date: string; label: string; sub: string; type: 'booking' | 'blocked' };
   const upcomingBookings: UpcomingItem[] = bookings
     .filter(b => b.status !== 'blocked' && new Date(b.event_date) >= new Date(today.toDateString()))
-    .map(b => ({ date: b.event_date, label: b.name || b.client_name || 'Client', sub: b.event_type || '', type: 'booking' as const }));
+    .map(b => ({ date: b.event_date, label: b.name || 'Client', sub: b.event_type || '', type: 'booking' as const }));
   const upcomingBlocks: UpcomingItem[] = availBlocks
     .filter(b => b.blocked_date && new Date(b.blocked_date + 'T00:00:00') >= new Date(today.toDateString()))
     .map(b => ({ date: b.blocked_date, label: b.reason ? b.reason.replace('Imported: ', '') : 'Blocked', sub: '', type: 'blocked' as const }));
@@ -294,7 +294,7 @@ export default function CalendarPage() {
             event_date: formDate,
             notes: formNote,
             status: 'blocked',
-            client_name: 'Blocked',
+
           }),
         });
         showToast('Date blocked.');
@@ -673,7 +673,7 @@ export default function CalendarPage() {
                     <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FFFFFF', borderRadius: 10, padding: '10px 14px', border: '0.5px solid #E2DED8' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C9A84C', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400, color: '#111111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name || b.client_name}</p>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400, color: '#111111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name || 'Client'}</p>
                         {b.event_type && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#888580', margin: 0 }}>{b.event_type}</p>}
                       </div>
                       <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9A84C', flexShrink: 0 }}>Booking</span>
