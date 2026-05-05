@@ -8,7 +8,7 @@ const h = { 'Content-Type': 'application/json', 'x-admin-password': PWD };
 const fonts = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&family=Jost:wght@200;300;400&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`;
 
 type Couple = { id: string; name: string; phone: string; dreamer_type: string; wedding_date: string | null; created_at: string; };
-type Filter = 'all' | 'basic' | 'gold' | 'platinum';
+type Filter = 'all' | 'lite' | 'signature' | 'platinum';
 
 export default function AdminCouplesPage() {
   const [couples, setCouples] = useState<Couple[]>([]);
@@ -18,7 +18,7 @@ export default function AdminCouplesPage() {
   const [toast, setToast] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', phone: '', partner_name: '', wedding_date: '', tier: 'basic' });
+  const [form, setForm] = useState({ name: '', phone: '', partner_name: '', wedding_date: '', tier: 'lite' });
   const [creating, setCreating] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
@@ -53,7 +53,7 @@ export default function AdminCouplesPage() {
     try {
       const r = await fetch(`${API}/api/v2/admin/couples/create`, { method: 'POST', headers: h, body: JSON.stringify(form) });
       const d = await r.json();
-      if (d.success) { setShowCreate(false); setForm({ name: '', phone: '', partner_name: '', wedding_date: '', tier: 'basic' }); load(); showToast('Dreamer created.'); }
+      if (d.success) { setShowCreate(false); setForm({ name: '', phone: '', partner_name: '', wedding_date: '', tier: 'lite' }); load(); showToast('Dreamer created.'); }
       else showToast(d.error || 'Failed.');
     } finally { setCreating(false); }
   };
@@ -67,7 +67,7 @@ export default function AdminCouplesPage() {
   const lbl: React.CSSProperties = { fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 7, color: '#555250', letterSpacing: '0.22em', textTransform: 'uppercase', display: 'block', marginBottom: 4 };
   const fld: React.CSSProperties = { width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8', outline: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 12, color: '#111111', padding: '6px 0', marginBottom: 14 };
 
-  const tierColor = (t: string) => t === 'platinum' ? '#111111' : t === 'gold' ? '#C9A84C' : '#555250';
+  const tierColor = (t: string) => t === 'platinum' ? '#111111' : t === 'signature' ? '#C9A84C' : '#555250';
 
   return (
     <>
@@ -101,7 +101,7 @@ export default function AdminCouplesPage() {
             <input type="date" value={form.wedding_date} onChange={e => setForm(f => ({ ...f, wedding_date: e.target.value }))} style={fld} />
             <label style={lbl}>Tier</label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              {['basic', 'gold', 'platinum'].map(t => (
+              {['lite', 'signature', 'platinum'].map(t => (
                 <button key={t} onClick={() => setForm(f => ({ ...f, tier: t }))} style={{ padding: '7px 14px', border: `0.5px solid ${form.tier === t ? '#C9A84C' : '#E2DED8'}`, background: form.tier === t ? '#111111' : 'transparent', color: form.tier === t ? '#F8F7F5' : '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 3, cursor: 'pointer' }}>{t}</button>
               ))}
             </div>
@@ -124,7 +124,7 @@ export default function AdminCouplesPage() {
       <input placeholder="Search dreamers…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', maxWidth: 340, background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8', outline: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, color: '#111111', padding: '8px 0', marginBottom: 16 }} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {(['all', 'basic', 'gold', 'platinum'] as Filter[]).map(f => (
+        {(['all', 'lite', 'signature', 'platinum'] as Filter[]).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{ border: `0.5px solid ${filter === f ? '#C9A84C' : '#E2DED8'}`, background: filter === f ? 'rgba(201,168,76,0.08)' : 'transparent', color: filter === f ? '#C9A84C' : '#555250', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', padding: '5px 14px', borderRadius: 20, cursor: 'pointer' }}>{f}</button>
         ))}
       </div>
@@ -153,8 +153,8 @@ export default function AdminCouplesPage() {
                   <td style={{ padding: '11px 14px', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 12, color: '#555250' }}>{c.phone}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <select value={c.dreamer_type} onChange={e => changeTier(c.id, e.target.value)} style={{ background: 'transparent', border: 'none', outline: 'none', fontFamily: '"Jost", sans-serif', fontWeight: 200, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: tierColor(c.dreamer_type), cursor: 'pointer' }}>
-                      <option value="basic">Basic</option>
-                      <option value="gold">Gold</option>
+                      <option value="lite">Lite</option>
+                      <option value="signature">Signature</option>
                       <option value="platinum">Platinum</option>
                     </select>
                   </td>

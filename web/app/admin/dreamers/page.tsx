@@ -18,11 +18,11 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   );
 }
 
-const TIER_LABELS: Record<string, string> = { free: 'Basic', premium: 'Gold', elite: 'Platinum' };
+const TIER_LABELS: Record<string, string> = { lite: 'Lite', signature: 'Signature', platinum: 'Platinum' };
 
 function TierChip({ tier }: { tier: string }) {
-  const bg = tier === 'elite' ? '#111' : tier === 'premium' ? 'rgba(201,168,76,0.12)' : '#F4F1EC';
-  const color = tier === 'elite' ? '#F8F7F5' : tier === 'premium' ? '#C9A84C' : '#888580';
+  const bg = tier === 'platinum' ? '#111' : tier === 'signature' ? 'rgba(201,168,76,0.12)' : '#F4F1EC';
+  const color = tier === 'platinum' ? '#F8F7F5' : tier === 'signature' ? '#C9A84C' : '#888580';
   return (
     <span style={{ fontFamily: 'Jost, sans-serif', fontSize: 8, fontWeight: 300, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 100, background: bg, color }}>
       {TIER_LABELS[tier] || tier}
@@ -156,7 +156,7 @@ export default function DreamersPage() {
               {/* Tier */}
               <p style={{ fontFamily: 'Jost, sans-serif', fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', margin: '0 0 8px' }}>Change Tier</p>
               <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-                {['free', 'premium', 'elite'].map(t => {
+                {['lite', 'signature', 'platinum'].map(t => {
                   const isActive = selected.couple_tier === t;
                   return (
                     <button key={t} onClick={() => updateDreamer(selected.id, { couple_tier: t })} style={{ flex: 1, height: 32, background: isActive ? '#111' : '#F4F1EC', color: isActive ? '#F8F7F5' : '#888580', border: 'none', borderRadius: 6, fontFamily: 'Jost, sans-serif', fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
@@ -200,7 +200,7 @@ export default function DreamersPage() {
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or phone…" style={{ flex: 1, minWidth: 200, border: 'none', borderBottom: '1px solid rgba(248,247,245,0.08)', background: 'transparent', fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 300, color: '#111111', padding: '8px 0', outline: 'none' }} />
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[['all', 'All'], ['free', 'Basic'], ['premium', 'Gold'], ['elite', 'Platinum']].map(([v, l]) => (
+          {[['all', 'All'], ['lite', 'Lite'], ['signature', 'Signature'], ['platinum', 'Platinum']].map(([v, l]) => (
             <button key={v} onClick={() => setFilterTier(v)} style={chipStyle(filterTier === v)}>{l}</button>
           ))}
         </div>

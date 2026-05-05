@@ -1622,7 +1622,7 @@ async function openRazorpay({
 function UpgradeCard({ userId, currentTier, onUpgraded }: { userId: string; currentTier: string; onUpgraded: () => void }) {
   const [paying, setPaying] = useState(false);
   const [toast, setToast] = useState('');
-  const isGold = currentTier === 'gold';
+  const isSignature = currentTier === 'signature';
   if (currentTier === 'platinum') return null;
   const target = isGold ? 'platinum' : 'gold';
   const label = target === 'gold' ? 'Gold — ₹999' : 'Platinum — ₹2,999';
@@ -1902,7 +1902,7 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
-  const [currentTier, setCurrentTier] = useState(dreamerType || 'basic');
+  const [currentTier, setCurrentTier] = useState(dreamerType || 'lite');
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [toast, setToast] = useState('');
@@ -1989,7 +1989,7 @@ function MoneyTab({ userId, dreamerType, onOpenDreamAi, refetch }: {
 
   return (
     <div>
-      <UpgradeCard userId={userId} currentTier={currentTier} onUpgraded={() => setCurrentTier(currentTier === 'basic' ? 'gold' : 'platinum')} />
+      <UpgradeCard userId={userId} currentTier={currentTier} onUpgraded={() => setCurrentTier(currentTier === 'lite' ? 'signature' : 'platinum')} />
 
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -3577,7 +3577,7 @@ export default function CouplePlanPage() {
   }
 
   const userId = session.id;
-  const dreamerType = session.dreamer_type || 'basic';
+  const dreamerType = session.dreamer_type || 'lite';
   const initial = (session.name?.[0] || 'D').toUpperCase();
 
   function openDreamAi(prefill: string) {

@@ -26,7 +26,7 @@ export default function CoupleMe() {
   const router = useRouter();
   const [name, setName]           = useState('');
   const [userId, setUserId]       = useState('');
-  const [tier, setTier]           = useState<'Basic'|'Gold'|'Platinum'>('Basic');
+  const [tier, setTier]           = useState<'Lite'|'Signature'|'Platinum'>('Lite');
   const [weddingDate, setWeddingDate] = useState<string|null>(null);
   const [tokens, setTokens]       = useState<number|null>(null);
   const [toast, setToast]         = useState('');
@@ -49,10 +49,10 @@ export default function CoupleMe() {
       ]).then(([profile, tokenData]) => {
         if (profile?.couple) {
           const p = profile.couple;
-          const t = p.dreamer_type || p.tier || 'free';
-          if (t === 'elite' || t === 'platinum') setTier('Platinum');
-          else if (t === 'premium' || t === 'gold') setTier('Gold');
-          else setTier('Basic');
+          const t = p.dreamer_type || p.tier || 'lite';
+          if (t === 'platinum') setTier('Platinum');
+          else if (t === 'signature') setTier('Signature');
+          else setTier('Lite');
           if (p.wedding_date) setWeddingDate(p.wedding_date);
           if (n === '' && p.name) setName(p.name);
         }
@@ -71,8 +71,8 @@ export default function CoupleMe() {
   const initials = getInitials(name);
   const daysUntil = weddingDate ? getDaysUntil(weddingDate) : null;
 
-  const tierColour = tier === 'Platinum' ? '#111111' : tier === 'Gold' ? '#C9A84C' : '#888580';
-  const tierIcon = tier === 'Platinum' ? Crown : tier === 'Gold' ? Star : null;
+  const tierColour = tier === 'Platinum' ? '#111111' : tier === 'Signature' ? '#C9A84C' : '#888580';
+  const tierIcon = tier === 'Platinum' ? Crown : tier === 'Signature' ? Star : null;
   const TierIcon = tierIcon;
 
   return (

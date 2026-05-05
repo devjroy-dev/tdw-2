@@ -45,7 +45,7 @@ export default function AdminInvitesPage() {
   };
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { setTier(role === 'vendor' ? 'signature' : 'basic'); }, [role]);
+  useEffect(() => { setTier(role === 'vendor' ? 'signature' : 'lite'); }, [role]);
 
   const generate = async () => {
     setGenerating(true);
@@ -73,7 +73,7 @@ export default function AdminInvitesPage() {
   };
 
   const vendorTiers = ['essential', 'signature', 'prestige'];
-  const dreamerTiers = ['basic', 'gold', 'platinum'];
+  const dreamerTiers = ['lite', 'signature', 'platinum'];
   const tiers = role === 'vendor' ? vendorTiers : dreamerTiers;
 
   const filtered = codes.filter(c => {
