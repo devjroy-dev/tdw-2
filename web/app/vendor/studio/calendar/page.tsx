@@ -65,6 +65,7 @@ export default function CalendarPage() {
   // ── Form fields ─────────────────────────────────────────
   const [formTitle, setFormTitle] = useState('');
   const [formDate, setFormDate] = useState('');
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [formNote, setFormNote] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formEventType, setFormEventType] = useState('');
@@ -100,9 +101,28 @@ export default function CalendarPage() {
   };
 
   const resetForm = () => {
-    setFormTitle(''); setFormDate(''); setFormNote('');
+    setFormTitle(''); setFormDate(''); setFormNote(''); setConflictWarning(null);
     setFormPhone(''); setFormEventType(''); setFormReminderDate('');
     setCreationType(null);
+  };
+
+  // ── Date change with conflict check ──────────────────────
+  const handleDateChange = (val: string) => {
+    setFormDate(val);
+    if (!val) { setConflictWarning(null); return; }
+    // Check availBlocks (iCal imports)
+    const blockMatch = availBlocks.filter(b => b.blocked_date === val);
+    // Check bookings
+    const bookingMatch = bookings.filter(b => b.event_date && b.event_date.slice(0,10) === val && b.status !== 'blocked');
+    const all = [
+      ...blockMatch.map(b => b.reason ? b.reason.replace('Imported: ', '') : 'Blocked date'),
+      ...bookingMatch.map(b => b.client_name),
+    ];
+    if (all.length > 0) {
+      setConflictWarning(`You already have: ${all.join(', ')} on this date. You can still add another slot.`);
+    } else {
+      setConflictWarning(null);
+    }
   };
 
   // ── Auth + initial fetch ────────────────────────────────
@@ -950,8 +970,13 @@ export default function CalendarPage() {
                   placeholder="e.g. Wedding, Pre-Wedding"
                   style={{ ...fieldStyle, border: 'none' }} />
                 <label style={labelStyle}>Event Date *</label>
-                <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
+                <input type="date" value={formDate} onChange={e => handleDateChange(e.target.value)}
                   style={{ ...fieldStyle, border: 'none' }} />
+                {conflictWarning && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#C9A84C', margin: '-8px 0 8px', lineHeight: 1.4 }}>
+                    ⚠ {conflictWarning}
+                  </p>
+                )}
                 <label style={labelStyle}>Follow-up Reminder</label>
                 <input type="date" value={formReminderDate} onChange={e => setFormReminderDate(e.target.value)}
                   style={{ ...fieldStyle, border: 'none' }} />
@@ -966,8 +991,13 @@ export default function CalendarPage() {
             {creationType === 'block' && (
               <>
                 <label style={labelStyle}>Date *</label>
-                <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
+                <input type="date" value={formDate} onChange={e => handleDateChange(e.target.value)}
                   style={{ ...fieldStyle, border: 'none' }} />
+                {conflictWarning && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 300, color: '#C9A84C', margin: '-8px 0 8px', lineHeight: 1.4 }}>
+                    ⚠ {conflictWarning}
+                  </p>
+                )}
                 <label style={labelStyle}>Reason / Note</label>
                 <textarea value={formNote} onChange={e => setFormNote(e.target.value)}
                   placeholder="e.g. Personal commitment, Travel, Hold for client"
