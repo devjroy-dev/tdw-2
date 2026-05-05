@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Plus,
@@ -118,7 +118,7 @@ export default function CalendarPage() {
     const bookingMatch = bookings.filter(b => b.event_date && b.event_date.slice(0,10) === val && b.status !== 'blocked');
     const all = [
       ...blockMatch.map(b => b.reason ? b.reason.replace('Imported: ', '') : 'Blocked date'),
-      ...bookingMatch.map(b => b.client_name),
+      ...bookingMatch.map(b => b.name || b.client_name || ''),
     ];
     if (all.length > 0) {
       setConflictWarning(`You already have: ${all.join(', ')} on this date. You can still add another slot.`);
@@ -136,10 +136,11 @@ export default function CalendarPage() {
       const vid = parsed.vendorId || parsed.id;
       if (!vid) { window.location.replace('/vendor/login'); return; }
       setVendorId(vid);
+      fetchBookings(vid);
     } catch { window.location.replace('/vendor/login'); }
   }, []);
 
-  const fetchBookings = useCallback(async (vid: string) => {
+  async function fetchBookings(vid: string) {
     try {
       const [bookingsRes, availRes] = await Promise.all([
         fetch(`${BACKEND}/api/vendor-clients/${vid}`),
@@ -156,7 +157,6 @@ export default function CalendarPage() {
 
       const blocked = new Set<string>();
 
-      // Mark vendor_clients entries with event_date on the calendar
       if (json.success && Array.isArray(json.data)) {
         json.data.forEach((b: Booking) => {
           if (b.event_date) {
@@ -178,13 +178,9 @@ export default function CalendarPage() {
       setBlockedDates(blocked);
     } catch {}
     setLoading(false);
-  }, []);
+  }
 
-  useEffect(() => {
-    if (vendorId) fetchBookings(vendorId);
-  }, [vendorId, fetchBookings]);
-
-  const fetchHotDates = useCallback(async () => {
+  async function fetchHotDates() {
     try {
       const from = new Date();
       from.setMonth(from.getMonth() - 1);
@@ -200,11 +196,11 @@ export default function CalendarPage() {
         setHotDates(map);
       }
     } catch {}
-  }, []);
+  }
 
   useEffect(() => {
     if (vendorId) fetchHotDates();
-  }, [vendorId, fetchHotDates]);
+  }, [vendorId]);
 
   // ── Calendar computed values ────────────────────────────
   const year = currentDate.getFullYear();
