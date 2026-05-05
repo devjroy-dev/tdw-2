@@ -1,5 +1,18 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { CitySearchDropdown, ALL_CITIES } from '../../components/CitySearchDropdown';
+
+const INDIA_CITY_SET = new Set([
+  'Delhi','Mumbai','Bangalore','Chennai','Hyderabad','Kolkata','Jaipur','Udaipur','Pune','Ahmedabad',
+  'Chandigarh','Lucknow','Kochi','Goa','Amritsar','Surat','Jodhpur','Agra','Varanasi','Bhopal','Indore',
+  'Nagpur','Coimbatore','Madurai','Visakhapatnam','Mangalore','Mysore','Pondicherry','Dehradun','Shimla',
+  'Mussoorie','Nainital','Rishikesh','Haridwar','Jammu','Srinagar','Guwahati','Shillong','Bhubaneswar',
+  'Raipur','Ranchi','Patna','Allahabad','Meerut','Kanpur','Ludhiana','Jalandhar','Patiala','Faridabad',
+  'Gurgaon','Noida','Thane','Navi Mumbai','Aurangabad','Nashik','Kolhapur','Rajkot','Vadodara','Gandhinagar',
+  'Bhavnagar','Trivandrum','Thrissur','Kozhikode','Calicut','Hubli','Belgaum','Vijayawada','Guntur',
+  'Warangal','Tirupati','Salem','Tiruchirappalli','Vellore',
+]);
+const isIndiaCity = (v: string) => INDIA_CITY_SET.has(v) || v === 'India';
 import { useRouter } from 'next/navigation';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
@@ -98,7 +111,7 @@ export default function CoupleOnboardingPage() {
           residence_country: residenceCountry,
           wedding_country: weddingCountry,
           wedding_style: weddingStyle.toLowerCase(),
-          user_segment: (residenceCountry === 'India' && weddingCountry === 'India') ? 'india' : (residenceCountry !== 'India') ? (weddingCountry === 'India' ? 'nri' : 'global') : 'india',
+          user_segment: (isIndiaCity(residenceCountry) && isIndiaCity(weddingCountry)) ? 'india' : (!isIndiaCity(residenceCountry)) ? (isIndiaCity(weddingCountry) ? 'nri' : 'global') : 'india',
         }),
       });
       const d = await r.json();
@@ -114,7 +127,6 @@ export default function CoupleOnboardingPage() {
     finally { setLoading(false); }
   };
 
-  const COUNTRY_OPTIONS = ['India','United States','United Kingdom','Canada','Australia','UAE','Singapore','Other'];
   const WEDDING_STYLES = ['Hindu','Muslim','Christian','Sikh','Jain','Buddhist','Jewish','Civil','Fusion','Other'];
   const canSubmit = name.trim().length > 0;
 
@@ -227,16 +239,22 @@ export default function CoupleOnboardingPage() {
 
             {/* Directive 2.9 — Segment detection */}
             <div style={{ marginBottom:16 }}>
-              <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.18em', textTransform:'uppercase', color:'#888580', margin:'0 0 6px' }}>Where do you live?</p>
-              <select value={residenceCountry} onChange={e => setResidenceCountry(e.target.value)} style={{ width:'100%', height:44, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111111', background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:10, padding:'0 12px', outline:'none' }}>
-                {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <CitySearchDropdown
+                label="Where do you live?"
+                value={residenceCountry}
+                onChange={setResidenceCountry}
+                placeholder="Select city or country"
+                theme="dark"
+              />
             </div>
             <div style={{ marginBottom:20 }}>
-              <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.18em', textTransform:'uppercase', color:'#888580', margin:'0 0 6px' }}>Where will your wedding take place?</p>
-              <select value={weddingCountry} onChange={e => setWeddingCountry(e.target.value)} style={{ width:'100%', height:44, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111111', background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:10, padding:'0 12px', outline:'none' }}>
-                {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <CitySearchDropdown
+                label="Where will your wedding take place?"
+                value={weddingCountry}
+                onChange={setWeddingCountry}
+                placeholder="Select city or country"
+                theme="dark"
+              />
             </div>
             {/* P1.1 — Wedding style dropdown */}
             <div style={{ marginBottom:24 }}>
