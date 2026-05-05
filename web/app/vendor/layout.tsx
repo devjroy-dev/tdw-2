@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
-import DreamAiFAB from "../components/DreamAiFAB";
 
 // ─── Mode Context ───────────────────────────────────────────────────────────
 export type AppMode = "BUSINESS" | "DISCOVERY" | "DREAMAI";
@@ -113,7 +112,6 @@ export default function VendorLayout({
           {children}
         </main>
         {!isDreamAi && <BottomNav />}
-        {!isDreamAi && <DreamAiFAB userType="vendor" />}
       </div>
     </ModeContext.Provider>
   );
