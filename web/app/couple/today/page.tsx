@@ -324,14 +324,73 @@ function AddMuseSheet({ visible, onClose, userId, onDone }: { visible: boolean; 
   );
 }
 
+// Directive 3.3 — Grace token slide-in card (NEVER use debt language)
+function GraceCard({ graceUsed, onTopUp, onDismiss }: { graceUsed: number; onTopUp: () => void; onDismiss: () => void; }) {
+  return (
+    <div style={{ position:'fixed', bottom:90, left:16, right:16, zIndex:310, background:'#111111', borderRadius:16, border:'0.5px solid rgba(201,168,76,0.3)', padding:'20px 20px 16px', boxShadow:'0 8px 32px rgba(0,0,0,0.24)', animation:'slideUp 320ms cubic-bezier(0.22,1,0.36,1)' }}>
+      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+        <span style={{ color:'#C9A84C', fontSize:18 }}>✦</span>
+        <div style={{ flex:1 }}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#F8F7F5', margin:'0 0 4px', lineHeight:1.5 }}>You used {graceUsed} token{graceUsed !== 1 ? 's' : ''} of grace this week.</p>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'rgba(248,247,245,0.5)', margin:0, lineHeight:1.5 }}>They refresh on the 1st. Or top up if you'd like more.</p>
+        </div>
+      </div>
+      <div style={{ display:'flex', gap:10, marginTop:16, alignItems:'center' }}>
+        <button onClick={onTopUp} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.18em', textTransform:'uppercase', background:'#C9A84C', color:'#0C0A09', border:'none', borderRadius:100, padding:'8px 18px', cursor:'pointer', touchAction:'manipulation' }}>Top up ₹100</button>
+        <button onClick={onDismiss} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(248,247,245,0.35)', background:'none', border:'none', cursor:'pointer' }}>No worries</button>
+      </div>
+    </div>
+  );
+}
+
+// Directive 3.4 — Behavior-triggered upgrade prompt
+function UpgradePrompt({ currentTier, onUpgrade, onDismiss }: { currentTier: string; onUpgrade: () => void; onDismiss: () => void; }) {
+  const isLite = currentTier === 'lite';
+  return (
+    <div style={{ position:'fixed', bottom:90, left:16, right:16, zIndex:309, background:'#F8F7F5', borderRadius:16, border:'0.5px solid #C9A84C', padding:'20px 20px 16px', boxShadow:'0 8px 32px rgba(0,0,0,0.12)', animation:'slideUp 320ms cubic-bezier(0.22,1,0.36,1)' }}>
+      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, color:'#111111', margin:'0 0 6px' }}>{isLite ? "You're using TDW like a Signature bride." : "You're using TDW like a Platinum bride."}</p>
+      <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:'0 0 16px', lineHeight:1.5 }}>{isLite ? "Upgrade for 8x DreamAi capacity. ₹999 lifetime, no recurring charge." : "Upgrade for 50x DreamAi capacity + Couture access + Lock Date. ₹2,999 lifetime."}</p>
+      <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+        <button onClick={onUpgrade} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.18em', textTransform:'uppercase', background:'#111111', color:'#F8F7F5', border:'none', borderRadius:100, padding:'8px 18px', cursor:'pointer', touchAction:'manipulation' }}>Upgrade Now</button>
+        <button onClick={onDismiss} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888580', background:'none', border:'none', cursor:'pointer' }}>Maybe later</button>
+      </div>
+    </div>
+  );
+}
+
 function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible: boolean; onClose: ()=>void; context: any; userId: string; prefill?: string; }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState<number|null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Directive 2.2 — Check if tutorial has been seen on first open
+  useEffect(() => {
+    if (visible) {
+      const seen = localStorage.getItem('dreamai_tutorial_seen');
+      if (!seen && tutorialStep === null) setTutorialStep(0);
+    }
+  }, [visible]);
+
+  const TUTORIAL_EXAMPLES = [
+    { icon: '📋', text: 'Show me my pending tasks' },
+    { icon: '💰', text: 'Am I over budget?' },
+    { icon: '📸', text: 'Find me a photographer in Delhi under 3 lakh' },
+    { icon: '💾', text: 'Save this Pinterest link to my Muse' },
+    { icon: '👥', text: 'Add Priya Sharma to my guest list' },
+  ];
+
+  function completeTutorial(makeHome: boolean) {
+    localStorage.setItem('dreamai_tutorial_seen', '1');
+    if (makeHome) localStorage.setItem('couple_default_home', 'dreamai');
+    setTutorialStep(null);
+  }
+
   useEffect(() => { if (visible && prefill) setInput(prefill); },[visible,prefill]);
 
   async function handleImageUpload(file: File) {
@@ -393,14 +452,51 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill }: { visible:
   return (
     <>
       <div onClick={onClose} style={{ ...s, background:'rgba(17,17,17,0.4)', opacity:visible?1:0, pointerEvents:visible?'auto':'none', transition:'opacity 280ms cubic-bezier(0.22,1,0.36,1)' }} />
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, height:'92dvh', background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, height:'92dvh', background:'#FFFFFF', borderRadius:'24px 24px 0 0', transform:visible?'translateY(0)':'translateY(100%)', transition:'transform 320ms cubic-bezier(0.22,1,0.36,1)', display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
         <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}><div style={{ width:36, height:4, borderRadius:2, background:'#E2DED8' }} /></div>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 20px 12px', borderBottom:'0.5px solid #E2DED8' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:16 }}>✦</span><span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111' }}>DreamAi</span></div>
           <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#888580', fontSize:13, padding:4 }}>✕</button>
         </div>
         <div style={{ flex:1, overflowY:'auto', padding:'8px 20px 16px' }}>
-          {messages.length===0 && <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580', textAlign:'center', marginTop:48 }}>Ask anything about your wedding.</p>}
+          {/* Directive 2.2 — Tutorial overlay */}
+          {tutorialStep !== null && (
+            <div style={{ position:'absolute', inset:0, background:'rgba(248,247,245,0.97)', zIndex:10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', borderRadius:'24px 24px 0 0' }}>
+              {tutorialStep === 0 && (
+                <div style={{ textAlign:'center', maxWidth:300 }}>
+                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:'#C9A84C', marginBottom:16 }}>✦</div>
+                  <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:300, color:'#111', margin:'0 0 12px', lineHeight:1.3 }}>This is DreamAi.</p>
+                  <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#888580', margin:'0 0 28px', lineHeight:1.6 }}>Tell it what you need. It can take actions, answer questions, and help you plan — all in plain language.</p>
+                  <button onClick={() => setTutorialStep(1)} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.2em', textTransform:'uppercase', background:'#111', color:'#F8F7F5', border:'none', borderRadius:100, padding:'10px 24px', cursor:'pointer', touchAction:'manipulation', marginBottom:12 }}>Show me what it can do →</button>
+                  <button onClick={() => completeTutorial(false)} style={{ display:'block', margin:'0 auto', fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#C0BCB6', background:'none', border:'none', cursor:'pointer' }}>Skip</button>
+                </div>
+              )}
+              {tutorialStep === 1 && (
+                <div style={{ width:'100%', maxWidth:340 }}>
+                  <p style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.2em', textTransform:'uppercase', color:'#C0BCB6', margin:'0 0 16px', textAlign:'center' }}>Try saying any of these</p>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
+                    {TUTORIAL_EXAMPLES.map((ex, i) => (
+                      <div key={i} style={{ background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:10, padding:'12px 14px', display:'flex', alignItems:'center', gap:10 }}>
+                        <span style={{ fontSize:16 }}>{ex.icon}</span>
+                        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#111', lineHeight:1.4 }}>{ex.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setTutorialStep(2)} style={{ width:'100%', fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.2em', textTransform:'uppercase', background:'#111', color:'#F8F7F5', border:'none', borderRadius:100, padding:'10px 24px', cursor:'pointer', touchAction:'manipulation' }}>Got it →</button>
+                </div>
+              )}
+              {tutorialStep === 2 && (
+                <div style={{ textAlign:'center', maxWidth:300 }}>
+                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:'#C9A84C', marginBottom:16 }}>✦</div>
+                  <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111', margin:'0 0 10px' }}>Make DreamAi your home screen?</p>
+                  <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#888580', margin:'0 0 24px', lineHeight:1.6 }}>Open to DreamAi every time you launch TDW.</p>
+                  <button onClick={() => completeTutorial(true)} style={{ display:'block', width:'100%', marginBottom:10, fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.2em', textTransform:'uppercase', background:'#C9A84C', color:'#0C0A09', border:'none', borderRadius:100, padding:'10px 24px', cursor:'pointer', touchAction:'manipulation' }}>Yes, make it home</button>
+                  <button onClick={() => completeTutorial(false)} style={{ fontFamily:"'Jost',sans-serif", fontSize:8, fontWeight:300, letterSpacing:'0.15em', textTransform:'uppercase', color:'#C0BCB6', background:'none', border:'none', cursor:'pointer' }}>Maybe later</button>
+                </div>
+              )}
+            </div>
+          )}
+          {messages.length===0 && tutorialStep === null && <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580', textAlign:'center', marginTop:48 }}>Ask anything about your wedding.</p>}
           {messages.map((m,i)=>(
             <div key={i} style={{ marginBottom:12 }}>
               <div style={{ display:'flex', justifyContent:m.role==='user'?'flex-end':'flex-start' }}>
@@ -516,6 +612,10 @@ export default function TodayPage() {
   const [dreamAiOpen, setDreamAiOpen] = useState(false);
   const [dreamAiPrefill, setDreamAiPrefill] = useState('');
   const [dreamAiContext, setDreamAiContext] = useState<any>(null);
+  const [showGraceCard, setShowGraceCard] = useState(false);
+  const [graceUsed, setGraceUsed] = useState(0);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [sessionPromptShown, setSessionPromptShown] = useState(false);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -528,6 +628,11 @@ export default function TodayPage() {
       const s=getSession();
       if(!s?.id){window.location.replace('/couple/login');return;}
       setSession(s);
+      // Directive 2.1: Open DreamAi if set as default home (only on fresh app launch)
+      const isInSession = sessionStorage.getItem('couple_session_active');
+      if (!isInSession && localStorage.getItem('couple_default_home') === 'dreamai') {
+        setDreamAiOpen(true);
+      }
       const isInSession = sessionStorage.getItem('couple_session_active');
       if (!isInSession) {
         sessionStorage.setItem('couple_session_active', '1');
@@ -602,6 +707,19 @@ export default function TodayPage() {
 
       <Toast msg={toast} onDone={()=>setToast(null)} />
       <DreamAiSheet visible={dreamAiOpen} onClose={()=>setDreamAiOpen(false)} context={dreamAiContext} userId={session?.id||''} prefill={dreamAiPrefill} />
+      {showGraceCard && (
+        <GraceCard graceUsed={graceUsed}
+          onTopUp={() => { setShowGraceCard(false); router.push('/couple/me'); }}
+          onDismiss={() => setShowGraceCard(false)} />
+      )}
+      {showUpgradePrompt && !showGraceCard && (
+        <UpgradePrompt currentTier={session?.couple_tier || 'lite'}
+          onUpgrade={() => { setShowUpgradePrompt(false); router.push('/couple/me'); }}
+          onDismiss={() => {
+            setShowUpgradePrompt(false);
+            localStorage.setItem('upgrade_prompt_dismissed_at', String(Date.now()));
+          }} />
+      )}
       <AddExpenseSheet visible={addExpenseOpen} onClose={()=>setAddExpenseOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Expense added');refreshData();}} />
       <AddTaskSheet visible={addTaskOpen} onClose={()=>setAddTaskOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Task added');refreshData();}} />
       <AddMuseSheet visible={addMuseOpen} onClose={()=>setAddMuseOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Saved to Muse');refreshData();}} />

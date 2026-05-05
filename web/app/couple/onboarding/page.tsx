@@ -27,6 +27,8 @@ export default function CoupleOnboardingPage() {
   const partnerRef = useRef<HTMLInputElement>(null);
 
   const [name, setName]               = useState('');
+  const [residenceCountry, setResidenceCountry] = useState('India');
+  const [weddingCountry, setWeddingCountry]     = useState('India');
   const [partnerName, setPartnerName] = useState('');
   const [dateMode, setDateMode]       = useState<DateMode>(null);
   const [exactDate, setExactDate]     = useState('');
@@ -92,6 +94,9 @@ export default function CoupleOnboardingPage() {
           name: name.trim(),
           partner_name: partnerName.trim() || null,
           wedding_date: buildWeddingDate(),
+          residence_country: residenceCountry,
+          wedding_country: weddingCountry,
+          user_segment: (residenceCountry === 'India' && weddingCountry === 'India') ? 'india' : (residenceCountry !== 'India') ? (weddingCountry === 'India' ? 'nri' : 'global') : 'india',
         }),
       });
       const d = await r.json();
@@ -107,6 +112,7 @@ export default function CoupleOnboardingPage() {
     finally { setLoading(false); }
   };
 
+  const COUNTRY_OPTIONS = ['India','United States','United Kingdom','Canada','Australia','UAE','Singapore','Other'];
   const canSubmit = name.trim().length > 0;
 
   return (
@@ -216,6 +222,19 @@ export default function CoupleOnboardingPage() {
               </div>
             )}
 
+            {/* Directive 2.9 — Segment detection */}
+            <div style={{ marginBottom:16 }}>
+              <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.18em', textTransform:'uppercase', color:'#888580', margin:'0 0 6px' }}>Where do you live?</p>
+              <select value={residenceCountry} onChange={e => setResidenceCountry(e.target.value)} style={{ width:'100%', height:44, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111111', background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:10, padding:'0 12px', outline:'none' }}>
+                {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom:20 }}>
+              <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.18em', textTransform:'uppercase', color:'#888580', margin:'0 0 6px' }}>Where will your wedding take place?</p>
+              <select value={weddingCountry} onChange={e => setWeddingCountry(e.target.value)} style={{ width:'100%', height:44, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#111111', background:'#F8F7F5', border:'0.5px solid #E2DED8', borderRadius:10, padding:'0 12px', outline:'none' }}>
+                {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
             {/* CTA */}
             <button
               onClick={handleSubmit}
