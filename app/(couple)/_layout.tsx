@@ -38,8 +38,7 @@ export default function CoupleLayout() {
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="dreamai" options={{ href: null }} />
       <Tabs.Screen name="discover" options={{ href: null }} />
-      <Tabs.Screen name="pin" options={{ href: null }} />
-      <Tabs.Screen name="pin-login" options={{ href: null }} />
+
     </Tabs>
   );
 }

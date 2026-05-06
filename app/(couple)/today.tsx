@@ -166,7 +166,78 @@ export default function CoupleTodayScreen() {
     try {
       const r = await fetch(`${API}/api/v2/couple/today/${sess.id}`);
       const json = await r.json();
-      setData(json);
+
+      // Normalise actual backend shape → TodayData shape.
+      // Backend returns: { wedding_date, event_label, nudges[], thisWeek[], muse[], activity[] }
+      // Screen expects:  { hero, three_moments, muse_saves, this_week_events, ... }
+      const raw = json as any;
+      const weddingDate: string | null = raw.wedding_date || null;
+
+      // Build hero from wedding_date
+      let hero: HeroData;
+      if (!weddingDate) {
+        hero = { state: 'no_date', days_until: null, event_name: null, wedding_date: null };
+      } else {
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const wd = new Date(weddingDate); wd.setHours(0, 0, 0, 0);
+        const daysUntil = Math.round((wd.getTime() - now.getTime()) / 86400000);
+        if (daysUntil < 0) {
+          hero = { state: 'past', days_until: daysUntil, event_name: null, wedding_date: weddingDate };
+        } else {
+          hero = {
+            state: raw.event_label ? 'event' : 'date_only',
+            days_until: daysUntil,
+            event_name: raw.event_label || null,
+            wedding_date: weddingDate,
+          };
+        }
+      }
+
+      // Map nudges[] → three_moments[]
+      const three_moments: Moment[] = (raw.nudges || []).slice(0, 3).map((n: any) => ({
+        type: 'task',
+        priority: 1,
+        title: n.title || '',
+        body: n.context || n.body || '',
+        action: n.cta || 'View',
+        task_id: n.id?.startsWith('demo') ? undefined : n.id,
+        framing: 'urgent' as const,
+      }));
+
+      // Map muse[] → muse_saves[]
+      const muse_saves: MuseSave[] = (raw.muse || []).map((m: any) => ({
+        id: m.id,
+        vendor_id: m.vendor_id || '',
+        created_at: '',
+        image_url: m.thumbnail_url || undefined,
+        vendor: m.vendor_name ? {
+          id: m.vendor_id || '',
+          name: m.vendor_name,
+          category: m.category || '',
+        } : null,
+      }));
+
+      // Map thisWeek[] → this_week_events[] (backend gives { day, label } not full events)
+      // thisWeek items are lightweight — no date, just day label. Map to empty for now.
+      const this_week_events: EventItem[] = [];
+
+      const normalised: TodayData = {
+        hero,
+        three_moments,
+        muse_saves,
+        this_week_events,
+        upcoming_payments: [],
+        budget: { total: 0, committed: 0, paid: 0 },
+        next_event: null,
+        quiet_activity: (raw.activity || []).map((a: any) => ({
+          type: 'activity',
+          text: a.text || '',
+          at: a.timestamp || '',
+        })),
+        priority_tasks: [],
+      };
+
+      setData(normalised);
     } catch { showToast('Could not load your dashboard.'); }
     finally { setLoading(false); }
   }, []);
