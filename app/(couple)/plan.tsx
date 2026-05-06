@@ -905,6 +905,677 @@ function TasksTab({ userId, events, refetch, onExpenseAdded }: {
   );
 }
 
+
+// ── MoneyTab ────────────────────────────────────────────────────────────────
+
+interface MoneyData {
+  totalBudget: number;
+  committed: number;
+  paid: number;
+  events: { id: string; name: string; budget: number }[];
+  thisWeek: MoneyExpense[];
+  next30: MoneyExpense[];
+}
+
+interface MoneyExpense {
+  id: string;
+  vendor_name?: string;
+  purpose?: string;
+  description?: string;
+  amount: number;
+  actual_amount?: number;
+  due_date?: string;
+  status?: string;
+  payment_status?: string;
+  event_name?: string;
+  event?: string;
+  category?: string;
+}
+
+interface BudgetCategory {
+  category_key: string;
+  display_name: string;
+  pct: number;
+  allocated_amount: number;
+}
+
+type PaymentFilter = 'week' | 'next30';
+
+function fmtINR(n: number) {
+  if (!n) return '₹0';
+  return '₹' + n.toLocaleString('en-IN');
+}
+
+// ── BudgetSetupSheet ─────────────────────────────────────────────────────────
+const DEFAULT_BUDGET_CATEGORIES: BudgetCategory[] = [
+  { category_key: 'venue',         display_name: 'Venue',                    pct: 50, allocated_amount: 0 },
+  { category_key: 'attire',        display_name: 'Attire & Jewellery',       pct: 17, allocated_amount: 0 },
+  { category_key: 'decor',         display_name: 'Decor & Florals',          pct: 15, allocated_amount: 0 },
+  { category_key: 'photo',         display_name: 'Photography & Video',      pct: 10, allocated_amount: 0 },
+  { category_key: 'beauty',        display_name: 'MUA, Hair & Mehendi',      pct: 6,  allocated_amount: 0 },
+  { category_key: 'entertainment', display_name: 'Entertainment',            pct: 2,  allocated_amount: 0 },
+  { category_key: 'invitations',   display_name: 'Invitations & Stationery', pct: 1,  allocated_amount: 0 },
+  { category_key: 'other',         display_name: 'Other & Contingency',      pct: 5,  allocated_amount: 0 },
+];
+
+function BudgetSetupSheet({ visible, onClose, userId, currentTotal, onSaved }: {
+  visible: boolean; onClose: () => void; userId: string;
+  currentTotal: number; onSaved: (n: number) => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [step, setStep] = useState<'budget' | 'categories'>('budget');
+  const [totalVal, setTotalVal] = useState(currentTotal > 0 ? String(currentTotal) : '');
+  const [categories, setCategories] = useState<BudgetCategory[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  useEffect(() => {
+    if (visible) {
+      setStep('budget');
+      setTotalVal(currentTotal > 0 ? String(currentTotal) : '');
+      fetch(`${API}/api/couple/budget-categories/${userId}`)
+        .then(r => r.json())
+        .then(d => { if (d.success && d.data?.length > 0) setCategories(d.data); })
+        .catch(() => {});
+    }
+  }, [visible, currentTotal]);
+
+  const total = Number(totalVal) || 0;
+
+  function initCategories() {
+    if (!total) return;
+    setCategories(DEFAULT_BUDGET_CATEGORIES.map(c => ({
+      ...c,
+      allocated_amount: Math.round(total * c.pct / 100),
+    })));
+    setStep('categories');
+  }
+
+  function updateAmount(key: string, amount: number) {
+    setCategories(prev => prev.map(c => c.category_key === key
+      ? { ...c, allocated_amount: amount, pct: total > 0 ? Math.round(amount / total * 100) : 0 } : c));
+  }
+
+  const allocatedTotal = categories.reduce((s, c) => s + c.allocated_amount, 0);
+
+  async function handleSave() {
+    if (!total || saving) return;
+    setSaving(true);
+    try {
+      await fetch(`${API}/api/couple/budget/${userId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ total_budget: total }),
+      });
+      if (categories.length > 0) {
+        await fetch(`${API}/api/couple/budget-categories/${userId}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categories }),
+        });
+      }
+      onSaved(total);
+      onClose();
+    } catch { showToast('Network error'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={onClose} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.sheetKAV}>
+        <View style={[styles.sheet, { maxHeight: '92%', paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{step === 'budget' ? 'Set your budget' : 'Category breakdown'}</Text>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
+              <Text style={styles.sheetClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {step === 'budget' ? (
+            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}
+              keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>TOTAL BUDGET</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontFamily: DM300, fontSize: 18, color: MUTED, marginRight: 4 }}>₹</Text>
+                <TextInput
+                  value={totalVal} onChangeText={v => setTotalVal(v.replace(/[^0-9]/g, ''))}
+                  placeholder="0" placeholderTextColor={MUTED} keyboardType="numeric"
+                  style={[styles.fieldInput, { flex: 1, fontSize: 22 }]}
+                />
+              </View>
+              <View style={{ marginTop: 28, gap: 10 }}>
+                {total > 0 && (
+                  <TouchableOpacity onPress={initCategories} style={[styles.submitBtn, { backgroundColor: DARK }]} activeOpacity={0.85}>
+                    <Text style={styles.submitBtnText}>SET CATEGORY BUDGETS →</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={handleSave}
+                  disabled={!total || saving}
+                  style={[styles.submitBtn, (!total || saving) && styles.submitBtnDisabled]}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.submitBtnText}>{saving ? '...' : 'SAVE TOTAL ONLY'}</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          ) : (
+            <>
+              <View style={{ paddingHorizontal: 20, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: BORDER }}>
+                <Text style={{ fontFamily: DM300, fontSize: 12, color: MUTED }}>
+                  Allocated: {fmtINR(allocatedTotal)} / {fmtINR(total)}
+                  {allocatedTotal > total ? ` · ${fmtINR(allocatedTotal - total)} over` :
+                   allocatedTotal < total ? ` · ${fmtINR(total - allocatedTotal)} unallocated` : ' · balanced'}
+                </Text>
+              </View>
+              <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}
+                keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                {categories.map(cat => (
+                  <View key={cat.category_key} style={{ marginBottom: 20 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontFamily: DM300, fontSize: 13, color: '#3C3835', flex: 1 }}>{cat.display_name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ fontFamily: DM300, fontSize: 12, color: MUTED }}>{cat.pct}%</Text>
+                        <Text style={{ fontFamily: DM300, fontSize: 12, color: '#C8C4BE' }}> | ₹</Text>
+                        <TextInput
+                          value={String(cat.allocated_amount)}
+                          onChangeText={v => updateAmount(cat.category_key, Number(v.replace(/[^0-9]/g, '')) || 0)}
+                          keyboardType="numeric"
+                          style={{ fontFamily: DM300, fontSize: 12, color: '#3C3835', width: 80, textAlign: 'right',
+                            borderBottomWidth: 1, borderBottomColor: BORDER, paddingVertical: 2 }}
+                        />
+                      </View>
+                    </View>
+                    <View style={{ height: 4, backgroundColor: BORDER, borderRadius: 4 }}>
+                      <View style={{ height: 4, borderRadius: 4, backgroundColor: GOLD,
+                        width: `${Math.min(100, total > 0 ? (cat.allocated_amount / total) * 100 : 0)}%` as any }} />
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={styles.sheetFooter}>
+                <TouchableOpacity onPress={handleSave} disabled={saving}
+                  style={[styles.submitBtn, saving && styles.submitBtnDisabled]} activeOpacity={0.85}>
+                  <Text style={styles.submitBtnText}>{saving ? '...' : 'SAVE BUDGET'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+          <Toast msg={toast} />
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ── AddExpenseSheet ──────────────────────────────────────────────────────────
+function AddExpenseSheet({ visible, onClose, userId, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  events: EventOption[]; onSuccess: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [vendorName, setVendorName] = useState('');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState('general');
+  const [paymentStatus, setPaymentStatus] = useState('committed');
+  const [dueDate, setDueDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const uniqueEvents = events.filter((ev, i, arr) => arr.findIndex(e => e.name === ev.name) === i);
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+  function reset() {
+    setVendorName(''); setDescription(''); setAmount('');
+    setSelectedEvent('general'); setPaymentStatus('committed');
+    setDueDate(''); setShowDatePicker(false);
+  }
+
+  async function handleSubmit() {
+    if (!amount || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/api/couple/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: userId,
+          vendor_name: vendorName.trim() || null,
+          description: description.trim() || null,
+          actual_amount: Number(amount),
+          event: selectedEvent || 'general',
+          payment_status: paymentStatus,
+          category: 'other',
+          due_date: dueDate || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error adding expense'); }
+      else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Expense added');
+        onClose();
+        reset();
+        setTimeout(() => onSuccess(), 380);
+      }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !amount || submitting;
+
+  return (
+    <BottomSheet visible={visible} onClose={onClose} title="Add Expense">
+      <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+        <Text style={styles.fieldLabel}>VENDOR / MAKER (OPTIONAL)</Text>
+        <TextInput value={vendorName} onChangeText={setVendorName}
+          placeholder="e.g. Swati Roy MUA" placeholderTextColor={MUTED}
+          style={styles.fieldInput} />
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DESCRIPTION (OPTIONAL)</Text>
+        <TextInput value={description} onChangeText={setDescription}
+          placeholder="e.g. Advance payment" placeholderTextColor={MUTED}
+          style={styles.fieldInput} />
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>AMOUNT *</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ fontFamily: DM300, fontSize: 14, color: MUTED, marginRight: 4 }}>₹</Text>
+          <TextInput value={amount} onChangeText={v => setAmount(v.replace(/[^0-9]/g, ''))}
+            placeholder="0" placeholderTextColor={MUTED} keyboardType="numeric"
+            style={[styles.fieldInput, { flex: 1 }]} />
+        </View>
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>EVENT</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingBottom: 4, flexDirection: 'row' }}>
+          <Pill label="General" active={selectedEvent === 'general'} onPress={() => setSelectedEvent('general')} />
+          {uniqueEvents.map(ev => (
+            <Pill key={ev.id} label={ev.name} active={selectedEvent === ev.name} onPress={() => setSelectedEvent(ev.name)} />
+          ))}
+        </ScrollView>
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>STATUS</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {['committed', 'paid'].map(s => (
+            <Pill key={s} label={s === 'committed' ? 'Committed' : 'Paid'}
+              active={paymentStatus === s} onPress={() => setPaymentStatus(s)} />
+          ))}
+        </View>
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DUE DATE (OPTIONAL)</Text>
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={[styles.fieldInput, { justifyContent: 'center' }]}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontFamily: DM300, fontSize: 14, color: dueDate ? DARK : MUTED }}>
+            {dueDate || 'Select a date'}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={dueDate ? new Date(dueDate) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (event.type === 'dismissed') { setShowDatePicker(false); return; }
+              if (selectedDate) {
+                const y = selectedDate.getFullYear();
+                const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const d = String(selectedDate.getDate()).padStart(2, '0');
+                setDueDate(`${y}-${m}-${d}`);
+                setShowDatePicker(false);
+              }
+            }}
+          />
+        )}
+      </ScrollView>
+
+      <View style={styles.sheetFooter}>
+        <TouchableOpacity onPress={handleSubmit} disabled={disabled}
+          style={[styles.submitBtn, disabled && styles.submitBtnDisabled]} activeOpacity={0.85}>
+          <Text style={styles.submitBtnText}>{submitting ? '...' : 'ADD EXPENSE'}</Text>
+        </TouchableOpacity>
+      </View>
+      <Toast msg={toast} />
+    </BottomSheet>
+  );
+}
+
+// ── MoneyTab ─────────────────────────────────────────────────────────────────
+function MoneyTab({ userId, events, refetch, tier }: {
+  userId: string; events: EventOption[]; refetch: number; tier: string;
+}) {
+  const insets = useSafeAreaInsets();
+  const [data, setData] = useState<MoneyData | null>(null);
+  const [allExpenses, setAllExpenses] = useState<MoneyExpense[]>([]);
+  const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
+  const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
+  const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  function loadData() {
+    setLoading(true);
+    Promise.all([
+      fetch(`${API}/api/v2/couple/money/${userId}`).then(r => r.json()),
+      fetch(`${API}/api/couple/expenses/${userId}`).then(r => r.json()),
+      fetch(`${API}/api/couple/budget-categories/${userId}`).then(r => r.json()).catch(() => ({ success: false })),
+    ]).then(([money, exps, cats]) => {
+      if (cats?.success && cats.data?.length > 0) setBudgetCategories(cats.data);
+      setData(money);
+      const rows = (exps?.data || exps || []) as any[];
+      setAllExpenses(rows.map(e => ({
+        ...e,
+        actual_amount: e.actual_amount || 0,
+        amount: e.actual_amount || 0,
+        status: e.payment_status || 'committed',
+        purpose: e.description || e.purpose || null,
+        event_name: e.event || e.event_name || null,
+      })));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }
+
+  useEffect(() => { loadData(); }, [userId, refetch]);
+
+  async function handleMarkPaid(expId: string) {
+    if (markingPaid) return;
+    setMarkingPaid(expId);
+    try {
+      await fetch(`${API}/api/couple/expenses/${expId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'paid' }),
+      });
+      setAllExpenses(prev => prev.map(e => e.id === expId
+        ? { ...e, status: 'paid', payment_status: 'paid' } : e));
+      fetch(`${API}/api/v2/couple/money/${userId}`).then(r => r.json()).then(setData).catch(() => {});
+      showToast('Marked as paid');
+    } catch { showToast('Could not update'); }
+    finally { setMarkingPaid(null); }
+  }
+
+  async function handleDeleteExpense(expId: string) {
+    try {
+      await fetch(`${API}/api/couple/expenses/${expId}`, { method: 'DELETE' });
+      setAllExpenses(prev => prev.filter(e => e.id !== expId));
+      fetch(`${API}/api/v2/couple/money/${userId}`).then(r => r.json()).then(setData).catch(() => {});
+    } catch { showToast('Could not delete'); }
+  }
+
+  const d = data || { totalBudget: 0, committed: 0, paid: 0, events: [], thisWeek: [], next30: [] };
+  const committedPct = d.totalBudget ? Math.min(100, (d.committed / d.totalBudget) * 100) : 0;
+  const paidPct = d.totalBudget ? Math.min(100, (d.paid / d.totalBudget) * 100) : 0;
+  const remaining = d.totalBudget - d.committed;
+
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const in7 = new Date(now); in7.setDate(now.getDate() + 7);
+  const in30 = new Date(now); in30.setDate(now.getDate() + 30);
+  const unpaid = allExpenses.filter(e => e.status !== 'paid' && e.payment_status !== 'paid');
+  const thisWeekPayments = unpaid.filter(e => {
+    if (!e.due_date) return false;
+    const dt = new Date(e.due_date); dt.setHours(0, 0, 0, 0);
+    return dt >= now && dt <= in7;
+  });
+  const next30Payments = unpaid.filter(e => {
+    if (!e.due_date) return false;
+    const dt = new Date(e.due_date); dt.setHours(0, 0, 0, 0);
+    return dt > in7 && dt <= in30;
+  });
+  const payments = payFilter === 'week' ? thisWeekPayments : next30Payments;
+
+  if (loading) {
+    return (
+      <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+        <Shimmer height={140} borderRadius={16} />
+        <View style={{ marginTop: 20, gap: 10 }}>
+          <Shimmer height={8} width={80} borderRadius={4} />
+          <Shimmer height={80} borderRadius={12} />
+          <Shimmer height={80} borderRadius={12} />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: insets.bottom + 120 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header row */}
+        {/* UpgradeCard — hidden for platinum, hidden until Razorpay KYC Aug 1 */}
+        {tier !== 'platinum' && tier !== 'prestige' && (
+          <View style={{ backgroundColor: '#0C0A09', borderRadius: 16, padding: 24, marginBottom: 20 }}>
+            <Text style={{ fontFamily: DM300, fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
+              UPGRADE
+            </Text>
+            <Text style={{ fontFamily: CG300, fontSize: 22, color: '#F8F7F5', marginBottom: 16, lineHeight: 28 }}>
+              {tier === 'signature' ? 'Your AI wedding planner awaits.' : 'Unlock the full journey.'}
+            </Text>
+            <Text style={{ fontFamily: DM300, fontSize: 13, color: '#888580', marginBottom: 4 }}>
+              · {tier === 'signature' ? 'DreamAi — your AI wedding planner' : 'Priority discovery'}
+            </Text>
+            <Text style={{ fontFamily: DM300, fontSize: 13, color: '#888580', marginBottom: 16 }}>
+              · {tier === 'signature' ? 'Couture appointments' : 'Unlock full vendor profiles'}
+            </Text>
+            <Text style={{ fontFamily: DM300, fontSize: 11, color: '#555250', fontStyle: 'italic' }}>
+              Payments activate August 1.
+            </Text>
+          </View>
+        )}
+        <View style={styles.moneyHeaderRow}>
+          <Text style={styles.moneyHeaderLabel}>BUDGET</Text>
+          <TouchableOpacity style={styles.askBtn} activeOpacity={0.8}>
+            <Text style={styles.askBtnStar}>✦</Text>
+            <Text style={styles.askBtnText}> Ask</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Budget hero */}
+        <TouchableOpacity
+          onPress={() => setBudgetSheetOpen(true)}
+          style={styles.budgetHero}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.budgetHeroLabel}>TOTAL BUDGET ›</Text>
+          <Text style={styles.budgetHeroAmount}>
+            {d.totalBudget > 0 ? fmtINR(d.totalBudget) : 'Tap to set'}
+          </Text>
+          <View style={styles.budgetStats}>
+            {[{ label: 'Committed', val: d.committed }, { label: 'Paid', val: d.paid }, { label: 'Remaining', val: remaining }].map(s => (
+              <View key={s.label}>
+                <Text style={styles.budgetStatLabel}>{s.label}</Text>
+                <Text style={[styles.budgetStatVal, s.label === 'Remaining' && remaining < 0 && { color: GOLD }]}>
+                  {fmtINR(s.val)}
+                </Text>
+              </View>
+            ))}
+          </View>
+          {/* Progress bar: gold = committed layer, dark = paid layer */}
+          <View style={styles.progressBg}>
+            <View style={[styles.progressCommitted, { width: `${committedPct}%` as any }]} />
+            <View style={[styles.progressPaid, { width: `${paidPct}%` as any }]} />
+          </View>
+          {d.totalBudget > 0 && (
+            <Text style={styles.progressLabel}>
+              {Math.round(committedPct)}% committed · {Math.round(paidPct)}% paid
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Category breakdown */}
+        {budgetCategories.length > 0 && d.totalBudget > 0 && (
+          <View style={{ marginBottom: 28 }}>
+            <Text style={styles.moneySectionLabel}>BY CATEGORY</Text>
+            <View style={{ gap: 8 }}>
+              {budgetCategories.map(cat => {
+                const catSpent = allExpenses
+                  .filter(e => e.category === cat.category_key)
+                  .reduce((s, e) => s + (e.actual_amount || e.amount || 0), 0);
+                const catPct = cat.allocated_amount > 0
+                  ? Math.min(100, (catSpent / cat.allocated_amount) * 100) : 0;
+                return (
+                  <View key={cat.category_key} style={styles.categoryRow}>
+                    <Text style={styles.categoryName} numberOfLines={1}>{cat.display_name}</Text>
+                    <View style={styles.categoryTrackBg}>
+                      <View style={[
+                        styles.categoryTrackFill,
+                        { width: `${catPct}%` as any, backgroundColor: catPct > 90 ? GOLD : DARK },
+                      ]} />
+                    </View>
+                    <Text style={styles.categoryAmount}>{fmtINR(cat.allocated_amount)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <TouchableOpacity onPress={() => setBudgetSheetOpen(true)} style={styles.editCatBtn} activeOpacity={0.8}>
+              <Text style={styles.editCatBtnText}>EDIT CATEGORIES</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Upcoming payments */}
+        <View style={{ marginBottom: 28 }}>
+          <View style={styles.upcomingHeader}>
+            <Text style={styles.moneySectionLabel}>UPCOMING</Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {([{ key: 'week' as PaymentFilter, label: 'This Week' }, { key: 'next30' as PaymentFilter, label: 'Next 30' }]).map(f => (
+                <TouchableOpacity
+                  key={f.key}
+                  onPress={() => setPayFilter(f.key)}
+                  style={[styles.filterPill, payFilter === f.key && styles.filterPillActive]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.filterPillText, payFilter === f.key && styles.filterPillTextActive]}>
+                    {f.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          {payments.length === 0 ? (
+            <Text style={[styles.emptyText, { textAlign: 'center', paddingVertical: 20 }]}>
+              {payFilter === 'week' ? 'No payments due this week.' : 'No payments due in the next 30 days.'}
+            </Text>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {payments.map(exp => (
+                <View key={exp.id} style={styles.paymentCard}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.paymentVendor} numberOfLines={1}>
+                      {exp.vendor_name || '—'}
+                    </Text>
+                    <Text style={styles.paymentMeta}>
+                      {[exp.purpose, exp.due_date ? formatDue(exp.due_date) : null].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                    <Text style={styles.paymentAmount}>{fmtINR(exp.actual_amount || exp.amount || 0)}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleMarkPaid(exp.id)}
+                      disabled={markingPaid === exp.id}
+                      style={[styles.markPaidBtn, markingPaid === exp.id && { opacity: 0.6 }]}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.markPaidBtnText}>
+                        {markingPaid === exp.id ? '...' : 'MARK PAID'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* All entries */}
+        {allExpenses.length > 0 ? (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.moneySectionLabel}>ALL ENTRIES</Text>
+            {allExpenses.map((exp, i) => {
+              const isPaid = exp.status === 'paid' || exp.payment_status === 'paid';
+              return (
+                <View key={exp.id} style={[
+                  styles.expenseRow,
+                  i < allExpenses.length - 1 && styles.expenseRowBorder,
+                ]}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[styles.expenseVendor, isPaid && { opacity: 0.5 }]} numberOfLines={1}>
+                      {exp.vendor_name || '—'}
+                    </Text>
+                    <Text style={styles.expenseMeta}>
+                      {[exp.purpose, exp.event_name].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                    <Text style={[styles.expenseAmount, isPaid && { color: MUTED }]}>
+                      {fmtINR(exp.actual_amount || exp.amount || 0)}
+                    </Text>
+                    <View style={[styles.statusTag, isPaid ? styles.statusTagPaid : styles.statusTagCommitted]}>
+                      <Text style={[styles.statusTagText, isPaid ? styles.statusTagTextPaid : styles.statusTagTextCommitted]}>
+                        {isPaid ? 'PAID' : 'COMMITTED'}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDeleteExpense(exp.id)} activeOpacity={0.8}
+                    style={{ paddingLeft: 8 }}>
+                    <Text style={{ fontFamily: DM300, fontSize: 18, color: '#C8C4BE' }}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>No expenses yet.</Text>
+            <Text style={[styles.emptyStateBody, { fontSize: 14 }]}>Tap + to log your first entry.</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Gold FAB */}
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + 88 }]}
+        onPress={() => { Haptics.selectionAsync(); setAddExpenseSheetOpen(true); }}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+
+      <BudgetSetupSheet
+        visible={budgetSheetOpen}
+        onClose={() => setBudgetSheetOpen(false)}
+        userId={userId}
+        currentTotal={d.totalBudget}
+        onSaved={n => { setData(prev => prev ? { ...prev, totalBudget: n } : prev); loadData(); }}
+      />
+      <AddExpenseSheet
+        visible={addExpenseSheetOpen}
+        onClose={() => setAddExpenseSheetOpen(false)}
+        userId={userId}
+        events={events}
+        onSuccess={loadData}
+      />
+      <Toast msg={toast} />
+    </>
+  );
+}
+
+
 // ── Main Plan Screen ───────────────────────────────────────────────────────
 const TABS: { key: Tab; label: string }[] = [
   { key: 'tasks',   label: 'Tasks'   },
@@ -921,6 +1592,7 @@ export default function CouplePlanScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<EventOption[]>([]);
   const [refetch, setRefetch] = useState(0);
+  const [tier, setTier] = useState<string>('lite');
 
   useFocusEffect(
     useCallback(() => {
@@ -929,6 +1601,8 @@ export default function CouplePlanScreen() {
         const s = await getCoupleSession();
         if (cancelled || !s) return;
         setUserId(s.id);
+        if (s.dreamer_type) setTier(s.dreamer_type);
+        else if (s.tier) setTier(s.tier);
         try {
           const r = await fetch(`${API}/api/v2/couple/events/${s.id}`);
           const d = await r.json();
@@ -988,6 +1662,13 @@ export default function CouplePlanScreen() {
           events={events}
           refetch={refetch}
           onExpenseAdded={() => setRefetch(r => r + 1)}
+        />
+      ) : activeTab === 'money' && userId ? (
+        <MoneyTab
+          userId={userId}
+          events={events}
+          refetch={refetch}
+          tier={tier}
         />
       ) : (
         <View style={styles.placeholderWrap}>
@@ -1064,6 +1745,45 @@ const styles = StyleSheet.create({
   },
 
   // Placeholder
+  // Money tab
+  moneyHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  moneyHeaderLabel: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: '#C8C4BE' },
+  moneySectionLabel: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: '#C8C4BE', marginBottom: 12 },
+  budgetHero: { backgroundColor: '#F4F1EC', borderWidth: 1, borderColor: '#E2DED8', borderRadius: 16, padding: 24, marginBottom: 20 },
+  budgetHeroLabel: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', color: '#8C8480', marginBottom: 4 },
+  budgetHeroAmount: { fontFamily: 'CormorantGaramond_300Light', fontSize: 40, color: '#0C0A09', lineHeight: 44, marginBottom: 16 },
+  budgetStats: { flexDirection: 'row', gap: 32, marginBottom: 14 },
+  budgetStatLabel: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: '#8C8480', marginBottom: 3 },
+  budgetStatVal: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: '#3C3835' },
+  progressBg: { height: 6, borderRadius: 8, backgroundColor: '#E2DED8', overflow: 'hidden', position: 'relative' as const },
+  progressCommitted: { position: 'absolute' as const, left: 0, top: 0, height: 6, backgroundColor: '#C9A84C', borderRadius: 8 },
+  progressPaid: { position: 'absolute' as const, left: 0, top: 0, height: 6, backgroundColor: '#0C0A09', borderRadius: 8 },
+  progressLabel: { fontFamily: 'DMSans_300Light', fontSize: 11, color: '#8C8480', marginTop: 6 },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  categoryName: { fontFamily: 'DMSans_300Light', fontSize: 12, color: '#3C3835', width: 130, flexShrink: 0 },
+  categoryTrackBg: { flex: 1, height: 4, backgroundColor: '#E2DED8', borderRadius: 4, overflow: 'hidden' },
+  categoryTrackFill: { height: 4, borderRadius: 4 },
+  categoryAmount: { fontFamily: 'DMSans_300Light', fontSize: 11, color: '#8C8480', width: 64, textAlign: 'right' as const, flexShrink: 0 },
+  editCatBtn: { marginTop: 10, borderWidth: 0.5, borderColor: '#E2DED8', borderRadius: 100, paddingVertical: 5, paddingHorizontal: 12, alignSelf: 'flex-start' as const },
+  editCatBtnText: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8C8480' },
+  upcomingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  paymentCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2DED8', borderRadius: 14, padding: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  paymentVendor: { fontFamily: 'CormorantGaramond_300Light', fontSize: 16, color: '#0C0A09', marginBottom: 2 },
+  paymentMeta: { fontFamily: 'DMSans_300Light', fontSize: 12, color: '#8C8480' },
+  paymentAmount: { fontFamily: 'DMSans_400Regular', fontSize: 15, color: '#C9A84C', marginBottom: 6 },
+  markPaidBtn: { backgroundColor: '#111111', borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10 },
+  markPaidBtnText: { fontFamily: 'DMSans_400Regular', fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: '#F8F7F5' },
+  expenseRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  expenseRowBorder: { borderBottomWidth: 1, borderBottomColor: '#E2DED8' },
+  expenseVendor: { fontFamily: 'CormorantGaramond_300Light', fontSize: 16, color: '#0C0A09', marginBottom: 2 },
+  expenseMeta: { fontFamily: 'DMSans_300Light', fontSize: 12, color: '#8C8480' },
+  expenseAmount: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: '#3C3835', marginBottom: 4 },
+  statusTag: { borderRadius: 100, paddingHorizontal: 7, paddingVertical: 2 },
+  statusTagPaid: { backgroundColor: '#F4F1EC' },
+  statusTagCommitted: { backgroundColor: '#FFF8EC' },
+  statusTagText: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1, textTransform: 'uppercase' },
+  statusTagTextPaid: { color: '#8C8480' },
+  statusTagTextCommitted: { color: '#C9A84C' },
   placeholderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   placeholderText: { fontFamily: DM300, fontSize: 13, color: MUTED },
 
