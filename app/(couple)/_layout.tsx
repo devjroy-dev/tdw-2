@@ -29,6 +29,8 @@ export default function CoupleLayout() {
       <Tabs.Screen name="today" options={{ title: 'Today' }} />
       <Tabs.Screen name="plan" options={{ title: 'Plan' }} />
       <Tabs.Screen name="circle" options={{ title: 'Circle' }} />
+      <Tabs.Screen name="pin" options={{ href: null }} />
+      <Tabs.Screen name="pin-login" options={{ href: null }} />
     </Tabs>
   );
 }
