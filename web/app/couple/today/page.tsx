@@ -675,7 +675,7 @@ function MomentCard({ moment, onAction }: { moment: Moment; onAction: (m: Moment
           <span style={{ width:4, height:4, borderRadius:'50%', background: accent, display:'inline-block', flexShrink:0 }} />
         </div>
       )}
-      <button onClick={()=>onAction(moment)} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', color:'#F8F7F5', background:'#111', border:'none', borderRadius:100, padding:'7px 14px', cursor:'pointer', touchAction:'manipulation' }}>{moment.action}</button>
+      <button onClick={()=>onAction(moment)} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', color:'#F8F7F5', background:'#111', border:'none', borderRadius:100, padding:'7px 14px', cursor:'pointer', touchAction:'manipulation' }}>{ moment.task_id ? 'VIEW TASK →' : moment.action}</button>
     </div>
   );
 }
