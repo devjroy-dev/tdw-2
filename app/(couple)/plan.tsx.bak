@@ -3579,10 +3579,6 @@ function MuseTab({ userId }: { userId: string }) {
   const [removing, setRemoving] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState('');
-  const [surpriseLoading, setSurpriseLoading] = useState(false);
-  const [surpriseResults, setSurpriseResults] = useState<string[]>([]);
-  const [surpriseSheetOpen, setSurpriseSheetOpen] = useState(false);
-  const [savingFromSurprise, setSavingFromSurprise] = useState<string | null>(null);
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 2500); }
 
@@ -3624,58 +3620,6 @@ function MuseTab({ userId }: { userId: string }) {
     finally { setUploading(false); }
   }
 
-  async function handleSurpriseMe() {
-    if (surpriseLoading || items.length === 0) return;
-    setSurpriseLoading(true);
-    try {
-      const saves = items.slice(0, 10).map(item => item.image_url || item.source_url || '').filter(Boolean);
-      const res = await fetch(`${RAILWAY_URL}/api/v2/dreamai/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          userType: 'couple',
-          message: `Based on these ${saves.length} images from my Muse board: ${saves.join(', ')} — describe my wedding aesthetic in one sentence, then find 3-5 similar inspiration images via web search. Respond ONLY with valid JSON: {"aesthetic": "...", "urls": ["...", "..."]}`,
-          context: null,
-        }),
-      });
-      const json = await res.json();
-      const text = json.reply || '';
-      const match = text.match(/\{[\s\S]*"urls"[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]);
-        setSurpriseResults(parsed.urls || []);
-        setSurpriseSheetOpen(true);
-      } else {
-        showToast('DreamAi could not find inspiration right now.');
-      }
-    } catch {
-      showToast('Something went wrong. Please try again.');
-    } finally {
-      setSurpriseLoading(false);
-    }
-  }
-
-  async function saveSurpriseUrl(url: string) {
-    setSavingFromSurprise(url);
-    try {
-      const res = await fetch(`${RAILWAY_URL}/api/couple/muse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ couple_id: userId, image_url: url, vendor_id: null, function_tag: 'inspiration' }),
-      });
-      const json = await res.json();
-      if (json.success !== false) {
-        fetch(`${RAILWAY_URL}/api/couple/muse/${userId}`).then(r => r.json()).then(d => setItems(d.data || []));
-        showToast('Saved to Muse ✓');
-      }
-    } catch {
-      showToast('Could not save.');
-    } finally {
-      setSavingFromSurprise(null);
-    }
-  }
-
   if (loading) return (
     <View style={{ paddingTop: 12 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -3702,25 +3646,12 @@ function MuseTab({ userId }: { userId: string }) {
         {/* Header */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: '#C8C4BE' }}>{items.length} SAVED</Text>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TouchableOpacity
-              onPress={handleSurpriseMe}
-              disabled={surpriseLoading || items.length === 0}
-              style={{ borderWidth: 0.5, borderColor: '#C9A84C', borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontSize: 10 }}>✦</Text>
-              <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: '#C9A84C' }}>
-                {surpriseLoading ? '...' : 'SURPRISE ME'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCameraCapture} disabled={uploading} style={{ borderWidth: 0.5, borderColor: '#E2DED8', borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }} activeOpacity={0.8}>
-              <Text style={{ fontSize: 12 }}>{uploading ? '⏳' : '📷'}</Text>
-              <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: uploading ? '#C9A84C' : '#888580' }}>
-                {uploading ? 'UPLOADING' : 'TAKE PHOTO'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={handleCameraCapture} disabled={uploading} style={{ borderWidth: 0.5, borderColor: '#E2DED8', borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }} activeOpacity={0.8}>
+            <Text style={{ fontSize: 12 }}>{uploading ? '⏳' : '📷'}</Text>
+            <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: uploading ? '#C9A84C' : '#888580' }}>
+              {uploading ? 'UPLOADING' : 'TAKE PHOTO'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* 2-column grid with native gesture interaction */}
@@ -3735,32 +3666,6 @@ function MuseTab({ userId }: { userId: string }) {
           ))}
         </View>
       </ScrollView>
-
-      {/* SURPRISE ME results bottom sheet */}
-      <Modal visible={surpriseSheetOpen} transparent animationType="slide" onRequestClose={() => setSurpriseSheetOpen(false)}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setSurpriseSheetOpen(false)} />
-        <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 48 }}>
-          <Text style={{ fontFamily: 'CormorantGaramond_300Light', fontSize: 20, fontStyle: 'italic', color: '#111111', marginBottom: 4 }}>Your aesthetic, expanded.</Text>
-          <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 13, color: '#8C8480', marginBottom: 20 }}>DreamAi found these based on your board. Tap any to save.</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {surpriseResults.map((url, i) => (
-              <TouchableOpacity
-                key={i}
-                activeOpacity={0.85}
-                onPress={() => saveSurpriseUrl(url)}
-                disabled={savingFromSurprise === url}
-                style={{ width: '46%', height: 140, borderRadius: 12, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E2DED8', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F7F5' }}
-              >
-                {savingFromSurprise === url
-                  ? <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 10, color: '#C9A84C' }}>SAVING...</Text>
-                  : <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                }
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Modal>
-
       {toast ? <View style={styles.toast} pointerEvents="none"><Text style={styles.toastText}>{toast}</Text></View> : null}
     </>
   );
@@ -4046,22 +3951,19 @@ export default function CouplePlanScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Top pill nav — PLAN · AI · DISCOVER */}
       <View style={styles.topPillNav}>
-        <View style={[styles.topPill, styles.topPillActive]}>
-          <Text style={[styles.topPillText, styles.topPillTextActive]}>PLAN</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.topPill}
-          activeOpacity={0.85}
-          onPress={() => router.replace('/(couple)/dreamai')}
-        >
-          <Text style={[styles.topPillText, styles.topPillTextAi]}>✦ AI</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.topPill}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.topPillText}>DISCOVER</Text>
-        </TouchableOpacity>
+        {['PLAN', 'AI', 'DISCOVER'].map((p, i) => (
+          <TouchableOpacity
+            key={p}
+            style={[styles.topPill, i === 0 && styles.topPillActive]}
+            activeOpacity={0.85}
+          >
+            <Text style={[
+              styles.topPillText,
+              i === 0 && styles.topPillTextActive,
+              i === 1 && styles.topPillTextAi,
+            ]}>{p}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Sub-tab strip */}
