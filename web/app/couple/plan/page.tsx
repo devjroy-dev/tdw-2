@@ -3675,8 +3675,7 @@ export default function CouplePlanPage() {
   const [allGuests, setAllGuests] = useState<Guest[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [allEvents, setAllEvents] = useState<EventOption[]>([]);
-  const [dreamAiOpen, setDreamAiOpen] = useState(false);
-  const [dreamAiPrefill, setDreamAiPrefill] = useState('');
+  // DreamAi is now a full route at /couple/dreamai
 
   // ─── FAB sheet state ──────────────────────────────────────────────────────
   const [fabPressed, setFabPressed] = useState(false);
@@ -3721,8 +3720,8 @@ export default function CouplePlanPage() {
   const initial = (session.name?.[0] || 'D').toUpperCase();
 
   function openDreamAi(prefill: string) {
-    setDreamAiPrefill(prefill);
-    setDreamAiOpen(true);
+    if (prefill) { try { sessionStorage.setItem('tdw_dreamai_prefill', prefill); } catch {} }
+    router.push('/couple/dreamai');
   }
 
   function handleFabClick() {
@@ -3743,12 +3742,7 @@ export default function CouplePlanPage() {
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
 
-      <DreamAiSheet
-        visible={dreamAiOpen}
-        onClose={() => setDreamAiOpen(false)}
-        userId={userId}
-        prefill={dreamAiPrefill}
-      />
+      {/* DreamAi is now at /couple/dreamai route */}
 
       {/* ─── FAB Sheets ──────────────────────────────────────────────────── */}
       <AddTaskSheet

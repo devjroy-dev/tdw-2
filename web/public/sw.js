@@ -1,39 +1,19 @@
-// The Dream Wedding — Service Worker v4 (Session 17)
-// Cache-first: images | Network-first: pages + API | Never cache: API responses
+// The Dream Wedding — Service Worker v5
+// Strategy: Cache images only. Never cache pages or API. Always network-first for HTML/JS.
 
-const CACHE_NAME = 'tdw-v4';
-const IMAGE_CACHE = 'tdw-images-v4';
+const CACHE_NAME = 'tdw-v5';
+const IMAGE_CACHE = 'tdw-images-v5';
 
-const CORE_PAGES = [
-  '/',
-  '/couple/today',
-  '/couple/plan',
-  '/couple/login',
-  '/vendor/today',
-  '/vendor/clients',
-  '/vendor/login',
-  '/manifest.json',
-];
-
-// ── Install: pre-cache core pages ────────────────────────────────────────────
+// ── Install: skip waiting immediately, no pre-caching of pages ───────────────
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(CORE_PAGES).catch(() => {});
-    })
-  );
   self.skipWaiting();
 });
 
-// ── Activate: purge old caches ────────────────────────────────────────────────
+// ── Activate: purge all old caches ───────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) =>
-      Promise.all(
-        names
-          .filter((n) => n !== CACHE_NAME && n !== IMAGE_CACHE)
-          .map((n) => caches.delete(n))
-      )
+      Promise.all(names.map((n) => caches.delete(n)))
     )
   );
   self.clients.claim();
@@ -44,20 +24,34 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Never cache: API calls or admin routes
-  if (url.pathname.startsWith('/admin')) {
-    event.respondWith(fetch(request));
-    return;
-  }
+  // Always network-first, no caching: API, Railway backend, admin
   if (
     url.hostname.includes('railway.app') ||
-    url.pathname.startsWith('/api/')
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/admin')
   ) {
-    event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
+    event.respondWith(
+      fetch(request).catch(() => new Response('', { status: 503 }))
+    );
     return;
   }
 
-  // Cache-first: images (Unsplash, Cloudinary, any image extension)
+  // Always network-first, no caching: Next.js pages and JS bundles
+  // These are content-hashed by Next.js — caching them causes stale bundle issues
+  if (
+    request.mode === 'navigate' ||
+    url.pathname.startsWith('/_next/') ||
+    url.pathname.endsWith('.html')
+  ) {
+    event.respondWith(
+      fetch(request).catch(() =>
+        caches.match(request).then((cached) => cached || new Response('Offline', { status: 503 }))
+      )
+    );
+    return;
+  }
+
+  // Cache-first: images only (Cloudinary, Unsplash, static image files)
   const isImage =
     url.hostname.includes('unsplash.com') ||
     url.hostname.includes('cloudinary.com') ||
@@ -78,22 +72,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first: pages — fallback to cache
+  // Everything else: network-first, no caching
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok && request.method === 'GET') {
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(request).then((cached) => cached || new Response('Offline', { status: 503 }))
-      )
+    fetch(request).catch(() =>
+      caches.match(request).then((cached) => cached || new Response('', { status: 503 }))
+    )
   );
 });
 
-// Push notification handler
+// ── Push notifications ────────────────────────────────────────────────────────
 self.addEventListener('push', event => {
   if (!event.data) return;
   let data = {};
