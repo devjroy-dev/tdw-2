@@ -7,6 +7,7 @@ import {
 import { useFocusEffect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { RAILWAY_URL } from '../../constants/tokens';
 import { getCoupleSession } from '../../utils/session';
 
@@ -152,6 +153,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
   const [selectedEvent, setSelectedEvent] = useState('general');
   const [priority, setPriority] = useState('Medium');
   const [dueDate, setDueDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [vendorName, setVendorName] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -163,7 +165,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
   function reset() {
     setTaskTitle(''); setSelectedEvent('general'); setPriority('Medium');
-    setDueDate(''); setVendorName(''); setNotes('');
+    setDueDate(''); setVendorName(''); setNotes(''); setShowDatePicker(false);
   }
 
   async function handleSubmit() {
@@ -229,12 +231,34 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
         </View>
 
         <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DUE DATE</Text>
-        <TextInput
-          value={dueDate} onChangeText={setDueDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={MUTED}
-          style={styles.fieldInput}
-        />
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={[styles.fieldInput, { justifyContent: 'center' }]}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontFamily: DM300, fontSize: 14, color: dueDate ? DARK : MUTED }}>
+            {dueDate || 'Select a date'}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={dueDate ? new Date(dueDate) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (event.type === 'dismissed') { setShowDatePicker(false); return; }
+              if (selectedDate) {
+                const y = selectedDate.getFullYear();
+                const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const d = String(selectedDate.getDate()).padStart(2, '0');
+                setDueDate(`${y}-${m}-${d}`);
+                setShowDatePicker(false);
+              }
+            }}
+          />
+        )}
 
         <Text style={[styles.fieldLabel, { marginTop: 20 }]}>MAKER (OPTIONAL)</Text>
         <TextInput
@@ -281,6 +305,7 @@ function EditTaskSheet({ visible, onClose, userId, task, events, onSuccess }: {
   );
   const [dueDate, setDueDate] = useState(task.due_date ? task.due_date.split('T')[0] : '');
   const [notes, setNotes] = useState(task.notes || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -358,12 +383,34 @@ function EditTaskSheet({ visible, onClose, userId, task, events, onSuccess }: {
         </View>
 
         <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DUE DATE</Text>
-        <TextInput
-          value={dueDate} onChangeText={setDueDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={MUTED}
-          style={styles.fieldInput}
-        />
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={[styles.fieldInput, { justifyContent: 'center' }]}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontFamily: DM300, fontSize: 14, color: dueDate ? DARK : MUTED }}>
+            {dueDate || 'Select a date'}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={dueDate ? new Date(dueDate) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (event.type === 'dismissed') { setShowDatePicker(false); return; }
+              if (selectedDate) {
+                const y = selectedDate.getFullYear();
+                const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const d = String(selectedDate.getDate()).padStart(2, '0');
+                setDueDate(`${y}-${m}-${d}`);
+                setShowDatePicker(false);
+              }
+            }}
+          />
+        )}
 
         <Text style={[styles.fieldLabel, { marginTop: 20 }]}>NOTES (OPTIONAL)</Text>
         <TextInput
@@ -533,7 +580,7 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, on
       await fetch(`${API}/api/couple/checklist/${task.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_complete: false, status: 'pending', completed_at: null }),
+        body: JSON.stringify({ is_complete: false, completed_at: null }),
       });
       setCompleted(false);
       setExpanded(false);
