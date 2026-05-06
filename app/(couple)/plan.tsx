@@ -477,11 +477,12 @@ function CreateExpenseSheet({ visible, onClose, userId, task, onSuccess }: {
 }
 
 // ── TaskCard ───────────────────────────────────────────────────────────────
-function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, onExpenseAdded }: {
+function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, onReload, onExpenseAdded }: {
   task: Task; userId: string; events: EventOption[];
   onCompleted: (id: string) => void;
   onDeleted: (id: string) => void;
   onRestored: (id: string) => void;
+  onReload: () => void;
   onExpenseAdded: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -537,6 +538,9 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, on
       setCompleted(false);
       setExpanded(false);
       onRestored(task.id);
+      // Reload from API to guarantee DB state is reflected — is_complete: false
+      // must round-trip through backend before we trust local state
+      setTimeout(() => onReload(), 300);
     } catch { showToast('Could not update task'); }
   }
 
@@ -824,6 +828,7 @@ function TasksTab({ userId, events, refetch, onExpenseAdded }: {
                     onCompleted={handleCompleted}
                     onDeleted={handleDeleted}
                     onRestored={handleRestored}
+                    onReload={() => loadTasks(false)}
                     onExpenseAdded={onExpenseAdded}
                   />
                 ))}
