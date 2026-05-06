@@ -26,9 +26,10 @@ interface HeroData {
   wedding_date: string | null;
 }
 interface Moment {
-  type: string; priority: number; title: string; body: string; action: string;
+  type: string; priority: number | string; title: string; body: string; action: string;
   task_id?: string; enquiry_id?: string; expense_id?: string; event_id?: string;
-  due_date?: string; amount?: number; event_name?: string;
+  due_date?: string; amount?: number; event_name?: string; event?: string;
+  framing?: 'plan_ahead' | 'urgent';
 }
 interface MuseSave {
   id: string; vendor_id: string; created_at: string;
@@ -118,28 +119,31 @@ function SectionHeader({ label, actionLabel, onAction }: {
 }
 
 function MomentCard({ moment, onComplete }: { moment: Moment; onComplete?: () => void }) {
-  const accent = moment.priority <= 1 ? GOLD : MUTED;
+  const isPlanAhead = moment.framing === 'plan_ahead';
+  const accent = isPlanAhead ? '#C8C4BE' : (Number(moment.priority) <= 1 ? GOLD : MUTED);
   const dueLabel = formatMomentDue(moment.due_date);
   const isOverdue = moment.due_date && new Date(moment.due_date) < new Date();
   return (
     <View style={[styles.momentCard, { borderLeftColor: accent }]}>
       <Text style={[styles.momentTitle, { color: accent }]}>{moment.title}</Text>
       <Text style={styles.momentBody}>{moment.body}</Text>
-      {(dueLabel || moment.event_name) && (
+      {(dueLabel || moment.event_name || moment.event) && (
         <View style={styles.momentMeta}>
           {dueLabel ? (
             <Text style={[styles.momentDue, isOverdue && { color: GOLD }]}>{dueLabel}</Text>
           ) : null}
-          {moment.event_name && moment.event_name !== 'General' && moment.event_name !== 'general' && (
+          {(moment.event_name || moment.event) &&
+           (moment.event_name || moment.event) !== 'General' &&
+           (moment.event_name || moment.event) !== 'general' && (
             <View style={styles.eventPill}>
-              <Text style={styles.eventPillText}>{moment.event_name}</Text>
+              <Text style={styles.eventPillText}>{moment.event_name || moment.event}</Text>
             </View>
           )}
         </View>
       )}
       <TouchableOpacity style={styles.momentBtn} onPress={onComplete} activeOpacity={0.85}>
         <Text style={styles.momentBtnText}>
-          {moment.task_id ? 'VIEW TASK →' : moment.action}
+          VIEW TASK →
         </Text>
       </TouchableOpacity>
     </View>
@@ -347,14 +351,28 @@ export default function CoupleTodayScreen() {
         )}
 
         {/* ── Needs Your Attention ─────────────────────────────────────────── */}
-        {moments.length > 0 && (
+        {moments.filter(m => m.framing !== 'plan_ahead').length > 0 && (
           <View style={{ marginBottom: 28 }}>
             <SectionHeader label="NEEDS YOUR ATTENTION" />
-            {moments.map((m, i) => (
+            {moments.filter(m => m.framing !== 'plan_ahead').map((m, i) => (
               <MomentCard
                 key={i}
                 moment={m}
                 onComplete={() => m.task_id ? router.push('/(couple)/plan') : undefined}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* ── Plan Ahead ───────────────────────────────────────────────────── */}
+        {moments.filter(m => m.framing === 'plan_ahead').length > 0 && (
+          <View style={{ marginBottom: 28 }}>
+            <SectionHeader label="PLAN AHEAD" />
+            {moments.filter(m => m.framing === 'plan_ahead').map((m, i) => (
+              <MomentCard
+                key={i}
+                moment={m}
+                onComplete={() => router.push('/(couple)/plan')}
               />
             ))}
           </View>
