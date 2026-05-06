@@ -1,144 +1,41 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
+import {
+  CormorantGaramond_300Light,
+  CormorantGaramond_400Regular,
+  CormorantGaramond_600SemiBold,
+} from '@expo-google-fonts/cormorant-garamond';
+import {
+  DMSans_300Light,
+  DMSans_400Regular,
+  DMSans_500Medium,
+} from '@expo-google-fonts/dm-sans';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useFonts, PlayfairDisplay_400Regular } from '@expo-google-fonts/playfair-display/index';
-import { DMSans_400Regular } from '@expo-google-fonts/dm-sans';
 
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean; error: any}> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, backgroundColor: '#F5F0E8', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 22, color: '#2C2420', marginBottom: 12 }}>Something went wrong</Text>
-          <ScrollView style={{ maxHeight: 300, backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-            <Text style={{ fontSize: 12, color: '#8C7B6E', fontFamily: 'monospace' }}>{String(this.state.error)}</Text>
-          </ScrollView>
-          <TouchableOpacity
-            style={{ backgroundColor: '#2C2420', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-            onPress={() => this.setState({ hasError: false, error: null })}
-          >
-            <Text style={{ color: '#F5F0E8', fontSize: 14, letterSpacing: 1 }}>TRY AGAIN</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-const AUTH_SCREENS = ['login', 'otp', 'user-type', 'vendor-login', 'vendor-onboarding'];
-
-function AuthGate({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const segments = useSegments();
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => checkSession(), 150);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      const [userSession, vendorSession] = await Promise.all([
-        AsyncStorage.getItem('user_session'),
-        AsyncStorage.getItem('vendor_session'),
-      ]);
-
-      const inAuthGroup = AUTH_SCREENS.includes(segments[0] as string);
-      const isIndexScreen = (segments[0] as string) === 'index' || segments[0] === undefined;
-
-      if (vendorSession) {
-        const parsed = JSON.parse(vendorSession);
-        if (parsed.vendorId) {
-          if (inAuthGroup || isIndexScreen) {
-            router.replace('/vendor-dashboard');
-          }
-          return;
-        }
-      }
-
-      if (userSession) {
-        const parsed = JSON.parse(userSession);
-        if (parsed.uid) {
-          if (inAuthGroup || isIndexScreen) {
-            router.replace('/home');
-          }
-          return;
-        }
-      }
-
-      if (!inAuthGroup) {
-        router.replace('/login');
-      }
-    } catch (e) {
-      router.replace('/login');
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  if (checking) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F5F0E8', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color="#C9A84C" size="large" />
-      </View>
-    );
-  }
-
-  return <>{children}</>;
-}
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  useFonts({ PlayfairDisplay_400Regular, DMSans_400Regular });
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_300Light,
+    CormorantGaramond_400Regular,
+    CormorantGaramond_600SemiBold,
+    DMSans_300Light,
+    DMSans_400Regular,
+    DMSans_500Medium,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
 
   return (
-    <ErrorBoundary>
-      <StatusBar style="dark" />
-      <AuthGate>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="otp" />
-          <Stack.Screen name="user-type" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="home" />
-          <Stack.Screen name="vendor-login" />
-          <Stack.Screen name="vendor-onboarding" />
-          <Stack.Screen name="vendor-dashboard" />
-          <Stack.Screen name="vendor-preview" />
-          <Stack.Screen name="filter" />
-          <Stack.Screen name="swipe" />
-          <Stack.Screen name="vendor-profile" />
-          <Stack.Screen name="moodboard" />
-          <Stack.Screen name="bts-planner" />
-          <Stack.Screen name="profile" />
-          <Stack.Screen name="inquiry" />
-          <Stack.Screen name="payment" />
-          <Stack.Screen name="payment-success" />
-          <Stack.Screen name="messaging" />
-          <Stack.Screen name="compare" />
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="lookalike" />
-          <Stack.Screen name="wedding-website" />
-          <Stack.Screen name="get-inspired" />
-          <Stack.Screen name="look-book" />
-          <Stack.Screen name="destination-weddings" />
-          <Stack.Screen name="special-offers" />
-          <Stack.Screen name="spotlight" />
-          <Stack.Screen name="curated-suggestions" />
-          <Stack.Screen name="access-gate" />
-        </Stack>
-      </AuthGate>
-    </ErrorBoundary>
+    <>
+      <StatusBar style="dark" backgroundColor="#F8F7F5" />
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+    </>
   );
 }

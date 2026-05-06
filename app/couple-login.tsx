@@ -20,7 +20,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { Colors, Fonts, Radius, RAILWAY_URL } from '../constants/tokens';
 
-export default function VendorLoginScreen() {
+export default function CoupleLoginScreen() {
   const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,7 @@ export default function VendorLoginScreen() {
   const [inputFocused, setInputFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
+  // Shake animation for error state
   const shakeX = useSharedValue(0);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeX.value }],
@@ -56,7 +57,7 @@ export default function VendorLoginScreen() {
     setError('');
 
     try {
-      const res = await fetch(`${RAILWAY_URL}/api/v2/vendor/auth/send-otp`, {
+      const res = await fetch(`${RAILWAY_URL}/api/v2/couple/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: cleaned }),
@@ -68,7 +69,7 @@ export default function VendorLoginScreen() {
         throw new Error(data.message || 'Failed to send code. Please try again.');
       }
 
-      router.push({ pathname: '/vendor-otp', params: { phone: cleaned } });
+      router.push({ pathname: '/couple-otp', params: { phone: cleaned } });
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
       triggerShake();
@@ -82,7 +83,7 @@ export default function VendorLoginScreen() {
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Back */}
+      {/* Back arrow */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.back()}
@@ -92,13 +93,18 @@ export default function VendorLoginScreen() {
       </TouchableOpacity>
 
       <View style={styles.content}>
+        {/* Heading */}
         <Text style={styles.heading}>Enter your number.</Text>
         <Text style={styles.subheading}>We'll send you a one-time code.</Text>
 
+        {/* Phone input */}
         <Animated.View style={[styles.inputRow, animatedStyle]}>
+          {/* +91 prefix pill */}
           <View style={[styles.prefixPill, inputFocused && styles.prefixPillActive]}>
             <Text style={styles.prefixText}>+91</Text>
           </View>
+
+          {/* Number input */}
           <View style={styles.inputWrap}>
             <TextInput
               ref={inputRef}
@@ -117,16 +123,16 @@ export default function VendorLoginScreen() {
               returnKeyType="done"
               onSubmitEditing={handleSendCode}
             />
+            {/* Gold underline on focus */}
             <View style={[styles.inputUnderline, inputFocused && styles.inputUnderlineActive]} />
           </View>
         </Animated.View>
 
+        {/* Error text */}
         {!!error && <Text style={styles.errorText}>{error}</Text>}
-
-        {/* Maker tagline — subtle brand moment */}
-        <Text style={styles.makerTagline}>Pay for the OS. Earn the catalogue.</Text>
       </View>
 
+      {/* Send code button — pinned to bottom */}
       <View style={[styles.buttonWrap, { paddingBottom: insets.bottom + 32 }]}>
         <TouchableOpacity
           style={[styles.sendButton, loading && styles.sendButtonDisabled]}
@@ -222,13 +228,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.error,
     marginTop: 12,
-  },
-  makerTagline: {
-    fontFamily: Fonts.display,
-    fontSize: 15,
-    color: Colors.muted,
-    marginTop: 40,
-    fontStyle: 'italic',
   },
   buttonWrap: {
     paddingHorizontal: 24,
