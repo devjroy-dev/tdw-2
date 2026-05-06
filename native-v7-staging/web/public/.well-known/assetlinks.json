@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "in.thedreamwedding.app.twa",
+    "sha256_cert_fingerprints": ["D4:6F:41:B8:5D:12:05:1D:D2:E6:D2:40:C9:FE:45:C4:26:2D:44:18:B7:38:5F:52:09:BE:61:64:28:4C:F0:E1"]
+  }
+}]
