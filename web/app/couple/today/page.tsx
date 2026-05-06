@@ -864,7 +864,7 @@ export default function TodayPage() {
       <AddTaskSheet visible={addTaskOpen} onClose={()=>setAddTaskOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Task added');refreshData();}} />
       <AddMuseSheet visible={addMuseOpen} onClose={()=>setAddMuseOpen(false)} userId={session?.id||''} onDone={()=>{showToast('Saved to Muse');refreshData();}} />
 
-      <div style={{ minHeight:'100dvh', background:'#F8F7F5', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
+      <div style={{ minHeight:'100svh', background:'#F8F7F5', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
         <div className="fade-in" style={{ padding:'0 20px' }}>
           {loading ? (
             <div style={{ paddingTop:32, display:'flex', flexDirection:'column', gap:12 }}>

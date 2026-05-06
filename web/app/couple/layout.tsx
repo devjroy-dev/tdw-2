@@ -78,13 +78,13 @@ export default function CoupleLayout({ children }: { children: React.ReactNode }
       <div style={{
         fontFamily: "'DM Sans', sans-serif",
         background: '#F8F7F5',
-        minHeight: '100dvh',
+        minHeight: '100svh',
       }}>
         <TopBar />
         <main style={{
           paddingTop: 56,
           paddingBottom: 'calc(64px + env(safe-area-inset-bottom))',
-          minHeight: '100dvh',
+          minHeight: '100svh',
         }}>
           {children}
         </main>

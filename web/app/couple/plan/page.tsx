@@ -918,7 +918,7 @@ Please classify it: if it looks like a receipt or invoice, log it as an expense 
   return (
     <>
       <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 400,
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 600,
         background: '#FFFFFF',
         transform: visible ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 280ms cubic-bezier(0.22,1,0.36,1)',
@@ -3725,15 +3725,6 @@ export default function CouplePlanPage() {
     setDreamAiOpen(true);
   }
 
-  // Reset sheet states when switching tabs — prevents stuck bottom bars (D-06, D-15)
-  React.useEffect(() => {
-    if (activeTab !== 'tasks') setTaskSheetOpen(false);
-    if (activeTab !== 'money') setBudgetSheetOpen(false);
-    if (activeTab !== 'vendors') setVendorSheetOpen(false);
-    if (activeTab !== 'people') setGuestSheetOpen(false);
-    if (activeTab !== 'events') setEventSheetOpen(false);
-  }, [activeTab]);
-
   function handleFabClick() {
     if (activeTab === 'tasks') setTaskSheetOpen(true);
     else if (activeTab === 'money') setBudgetSheetOpen(true);
@@ -3797,7 +3788,7 @@ export default function CouplePlanPage() {
         onSuccess={() => setVendorsRefetch(n => n + 1)}
       />
 
-      <div style={{ background: '#F8F7F5', minHeight: '100dvh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
+      <div style={{ background: '#F8F7F5', minHeight: '100svh', paddingTop: 24, paddingBottom: 'calc(80px + env(safe-area-inset-bottom) + 24px)' }}>
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, color: '#111111', margin: 0 }}>Plan</h1>
         </div>
