@@ -620,11 +620,6 @@ function PaymentRow({ payment }: { payment: any }) {
   );
 }
 
-function fmtDate(d: string): string {
-  if (!d) return '';
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
