@@ -204,13 +204,16 @@ export default function CoupleTodayScreen() {
   if (loading) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
-        {/* Top pills */}
-        <View style={styles.pillNav}>
-          {['PLAN', 'AI', 'DISCOVER'].map((p, i) => (
-            <View key={p} style={[styles.pill, i === 0 && styles.pillActive]}>
-              <Text style={[styles.pillText, i === 0 && styles.pillTextActive]}>{p}</Text>
-            </View>
-          ))}
+        <View style={styles.topBar}>
+          <Text style={styles.wordmark}>TDW</Text>
+          <View style={styles.pillGroup}>
+            <View style={[styles.pill, styles.pillActive]}><Text style={[styles.pillText, styles.pillTextActive]}>PLAN</Text></View>
+            <View style={styles.pillAi}><Text style={styles.pillAiText}>✦ AI</Text></View>
+            <View style={styles.pill}><Text style={styles.pillText}>DISCOVER</Text></View>
+          </View>
+          <View style={styles.profileCircle}>
+            <Text style={styles.profileInitial}>{session?.name?.[0]?.toUpperCase() || 'D'}</Text>
+          </View>
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={GOLD} />
