@@ -29,6 +29,8 @@ export default function VendorLayout() {
       <Tabs.Screen name="today" options={{ title: 'Today' }} />
       <Tabs.Screen name="clients" options={{ title: 'Clients' }} />
       <Tabs.Screen name="studio" options={{ title: 'Studio' }} />
+      <Tabs.Screen name="pin" options={{ href: null }} />
+      <Tabs.Screen name="pin-login" options={{ href: null }} />
     </Tabs>
   );
 }
