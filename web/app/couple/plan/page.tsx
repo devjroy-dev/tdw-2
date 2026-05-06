@@ -3668,6 +3668,7 @@ const NAV_ITEMS = [
 ];
 
 export default function CouplePlanPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
   const [session, setSession] = useState<CoupleSession | null | undefined>(undefined);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
