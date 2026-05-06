@@ -350,6 +350,25 @@ export default function CoupleTodayScreen() {
           </View>
         )}
 
+        {/* ── Next Event ───────────────────────────────────────────────────── */}
+        {data?.next_event && (
+          <View style={[styles.nextEventCard, { marginBottom: 28 }]}>
+            <Text style={styles.sectionLabel}>NEXT EVENT</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
+              <View>
+                <Text style={styles.nextEventName}>{data.next_event.event_name}</Text>
+                <Text style={styles.nextEventDate}>{formatDate(data.next_event.event_date)}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.nextEventDays}>
+                  {Math.max(0, Math.round((new Date(data.next_event.event_date).getTime() - Date.now()) / 86400000))}
+                </Text>
+                <Text style={styles.nextEventDaysLabel}>days away</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* ── Needs Your Attention ─────────────────────────────────────────── */}
         {moments.filter(m => m.framing !== 'plan_ahead').length > 0 && (
           <View style={{ marginBottom: 28 }}>
@@ -375,25 +394,6 @@ export default function CoupleTodayScreen() {
                 onComplete={() => router.push('/(couple)/plan')}
               />
             ))}
-          </View>
-        )}
-
-        {/* ── Next Event ───────────────────────────────────────────────────── */}
-        {data?.next_event && (
-          <View style={[styles.nextEventCard, { marginBottom: 28 }]}>
-            <Text style={styles.sectionLabel}>NEXT EVENT</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
-              <View>
-                <Text style={styles.nextEventName}>{data.next_event.event_name}</Text>
-                <Text style={styles.nextEventDate}>{formatDate(data.next_event.event_date)}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.nextEventDays}>
-                  {Math.max(0, Math.round((new Date(data.next_event.event_date).getTime() - Date.now()) / 86400000))}
-                </Text>
-                <Text style={styles.nextEventDaysLabel}>days away</Text>
-              </View>
-            </View>
           </View>
         )}
 
