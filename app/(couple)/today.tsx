@@ -230,6 +230,12 @@ export default function CoupleTodayScreen() {
         ))}
       </View>
 
+      {/* DEV ONLY — remove this block when done testing */}
+      <TouchableOpacity style={{ alignItems: 'flex-end', paddingHorizontal: 20, paddingBottom: 6 }} onPress={async () => { await clearCoupleSession(); router.replace('/'); }}>
+        <Text style={styles.signOutText}>SIGN OUT</Text>
+      </TouchableOpacity>
+      {/* END DEV ONLY */}
+
       {/* Toast */}
       {!!toast && (
         <View style={[styles.toast, { top: insets.top + 60 }]}>
@@ -524,6 +530,7 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: INK, borderColor: INK },
   pillText: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
   pillTextActive: { color: CREAM },
+  signOutText: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
 
   // Toast
   toast: {
