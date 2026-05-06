@@ -647,12 +647,34 @@ function DreamAiSheet({ visible, onClose, context, userId, prefill, onGrace, onU
   );
 }
 
+function formatMomentDue(d?: string): string {
+  if (!d) return '';
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((dt.getTime()-today.getTime())/86400000);
+  if (diff < 0) return 'Overdue';
+  if (diff === 0) return 'Due today';
+  if (diff === 1) return 'Due tomorrow';
+  return 'Due '+new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+}
+
 function MomentCard({ moment, onAction }: { moment: Moment; onAction: (m: Moment)=>void; }) {
   const accent = moment.priority <= 1 ? '#C9A84C' : '#8C8480';
+  const dueLabel = formatMomentDue(moment.due_date);
+  const isOverdueM = moment.due_date && new Date(moment.due_date) < new Date();
   return (
     <div style={{ background:'#FFFFFF', border:'0.5px solid #E2DED8', borderLeft:`3px solid ${accent}`, borderRadius:'0 12px 12px 0', padding:16, marginBottom:10 }}>
       <p style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.2em', textTransform:'uppercase', color:accent, margin:'0 0 6px' }}>{moment.title}</p>
-      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:300, color:'#111', margin:'0 0 12px', lineHeight:1.3 }}>{moment.body}</p>
+      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:300, color:'#111', margin:'0 0 8px', lineHeight:1.3 }}>{moment.body}</p>
+      {(dueLabel || moment.event_name) && (
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, flexWrap:'wrap' }}>
+          {dueLabel && <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:300, color: isOverdueM ? '#C9A84C' : '#8C8480' }}>{dueLabel}</span>}
+          {moment.event_name && moment.event_name !== 'General' && moment.event_name !== 'general' && (
+            <span style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:300, letterSpacing:'0.1em', textTransform:'uppercase', color:'#8C8480', background:'#F4F1EC', padding:'2px 7px', borderRadius:100 }}>{moment.event_name}</span>
+          )}
+          <span style={{ width:4, height:4, borderRadius:'50%', background: accent, display:'inline-block', flexShrink:0 }} />
+        </div>
+      )}
       <button onClick={()=>onAction(moment)} style={{ fontFamily:"'Jost',sans-serif", fontSize:9, fontWeight:400, letterSpacing:'0.15em', textTransform:'uppercase', color:'#F8F7F5', background:'#111', border:'none', borderRadius:100, padding:'7px 14px', cursor:'pointer', touchAction:'manipulation' }}>{moment.action}</button>
     </div>
   );
@@ -759,7 +781,12 @@ export default function TodayPage() {
   }
 
   function handleMomentAction(m: Moment) {
-    if (m.task_id) { completeTask(m.task_id); showToast('Task marked done'); return; }
+    if (m.task_id) {
+      // Navigate to plan/tasks with task expanded (D-11: tap card body = expand, not complete)
+      try { sessionStorage.setItem('tdw_expand_task_id', m.task_id); } catch {}
+      window.location.href = '/couple/plan';
+      return;
+    }
     if (m.enquiry_id) { window.location.href=`/couple/messages?thread=${m.enquiry_id}`; return; }
     if (m.expense_id) { window.location.href='/couple/plan'; return; }
     if (m.event_name) { window.location.href='/couple/discover/hub'; return; }
@@ -1069,7 +1096,24 @@ export default function TodayPage() {
               )}
 
               {moments.length===0 && (!data?.muse_saves||data.muse_saves.length===0) && (!data?.this_week_events||data.this_week_events.length===0) && (
-                <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580', textAlign:'center', marginTop:16 }}>You're all caught up.</p>
+                <div style={{ marginTop:24, textAlign:'center' }}>
+                  {data?.priority_tasks?.length > 0 ? (
+                    // Has tasks but all good — genuine caught up state
+                    <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580' }}>You're all caught up.</p>
+                  ) : (
+                    // New bride — no tasks yet, show planning start nudge
+                    <>
+                      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:300, color:'#111111', margin:'0 0 8px' }}>Your planning starts here.</p>
+                      <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:300, color:'#888580', margin:'0 0 20px', lineHeight:1.6 }}>We've lined up your top priorities based on your wedding date.</p>
+                      {(data?.priority_tasks||[]).slice(0,5).map((t:any,i:number)=>(
+                        <div key={i} onClick={()=>{window.location.href='/couple/plan';}} style={{ background:'#FFFFFF', border:'0.5px solid #E2DED8', borderRadius:12, padding:'12px 16px', marginBottom:8, cursor:'pointer', textAlign:'left' }}>
+                          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:300, color:'#111111', margin:'0 0 4px' }}>{t.title||t.text}</p>
+                          {t.due_date && <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:300, color:'#8C8480', margin:0 }}>{formatMomentDue(t.due_date)}</p>}
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
               )}
             </>
           )}

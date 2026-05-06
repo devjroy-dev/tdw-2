@@ -156,7 +156,6 @@ function SheetWrap({ visible, onClose, title, height, children }: {
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
         transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)',
-        willChange: 'opacity',
       }} />
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301,
@@ -164,7 +163,7 @@ function SheetWrap({ visible, onClose, title, height, children }: {
         borderRadius: '24px 24px 0 0',
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
-        willChange: 'transform', display: 'flex',
+        display: 'flex',
         flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
@@ -219,6 +218,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
   }, [visible, userId]);
 
   async function handleSubmit() {
+    if (!userId || userId.length < 10) { showToast('Session error — please refresh'); return; }
     if (!taskTitle.trim() || submitting) return;
     setSubmitting(true);
     try {
@@ -239,7 +239,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
       });
       const json = await res.json();
       if (json.success === false) { showToast(json.error || 'Error adding task'); }
-      else { showToast('Task added'); onSuccess(); onClose(); reset(); }
+      else { showToast('Task added'); onClose(); reset(); setTimeout(() => onSuccess(), 380); }
     } catch { showToast('Network error'); }
     finally { setSubmitting(false); }
   }
@@ -290,14 +290,26 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
                 <button onClick={() => { setVendorName(''); setVendorId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888580', fontSize: 16 }}>×</button>
               </div>
             ) : (
-              <button onClick={() => setShowVendorPicker(true)} style={{ width: '100%', height: 48, background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8', textAlign: 'left', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#C8C4BE', cursor: 'pointer', padding: '0 4px' }}>
-                {myVendors.length > 0 ? 'Pick from My Makers...' : 'Type maker name...'}
-              </button>
+              <>
+                <button onClick={() => setShowVendorPicker(v => !v)} style={{ width: '100%', height: 48, background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8', textAlign: 'left', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#C8C4BE', cursor: 'pointer', padding: '0 4px' }}>
+                  {myVendors.length > 0 ? 'Pick from My Makers...' : 'Type maker name...'}
+                </button>
+                {showVendorPicker && myVendors.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, maxHeight: 180, overflowY: 'auto' }}>
+                    {myVendors.map(v => (
+                      <button key={v.id} onClick={() => { setVendorName(v.name); setVendorId(v.vendor_id || null); setShowVendorPicker(false); }}
+                        style={{ width: '100%', height: 44, borderRadius: 10, background: '#F4F1EC', border: '1px solid #E2DED8', fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 300, color: '#111111', cursor: 'pointer', touchAction: 'manipulation', textAlign: 'left', padding: '0 14px' }}>
+                        {v.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
             {!vendorName && myVendors.length === 0 && (
               <input value={vendorName} onChange={e => setVendorName(e.target.value)}
                 placeholder="e.g. Arjun Kartha Studio"
-                style={{ ...fieldInput, marginTop: -48 }}
+                style={{ ...fieldInput }}
                 onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
                 onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
               />
@@ -321,27 +333,6 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
         </div>
       </SheetWrap>
 
-      {/* Vendor picker from My Vendors */}
-      {showVendorPicker && (
-        <>
-          <div onClick={() => setShowVendorPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.4)' }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 501, background: '#FFFFFF', borderRadius: '20px 20px 0 0', padding: '20px 20px 0', maxHeight: '60vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8', margin: '0 auto 16px' }} />
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, color: '#111111', margin: '0 0 16px' }}>Pick a Maker</p>
-            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {myVendors.map(v => (
-                <button key={v.id} onClick={() => { setVendorName(v.name); setVendorId(v.vendor_id || null); setShowVendorPicker(false); }}
-                  style={{ width: '100%', height: 52, borderRadius: 12, background: '#F4F1EC', border: '1px solid #E2DED8', fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 300, color: '#111111', cursor: 'pointer', touchAction: 'manipulation', textAlign: 'left', padding: '0 16px' }}>
-                  {v.name}
-                </button>
-              ))}
-              <button onClick={() => setShowVendorPicker(false)} style={{ width: '100%', height: 44, borderRadius: 100, background: 'transparent', border: 'none', fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#888580', cursor: 'pointer', touchAction: 'manipulation' }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </>
-      )}
       <Toast msg={toast} />
     </>
   );
@@ -926,29 +917,19 @@ Please classify it: if it looks like a receipt or invoice, log it as an expense 
 
   return (
     <>
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 300,
-        background: 'rgba(17,17,17,0.4)',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
-        transition: 'opacity 280ms cubic-bezier(0.22,1,0.36,1)',
-        willChange: 'opacity',
-      }} />
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301,
-        height: '92dvh', background: '#FFFFFF',
-        borderRadius: '24px 24px 0 0',
-        transform: visible ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 320ms cubic-bezier(0.22,1,0.36,1)',
-        willChange: 'transform',
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 400,
+        background: '#FFFFFF',
+        transform: visible ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 280ms cubic-bezier(0.22,1,0.36,1)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        pointerEvents: visible ? 'auto' : 'none',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2DED8' }} />
-        </div>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 20px 12px', borderBottom: '0.5px solid #E2DED8',
+          padding: 'calc(env(safe-area-inset-top) + 16px) 20px 12px',
+          borderBottom: '0.5px solid #E2DED8',
+          background: '#FFFFFF', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>✦</span>
@@ -1031,7 +1012,7 @@ Please classify it: if it looks like a receipt or invoice, log it as an expense 
           display: 'flex', gap: 10, padding: '12px 16px',
           borderTop: '0.5px solid #E2DED8',
           paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
-          background: '#FFFFFF',
+          background: '#FFFFFF', flexShrink: 0,
         }}>
           {/* Image upload button */}
           <label style={{ flexShrink: 0, cursor: 'pointer' }}>
@@ -1066,7 +1047,6 @@ Please classify it: if it looks like a receipt or invoice, log it as an expense 
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, touchAction: 'manipulation',
               transition: 'background 200ms cubic-bezier(0.22,1,0.36,1)',
-              willChange: 'transform',
             }}
           >
             <span style={{ color: '#FFFFFF', fontSize: 16 }}>↑</span>
@@ -1198,19 +1178,22 @@ function CreateExpenseSheet({ visible, onClose, userId, task, events, onSuccess 
 }
 
 // ─── Task Card — tap to expand detail, checkbox to complete ───────────────────
-function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded }: {
+function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded, autoExpand }: {
   task: Task;
   userId: string;
   events: EventOption[];
   onCompleted: (id: string) => void;
   onDeleted: (id: string) => void;
   onExpenseAdded: () => void;
+  autoExpand?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(autoExpand || false);
+  React.useEffect(() => { if (autoExpand) setExpanded(true); }, [autoExpand]);
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(task.status === 'done' || !!task.is_complete);
   const [deleting, setDeleting] = useState(false);
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [toast, setToast] = useState('');
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
@@ -1249,6 +1232,18 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded
     } catch { showToast('Could not delete task'); setDeleting(false); }
   }
 
+  async function handleMarkPending() {
+    try {
+      await fetch(`${RAILWAY_URL}/api/couple/checklist/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_complete: false, status: 'pending', completed_at: null }),
+      });
+      setCompleted(false);
+      setExpanded(false);
+    } catch { showToast('Could not update task'); }
+  }
+
   return (
     <>
       <div
@@ -1263,7 +1258,11 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded
       >
         {/* Main row */}
         <div
-          onClick={() => setExpanded(e => !e)}
+          onClick={e => {
+            const target = e.target as HTMLElement;
+            if (target.closest('button[aria-label="Mark complete"]')) return;
+            setExpanded(v => !v);
+          }}
           style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 16, cursor: 'pointer' }}
         >
           {/* Checkbox */}
@@ -1276,9 +1275,10 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded
               background: isDone ? '#C9A84C' : 'transparent',
               cursor: isDone ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginTop: 1, touchAction: 'manipulation',
+              touchAction: 'manipulation',
               transition: 'all 300ms cubic-bezier(0.22,1,0.36,1)',
               flexDirection: 'column',
+              padding: 11, margin: -11, boxSizing: 'content-box',
             }}
             aria-label="Mark complete"
           >
@@ -1358,25 +1358,50 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded
                 </p>
               </div>
             )}
-            {/* Actions row */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              {!isDone && (
-                <button onClick={handleComplete} disabled={completing} style={{
-                  flex: 1, height: 38, borderRadius: 100,
-                  background: '#111111', border: 'none',
-                  fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400,
-                  letterSpacing: '0.15em', textTransform: 'uppercase',
-                  color: '#F8F7F5', cursor: 'pointer', touchAction: 'manipulation',
-                }}>{completing ? '...' : 'MARK DONE'}</button>
+            {/* Actions row — locked interaction model */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {!isDone ? (
+                <>
+                  <button onClick={() => setEditSheetOpen(true)} style={{
+                    flex: 1, height: 38, borderRadius: 100,
+                    background: 'transparent', border: '1px solid #E2DED8',
+                    fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+                    letterSpacing: '0.15em', textTransform: 'uppercase',
+                    color: '#555250', cursor: 'pointer', touchAction: 'manipulation',
+                  }}>EDIT</button>
+                  <button onClick={() => setExpanded(false)} style={{
+                    flex: 1, height: 38, borderRadius: 100,
+                    background: '#111111', border: 'none',
+                    fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 400,
+                    letterSpacing: '0.15em', textTransform: 'uppercase',
+                    color: '#F8F7F5', cursor: 'pointer', touchAction: 'manipulation',
+                  }}>OK</button>
+                  <button onClick={handleDelete} disabled={deleting} style={{
+                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                    background: 'transparent', border: '1px solid #E2DED8',
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+                    color: '#888580', cursor: 'pointer', touchAction: 'manipulation',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{deleting ? '·' : '✕'}</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={handleMarkPending} style={{
+                    flex: 1, height: 38, borderRadius: 100,
+                    background: 'transparent', border: '1px solid #E2DED8',
+                    fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
+                    letterSpacing: '0.15em', textTransform: 'uppercase',
+                    color: '#555250', cursor: 'pointer', touchAction: 'manipulation',
+                  }}>MARK AS PENDING</button>
+                  <button onClick={handleDelete} disabled={deleting} style={{
+                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                    background: 'transparent', border: '1px solid #E2DED8',
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+                    color: '#888580', cursor: 'pointer', touchAction: 'manipulation',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{deleting ? '·' : '✕'}</button>
+                </>
               )}
-              <button onClick={handleDelete} disabled={deleting} style={{
-                flex: isDone ? 1 : 0, height: 38, borderRadius: 100,
-                background: 'transparent', border: '1px solid #E2DED8',
-                fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 300,
-                letterSpacing: '0.15em', textTransform: 'uppercase',
-                color: '#888580', cursor: 'pointer', touchAction: 'manipulation',
-                padding: '0 20px',
-              }}>{deleting ? '...' : 'DELETE'}</button>
             </div>
           </div>
         )}
@@ -1391,8 +1416,119 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded
         events={events}
         onSuccess={onExpenseAdded}
       />
+      {/* Edit task sheet */}
+      <EditTaskSheet
+        visible={editSheetOpen}
+        onClose={() => setEditSheetOpen(false)}
+        userId={userId}
+        task={task}
+        events={events}
+        onSuccess={() => { setEditSheetOpen(false); onCompleted(task.id); }}
+      />
       <Toast msg={toast} />
     </>
+  );
+}
+
+// ─── EditTaskSheet ───────────────────────────────────────────────────────────
+function EditTaskSheet({ visible, onClose, userId, task, events, onSuccess }: {
+  visible: boolean; onClose: () => void; userId: string;
+  task: Task; events: EventOption[]; onSuccess: () => void;
+}) {
+  const [taskTitle, setTaskTitle] = useState(task.title || '');
+  const [selectedEvent, setSelectedEvent] = useState(task.event_name || task.events?.name || 'general');
+  const [priority, setPriority] = useState(task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Medium');
+  const [dueDate, setDueDate] = useState(task.due_date ? task.due_date.split('T')[0] : '');
+  const [notes, setNotes] = useState(task.notes || '');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  // Sync fields when task prop changes
+  React.useEffect(() => {
+    if (visible) {
+      setTaskTitle(task.title || '');
+      setSelectedEvent(task.event_name || task.events?.name || 'general');
+      setPriority(task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Medium');
+      setDueDate(task.due_date ? task.due_date.split('T')[0] : '');
+      setNotes(task.notes || '');
+    }
+  }, [visible, task.id]);
+
+  async function handleSubmit() {
+    if (!taskTitle.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${RAILWAY_URL}/api/couple/checklist/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: taskTitle.trim(),
+          event: selectedEvent || 'general',
+          priority: priority.toLowerCase(),
+          due_date: dueDate || null,
+          notes: notes.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Could not update task'); }
+      else { showToast('Task updated'); onClose(); setTimeout(() => onSuccess(), 380); }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !taskTitle.trim() || submitting;
+  return (
+    <SheetWrap visible={visible} onClose={onClose} title="Edit Task" height="88vh">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+        <div style={fieldWrapper}>
+          <label style={fieldLabel}>Task</label>
+          <input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} placeholder="What needs to be done?"
+            style={fieldInput}
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+        <div style={fieldWrapper}>
+          <label style={fieldLabel}>Event</label>
+          <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} style={selectStyle()}>
+            <option value="general">General</option>
+            {events.map(ev => <option key={ev.id} value={ev.name}>{ev.name}</option>)}
+          </select>
+        </div>
+        <div style={fieldWrapper}>
+          <label style={fieldLabel}>Priority</label>
+          <div style={pillGroup}>
+            {['High', 'Medium', 'Low'].map(p => (
+              <Pill key={p} label={p} active={priority === p} onPress={() => setPriority(p)} />
+            ))}
+          </div>
+        </div>
+        <div style={fieldWrapper}>
+          <label style={fieldLabel}>Due Date</label>
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={fieldInput}
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+        <div style={fieldWrapper}>
+          <label style={fieldLabel}>Notes (optional)</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="Any details or reminders..."
+            rows={3}
+            style={{ ...fieldInput, height: 'auto', resize: 'none', borderBottom: '1px solid #E2DED8', padding: '8px 4px', lineHeight: 1.6 }}
+            onFocus={e => { e.currentTarget.style.borderBottomColor = '#C9A84C'; }}
+            onBlur={e => { e.currentTarget.style.borderBottomColor = '#E2DED8'; }}
+          />
+        </div>
+      </div>
+      <div style={{ padding: '16px 20px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', borderTop: '0.5px solid #E2DED8', background: '#FFFFFF' }}>
+        <button onClick={handleSubmit} disabled={disabled} style={submitBtn(disabled)}>
+          {submitting ? '...' : 'SAVE CHANGES'}
+        </button>
+      </div>
+      <Toast msg={toast} />
+    </SheetWrap>
   );
 }
 
@@ -1406,10 +1542,15 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+  const [touchStartY, setTouchStartY] = useState(0);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
+  // Reset to 'all' on mount — prevents D-14 blank after Pending→All switch
+  React.useEffect(() => { setStatusFilter('all'); }, []);
+
   async function loadTasks(triggerSeedIfEmpty = false) {
-    setLoading(true);
+    if (tasks.length === 0) setLoading(true);
     try {
       const r = await fetch(`${RAILWAY_URL}/api/v2/couple/tasks/${userId}`);
       const d = await r.json();
@@ -1431,6 +1572,15 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
   }
 
   useEffect(() => { loadTasks(true); }, [userId, refetch]);
+
+  // D-11: Auto-expand task navigated from Today screen
+  const [autoExpandId, setAutoExpandId] = React.useState<string|null>(null);
+  React.useEffect(() => {
+    try {
+      const id = sessionStorage.getItem('tdw_expand_task_id');
+      if (id) { setAutoExpandId(id); sessionStorage.removeItem('tdw_expand_task_id'); }
+    } catch {}
+  }, []);
 
   function handleCompleted(id: string) {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'done', is_complete: true } : t));
@@ -1463,8 +1613,26 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
     </div>
   );
 
+  async function handlePullRefresh() {
+    setPullRefreshing(true);
+    await loadTasks(false);
+    setPullRefreshing(false);
+  }
+
   return (
-    <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+    <div
+      style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+      onTouchStart={e => setTouchStartY(e.touches[0].clientY)}
+      onTouchEnd={e => {
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (dy > 70 && !loading && !pullRefreshing) handlePullRefresh();
+      }}
+    >
+      {pullRefreshing && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 300, color: '#C9A84C' }}>↓ Refreshing...</span>
+        </div>
+      )}
       {/* Status filter row + DreamAi */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -1529,6 +1697,7 @@ function TasksTab({ userId, events, onOpenDreamAi, refetch, onExpenseAdded }: {
                   onCompleted={handleCompleted}
                   onDeleted={handleDeleted}
                   onExpenseAdded={onExpenseAdded}
+                  autoExpand={autoExpandId === task.id}
                 />
               ))}
             </div>
@@ -3555,6 +3724,15 @@ export default function CouplePlanPage() {
     setDreamAiPrefill(prefill);
     setDreamAiOpen(true);
   }
+
+  // Reset sheet states when switching tabs — prevents stuck bottom bars (D-06, D-15)
+  React.useEffect(() => {
+    if (activeTab !== 'tasks') setTaskSheetOpen(false);
+    if (activeTab !== 'money') setBudgetSheetOpen(false);
+    if (activeTab !== 'vendors') setVendorSheetOpen(false);
+    if (activeTab !== 'people') setGuestSheetOpen(false);
+    if (activeTab !== 'events') setEventSheetOpen(false);
+  }, [activeTab]);
 
   function handleFabClick() {
     if (activeTab === 'tasks') setTaskSheetOpen(true);
