@@ -1117,6 +1117,7 @@ function AddExpenseSheet({ visible, onClose, userId, events, onSuccess }: {
 }) {
   const insets = useSafeAreaInsets();
   const [vendorName, setVendorName] = useState('');
+  const [vendorPhone, setVendorPhone] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedEvent, setSelectedEvent] = useState('general');
@@ -1129,7 +1130,7 @@ function AddExpenseSheet({ visible, onClose, userId, events, onSuccess }: {
   const uniqueEvents = events.filter((ev, i, arr) => arr.findIndex(e => e.name === ev.name) === i);
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
   function reset() {
-    setVendorName(''); setDescription(''); setAmount('');
+    setVendorName(''); setVendorPhone(''); setDescription(''); setAmount('');
     setSelectedEvent('general'); setPaymentStatus('committed');
     setDueDate(''); setShowDatePicker(false);
   }
@@ -1156,7 +1157,26 @@ function AddExpenseSheet({ visible, onClose, userId, events, onSuccess }: {
       if (json.success === false) { showToast(json.error || 'Error adding expense'); }
       else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('Expense added');
+        // Silent background vendor creation if phone provided
+        const vendorCreated = vendorPhone.trim().length >= 10;
+        if (vendorCreated) {
+          fetch(`${API}/api/couple/vendors`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              couple_id: userId,
+              name: vendorName.trim() || description.trim() || 'Vendor',
+              phone: vendorPhone.trim(),
+              profile_incomplete: true,
+              source: 'expense',
+              status: 'considering',
+              category: null,
+            }),
+          }).catch(() => {}); // silent — never surface error to user
+        }
+        showToast(vendorCreated
+          ? `Expense logged · ${vendorName.trim() || 'Vendor'} added to Makers`
+          : 'Expense logged');
         onClose();
         reset();
         setTimeout(() => onSuccess(), 380);
@@ -1176,6 +1196,11 @@ function AddExpenseSheet({ visible, onClose, userId, events, onSuccess }: {
         <TextInput value={vendorName} onChangeText={setVendorName}
           placeholder="e.g. Swati Roy MUA" placeholderTextColor={MUTED}
           style={styles.fieldInput} />
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>VENDOR PHONE (OPTIONAL)</Text>
+        <TextInput value={vendorPhone} onChangeText={setVendorPhone}
+          placeholder="e.g. 9999999999" placeholderTextColor={MUTED}
+          keyboardType="phone-pad" style={styles.fieldInput} />
 
         <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DESCRIPTION (OPTIONAL)</Text>
         <TextInput value={description} onChangeText={setDescription}
@@ -1249,6 +1274,275 @@ function AddExpenseSheet({ visible, onClose, userId, events, onSuccess }: {
   );
 }
 
+// ── EditExpenseSheet ─────────────────────────────────────────────────────────
+function EditExpenseSheet({ visible, onClose, expense, events, onSuccess }: {
+  visible: boolean; onClose: () => void;
+  expense: MoneyExpense; events: EventOption[]; onSuccess: (updated: MoneyExpense) => void;
+}) {
+  const [vendorName, setVendorName] = useState(expense.vendor_name || '');
+  const [description, setDescription] = useState(expense.purpose || expense.description || '');
+  const [amount, setAmount] = useState(String(expense.actual_amount || expense.amount || ''));
+  const [selectedEvent, setSelectedEvent] = useState(expense.event_name || expense.event || 'general');
+  const [paymentStatus, setPaymentStatus] = useState(expense.payment_status || expense.status || 'committed');
+  const [dueDate, setDueDate] = useState(expense.due_date ? expense.due_date.split('T')[0] : '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const uniqueEvents = events.filter((ev, i, arr) => arr.findIndex(e => e.name === ev.name) === i);
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  useEffect(() => {
+    if (visible) {
+      setVendorName(expense.vendor_name || '');
+      setDescription(expense.purpose || expense.description || '');
+      setAmount(String(expense.actual_amount || expense.amount || ''));
+      setSelectedEvent(expense.event_name || expense.event || 'general');
+      setPaymentStatus(expense.payment_status || expense.status || 'committed');
+      setDueDate(expense.due_date ? expense.due_date.split('T')[0] : '');
+    }
+  }, [visible, expense.id]);
+
+  async function handleSubmit() {
+    if (!amount || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/api/couple/expenses/${expense.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_name: vendorName.trim() || null,
+          description: description.trim() || null,
+          actual_amount: Number(amount),
+          event: selectedEvent || 'general',
+          payment_status: paymentStatus,
+          due_date: dueDate || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success === false) { showToast(json.error || 'Error updating'); }
+      else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onSuccess({
+          ...expense,
+          vendor_name: vendorName.trim() || undefined,
+          purpose: description.trim() || undefined,
+          actual_amount: Number(amount),
+          amount: Number(amount),
+          event_name: selectedEvent,
+          payment_status: paymentStatus,
+          status: paymentStatus,
+          due_date: dueDate || undefined,
+        });
+        onClose();
+      }
+    } catch { showToast('Network error'); }
+    finally { setSubmitting(false); }
+  }
+
+  const disabled = !amount || submitting;
+
+  return (
+    <BottomSheet visible={visible} onClose={onClose} title="Edit Expense">
+      <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+        <Text style={styles.fieldLabel}>VENDOR / MAKER (OPTIONAL)</Text>
+        <TextInput value={vendorName} onChangeText={setVendorName}
+          placeholder="e.g. Swati Roy MUA" placeholderTextColor={MUTED}
+          style={styles.fieldInput} />
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DESCRIPTION (OPTIONAL)</Text>
+        <TextInput value={description} onChangeText={setDescription}
+          placeholder="e.g. Advance payment" placeholderTextColor={MUTED}
+          style={styles.fieldInput} />
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>AMOUNT *</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ fontFamily: DM300, fontSize: 14, color: MUTED, marginRight: 4 }}>₹</Text>
+          <TextInput value={amount} onChangeText={v => setAmount(v.replace(/[^0-9]/g, ''))}
+            placeholder="0" placeholderTextColor={MUTED} keyboardType="numeric"
+            style={[styles.fieldInput, { flex: 1 }]} />
+        </View>
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>EVENT</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingBottom: 4, flexDirection: 'row' }}>
+          <Pill label="General" active={selectedEvent === 'general'} onPress={() => setSelectedEvent('general')} />
+          {uniqueEvents.map(ev => (
+            <Pill key={ev.id} label={ev.name} active={selectedEvent === ev.name} onPress={() => setSelectedEvent(ev.name)} />
+          ))}
+        </ScrollView>
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>STATUS</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {['committed', 'paid'].map(s => (
+            <Pill key={s} label={s === 'committed' ? 'Committed' : 'Paid'}
+              active={paymentStatus === s} onPress={() => setPaymentStatus(s)} />
+          ))}
+        </View>
+
+        <Text style={[styles.fieldLabel, { marginTop: 20 }]}>DUE DATE (OPTIONAL)</Text>
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={[styles.fieldInput, { justifyContent: 'center' }]}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontFamily: DM300, fontSize: 14, color: dueDate ? DARK : MUTED }}>
+            {dueDate || 'Select a date'}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={dueDate ? new Date(dueDate) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (event.type === 'dismissed') { setShowDatePicker(false); return; }
+              if (selectedDate) {
+                const y = selectedDate.getFullYear();
+                const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const d = String(selectedDate.getDate()).padStart(2, '0');
+                setDueDate(`${y}-${m}-${d}`);
+                setShowDatePicker(false);
+              }
+            }}
+          />
+        )}
+      </ScrollView>
+      <View style={styles.sheetFooter}>
+        <TouchableOpacity onPress={handleSubmit} disabled={disabled}
+          style={[styles.submitBtn, disabled && styles.submitBtnDisabled]} activeOpacity={0.85}>
+          <Text style={styles.submitBtnText}>{submitting ? '...' : 'SAVE CHANGES'}</Text>
+        </TouchableOpacity>
+      </View>
+      <Toast msg={toast} />
+    </BottomSheet>
+  );
+}
+
+// ── ExpenseDetailSheet ────────────────────────────────────────────────────────
+function ExpenseDetailSheet({ visible, onClose, expense, events, onUpdated, onDeleted }: {
+  visible: boolean; onClose: () => void;
+  expense: MoneyExpense | null; events: EventOption[];
+  onUpdated: (updated: MoneyExpense) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+
+  if (!expense) return null;
+
+  const isPaid = expense.status === 'paid' || expense.payment_status === 'paid';
+
+  async function handleDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await fetch(`${API}/api/couple/expenses/${expense.id}`, { method: 'DELETE' });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onDeleted(expense.id);
+      onClose();
+    } catch { showToast('Could not delete'); setDeleting(false); }
+  }
+
+  return (
+    <>
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, maxHeight: '85%' }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{expense.vendor_name || '—'}</Text>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
+              <Text style={styles.sheetClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+            {/* Amount + status */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontFamily: CG300, fontSize: 32, color: isPaid ? MUTED : DARK }}>
+                {fmtINR(expense.actual_amount || expense.amount || 0)}
+              </Text>
+              <View style={[styles.statusTag, isPaid ? styles.statusTagPaid : styles.statusTagCommitted]}>
+                <Text style={[styles.statusTagText, isPaid ? styles.statusTagTextPaid : styles.statusTagTextCommitted]}>
+                  {isPaid ? 'PAID' : 'COMMITTED'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Detail rows */}
+            {expense.purpose || expense.description ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>DESCRIPTION</Text>
+                <Text style={styles.detailValue}>{expense.purpose || expense.description}</Text>
+              </View>
+            ) : null}
+
+            {expense.event_name || expense.event ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>EVENT</Text>
+                <Text style={styles.detailValue}>{expense.event_name || expense.event}</Text>
+              </View>
+            ) : null}
+
+            {expense.due_date ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>DUE DATE</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(expense.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+              <TouchableOpacity
+                onPress={() => setEditOpen(true)}
+                style={[styles.actionBtnFill, { flex: 1 }]}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.actionBtnFillText}>EDIT</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDelete}
+                disabled={deleting}
+                style={[styles.actionBtnOutline, { flex: 1 }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.actionBtnOutlineText, { color: deleting ? MUTED : '#C0392B' }]}>
+                  {deleting ? '...' : 'DELETE'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+          <Toast msg={toast} />
+        </View>
+      </Modal>
+
+      {expense && (
+        <EditExpenseSheet
+          visible={editOpen}
+          onClose={() => setEditOpen(false)}
+          expense={expense}
+          events={events}
+          onSuccess={updated => {
+            onUpdated(updated);
+            setEditOpen(false);
+            onClose();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 // ── MoneyTab ─────────────────────────────────────────────────────────────────
 function MoneyTab({ userId, events, refetch, tier }: {
   userId: string; events: EventOption[]; refetch: number; tier: string;
@@ -1263,6 +1557,7 @@ function MoneyTab({ userId, events, refetch, tier }: {
   const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [fetchedTier, setFetchedTier] = useState<string | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<MoneyExpense | null>(null);
   const [toast, setToast] = useState('');
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
@@ -1514,10 +1809,12 @@ function MoneyTab({ userId, events, refetch, tier }: {
             {allExpenses.map((exp, i) => {
               const isPaid = exp.status === 'paid' || exp.payment_status === 'paid';
               return (
-                <View key={exp.id} style={[
-                  styles.expenseRow,
-                  i < allExpenses.length - 1 && styles.expenseRowBorder,
-                ]}>
+                <TouchableOpacity
+                  key={exp.id}
+                  style={[styles.expenseRow, i < allExpenses.length - 1 && styles.expenseRowBorder]}
+                  onPress={() => setSelectedExpense(exp)}
+                  activeOpacity={0.85}
+                >
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.expenseVendor, isPaid && { opacity: 0.5 }]} numberOfLines={1}>
                       {exp.vendor_name || '—'}
@@ -1536,11 +1833,8 @@ function MoneyTab({ userId, events, refetch, tier }: {
                       </Text>
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => handleDeleteExpense(exp.id)} activeOpacity={0.8}
-                    style={{ paddingLeft: 8 }}>
-                    <Text style={{ fontFamily: DM300, fontSize: 18, color: '#C8C4BE' }}>×</Text>
-                  </TouchableOpacity>
-                </View>
+                  <Text style={{ fontFamily: DM300, fontSize: 14, color: '#C8C4BE', paddingLeft: 8 }}>›</Text>
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -1574,6 +1868,22 @@ function MoneyTab({ userId, events, refetch, tier }: {
         userId={userId}
         events={events}
         onSuccess={loadData}
+      />
+      <ExpenseDetailSheet
+        visible={!!selectedExpense}
+        onClose={() => setSelectedExpense(null)}
+        expense={selectedExpense}
+        events={events}
+        onUpdated={updated => {
+          setAllExpenses(prev => prev.map(e => e.id === updated.id ? updated : e));
+          setSelectedExpense(null);
+          fetch(`${API}/api/v2/couple/money/${userId}`).then(r => r.json()).then(setData).catch(() => {});
+        }}
+        onDeleted={id => {
+          setAllExpenses(prev => prev.filter(e => e.id !== id));
+          setSelectedExpense(null);
+          fetch(`${API}/api/v2/couple/money/${userId}`).then(r => r.json()).then(setData).catch(() => {});
+        }}
       />
       <Toast msg={toast} />
     </>
