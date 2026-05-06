@@ -1097,7 +1097,7 @@ export default function TodayPage() {
 
               {moments.length===0 && (!data?.muse_saves||data.muse_saves.length===0) && (!data?.this_week_events||data.this_week_events.length===0) && (
                 <div style={{ marginTop:24, textAlign:'center' }}>
-                  {data?.priority_tasks?.length > 0 ? (
+                  {(data?.priority_tasks?.length ?? 0) > 0 ? (
                     // Has tasks but all good — genuine caught up state
                     <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:300, fontStyle:'italic', color:'#888580' }}>You're all caught up.</p>
                   ) : (
