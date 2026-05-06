@@ -1277,7 +1277,7 @@ function MoneyTab({ userId, events, refetch, tier }: {
     ]).then(([money, exps, cats, profile]) => {
       if (cats?.success && cats.data?.length > 0) setBudgetCategories(cats.data);
       // Resolve tier from profile — more reliable than session field
-      const resolvedTier = profile?.couple?.dreamer_type || profile?.dreamer_type || null;
+      const resolvedTier = profile?.couple?.couple_tier || profile?.couple?.tier || null;
       if (resolvedTier) setFetchedTier(resolvedTier);
       setData(money);
       const rows = (exps?.data || exps || []) as any[];
