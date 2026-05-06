@@ -354,7 +354,7 @@ export default function CoupleTodayScreen() {
               <MomentCard
                 key={i}
                 moment={m}
-                onComplete={() => m.task_id ? completeTask(m.task_id!) : undefined}
+                onComplete={() => m.task_id ? router.push('/(couple)/plan') : undefined}
               />
             ))}
           </View>
