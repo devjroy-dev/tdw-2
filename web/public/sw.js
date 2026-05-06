@@ -1,8 +1,8 @@
-// The Dream Wedding — Service Worker v3 (Session 17)
+// The Dream Wedding — Service Worker v4 (Session 17)
 // Cache-first: images | Network-first: pages + API | Never cache: API responses
 
-const CACHE_NAME = 'tdw-v3';
-const IMAGE_CACHE = 'tdw-images-v3';
+const CACHE_NAME = 'tdw-v4';
+const IMAGE_CACHE = 'tdw-images-v4';
 
 const CORE_PAGES = [
   '/',
