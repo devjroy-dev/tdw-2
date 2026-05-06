@@ -221,13 +221,23 @@ export default function CoupleTodayScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Top pill nav */}
-      <View style={styles.pillNav}>
-        {['PLAN', 'AI', 'DISCOVER'].map((p, i) => (
-          <TouchableOpacity key={p} style={[styles.pill, i === 0 && styles.pillActive]}>
-            <Text style={[styles.pillText, i === 0 && styles.pillTextActive]}>{p}</Text>
+      {/* Top bar */}
+      <View style={styles.topBar}>
+        <Text style={styles.wordmark}>TDW</Text>
+        <View style={styles.pillGroup}>
+          <TouchableOpacity style={[styles.pill, styles.pillActive]}>
+            <Text style={[styles.pillText, styles.pillTextActive]}>PLAN</Text>
           </TouchableOpacity>
-        ))}
+          <TouchableOpacity style={styles.pillAi}>
+            <Text style={styles.pillAiText}>✦ AI</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.pill}>
+            <Text style={styles.pillText}>DISCOVER</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.profileCircle}>
+          <Text style={styles.profileInitial}>{session?.name?.[0]?.toUpperCase() || 'D'}</Text>
+        </View>
       </View>
 
       {/* DEV ONLY — remove this block when done testing */}
@@ -518,18 +528,32 @@ export default function CoupleTodayScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
 
-  // Pill nav
-  pillNav: {
-    flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12,
+  // Top bar
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, height: 56,
     backgroundColor: BG,
+    borderBottomWidth: 0.5, borderBottomColor: BORDER,
+  },
+  wordmark: { fontFamily: 'CormorantGaramond_300Light', fontSize: 20, color: INK, letterSpacing: 1 },
+  pillGroup: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(17,17,17,0.06)', borderRadius: 20, padding: 3,
   },
   pill: {
-    borderRadius: 100, paddingHorizontal: 16, paddingVertical: 8,
-    borderWidth: 0.5, borderColor: BORDER, backgroundColor: CARD,
+    borderRadius: 16, paddingHorizontal: 16, paddingVertical: 6,
+    backgroundColor: 'transparent',
   },
-  pillActive: { backgroundColor: INK, borderColor: INK },
-  pillText: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
+  pillActive: { backgroundColor: INK },
+  pillText: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: MUTED },
   pillTextActive: { color: CREAM },
+  pillAi: { borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: 'transparent' },
+  pillAiText: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: GOLD },
+  profileCircle: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: INK,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  profileInitial: { fontFamily: 'DMSans_300Light', fontSize: 12, color: CREAM },
   signOutText: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
 
   // Toast
