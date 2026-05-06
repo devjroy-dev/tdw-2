@@ -157,6 +157,9 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
 
+  // Deduplicate events by name — couple_events can have duplicate rows from seeding
+  const uniqueEvents = events.filter((ev, i, arr) => arr.findIndex(e => e.name === ev.name) === i);
+
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
   function reset() {
     setTaskTitle(''); setSelectedEvent('general'); setPriority('Medium');
@@ -213,7 +216,7 @@ function AddTaskSheet({ visible, onClose, userId, events, onSuccess }: {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, paddingBottom: 4, flexDirection: 'row' }}>
           <Pill label="General" active={selectedEvent === 'general'} onPress={() => setSelectedEvent('general')} />
-          {events.map(ev => (
+          {uniqueEvents.map(ev => (
             <Pill key={ev.id} label={ev.name} active={selectedEvent === ev.name} onPress={() => setSelectedEvent(ev.name)} />
           ))}
         </ScrollView>
@@ -281,6 +284,9 @@ function EditTaskSheet({ visible, onClose, userId, task, events, onSuccess }: {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
 
+  // Deduplicate events by name
+  const uniqueEvents = events.filter((ev, i, arr) => arr.findIndex(e => e.name === ev.name) === i);
+
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
 
   useEffect(() => {
@@ -339,7 +345,7 @@ function EditTaskSheet({ visible, onClose, userId, task, events, onSuccess }: {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, paddingBottom: 4, flexDirection: 'row' }}>
           <Pill label="General" active={selectedEvent === 'general'} onPress={() => setSelectedEvent('general')} />
-          {events.map(ev => (
+          {uniqueEvents.map(ev => (
             <Pill key={ev.id} label={ev.name} active={selectedEvent === ev.name} onPress={() => setSelectedEvent(ev.name)} />
           ))}
         </ScrollView>
@@ -411,7 +417,7 @@ function CreateExpenseSheet({ visible, onClose, userId, task, onSuccess }: {
           vendor_name: vendorName || 'General',
           description: task.title,
           actual_amount: Number(amount),
-          event: eventName === 'general' ? null : eventName,
+          event: eventName || 'general',
           payment_status: 'committed',
           category: 'other',
         }),
@@ -471,10 +477,11 @@ function CreateExpenseSheet({ visible, onClose, userId, task, onSuccess }: {
 }
 
 // ── TaskCard ───────────────────────────────────────────────────────────────
-function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded }: {
+function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, onExpenseAdded }: {
   task: Task; userId: string; events: EventOption[];
   onCompleted: (id: string) => void;
   onDeleted: (id: string) => void;
+  onRestored: (id: string) => void;
   onExpenseAdded: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -529,6 +536,7 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onExpenseAdded
       });
       setCompleted(false);
       setExpanded(false);
+      onRestored(task.id);
     } catch { showToast('Could not update task'); }
   }
 
@@ -729,6 +737,9 @@ function TasksTab({ userId, events, refetch, onExpenseAdded }: {
   function handleDeleted(id: string) {
     setTasks(prev => prev.filter(t => t.id !== id));
   }
+  function handleRestored(id: string) {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'pending', is_complete: false } : t));
+  }
 
   const filtered = tasks.filter(t => {
     if (statusFilter === 'pending') return t.status !== 'done' && !t.is_complete;
@@ -812,6 +823,7 @@ function TasksTab({ userId, events, refetch, onExpenseAdded }: {
                     events={events}
                     onCompleted={handleCompleted}
                     onDeleted={handleDeleted}
+                    onRestored={handleRestored}
                     onExpenseAdded={onExpenseAdded}
                   />
                 ))}
