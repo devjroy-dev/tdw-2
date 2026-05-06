@@ -232,10 +232,10 @@ export default function CoupleTodayScreen() {
       <View style={styles.topBar}>
         <Text style={styles.wordmark}>TDW</Text>
         <View style={styles.pillGroup}>
-          <TouchableOpacity style={[styles.pill, styles.pillActive]} onPress={() => router.replace('/(couple)/plan')}>
+          <TouchableOpacity style={[styles.pill, styles.pillActive]}>
             <Text style={[styles.pillText, styles.pillTextActive]}>PLAN</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.pillAi} onPress={() => router.replace('/(couple)/dreamai')}>
+          <TouchableOpacity style={styles.pillAi}>
             <Text style={styles.pillAiText}>✦ AI</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.pill}>
