@@ -1262,6 +1262,7 @@ function MoneyTab({ userId, events, refetch, tier }: {
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
   const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  const [fetchedTier, setFetchedTier] = useState<string | null>(null);
   const [toast, setToast] = useState('');
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2500); }
@@ -1272,8 +1273,12 @@ function MoneyTab({ userId, events, refetch, tier }: {
       fetch(`${API}/api/v2/couple/money/${userId}`).then(r => r.json()),
       fetch(`${API}/api/couple/expenses/${userId}`).then(r => r.json()),
       fetch(`${API}/api/couple/budget-categories/${userId}`).then(r => r.json()).catch(() => ({ success: false })),
-    ]).then(([money, exps, cats]) => {
+      fetch(`${API}/api/v2/couple/profile/${userId}`).then(r => r.json()).catch(() => null),
+    ]).then(([money, exps, cats, profile]) => {
       if (cats?.success && cats.data?.length > 0) setBudgetCategories(cats.data);
+      // Resolve tier from profile — more reliable than session field
+      const resolvedTier = profile?.couple?.dreamer_type || profile?.dreamer_type || null;
+      if (resolvedTier) setFetchedTier(resolvedTier);
       setData(money);
       const rows = (exps?.data || exps || []) as any[];
       setAllExpenses(rows.map(e => ({
@@ -1358,19 +1363,19 @@ function MoneyTab({ userId, events, refetch, tier }: {
       >
         {/* Header row */}
         {/* UpgradeCard — hidden for platinum, hidden until Razorpay KYC Aug 1 */}
-        {tier !== 'platinum' && tier !== 'prestige' && (
+        {((fetchedTier || tier) !== 'platinum' && (fetchedTier || tier) !== 'prestige') && (
           <View style={{ backgroundColor: '#0C0A09', borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <Text style={{ fontFamily: DM300, fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
               UPGRADE
             </Text>
             <Text style={{ fontFamily: CG300, fontSize: 22, color: '#F8F7F5', marginBottom: 16, lineHeight: 28 }}>
-              {tier === 'signature' ? 'Your AI wedding planner awaits.' : 'Unlock the full journey.'}
+              {(fetchedTier || tier) === 'signature' ? 'Your AI wedding planner awaits.' : 'Unlock the full journey.'}
             </Text>
             <Text style={{ fontFamily: DM300, fontSize: 13, color: '#888580', marginBottom: 4 }}>
-              · {tier === 'signature' ? 'DreamAi — your AI wedding planner' : 'Priority discovery'}
+              · {(fetchedTier || tier) === 'signature' ? 'DreamAi — your AI wedding planner' : 'Priority discovery'}
             </Text>
             <Text style={{ fontFamily: DM300, fontSize: 13, color: '#888580', marginBottom: 16 }}>
-              · {tier === 'signature' ? 'Couture appointments' : 'Unlock full vendor profiles'}
+              · {(fetchedTier || tier) === 'signature' ? 'Couture appointments' : 'Unlock full vendor profiles'}
             </Text>
             <Text style={{ fontFamily: DM300, fontSize: 11, color: '#555250', fontStyle: 'italic' }}>
               Payments activate August 1.
