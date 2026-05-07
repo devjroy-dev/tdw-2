@@ -286,9 +286,9 @@ export default function CoupleTodayScreen() {
             <View style={styles.pillAi}><Text style={styles.pillAiText}>✦ AI</Text></View>
             <TouchableOpacity style={styles.pill} onPress={() => router.push('/(couple)/discover')}><Text style={styles.pillText}>DISCOVER</Text></TouchableOpacity>
           </View>
-          <View style={styles.profileCircle}>
+          <TouchableOpacity style={styles.profileCircle} onPress={() => router.push('/(couple)/profile')}>
             <Text style={styles.profileInitial}>{session?.name?.[0]?.toUpperCase() || 'D'}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={GOLD} />
@@ -313,9 +313,9 @@ export default function CoupleTodayScreen() {
             <Text style={styles.pillText}>DISCOVER</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.profileCircle}>
+        <TouchableOpacity style={styles.profileCircle} onPress={() => router.push('/(couple)/profile')}>
           <Text style={styles.profileInitial}>{session?.name?.[0]?.toUpperCase() || 'D'}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* DEV ONLY — remove this block when done testing */}
