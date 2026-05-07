@@ -120,11 +120,40 @@ function DiscoverFeed({ onClose, userId, mode }: {
   mode: 'feed' | 'blind';
 }) {
   const insets = useSafeAreaInsets();
-  const [vendors] = useState(SEED_VENDORS);
+  const [vendors, setVendors] = useState(SEED_VENDORS);
   const [vendorIdx, setVendorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [saveToast, setSaveToast] = useState('');
+
+  // Fetch live vendor feed from backend — fall back to seed if fails
+  useEffect(() => {
+    const endpoint = mode === 'blind'
+      ? `${API}/api/v2/discover/blind-swipe?user_id=${userId}`
+      : `${API}/api/v2/discover/feed?user_id=${userId}`;
+    fetch(endpoint)
+      .then(r => r.json())
+      .then(d => {
+        const raw = Array.isArray(d) ? d : (d?.data || d?.vendors || []);
+        if (raw.length === 0) return; // keep seed
+        const mapped = raw.map((v: any) => ({
+          id: v.id,
+          name: mode === 'blind' ? '— — —' : (v.name || v.vendor_name || 'Vendor'),
+          city: v.city || '',
+          category: v.category || '',
+          categoryLabel: v.category_label || v.category || '',
+          priceFrom: mode === 'blind' ? 0 : (v.starting_price || v.priceFrom || 0),
+          priceLabel: mode === 'blind' ? '' : (v.starting_price ? `₹${(v.starting_price / 100000).toFixed(1)}L onwards` : ''),
+          tagline: v.tagline || v.about?.slice(0, 60) || '',
+          images: [
+            ...(v.featured_photos || []),
+            ...(v.portfolio_images || []),
+          ].filter(Boolean).slice(0, 6),
+        })).filter((v: any) => v.images.length > 0);
+        if (mapped.length > 0) setVendors(mapped);
+      })
+      .catch(() => {}); // keep seed on error
+  }, [userId, mode]);
 
   const touchStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const lastTapTime = useRef(0);
