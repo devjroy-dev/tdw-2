@@ -269,10 +269,10 @@ export default function CoupleTodayScreen() {
   const budgetPct = budget?.total ? Math.min(100, Math.round((budget.committed / budget.total) * 100)) : 0;
 
   const quickActions = [
-    { label: '+ Expense', icon: '₹', onTap: () => {} },
-    { label: '+ Task',    icon: '✓', onTap: () => {} },
+    { label: '+ Expense', icon: '₹', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'money', action: 'add-expense' } } as any) },
+    { label: '+ Task',    icon: '✓', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'tasks', action: 'add-task' } } as any) },
     { label: 'Family',   icon: '◎', onTap: () => router.push('/(couple)/circle') },
-    { label: '+ Muse',   icon: '✦', onTap: () => {} },
+    { label: '+ Muse',   icon: '✦', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } } as any) },
     { label: 'Find Makers', icon: '⌕', onTap: () => {}, coming: true },
   ];
 
@@ -284,7 +284,7 @@ export default function CoupleTodayScreen() {
           <View style={styles.pillGroup}>
             <View style={[styles.pill, styles.pillActive]}><Text style={[styles.pillText, styles.pillTextActive]}>PLAN</Text></View>
             <View style={styles.pillAi}><Text style={styles.pillAiText}>✦ AI</Text></View>
-            <View style={styles.pill}><Text style={styles.pillText}>DISCOVER</Text></View>
+            <TouchableOpacity style={styles.pill} onPress={() => router.push('/(couple)/discover')}><Text style={styles.pillText}>DISCOVER</Text></TouchableOpacity>
           </View>
           <View style={styles.profileCircle}>
             <Text style={styles.profileInitial}>{session?.name?.[0]?.toUpperCase() || 'D'}</Text>
@@ -309,7 +309,7 @@ export default function CoupleTodayScreen() {
           <TouchableOpacity style={styles.pillAi} onPress={() => router.replace('/(couple)/dreamai')}>
             <Text style={styles.pillAiText}>✦ AI</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.pill}>
+          <TouchableOpacity style={styles.pill} onPress={() => router.push('/(couple)/discover')}>
             <Text style={styles.pillText}>DISCOVER</Text>
           </TouchableOpacity>
         </View>
