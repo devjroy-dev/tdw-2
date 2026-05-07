@@ -5,7 +5,7 @@ import {
   RefreshControl, Animated, Image, FlatList, Alert,
   ActivityIndicator, Linking, Dimensions, PanResponder,
 } from 'react-native';
-import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -125,27 +125,6 @@ function BottomSheet({ visible, onClose, title, children }: {
   visible: boolean; onClose: () => void; title: string; children: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(0)).current;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
-      onPanResponderMove: (_, g) => {
-        if (g.dy > 0) translateY.setValue(g.dy);
-      },
-      onPanResponderRelease: (_, g) => {
-        if (g.dy > 80 || g.vy > 0.5) {
-          Animated.timing(translateY, { toValue: 600, duration: 200, useNativeDriver: true }).start(() => {
-            translateY.setValue(0);
-            onClose();
-          });
-        } else {
-          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
-        }
-      },
-    })
-  ).current;
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={onClose} />
@@ -153,18 +132,16 @@ function BottomSheet({ visible, onClose, title, children }: {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.sheetKAV}
       >
-        <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 16, transform: [{ translateY }] }]}>
-          <View {...panResponder.panHandlers}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{title}</Text>
-              <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
-                <Text style={styles.sheetClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
+              <Text style={styles.sheetClose}>✕</Text>
+            </TouchableOpacity>
           </View>
           {children}
-        </Animated.View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -770,18 +747,15 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, on
 }
 
 // ── TasksTab ───────────────────────────────────────────────────────────────
-function TasksTab({ userId, events, refetch, onExpenseAdded, openAddSheet }: {
+function TasksTab({ userId, events, refetch, onExpenseAdded }: {
   userId: string; events: EventOption[];
-  refetch: number; onExpenseAdded: () => void; openAddSheet?: boolean;
+  refetch: number; onExpenseAdded: () => void;
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [addSheetOpen, setAddSheetOpen] = useState(false);
-
-  // Open add sheet when triggered from outside (quick action)
-  useEffect(() => { if (openAddSheet) setAddSheetOpen(true); }, [openAddSheet]);
   const insets = useSafeAreaInsets();
 
   async function loadTasks(triggerSeedIfEmpty = false) {
@@ -1592,20 +1566,17 @@ function ExpenseDetailSheet({ visible, onClose, expense, events, onUpdated, onDe
 }
 
 // ── MoneyTab ─────────────────────────────────────────────────────────────────
-function MoneyTab({ userId, events, refetch, tier, onVendorAdded, openAddSheet }: {
-  userId: string; events: EventOption[]; refetch: number; tier: string; onVendorAdded?: () => void; openAddSheet?: boolean;
+function MoneyTab({ userId, events, refetch, tier, onVendorAdded }: {
+  userId: string; events: EventOption[]; refetch: number; tier: string; onVendorAdded?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<MoneyData | null>(null);
   const [allExpenses, setAllExpenses] = useState<MoneyExpense[]>([]);
-  const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
-
-  // Open add expense sheet when triggered from outside (quick action)
-  useEffect(() => { if (openAddSheet) setAddExpenseSheetOpen(true); }, [openAddSheet]);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
+  const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [fetchedTier, setFetchedTier] = useState<string | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<MoneyExpense | null>(null);
@@ -3373,10 +3344,8 @@ function getMuseSourceType(item: MuseItem): 'vendor' | 'image' | 'link' {
 }
 
 function getMuseDisplayImage(item: MuseItem): string {
-  // vendor_image is stored directly on the moodboard_items row
-  if ((item as any).vendor_image) return (item as any).vendor_image;
   if (item.vendor_id) {
-    return item.vendor?.featured_photos?.[0] || item.image_url || '';
+    return item.vendor?.featured_photos?.[0] || item.vendor_image || item.image_url || '';
   }
   return item.image_url || '';
 }
@@ -3907,7 +3876,7 @@ function AddVendorSheetNative({ visible, onClose, userId, events, onSuccess }: {
   );
 }
 
-const EVENT_TYPES_NATIVE = ['Mehendi', 'Sangeet', 'Haldi', 'Reception', 'Cocktail', 'Engagement', 'Other'];
+const EVENT_TYPES_NATIVE = ['Mehendi', 'Haldi', 'Sangeet', 'Ceremony', 'Reception', 'Other'];
 const GUEST_RANGES_NATIVE = ['Under 50', '50–150', '150–300', '300–500', '500+'];
 
 function AddEventSheetNative({ visible, onClose, userId, events, onSuccess }: {
@@ -4024,31 +3993,10 @@ function AddEventSheetNative({ visible, onClose, userId, events, onSuccess }: {
 
 export default function CouplePlanScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ tab?: string; action?: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<EventOption[]>([]);
   const [tier, setTier] = useState<string>('lite');
-
-  // Track whether to trigger add sheet on next render
-  const [triggerTaskAdd, setTriggerTaskAdd] = useState(false);
-  const [triggerExpenseAdd, setTriggerExpenseAdd] = useState(false);
-
-  // Handle incoming quick action params from today.tsx
-  useEffect(() => {
-    if (params.tab) {
-      const validTabs: Tab[] = ['tasks', 'money', 'vendors', 'people', 'events', 'muse'];
-      const t = params.tab as Tab;
-      if (validTabs.includes(t)) setActiveTab(t);
-    }
-    if (params.action === 'add-task') {
-      setActiveTab('tasks');
-      setTriggerTaskAdd(true);
-    } else if (params.action === 'add-expense') {
-      setActiveTab('money');
-      setTriggerExpenseAdd(true);
-    }
-  }, [params.tab, params.action]);
 
   // ── Per-tab refetch counters ─────────────────────────────────────────────
   const [tasksRefetch, setTasksRefetch] = useState(0);
@@ -4144,7 +4092,6 @@ export default function CouplePlanScreen() {
           events={events}
           refetch={tasksRefetch}
           onExpenseAdded={() => setMoneyRefetch(r => r + 1)}
-          openAddSheet={triggerTaskAdd}
         />
       ) : activeTab === 'money' && userId ? (
         <MoneyTab
@@ -4153,7 +4100,6 @@ export default function CouplePlanScreen() {
           refetch={moneyRefetch}
           tier={tier}
           onVendorAdded={() => setVendorsRefetch(r => r + 1)}
-          openAddSheet={triggerExpenseAdd}
         />
       ) : activeTab === 'vendors' && userId ? (
         <VendorsTab userId={userId} refetch={vendorsRefetch} events={events} />

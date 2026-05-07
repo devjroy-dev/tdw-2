@@ -166,78 +166,7 @@ export default function CoupleTodayScreen() {
     try {
       const r = await fetch(`${API}/api/v2/couple/today/${sess.id}`);
       const json = await r.json();
-
-      // Normalise actual backend shape → TodayData shape.
-      // Backend returns: { wedding_date, event_label, nudges[], thisWeek[], muse[], activity[] }
-      // Screen expects:  { hero, three_moments, muse_saves, this_week_events, ... }
-      const raw = json as any;
-      const weddingDate: string | null = raw.wedding_date || null;
-
-      // Build hero from wedding_date
-      let hero: HeroData;
-      if (!weddingDate) {
-        hero = { state: 'no_date', days_until: null, event_name: null, wedding_date: null };
-      } else {
-        const now = new Date(); now.setHours(0, 0, 0, 0);
-        const wd = new Date(weddingDate); wd.setHours(0, 0, 0, 0);
-        const daysUntil = Math.round((wd.getTime() - now.getTime()) / 86400000);
-        if (daysUntil < 0) {
-          hero = { state: 'past', days_until: daysUntil, event_name: null, wedding_date: weddingDate };
-        } else {
-          hero = {
-            state: raw.event_label ? 'event' : 'date_only',
-            days_until: daysUntil,
-            event_name: raw.event_label || null,
-            wedding_date: weddingDate,
-          };
-        }
-      }
-
-      // Map nudges[] → three_moments[]
-      const three_moments: Moment[] = (raw.nudges || []).slice(0, 3).map((n: any) => ({
-        type: 'task',
-        priority: 1,
-        title: n.title || '',
-        body: n.context || n.body || '',
-        action: n.cta || 'View',
-        task_id: n.id?.startsWith('demo') ? undefined : n.id,
-        framing: 'urgent' as const,
-      }));
-
-      // Map muse[] → muse_saves[]
-      const muse_saves: MuseSave[] = (raw.muse || []).map((m: any) => ({
-        id: m.id,
-        vendor_id: m.vendor_id || '',
-        created_at: '',
-        image_url: m.vendor_image || m.thumbnail_url || m.image_url || undefined,
-        vendor: m.vendor_name ? {
-          id: m.vendor_id || '',
-          name: m.vendor_name,
-          category: m.category || '',
-        } : null,
-      }));
-
-      // Map thisWeek[] → this_week_events[] (backend gives { day, label } not full events)
-      // thisWeek items are lightweight — no date, just day label. Map to empty for now.
-      const this_week_events: EventItem[] = [];
-
-      const normalised: TodayData = {
-        hero,
-        three_moments,
-        muse_saves,
-        this_week_events,
-        upcoming_payments: [],
-        budget: { total: 0, committed: 0, paid: 0 },
-        next_event: null,
-        quiet_activity: (raw.activity || []).map((a: any) => ({
-          type: 'activity',
-          text: a.text || '',
-          at: a.timestamp || '',
-        })),
-        priority_tasks: [],
-      };
-
-      setData(normalised);
+      setData(json);
     } catch { showToast('Could not load your dashboard.'); }
     finally { setLoading(false); }
   }, []);
@@ -269,11 +198,11 @@ export default function CoupleTodayScreen() {
   const budgetPct = budget?.total ? Math.min(100, Math.round((budget.committed / budget.total) * 100)) : 0;
 
   const quickActions = [
-    { label: '+ Expense', icon: '₹', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'money', action: 'add-expense' } } as any) },
-    { label: '+ Task',    icon: '✓', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'tasks', action: 'add-task' } } as any) },
+    { label: '+ Expense', icon: '₹', onTap: () => {} },
+    { label: '+ Task',    icon: '✓', onTap: () => {} },
     { label: 'Family',   icon: '◎', onTap: () => router.push('/(couple)/circle') },
-    { label: '+ Muse',   icon: '✦', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } } as any) },
-    { label: 'Discover', icon: '⌕', onTap: () => router.push('/(couple)/discover') },
+    { label: '+ Muse',   icon: '✦', onTap: () => {} },
+    { label: 'Find Makers', icon: '⌕', onTap: () => {}, coming: true },
   ];
 
   if (loading) {
@@ -309,7 +238,7 @@ export default function CoupleTodayScreen() {
           <TouchableOpacity style={styles.pillAi} onPress={() => router.replace('/(couple)/dreamai')}>
             <Text style={styles.pillAiText}>✦ AI</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.pill} onPress={() => router.push('/(couple)/discover')}>
+          <TouchableOpacity style={styles.pill}>
             <Text style={styles.pillText}>DISCOVER</Text>
           </TouchableOpacity>
         </View>
@@ -471,7 +400,7 @@ export default function CoupleTodayScreen() {
         {/* ── From Your Muse ───────────────────────────────────────────────── */}
         {data?.muse_saves && data.muse_saves.length > 0 && (
           <View style={{ marginBottom: 28 }}>
-            <SectionHeader label="FROM YOUR MUSE" actionLabel="See all →" onAction={() => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } })} />
+            <SectionHeader label="FROM YOUR MUSE" actionLabel="See all →" onAction={() => {}} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -509,7 +438,7 @@ export default function CoupleTodayScreen() {
           const fromVendor = latest.from === 'vendor';
           return (
             <View style={{ marginBottom: 28 }}>
-              <SectionHeader label="LATEST MESSAGE" actionLabel="All messages →" onAction={() => router.push('/(couple)/circle')} />
+              <SectionHeader label="LATEST MESSAGE" actionLabel="All messages →" onAction={() => {}} />
               <TouchableOpacity style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 12 }]} activeOpacity={0.85}>
                 <View style={styles.avatarCircle}>
                   <Text style={styles.avatarText}>
