@@ -249,8 +249,9 @@ export default function CoupleProfileScreen() {
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
       </ScrollView>
-
-  );\n}
+    </View>
+  );
+}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
