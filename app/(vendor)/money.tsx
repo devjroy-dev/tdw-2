@@ -307,7 +307,7 @@ export default function VendorMoneyScreen() {
   const laterPay = payments.filter(p => new Date(p.due_date) > in30);
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: 0 }]}>
 
       {/* Toast */}
       {!!toast && (

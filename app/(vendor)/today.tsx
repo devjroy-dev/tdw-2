@@ -4,7 +4,6 @@ import {
   ActivityIndicator, Animated, Easing,
 } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RAILWAY_URL } from '../../constants/tokens';
@@ -211,7 +210,6 @@ function OnboardingCard({ num, title, subtitle, ctaLabel, onCta, onDone }: {
 
 // ── Main screen ────────────────────────────────────────────────────────────
 export default function VendorTodayScreen() {
-  const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [session,     setSession]     = useState<any>(null);
@@ -338,7 +336,7 @@ export default function VendorTodayScreen() {
   const todaysTip = showTip && daysSinceSignup !== null ? TIPS[daysSinceSignup % TIPS.length] : null;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: 0 }]}>
 
       {/* ── First-login intro modal ────────────────────────────────────── */}
       {showIntro && !introDismissed && (

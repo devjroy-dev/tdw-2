@@ -71,7 +71,7 @@ export default function CouplePinLoginScreen() {
           id: d.userId || session?.id,
           name: d.name || session?.name || '',
           pin_set: true,
-          dreamer_type: d.dreamer_type || session?.dreamer_type || 'basic',
+          couple_tier: d.couple_tier || session?.couple_tier || 'lite',
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace('/(couple)/today');

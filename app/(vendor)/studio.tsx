@@ -1,6 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
   Calendar, Users, BarChart2, Megaphone, Gift,
@@ -30,11 +29,10 @@ const TOOLS = [
 ];
 
 export default function VendorStudioScreen() {
-  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView
-      style={[styles.root, { paddingTop: insets.top }]}
+      style={[styles.root, { paddingTop: 0 }]}
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >

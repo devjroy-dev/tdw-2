@@ -5,7 +5,6 @@ import {
   Linking,
 } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { RAILWAY_URL } from '../../constants/tokens';
 import { getVendorSession } from '../../utils/session';
@@ -192,7 +191,6 @@ function AddClientModal({ visible, vendorId, onClose, onAdded }: {
 
 // ── Main screen ────────────────────────────────────────────────────────────
 export default function VendorClientsScreen() {
-  const insets = useSafeAreaInsets();
 
   const [vendorId,  setVendorId]  = useState('');
   const [clients,   setClients]   = useState<Client[]>([]);
@@ -240,7 +238,7 @@ export default function VendorClientsScreen() {
   );
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: 0 }]}>
 
       {/* Toast */}
       {!!toast && (

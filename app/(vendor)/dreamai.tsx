@@ -419,7 +419,7 @@ export default function VendorDreamAiScreen() {
   const firstName = vendorName.split(' ')[0] || 'Maker';
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: 0 }]}>
       <VendorHeader contextLoading={contextLoading} justDoIt={justDoIt} onToggleJustDoIt={toggleJustDoIt} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
