@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
   },
   topPill:         { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 100 },
   topPillActive:   { backgroundColor: '#F4F1EB' },
-  topPillText:     { fontFamily: DM300, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: MUTED },
+  topPillText:     { fontFamily: DM300, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: MUTED },
   topPillTextAi:   { color: GOLD, fontFamily: DM400 },
 
   header: {
@@ -714,12 +714,12 @@ const styles = StyleSheet.create({
   typingDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD, opacity: 0.7 },
 
   actionCard:           { backgroundColor: 'rgba(201,168,76,0.08)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)', borderRadius: 14, padding: 14, marginBottom: 8, marginTop: 2 },
-  actionCardLabel:      { fontFamily: DM300, fontSize: 8, letterSpacing: 3, textTransform: 'uppercase', color: GOLD, marginBottom: 8 },
+  actionCardLabel:      { fontFamily: DM300, fontSize: 8, letterSpacing: 1.8, textTransform: 'uppercase', color: GOLD, marginBottom: 8 },
   actionCardPreview:    { fontFamily: DM300, fontSize: 14, color: DARK, marginBottom: 14, lineHeight: 21 },
   actionCardButtons:    { flexDirection: 'row', gap: 10 },
   actionConfirmBtn:     { flex: 1, height: 42, backgroundColor: GOLD, borderRadius: 100, alignItems: 'center', justifyContent: 'center' },
   actionConfirmBtnBusy: { backgroundColor: 'rgba(201,168,76,0.5)' },
-  actionConfirmText:    { fontFamily: DM400, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK },
+  actionConfirmText:    { fontFamily: DM400, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: INK },
   actionCancelBtn:      { height: 42, paddingHorizontal: 18, borderWidth: 0.5, borderColor: '#D4D0CA', borderRadius: 100, alignItems: 'center', justifyContent: 'center' },
   actionCancelText:     { fontFamily: DM300, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
 

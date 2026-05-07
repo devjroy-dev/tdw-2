@@ -24,7 +24,9 @@ const RED    = '#9B4545';
 const CG300 = 'CormorantGaramond_300Light';
 const DM300 = 'DMSans_300Light';
 const DM400 = 'DMSans_400Regular';
+const JOST200 = 'Jost_200ExtraLight';
 const JOST  = 'Jost_300Light';
+const JOST400 = 'Jost_400Regular';
 
 type Tab = 'INVOICES' | 'EXPENSES' | 'TAX' | 'PAYMENTS' | 'SHIELD';
 
@@ -44,7 +46,7 @@ function formatShort(d: string) {
 }
 function fmtAmt(n: number) {
   if (!n) return 'Rs 0';
-  return 'Rs ' + Number(n).toLocaleString('en-IN');
+  return '₹' + Number(n).toLocaleString('en-IN');
 }
 function currentMonth() {
   const n = new Date();
@@ -60,7 +62,7 @@ function InvoiceChip({ status }: { status: string }) {
   const label = s === 'paid' ? 'PAID'    : s === 'overdue' ? 'OVERDUE'  : 'PENDING';
   return (
     <View style={{ backgroundColor: bg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
-      <Text style={{ fontFamily: JOST, fontSize: 9, letterSpacing: 2, color }}>{label}</Text>
+      <Text style={{ fontFamily: JOST, fontSize: 9, letterSpacing: 1, color }}>{label}</Text>
     </View>
   );
 }
@@ -307,7 +309,7 @@ export default function VendorMoneyScreen() {
   const laterPay = payments.filter(p => new Date(p.due_date) > in30);
 
   return (
-    <View style={[styles.root, { paddingTop: 0 }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
 
       {/* Toast */}
       {!!toast && (
@@ -641,10 +643,10 @@ const styles = StyleSheet.create({
   // Hero strip
   heroStrip: { backgroundColor: DARK, padding: 20, paddingBottom: 16 },
   heroRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
-  heroLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(248,247,245,0.45)', marginBottom: 5, textAlign: 'center' },
+  heroLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(248,247,245,0.45)', marginBottom: 5, textAlign: 'center' },
   heroVal: { fontFamily: CG300, fontSize: 18, textAlign: 'center' },
   profitRow: { borderTopWidth: 0.5, borderTopColor: 'rgba(248,247,245,0.1)', paddingTop: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  profitLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(248,247,245,0.4)' },
+  profitLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(248,247,245,0.4)' },
   profitVal: { fontFamily: CG300, fontSize: 16 },
 
   // Tab scroll
@@ -652,13 +654,13 @@ const styles = StyleSheet.create({
   tabContent: { padding: 14, gap: 6 },
   tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: BORDER },
   tabActive: { backgroundColor: DARK },
-  tabText: { fontFamily: JOST, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: MUTED },
+  tabText: { fontFamily: JOST, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: MUTED },
   tabTextActive: { color: '#F8F7F5' },
 
   // Filter chips
   filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: BORDER, backgroundColor: 'transparent' },
   filterChipActive: { backgroundColor: DARK, borderColor: DARK },
-  filterChipText: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: MUTED },
+  filterChipText: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: MUTED },
   filterChipTextActive: { color: '#F8F7F5' },
 
   // Invoice card
@@ -673,22 +675,22 @@ const styles = StyleSheet.create({
     padding: 12, flexDirection: 'row', gap: 10,
   },
   markPaidBtn: { flex: 1, backgroundColor: DARK, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-  markPaidText: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: '#F8F7F5' },
+  markPaidText: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: '#F8F7F5' },
   reminderBtn: { flex: 1, backgroundColor: BG, borderWidth: 1, borderColor: BORDER, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-  reminderText: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: DARK },
+  reminderText: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: DARK },
 
   // Expense form
   expenseForm: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 14, marginBottom: 16 },
   typeBtn: { flex: 1, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: BORDER, backgroundColor: 'transparent', alignItems: 'center' },
   typeBtnActive: { backgroundColor: DARK, borderColor: DARK },
-  typeBtnText: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: MUTED },
+  typeBtnText: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: MUTED },
   typeBtnTextActive: { color: '#F8F7F5' },
   catChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: BORDER, backgroundColor: 'transparent' },
   catChipActive: { backgroundColor: DARK, borderColor: DARK },
   catChipText: { fontFamily: DM300, fontSize: 11, color: MUTED },
   catChipTextActive: { color: '#F8F7F5' },
   addExpenseBtn: { backgroundColor: DARK, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-  addExpenseBtnText: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: '#F8F7F5' },
+  addExpenseBtnText: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: '#F8F7F5' },
 
   // Tax
   taxCard: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 16 },
@@ -702,18 +704,18 @@ const styles = StyleSheet.create({
   shieldSub: { fontFamily: DM300, fontSize: 13, color: MUTED, lineHeight: 20 },
 
   // Section label
-  sectionLabel: { fontFamily: JOST, fontSize: 9, letterSpacing: 4, textTransform: 'uppercase', color: '#C8C4BE', marginBottom: 12 },
+  sectionLabel: { fontFamily: JOST200, fontSize: 9, letterSpacing: 2.2, textTransform: 'uppercase', color: '#C8C4BE', marginBottom: 12 },
   emptyText: { fontFamily: CG300, fontSize: 18, fontStyle: 'italic', color: MUTED, textAlign: 'center', marginTop: 40 },
 
   // Modal
   modalRoot: { flex: 1, backgroundColor: BG, padding: 24, paddingTop: 16 },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: BORDER, alignSelf: 'center', marginBottom: 24 },
   modalTitle: { fontFamily: CG300, fontSize: 24, color: DARK, marginBottom: 20 },
-  fieldLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 3, textTransform: 'uppercase', color: MUTED, marginBottom: 4 },
+  fieldLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 1.8, textTransform: 'uppercase', color: MUTED, marginBottom: 4 },
   fieldInput: { fontFamily: DM300, fontSize: 13, color: DARK, borderBottomWidth: 1, borderBottomColor: BORDER, paddingVertical: 8, marginBottom: 20 },
   modalButtons: { gap: 12, paddingTop: 12, paddingBottom: 16 },
   modalConfirmBtn: { height: 48, backgroundColor: DARK, borderRadius: 100, alignItems: 'center', justifyContent: 'center' },
-  modalConfirmText: { fontFamily: JOST, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: '#F8F7F5' },
+  modalConfirmText: { fontFamily: JOST400, fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: '#F8F7F5' },
   modalCancelText: { fontFamily: DM300, fontSize: 13, color: MUTED, textAlign: 'center' },
 
   // FAB

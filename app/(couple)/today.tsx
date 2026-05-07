@@ -488,7 +488,7 @@ export default function CoupleTodayScreen() {
           style={{ alignItems: 'center', marginTop: 32 }}
           onPress={async () => { await clearCoupleSession(); router.replace('/'); }}
         >
-          <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 8, letterSpacing: 2, textTransform: 'uppercase', color: GOLD, opacity: 0.4 }}>
+          <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: GOLD, opacity: 0.4 }}>
             SIGN OUT
           </Text>
         </TouchableOpacity>
@@ -513,10 +513,10 @@ const styles = StyleSheet.create({
   },
   pill: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: 'transparent' },
   pillActive: { backgroundColor: INK },
-  pillText: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: MUTED },
+  pillText: { fontFamily: 'Jost_200ExtraLight', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: MUTED },
   pillTextActive: { color: CREAM },
   pillAi: { borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: 'transparent' },
-  pillAiText: { fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: GOLD },
+  pillAiText: { fontFamily: 'Jost_200ExtraLight', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: GOLD },
   profileCircle: {
     width: 32, height: 32, borderRadius: 16, backgroundColor: INK,
     alignItems: 'center', justifyContent: 'center',
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 6,
   },
   nextEventChipText: {
-    fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 2,
+    fontFamily: 'DMSans_300Light', fontSize: 10, letterSpacing: 1,
     textTransform: 'uppercase', color: CREAM,
   },
 
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
 
   // Section header
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionLabel: { fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: '#C8C4BE' },
+  sectionLabel: { fontFamily: 'Jost_200ExtraLight', fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', color: '#C8C4BE' },
   sectionAction: { fontFamily: 'DMSans_300Light', fontSize: 8, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
 
   // Card

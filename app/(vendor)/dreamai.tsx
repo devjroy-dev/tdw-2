@@ -419,7 +419,7 @@ export default function VendorDreamAiScreen() {
   const firstName = vendorName.split(' ')[0] || 'Maker';
 
   return (
-    <View style={[styles.root, { paddingTop: 0 }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
       <VendorHeader contextLoading={contextLoading} justDoIt={justDoIt} onToggleJustDoIt={toggleJustDoIt} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     marginBottom: 8, marginTop: 2, marginHorizontal: 2,
   },
   actionCardLabel: {
-    fontFamily: DM300, fontSize: 8, letterSpacing: 3,
+    fontFamily: DM300, fontSize: 8, letterSpacing: 1.8,
     textTransform: 'uppercase', color: GOLD, marginBottom: 8,
   },
   actionCardPreview: { fontFamily: DM300, fontSize: 14, color: DARK, marginBottom: 14, lineHeight: 21 },
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     borderRadius: 100, alignItems: 'center', justifyContent: 'center',
   },
   actionConfirmBtnBusy: { backgroundColor: 'rgba(201,168,76,0.5)' },
-  actionConfirmText: { fontFamily: DM400, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK },
+  actionConfirmText: { fontFamily: DM400, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: INK },
   actionCancelBtn: {
     height: 42, paddingHorizontal: 18, borderWidth: 0.5,
     borderColor: '#D4D0CA', borderRadius: 100, alignItems: 'center', justifyContent: 'center',

@@ -4184,7 +4184,7 @@ const styles = StyleSheet.create({
   topPillText: {
     fontFamily: DM300,
     fontSize: 9,
-    letterSpacing: 2,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     color: MUTED,
   },

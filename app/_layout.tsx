@@ -9,6 +9,11 @@ import {
   DMSans_400Regular,
   DMSans_500Medium,
 } from '@expo-google-fonts/dm-sans';
+import {
+  Jost_200ExtraLight,
+  Jost_300Light,
+  Jost_400Regular,
+} from '@expo-google-fonts/jost';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -24,6 +29,9 @@ export default function RootLayout() {
     DMSans_300Light,
     DMSans_400Regular,
     DMSans_500Medium,
+    Jost_200ExtraLight,
+    Jost_300Light,
+    Jost_400Regular,
   });
 
   useEffect(() => {

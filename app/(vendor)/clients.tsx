@@ -5,6 +5,7 @@ import {
   Linking,
 } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { RAILWAY_URL } from '../../constants/tokens';
 import { getVendorSession } from '../../utils/session';
@@ -21,7 +22,9 @@ const DARK   = '#111111';
 const CG300 = 'CormorantGaramond_300Light';
 const DM300 = 'DMSans_300Light';
 const DM400 = 'DMSans_400Regular';
+const JOST200 = 'Jost_200ExtraLight';
 const JOST  = 'Jost_300Light';
+const JOST400 = 'Jost_400Regular';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Client {
@@ -43,7 +46,7 @@ function formatDate(d: string) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
-function fmtINR(n: number) { return 'Rs ' + n.toLocaleString('en-IN'); }
+function fmtINR(n: number) { return '₹' + n.toLocaleString('en-IN'); }
 
 // ── Shimmer ────────────────────────────────────────────────────────────────
 function Shimmer() {
@@ -191,6 +194,7 @@ function AddClientModal({ visible, vendorId, onClose, onAdded }: {
 
 // ── Main screen ────────────────────────────────────────────────────────────
 export default function VendorClientsScreen() {
+  const insets = useSafeAreaInsets();
 
   const [vendorId,  setVendorId]  = useState('');
   const [clients,   setClients]   = useState<Client[]>([]);
@@ -238,7 +242,7 @@ export default function VendorClientsScreen() {
   );
 
   return (
-    <View style={[styles.root, { paddingTop: 0 }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
 
       {/* Toast */}
       {!!toast && (
@@ -351,10 +355,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16,
     borderBottomWidth: 0.5, borderBottomColor: BORDER,
   },
-  headerEyebrow: { fontFamily: JOST, fontSize: 9, letterSpacing: 4, textTransform: 'uppercase', color: MUTED, marginBottom: 4 },
+  headerEyebrow: { fontFamily: JOST200, fontSize: 9, letterSpacing: 2.2, textTransform: 'uppercase', color: '#555250', marginBottom: 4 },
   headerTitle: { fontFamily: CG300, fontSize: 28, color: DARK },
   addBtn: { height: 36, backgroundColor: DARK, borderRadius: 100, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { fontFamily: JOST, fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: '#F8F7F5' },
+  addBtnText: { fontFamily: JOST400, fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', color: '#F8F7F5' },
 
   searchBar: { paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: BORDER },
   searchInput: {
@@ -371,7 +375,7 @@ const styles = StyleSheet.create({
   clientName: { fontFamily: CG300, fontSize: 17, color: DARK, flex: 1 },
   clientSub: { fontFamily: DM300, fontSize: 12, color: MUTED },
   clientAmount: { fontFamily: DM400, fontSize: 13, color: DARK, marginBottom: 2 },
-  clientDue: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: GOLD },
+  clientDue: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: GOLD },
   incompleteDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#DC3535', flexShrink: 0 },
 
   emptyState: { alignItems: 'center', marginTop: 60 },
@@ -382,7 +386,7 @@ const styles = StyleSheet.create({
   modalRoot: { flex: 1, backgroundColor: BG, padding: 24, paddingTop: 16 },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: BORDER, alignSelf: 'center', marginBottom: 24 },
   modalTitle: { fontFamily: CG300, fontSize: 24, color: DARK, marginBottom: 20 },
-  fieldLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 3, textTransform: 'uppercase', color: MUTED, marginBottom: 4 },
+  fieldLabel: { fontFamily: JOST, fontSize: 8, letterSpacing: 1.8, textTransform: 'uppercase', color: MUTED, marginBottom: 4 },
   fieldInput: {
     fontFamily: DM300, fontSize: 13, color: DARK,
     borderBottomWidth: 1, borderBottomColor: BORDER,
@@ -394,11 +398,11 @@ const styles = StyleSheet.create({
     backgroundColor: CARD,
   },
   typeChipActive: { backgroundColor: DARK, borderColor: DARK },
-  typeChipText: { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: MUTED },
+  typeChipText: { fontFamily: JOST, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: MUTED },
   typeChipTextActive: { color: '#F8F7F5' },
   errorText: { fontFamily: DM300, fontSize: 12, color: '#DC3535', marginBottom: 12 },
   modalButtons: { gap: 12, paddingTop: 12, paddingBottom: 16 },
   modalConfirmBtn: { height: 48, backgroundColor: DARK, borderRadius: 100, alignItems: 'center', justifyContent: 'center' },
-  modalConfirmText: { fontFamily: JOST, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: '#F8F7F5' },
+  modalConfirmText: { fontFamily: JOST400, fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: '#F8F7F5' },
   modalCancelText: { fontFamily: DM300, fontSize: 13, color: MUTED, textAlign: 'center' },
 });
