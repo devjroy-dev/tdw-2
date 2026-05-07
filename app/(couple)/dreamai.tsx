@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, KeyboardAvoidingView, Platform, Alert,
+  StyleSheet, KeyboardAvoidingView, Platform, Alert, Animated, Easing,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,16 +82,19 @@ function getQuickPrompts(ctx: any): string[] {
   if (!ctx) return [
     "What's overdue this week?",
     "How much have I spent so far?",
-    "Which vendors haven't replied?",
-    "Draft a reminder to my florist",
+    "Which vendors have I booked?",
+    "What's next on my checklist?",
   ];
   const prompts: string[] = [];
-  const overdue = (ctx.tasks || []).filter((t: any) => t.due_date && t.due_date < new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const pendingList = ctx.tasks?.pending_list || [];
+  const overdue = pendingList.filter((t: any) => t.due_date && t.due_date < today);
   prompts.push(overdue.length > 0 ? `What's overdue? (${overdue.length} tasks)` : "What's overdue this week?");
-  prompts.push("How much have I spent so far?");
-  const unanswered = (ctx.active_enquiries || []).filter((e: any) => e.last_message_from === 'couple');
-  prompts.push(unanswered.length > 0 ? `Which vendors haven't replied? (${unanswered.length})` : "Which vendors haven't replied?");
-  prompts.push("Draft a reminder to my florist");
+  const budget = ctx.budget;
+  prompts.push(budget?.total > 0 ? `How much have I spent? (Rs ${(budget.committed || 0).toLocaleString('en-IN')} of Rs ${budget.total.toLocaleString('en-IN')})` : "How much have I spent so far?");
+  const bookedCount = ctx.vendors?.booked || 0;
+  prompts.push(bookedCount > 0 ? `Which vendors have I booked? (${bookedCount} booked)` : "Which vendors have I booked?");
+  prompts.push("What should I do next?");
   return prompts;
 }
 
@@ -106,6 +109,69 @@ function BoldText({ text, style }: { text: string; style: any }) {
           : <Text key={i}>{part}</Text>
       )}
     </Text>
+  );
+}
+
+// ── Animated typing dots ───────────────────────────────────────────────────
+function TypingDots() {
+  const anims = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
+  useEffect(() => {
+    const animations = anims.map((anim, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 200),
+          Animated.timing(anim, { toValue: 1, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0.3, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      )
+    );
+    animations.forEach(a => a.start());
+    return () => animations.forEach(a => a.stop());
+  }, []);
+  return (
+    <View style={{ flexDirection: 'row', gap: 5, padding: 8, alignItems: 'center' }}>
+      {anims.map((anim, i) => (
+        <Animated.View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#C9A84C', opacity: anim, transform: [{ scale: anim }] }} />
+      ))}
+    </View>
+  );
+}
+
+// ── Animated message bubble ────────────────────────────────────────────────
+function MessageFade({ children }: { children: React.ReactNode }) {
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(6)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 200, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
+// ── Animated Just Do It toggle ─────────────────────────────────────────────
+function JustDoItToggle({ justDoIt, onToggle }: { justDoIt: boolean; onToggle: () => void }) {
+  const thumbAnim = useRef(new Animated.Value(justDoIt ? 14 : 2)).current;
+  useEffect(() => {
+    Animated.timing(thumbAnim, {
+      toValue: justDoIt ? 14 : 2,
+      duration: 180,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  }, [justDoIt]);
+  return (
+    <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} activeOpacity={0.85} onPress={onToggle}>
+      <Text style={{ fontFamily: 'DMSans_300Light', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: justDoIt ? '#C9A84C' : '#B8B4AE' }}>Just do it</Text>
+      <View style={{ width: 32, height: 18, borderRadius: 9, borderWidth: 1, borderColor: justDoIt ? '#C9A84C' : '#D4D0CA', backgroundColor: justDoIt ? 'rgba(201,168,76,0.15)' : '#E8E5DF', position: 'relative' }}>
+        <Animated.View style={{ position: 'absolute', top: 2, left: thumbAnim, width: 12, height: 12, borderRadius: 6, backgroundColor: justDoIt ? '#C9A84C' : '#B8B4AE' }} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -239,18 +305,22 @@ export default function CoupleDreamAiScreen() {
     const today = new Date().toISOString().slice(0, 10);
     const in7   = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
-    const overdue = (context.tasks || []).filter((t: any) => t.due_date && t.due_date < today);
+    // Tasks overdue — from tasks.pending_list
+    const pendingList = context.tasks?.pending_list || [];
+    const overdue = pendingList.filter((t: any) => t.due_date && t.due_date < today);
     if (overdue.length > 0) urgent.push(`${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}`);
 
+    // Upcoming payments — from upcoming_payments array
     const upcoming = (context.upcoming_payments || []).filter((p: any) => p.due_date && p.due_date <= in7);
     if (upcoming.length > 0) urgent.push(`${upcoming.length} payment${upcoming.length > 1 ? 's' : ''} due this week`);
 
-    const unanswered = (context.active_enquiries || []).filter((e: any) => e.last_message_from === 'couple');
-    if (unanswered.length > 0) urgent.push(`${unanswered.length} vendor${unanswered.length > 1 ? 's' : ''} yet to reply`);
+    // Vendors not yet booked — from vendors.pending
+    const pendingVendors = context.vendors?.pending || 0;
+    if (pendingVendors > 0) urgent.push(`${pendingVendors} vendor${pendingVendors > 1 ? 's' : ''} still in negotiation`);
 
     if (urgent.length === 0) return;
 
-    const name = context.user?.name?.split(' ')[0] || 'Dreamer';
+    const name = context.couple?.name?.split(' ')[0] || 'Dreamer';
     const briefing = `Good to see you, ${name}. You have ${urgent.join(', ')}. How would you like to handle it?`;
     setMessages([{ id: 'briefing', role: 'ai', text: briefing }]);
   }, [context]);
@@ -465,12 +535,7 @@ export default function CoupleDreamAiScreen() {
             {contextLoading ? 'Loading your data...' : 'DreamAi · Live'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.justDoItToggle} activeOpacity={0.85} onPress={toggleJustDoIt}>
-          <Text style={[styles.justDoItLabel, { color: justDoIt ? GOLD : '#B8B4AE' }]}>Just do it</Text>
-          <View style={[styles.toggleTrack, { borderColor: justDoIt ? GOLD : '#D4D0CA', backgroundColor: justDoIt ? 'rgba(201,168,76,0.15)' : '#E8E5DF' }]}>
-            <View style={[styles.toggleThumb, { left: justDoIt ? 14 : 2, backgroundColor: justDoIt ? GOLD : '#B8B4AE' }]} />
-          </View>
-        </TouchableOpacity>
+        <JustDoItToggle justDoIt={justDoIt} onToggle={toggleJustDoIt} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -494,7 +559,7 @@ export default function CoupleDreamAiScreen() {
 
           {/* Thread */}
           {messages.map(m => (
-            <View key={m.id}>
+            <MessageFade key={m.id}>
               <View style={[styles.msgRow, m.role === 'user' ? styles.msgRowUser : styles.msgRowAi]}>
                 <View style={[styles.bubble, m.role === 'user' ? styles.userBubble : styles.aiBubble]}>
                   <BoldText
@@ -533,14 +598,14 @@ export default function CoupleDreamAiScreen() {
                   }}
                 />
               )}
-            </View>
+            </MessageFade>
           ))}
 
           {/* Typing indicator */}
           {loading && (
             <View style={styles.msgRowAi}>
-              <View style={styles.typingDots}>
-                {[0, 1, 2].map(i => <View key={i} style={styles.typingDot} />)}
+              <View style={[styles.aiBubble, { paddingVertical: 8, paddingHorizontal: 12 }]}>
+                <TypingDots />
               </View>
             </View>
           )}
