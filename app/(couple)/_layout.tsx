@@ -1,6 +1,6 @@
 /**
  * TDW Native — Couple tab layout
- * V7: added profile screen (hidden from tab bar)
+ * V8: added settings screen (hidden from tab bar)
  */
 
 import { Tabs } from 'expo-router';
@@ -38,7 +38,7 @@ export default function CoupleLayout() {
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="dreamai" options={{ href: null }} />
       <Tabs.Screen name="discover" options={{ href: null }} />
-
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

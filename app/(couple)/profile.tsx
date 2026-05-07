@@ -20,7 +20,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Modal, Platform,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -84,7 +84,7 @@ export default function CoupleProfileScreen() {
   const [tokens, setTokens] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Settings opens as a full screen — see app/(couple)/settings.tsx
   const [dreamAiHome, setDreamAiHome] = useState(false);
 
   useEffect(() => {
@@ -229,7 +229,7 @@ export default function CoupleProfileScreen() {
             { label: 'My Muse', icon: '♥', onPress: () => showToast('Muse — navigate from Plan tab.') },
             { label: 'My Circle', icon: '○', onPress: () => router.push('/(couple)/circle') },
             { label: 'DreamAi Queries', icon: '✦', onPress: () => showToast('Buy more queries coming soon.') },
-            { label: 'Settings', icon: '⚙', onPress: () => setSettingsOpen(true) },
+            { label: 'Settings', icon: '⚙', onPress: () => router.push('/(couple)/settings') },
           ].map((row, i, arr) => (
             <TouchableOpacity
               key={row.label}
@@ -250,63 +250,7 @@ export default function CoupleProfileScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Settings Sheet — V7 basic only */}
-      <Modal visible={settingsOpen} animationType="slide" transparent>
-        <TouchableOpacity
-          style={styles.settingsBackdrop}
-          activeOpacity={1}
-          onPress={() => setSettingsOpen(false)}
-        />
-        <View style={[styles.settingsSheet, { paddingBottom: insets.bottom + 32 }]}>
-          <View style={styles.settingsHandle} />
-          <View style={styles.settingsHeader}>
-            <Text style={styles.settingsTitle}>Settings</Text>
-            <TouchableOpacity onPress={() => setSettingsOpen(false)}>
-              <Text style={{ fontSize: 20, color: Colors.muted }}>×</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Home screen toggle */}
-          <Text style={styles.settingsSection}>Home Screen</Text>
-          <View style={styles.settingsRow}>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <Text style={{ fontSize: 14, color: dreamAiHome ? Colors.gold : Colors.muted }}>
-                  {dreamAiHome ? '✦' : '◎'}
-                </Text>
-                <Text style={styles.settingsRowLabel}>{dreamAiHome ? 'DreamAi' : 'Today'}</Text>
-              </View>
-              <Text style={styles.settingsRowSub}>
-                {dreamAiHome ? 'App opens to DreamAi by default' : 'App opens to Today screen by default'}
-              </Text>
-            </View>
-            <Toggle on={dreamAiHome} onToggle={handleHomeToggle} />
-          </View>
-
-          {/* Notification toggles — UI only, V10 wiring */}
-          <Text style={[styles.settingsSection, { marginTop: 24 }]}>Notifications</Text>
-          {[
-            { label: 'Task reminders', sub: 'Get notified when tasks are due' },
-            { label: 'Vendor replies', sub: 'Alerts when vendors respond' },
-            { label: 'Morning briefing', sub: 'Daily summary at 9:00 AM' },
-          ].map(n => (
-            <View key={n.label} style={styles.settingsRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.settingsRowLabel}>{n.label}</Text>
-                <Text style={styles.settingsRowSub}>{n.sub}</Text>
-              </View>
-              <Toggle on={false} onToggle={() => showToast('Push notifications coming in V10.')} />
-            </View>
-          ))}
-
-          <Text style={[styles.settingsCaption, { marginTop: 20 }]}>
-            Full preferences — location, discovery, budget visibility — coming in the next update.
-          </Text>
-        </View>
-      </Modal>
-    </View>
-  );
-}
+  );\n}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -366,35 +310,6 @@ const styles = StyleSheet.create({
 
   signOutRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16 },
   signOutText: { fontFamily: Fonts.body, fontSize: 14, color: Colors.muted },
-
-  // Settings sheet
-  settingsBackdrop: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(12,10,9,0.5)',
-  },
-  settingsSheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 28, maxHeight: '85%',
-  },
-  settingsHandle: {
-    width: 36, height: 3, borderRadius: 2, backgroundColor: '#D8D4CE',
-    alignSelf: 'center', marginBottom: 24,
-  },
-  settingsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
-  settingsTitle: { fontFamily: Fonts.display, fontSize: 22, color: Colors.ink },
-  settingsSection: {
-    fontFamily: Fonts.label, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
-    color: Colors.muted, marginBottom: 14,
-  },
-  settingsRow: {
-    backgroundColor: Colors.card, borderRadius: 12, borderWidth: 0.5, borderColor: Colors.border,
-    padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10,
-  },
-  settingsRowLabel: { fontFamily: Fonts.body, fontSize: 14, color: Colors.ink },
-  settingsRowSub: { fontFamily: Fonts.body, fontSize: 11, color: Colors.muted, marginTop: 2 },
-  settingsCaption: { fontFamily: Fonts.body, fontSize: 11, color: '#C8C4BE', fontStyle: 'italic', lineHeight: 16 },
 
   toggleTrack: { width: 44, height: 26, borderRadius: 13, position: 'relative' },
   toggleThumb: { position: 'absolute', top: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 3 },
