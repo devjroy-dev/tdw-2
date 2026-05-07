@@ -42,7 +42,7 @@ export default function CouplePinLoginScreen() {
 
   useEffect(() => {
     getCoupleSession().then(s => {
-      if (!s?.id && !s?.userId) { router.replace('/'); return; }
+      if (!s?.id && !s?.userId && !s?.phone) { router.replace('/'); return; }
       if (!s?.pin_set) { router.replace('/(couple)/pin'); return; }
       if (s?.name) setName(s.name);
     });

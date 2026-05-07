@@ -339,13 +339,13 @@ export default function LandingScreen() {
     try {
       const r = await fetch(`${BACKEND}/api/v2/auth/pin-status?userId=_&role=${isVendor ? 'vendor' : 'couple'}&phone=${bare}`);
       const d = await r.json();
-      if (!d.userId || d.found === false) {
+      if (!d.exists || d.exists === false) {
         setScreen('request_who');
         showToast('No account found — request an invite to join.');
         return;
       }
-      if (d.pin_set && d.userId) {
-        const sd = { id: d.userId, userId: d.userId, vendorId: d.userId, phone: bare, pin_set: true };
+      if (d.hasPin && d.exists) {
+        const sd = { id: d.id || d.userId, userId: d.id || d.userId, vendorId: d.id || d.userId, phone: bare, pin_set: true };
         if (isVendor) await setVendorSession(sd);
         else await setCoupleSession(sd);
         router.replace(isVendor ? '/(vendor)/pin-login' : '/couple-pin-login');
