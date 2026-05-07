@@ -209,7 +209,7 @@ export default function CoupleTodayScreen() {
         id: m.id,
         vendor_id: m.vendor_id || '',
         created_at: '',
-        image_url: m.thumbnail_url || undefined,
+        image_url: m.vendor_image || m.thumbnail_url || m.image_url || undefined,
         vendor: m.vendor_name ? {
           id: m.vendor_id || '',
           name: m.vendor_name,
@@ -269,11 +269,11 @@ export default function CoupleTodayScreen() {
   const budgetPct = budget?.total ? Math.min(100, Math.round((budget.committed / budget.total) * 100)) : 0;
 
   const quickActions = [
-    { label: '+ Expense', icon: '₹', onTap: () => {} },
-    { label: '+ Task',    icon: '✓', onTap: () => {} },
+    { label: '+ Expense', icon: '₹', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'money', action: 'add-expense' } }) },
+    { label: '+ Task',    icon: '✓', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'tasks', action: 'add-task' } }) },
     { label: 'Family',   icon: '◎', onTap: () => router.push('/(couple)/circle') },
-    { label: '+ Muse',   icon: '✦', onTap: () => {} },
-    { label: 'Find Makers', icon: '⌕', onTap: () => {}, coming: true },
+    { label: '+ Muse',   icon: '✦', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } }) },
+    { label: 'Discover', icon: '⌕', onTap: () => router.push('/(couple)/discover') },
   ];
 
   if (loading) {
@@ -471,7 +471,7 @@ export default function CoupleTodayScreen() {
         {/* ── From Your Muse ───────────────────────────────────────────────── */}
         {data?.muse_saves && data.muse_saves.length > 0 && (
           <View style={{ marginBottom: 28 }}>
-            <SectionHeader label="FROM YOUR MUSE" actionLabel="See all →" onAction={() => {}} />
+            <SectionHeader label="FROM YOUR MUSE" actionLabel="See all →" onAction={() => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } })} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -509,7 +509,7 @@ export default function CoupleTodayScreen() {
           const fromVendor = latest.from === 'vendor';
           return (
             <View style={{ marginBottom: 28 }}>
-              <SectionHeader label="LATEST MESSAGE" actionLabel="All messages →" onAction={() => {}} />
+              <SectionHeader label="LATEST MESSAGE" actionLabel="All messages →" onAction={() => router.push('/(couple)/circle')} />
               <TouchableOpacity style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 12 }]} activeOpacity={0.85}>
                 <View style={styles.avatarCircle}>
                   <Text style={styles.avatarText}>

@@ -125,6 +125,27 @@ function BottomSheet({ visible, onClose, title, children }: {
   visible: boolean; onClose: () => void; title: string; children: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) translateY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 80 || g.vy > 0.5) {
+          Animated.timing(translateY, { toValue: 600, duration: 200, useNativeDriver: true }).start(() => {
+            translateY.setValue(0);
+            onClose();
+          });
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={onClose} />
@@ -132,16 +153,18 @@ function BottomSheet({ visible, onClose, title, children }: {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.sheetKAV}
       >
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
-              <Text style={styles.sheetClose}>✕</Text>
-            </TouchableOpacity>
+        <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 16, transform: [{ translateY }] }]}>
+          <View {...panResponder.panHandlers}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
+                <Text style={styles.sheetClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           {children}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -3344,8 +3367,10 @@ function getMuseSourceType(item: MuseItem): 'vendor' | 'image' | 'link' {
 }
 
 function getMuseDisplayImage(item: MuseItem): string {
+  // vendor_image is stored directly on the moodboard_items row
+  if ((item as any).vendor_image) return (item as any).vendor_image;
   if (item.vendor_id) {
-    return item.vendor?.featured_photos?.[0] || item.vendor_image || item.image_url || '';
+    return item.vendor?.featured_photos?.[0] || item.image_url || '';
   }
   return item.image_url || '';
 }
@@ -3876,7 +3901,7 @@ function AddVendorSheetNative({ visible, onClose, userId, events, onSuccess }: {
   );
 }
 
-const EVENT_TYPES_NATIVE = ['Mehendi', 'Haldi', 'Sangeet', 'Ceremony', 'Reception', 'Other'];
+const EVENT_TYPES_NATIVE = ['Mehendi', 'Sangeet', 'Haldi', 'Reception', 'Cocktail', 'Engagement', 'Other'];
 const GUEST_RANGES_NATIVE = ['Under 50', '50–150', '150–300', '300–500', '500+'];
 
 function AddEventSheetNative({ visible, onClose, userId, events, onSuccess }: {
