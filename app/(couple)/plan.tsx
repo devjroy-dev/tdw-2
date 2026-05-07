@@ -5,7 +5,7 @@ import {
   RefreshControl, Animated, Image, FlatList, Alert,
   ActivityIndicator, Linking, Dimensions, PanResponder,
 } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -770,15 +770,18 @@ function TaskCard({ task, userId, events, onCompleted, onDeleted, onRestored, on
 }
 
 // ── TasksTab ───────────────────────────────────────────────────────────────
-function TasksTab({ userId, events, refetch, onExpenseAdded }: {
+function TasksTab({ userId, events, refetch, onExpenseAdded, openAddSheet }: {
   userId: string; events: EventOption[];
-  refetch: number; onExpenseAdded: () => void;
+  refetch: number; onExpenseAdded: () => void; openAddSheet?: boolean;
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+
+  // Open add sheet when triggered from outside (quick action)
+  useEffect(() => { if (openAddSheet) setAddSheetOpen(true); }, [openAddSheet]);
   const insets = useSafeAreaInsets();
 
   async function loadTasks(triggerSeedIfEmpty = false) {
@@ -1589,17 +1592,20 @@ function ExpenseDetailSheet({ visible, onClose, expense, events, onUpdated, onDe
 }
 
 // ── MoneyTab ─────────────────────────────────────────────────────────────────
-function MoneyTab({ userId, events, refetch, tier, onVendorAdded }: {
-  userId: string; events: EventOption[]; refetch: number; tier: string; onVendorAdded?: () => void;
+function MoneyTab({ userId, events, refetch, tier, onVendorAdded, openAddSheet }: {
+  userId: string; events: EventOption[]; refetch: number; tier: string; onVendorAdded?: () => void; openAddSheet?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<MoneyData | null>(null);
   const [allExpenses, setAllExpenses] = useState<MoneyExpense[]>([]);
+  const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
+
+  // Open add expense sheet when triggered from outside (quick action)
+  useEffect(() => { if (openAddSheet) setAddExpenseSheetOpen(true); }, [openAddSheet]);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [payFilter, setPayFilter] = useState<PaymentFilter>('week');
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
-  const [addExpenseSheetOpen, setAddExpenseSheetOpen] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [fetchedTier, setFetchedTier] = useState<string | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<MoneyExpense | null>(null);
@@ -4018,10 +4024,31 @@ function AddEventSheetNative({ visible, onClose, userId, events, onSuccess }: {
 
 export default function CouplePlanScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ tab?: string; action?: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<EventOption[]>([]);
   const [tier, setTier] = useState<string>('lite');
+
+  // Track whether to trigger add sheet on next render
+  const [triggerTaskAdd, setTriggerTaskAdd] = useState(false);
+  const [triggerExpenseAdd, setTriggerExpenseAdd] = useState(false);
+
+  // Handle incoming quick action params from today.tsx
+  useEffect(() => {
+    if (params.tab) {
+      const validTabs: Tab[] = ['tasks', 'money', 'vendors', 'people', 'events', 'muse'];
+      const t = params.tab as Tab;
+      if (validTabs.includes(t)) setActiveTab(t);
+    }
+    if (params.action === 'add-task') {
+      setActiveTab('tasks');
+      setTriggerTaskAdd(true);
+    } else if (params.action === 'add-expense') {
+      setActiveTab('money');
+      setTriggerExpenseAdd(true);
+    }
+  }, [params.tab, params.action]);
 
   // ── Per-tab refetch counters ─────────────────────────────────────────────
   const [tasksRefetch, setTasksRefetch] = useState(0);
@@ -4117,6 +4144,7 @@ export default function CouplePlanScreen() {
           events={events}
           refetch={tasksRefetch}
           onExpenseAdded={() => setMoneyRefetch(r => r + 1)}
+          openAddSheet={triggerTaskAdd}
         />
       ) : activeTab === 'money' && userId ? (
         <MoneyTab
@@ -4125,6 +4153,7 @@ export default function CouplePlanScreen() {
           refetch={moneyRefetch}
           tier={tier}
           onVendorAdded={() => setVendorsRefetch(r => r + 1)}
+          openAddSheet={triggerExpenseAdd}
         />
       ) : activeTab === 'vendors' && userId ? (
         <VendorsTab userId={userId} refetch={vendorsRefetch} events={events} />

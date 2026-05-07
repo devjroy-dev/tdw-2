@@ -269,10 +269,10 @@ export default function CoupleTodayScreen() {
   const budgetPct = budget?.total ? Math.min(100, Math.round((budget.committed / budget.total) * 100)) : 0;
 
   const quickActions = [
-    { label: '+ Expense', icon: '₹', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'money', action: 'add-expense' } }) },
-    { label: '+ Task',    icon: '✓', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'tasks', action: 'add-task' } }) },
+    { label: '+ Expense', icon: '₹', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'money', action: 'add-expense' } } as any) },
+    { label: '+ Task',    icon: '✓', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'tasks', action: 'add-task' } } as any) },
     { label: 'Family',   icon: '◎', onTap: () => router.push('/(couple)/circle') },
-    { label: '+ Muse',   icon: '✦', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } }) },
+    { label: '+ Muse',   icon: '✦', onTap: () => router.push({ pathname: '/(couple)/plan', params: { tab: 'muse' } } as any) },
     { label: 'Discover', icon: '⌕', onTap: () => router.push('/(couple)/discover') },
   ];
 
