@@ -18,14 +18,15 @@ const CG300 = 'CormorantGaramond_300Light';
 const DM300 = 'DMSans_300Light';
 const JOST  = 'Jost_300Light';
 
+// Sub-screens not yet built in native — routes are null until built
 const TOOLS = [
-  { Icon: Calendar,  title: 'Calendar',        subtitle: 'Your shoots & events',     route: '/(vendor)/studio' },
-  { Icon: Users,     title: 'Team',             subtitle: 'Manage your team',         route: '/(vendor)/studio' },
-  { Icon: BarChart2, title: 'Analytics',        subtitle: 'Views, saves, enquiries',  route: '/(vendor)/studio' },
-  { Icon: Megaphone, title: 'Broadcast',        subtitle: 'Message all clients',      route: '/(vendor)/studio' },
-  { Icon: Gift,      title: 'Referrals',        subtitle: 'Earn from referrals',      route: '/(vendor)/studio' },
-  { Icon: FileText,  title: 'Contracts',        subtitle: 'Templates & signed docs',  route: '/(vendor)/studio' },
-  { Icon: Lightbulb, title: 'Tips & Features',  subtitle: 'What TDW can do for you',  route: '/(vendor)/studio' },
+  { Icon: Calendar,  title: 'Calendar',        subtitle: 'Your shoots & events',     route: null },
+  { Icon: Users,     title: 'Team',             subtitle: 'Manage your team',         route: null },
+  { Icon: BarChart2, title: 'Analytics',        subtitle: 'Views, saves, enquiries',  route: null },
+  { Icon: Megaphone, title: 'Broadcast',        subtitle: 'Message all clients',      route: null },
+  { Icon: Gift,      title: 'Referrals',        subtitle: 'Earn from referrals',      route: null },
+  { Icon: FileText,  title: 'Contracts',        subtitle: 'Templates & signed docs',  route: null },
+  { Icon: Lightbulb, title: 'Tips & Features',  subtitle: 'What TDW can do for you',  route: null },
 ];
 
 export default function VendorStudioScreen() {
@@ -48,8 +49,8 @@ export default function VendorStudioScreen() {
           <TouchableOpacity
             key={title}
             style={styles.toolCard}
-            activeOpacity={0.8}
-            onPress={() => { Haptics.selectionAsync(); router.push(route as any); }}
+            activeOpacity={route ? 0.8 : 1}
+            onPress={() => { if (route) { Haptics.selectionAsync(); router.push(route as any); } }}
           >
             <Icon size={24} strokeWidth={1.5} color={GOLD} />
             <Text style={styles.toolTitle}>{title}</Text>
@@ -62,7 +63,7 @@ export default function VendorStudioScreen() {
       <TouchableOpacity
         style={styles.discoveryCard}
         activeOpacity={0.85}
-        onPress={() => { Haptics.selectionAsync(); router.push('/(vendor)/studio' as any); }}
+        onPress={() => { Haptics.selectionAsync(); router.push('/(vendor)/discovery' as any); }}
       >
         <View style={{ flex: 1 }}>
           <Text style={styles.discoveryEyebrow}>DISCOVERY</Text>
