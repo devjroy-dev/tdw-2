@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
+  StyleSheet, KeyboardAvoidingView, Platform, Animated,
+  Easing,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,14 +41,14 @@ interface ChatMessage {
 
 // ── ACTION tag parser (robust, matches PWA exactly) ────────────────────────
 function parseSingleActionTag(tag: string) {
-  const tagContent = tag.slice(8, -1); // strip [ACTION: and ]
+  const tagContent = tag.slice(8, -1);
   const firstPipe  = tagContent.indexOf('|');
   const secondPipe = tagContent.indexOf('|', firstPipe + 1);
   const lastBrace  = tagContent.lastIndexOf('{');
   if (firstPipe === -1 || secondPipe === -1 || lastBrace === -1) return null;
-  const type    = tagContent.slice(0, firstPipe);
-  const label   = tagContent.slice(firstPipe + 1, secondPipe);
-  const preview = tagContent.slice(secondPipe + 1, lastBrace - 1).trim();
+  const type      = tagContent.slice(0, firstPipe);
+  const label     = tagContent.slice(firstPipe + 1, secondPipe);
+  const preview   = tagContent.slice(secondPipe + 1, lastBrace - 1).trim();
   const paramsStr = tagContent.slice(lastBrace);
   let params: Record<string, any> = {};
   try { params = JSON.parse(paramsStr); } catch {}
@@ -82,8 +83,7 @@ const ACTION_ENDPOINTS: Record<string, string> = {
 function impliesMultipleActions(text: string): boolean {
   const keywords = ['and', 'also', 'then', 'plus', 'aur', 'bhi', 'saath',
     'create', 'add', 'book', 'invoice', 'block', 'new booking', 'new client'];
-  const lower = text.toLowerCase();
-  return keywords.some(k => lower.includes(k));
+  return keywords.some(k => text.toLowerCase().includes(k));
 }
 
 // ── Context-aware suggestion chips ────────────────────────────────────────
@@ -105,42 +105,100 @@ function getChips(ctx: any): string[] {
   return chips;
 }
 
-// ── Top nav (vendor side — TODAY · DREAMAI · CLIENTS · STUDIO) ─────────────
-// The vendor top nav shows the DreamAi label in the standard header area.
-// It is NOT a pill nav — vendor uses bottom tab + a header with DreamAi label.
+// ── Animated typing dots ───────────────────────────────────────────────────
+function TypingDots() {
+  const anims = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
+
+  useEffect(() => {
+    const animations = anims.map((anim, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 200),
+          Animated.timing(anim, { toValue: 1, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0.3, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      )
+    );
+    animations.forEach(a => a.start());
+    return () => animations.forEach(a => a.stop());
+  }, []);
+
+  return (
+    <View style={styles.typingDots}>
+      {anims.map((anim, i) => (
+        <Animated.View key={i} style={[styles.typingDot, { opacity: anim, transform: [{ scale: anim }] }]} />
+      ))}
+    </View>
+  );
+}
+
+// ── Animated message bubble ────────────────────────────────────────────────
+function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(6)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 200, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <View style={[styles.msgRow, msg.role === 'user' ? styles.msgRowUser : styles.msgRowAi]}>
+        <View style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.aiBubble]}>
+          <Text style={[styles.bubbleText, msg.role === 'user' ? styles.userBubbleText : styles.aiBubbleText]}>
+            {msg.text}
+          </Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────
 function VendorHeader({ contextLoading, justDoIt, onToggleJustDoIt }: {
   contextLoading: boolean;
   justDoIt: boolean;
   onToggleJustDoIt: () => void;
 }) {
+  const thumbAnim = useRef(new Animated.Value(justDoIt ? 14 : 2)).current;
+
+  useEffect(() => {
+    Animated.timing(thumbAnim, {
+      toValue: justDoIt ? 14 : 2,
+      duration: 180,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  }, [justDoIt]);
+
   return (
     <View style={styles.header}>
-      {/* Status indicator */}
       <View style={styles.headerLeft}>
         <View style={[styles.statusDot, { backgroundColor: contextLoading ? 'rgba(201,168,76,0.3)' : GOLD }]} />
         <Text style={[styles.statusText, { color: contextLoading ? 'rgba(201,168,76,0.4)' : GOLD }]}>
-          {contextLoading ? 'Loading your data...' : 'DreamAi · Live'}
+          {contextLoading ? 'Loading your data...' : 'DreamAi \u00b7 Live'}
         </Text>
       </View>
-
-      {/* Just Do It toggle */}
-      <TouchableOpacity
-        style={styles.justDoItToggle}
-        activeOpacity={0.85}
-        onPress={onToggleJustDoIt}
-      >
-        <Text style={[styles.justDoItLabel, { color: justDoIt ? GOLD : '#B8B4AE' }]}>
-          Just do it
-        </Text>
-        <View style={[styles.toggleTrack, { borderColor: justDoIt ? GOLD : '#D4D0CA', backgroundColor: justDoIt ? 'rgba(201,168,76,0.15)' : '#E8E5DF' }]}>
-          <View style={[styles.toggleThumb, { left: justDoIt ? 14 : 2, backgroundColor: justDoIt ? GOLD : '#B8B4AE' }]} />
+      <TouchableOpacity style={styles.justDoItToggle} activeOpacity={0.85} onPress={onToggleJustDoIt}>
+        <Text style={[styles.justDoItLabel, { color: justDoIt ? GOLD : '#B8B4AE' }]}>Just do it</Text>
+        <View style={[styles.toggleTrack, {
+          borderColor: justDoIt ? GOLD : '#D4D0CA',
+          backgroundColor: justDoIt ? 'rgba(201,168,76,0.15)' : '#E8E5DF',
+        }]}>
+          <Animated.View style={[styles.toggleThumb, {
+            left: thumbAnim,
+            backgroundColor: justDoIt ? GOLD : '#B8B4AE',
+          }]} />
         </View>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ── Action card component ──────────────────────────────────────────────────
+// ── Action card ────────────────────────────────────────────────────────────
 function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
   msg: ChatMessage;
   vendorId: string;
@@ -148,6 +206,11 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
   onDismiss: () => void;
 }) {
   const [executing, setExecuting] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+  }, []);
 
   async function execute() {
     if (!msg.actionType || executing) return;
@@ -163,7 +226,7 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
       });
       const d = await r.json();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onConfirm(d.message || '✓ Done.');
+      onConfirm(d.message || 'Done.');
     } catch {
       onConfirm('Could not complete. Please try again.');
     } finally {
@@ -172,8 +235,8 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
   }
 
   return (
-    <View style={styles.actionCard}>
-      <Text style={styles.actionCardLabel}>✦ Action Preview</Text>
+    <Animated.View style={[styles.actionCard, { opacity: fadeAnim }]}>
+      <Text style={styles.actionCardLabel}>\u2756 Action Preview</Text>
       <Text style={styles.actionCardPreview}>{msg.actionPreview}</Text>
       <View style={styles.actionCardButtons}>
         <TouchableOpacity
@@ -184,15 +247,11 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
         >
           <Text style={styles.actionConfirmText}>{executing ? '...' : 'Confirm'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionCancelBtn}
-          activeOpacity={0.85}
-          onPress={onDismiss}
-        >
+        <TouchableOpacity style={styles.actionCancelBtn} activeOpacity={0.85} onPress={onDismiss}>
           <Text style={styles.actionCancelText}>Cancel</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -200,14 +259,14 @@ function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
 export default function VendorDreamAiScreen() {
   const insets = useSafeAreaInsets();
 
-  const [vendorId,   setVendorId]   = useState('');
-  const [vendorName, setVendorName] = useState('');
-  const [messages,   setMessages]   = useState<ChatMessage[]>([]);
-  const [input,      setInput]      = useState('');
-  const [loading,    setLoading]    = useState(false);
-  const [context,    setContext]    = useState<any>(null);
+  const [vendorId,       setVendorId]       = useState('');
+  const [vendorName,     setVendorName]     = useState('');
+  const [messages,       setMessages]       = useState<ChatMessage[]>([]);
+  const [input,          setInput]          = useState('');
+  const [loading,        setLoading]        = useState(false);
+  const [context,        setContext]        = useState<any>(null);
   const [contextLoading, setContextLoading] = useState(true);
-  const [justDoIt,   setJustDoIt]   = useState(false);
+  const [justDoIt,       setJustDoIt]       = useState(false);
 
   const bottomRef      = useRef<ScrollView>(null);
   const inputRef       = useRef<TextInput>(null);
@@ -239,32 +298,25 @@ export default function VendorDreamAiScreen() {
     }, [])
   );
 
-  // Proactive briefing — fires once after context loads, only if no messages yet
+  // Proactive briefing — fires once after context loads
   useEffect(() => {
     if (!context || messages.length > 0) return;
-
     const urgent: string[] = [];
     if (context.overdue_invoices?.length > 0) {
       const n = context.overdue_invoices.length;
       urgent.push(`${n} overdue invoice${n > 1 ? 's' : ''}`);
     }
     const newEnqs = (context.enquiries || []).filter((e: any) => !e.replied);
-    if (newEnqs.length > 0) {
-      urgent.push(`${newEnqs.length} unanswered enquir${newEnqs.length > 1 ? 'ies' : 'y'}`);
-    }
+    if (newEnqs.length > 0) urgent.push(`${newEnqs.length} unanswered enquir${newEnqs.length > 1 ? 'ies' : 'y'}`);
     const today = new Date().toISOString().slice(0, 10);
     const todayEvents = (context.calendar || []).filter((e: any) => e.date === today);
-    if (todayEvents.length > 0) {
-      urgent.push(`event today: ${todayEvents[0].client_name}`);
-    }
+    if (todayEvents.length > 0) urgent.push(`event today: ${todayEvents[0].client_name}`);
     if (urgent.length === 0) return;
-
-    const briefing = `Good to see you. You have ${urgent.join(', ')}. How would you like to handle it?`;
-    setMessages([{ id: 'briefing', role: 'ai', text: briefing }]);
+    setMessages([{ id: 'briefing', role: 'ai', text: `Good to see you. You have ${urgent.join(', ')}. How would you like to handle it?` }]);
   }, [context]);
 
   useEffect(() => {
-    setTimeout(() => bottomRef.current?.scrollToEnd({ animated: true }), 100);
+    setTimeout(() => bottomRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages, loading]);
 
   async function toggleJustDoIt() {
@@ -274,7 +326,6 @@ export default function VendorDreamAiScreen() {
     Haptics.selectionAsync();
   }
 
-  // ── Refresh context after action ─────────────────────────────────────────
   async function refreshContext(vid: string) {
     try {
       const r = await fetch(`${API}/api/v2/dreamai/vendor-context/${vid}`);
@@ -283,7 +334,6 @@ export default function VendorDreamAiScreen() {
     } catch {}
   }
 
-  // ── Send message ─────────────────────────────────────────────────────────
   async function send(text?: string) {
     const msg = (text || input).trim();
     if (!msg || loading) return;
@@ -299,7 +349,6 @@ export default function VendorDreamAiScreen() {
     setLoading(true);
 
     try {
-      // Build conversation history (last 10 messages)
       const history = messages.slice(-10).map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         text: m.text,
@@ -308,23 +357,14 @@ export default function VendorDreamAiScreen() {
       const r = await fetch(`${API}/api/v2/dreamai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: vendorId,
-          userType: 'vendor',
-          message: msg,
-          context,
-          history,
-        }),
+        body: JSON.stringify({ userId: vendorId, userType: 'vendor', message: msg, context, history }),
       });
       const d = await r.json();
       const replyText = d.reply || 'Something went wrong. Please try again.';
       const parsed    = parseActionTags(replyText);
-      const cleanText = parsed
-        ? parsed.cleanText
-        : replyText.replace(/\[ACTION:[^\]]+\]/g, '').trim();
+      const cleanText = parsed ? parsed.cleanText : replyText.replace(/\[ACTION:[^\]]+\]/g, '').trim();
 
       if (parsed && justDoIt) {
-        // JUST DO IT MODE — execute immediately
         const ep = ACTION_ENDPOINTS[parsed.type];
         if (ep) {
           try {
@@ -334,14 +374,13 @@ export default function VendorDreamAiScreen() {
               body: JSON.stringify({ vendor_id: vendorId, ...parsed.params }),
             });
             const execD = await execR.json();
-            const resultText = (cleanText ? cleanText + '\n\n' : '') + '✓ ' + (execD.message || 'Done.');
+            const resultText = (cleanText ? cleanText + '\n\n' : '') + (execD.message || 'Done.');
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: resultText }]);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             await refreshContext(vendorId);
           } catch {
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: cleanText || 'Could not complete that action.' }]);
           }
-          // Auto-continue for remaining actions in Just Do It mode
           if (impliesMultipleActions(originalMsgRef.current)) {
             setLoading(false);
             await send('Continue with any remaining actions from my last request.');
@@ -351,7 +390,6 @@ export default function VendorDreamAiScreen() {
           setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: cleanText }]);
         }
       } else if (parsed) {
-        // Normal mode — show action card for confirmation
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: 'ai',
@@ -375,23 +413,17 @@ export default function VendorDreamAiScreen() {
     setLoading(false);
   }
 
-  const chips = getChips(context);
+  // Chips refresh after every context update
+  const chips    = getChips(context);
   const showChips = (messages.length === 0 || messages[messages.length - 1]?.role === 'ai') && !loading;
   const firstName = vendorName.split(' ')[0] || 'Maker';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Header with status + Just Do It toggle */}
-      <VendorHeader
-        contextLoading={contextLoading}
-        justDoIt={justDoIt}
-        onToggleJustDoIt={toggleJustDoIt}
-      />
+      <VendorHeader contextLoading={contextLoading} justDoIt={justDoIt} onToggleJustDoIt={toggleJustDoIt} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
         {/* Messages */}
         <ScrollView
           ref={bottomRef}
@@ -411,33 +443,17 @@ export default function VendorDreamAiScreen() {
           {/* Message thread */}
           {messages.map(m => (
             <View key={m.id}>
-              <View style={[styles.msgRow, m.role === 'user' ? styles.msgRowUser : styles.msgRowAi]}>
-                <View style={[styles.bubble, m.role === 'user' ? styles.userBubble : styles.aiBubble]}>
-                  <Text style={[styles.bubbleText, m.role === 'user' ? styles.userBubbleText : styles.aiBubbleText]}>
-                    {m.text}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Action card */}
+              <MessageBubble msg={m} />
               {m.actionType && !m.actionDone && (
                 <ActionCard
                   msg={m}
                   vendorId={vendorId}
                   onConfirm={async result => {
-                    // Mark action done
                     setMessages(prev => prev.map(msg =>
                       msg.id === m.id ? { ...msg, actionDone: true } : msg
                     ));
-                    // Add result message
-                    setMessages(prev => [...prev, {
-                      id: Date.now().toString(),
-                      role: 'ai',
-                      text: result,
-                    }]);
-                    // Refresh context
+                    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: result }]);
                     await refreshContext(vendorId);
-                    // Chain next action if any
                     const remaining = m.extraActions || [];
                     if (remaining.length > 0) {
                       const next = remaining[0];
@@ -463,19 +479,17 @@ export default function VendorDreamAiScreen() {
             </View>
           ))}
 
-          {/* Typing indicator */}
+          {/* Animated typing indicator */}
           {loading && (
             <View style={styles.msgRowAi}>
-              <View style={styles.typingDots}>
-                {[0, 1, 2].map(i => (
-                  <View key={i} style={styles.typingDot} />
-                ))}
+              <View style={styles.aiBubble}>
+                <TypingDots />
               </View>
             </View>
           )}
         </ScrollView>
 
-        {/* Suggestion chips */}
+        {/* Suggestion chips — refresh on context update */}
         {showChips && (
           <ScrollView
             horizontal
@@ -484,12 +498,7 @@ export default function VendorDreamAiScreen() {
             contentContainerStyle={styles.chipsContent}
           >
             {chips.map((chip, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.chip}
-                activeOpacity={0.8}
-                onPress={() => send(chip)}
-              >
+              <TouchableOpacity key={i} style={styles.chip} activeOpacity={0.8} onPress={() => send(chip)}>
                 <Text style={styles.chipText}>{chip}</Text>
               </TouchableOpacity>
             ))}
@@ -516,7 +525,7 @@ export default function VendorDreamAiScreen() {
             onPress={() => send()}
             disabled={loading || !input.trim()}
           >
-            <Text style={[styles.sendIcon, { color: (input.trim() && !loading) ? INK : '#B8B4AE' }]}>↑</Text>
+            <Text style={[styles.sendIcon, { color: (input.trim() && !loading) ? INK : '#B8B4AE' }]}>{'\u2191'}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -526,286 +535,91 @@ export default function VendorDreamAiScreen() {
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  root: { flex: 1, backgroundColor: BG },
 
-  // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: BORDER,
-    backgroundColor: BG,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 0.5, borderBottomColor: BORDER, backgroundColor: BG,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontFamily: DM300,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontFamily: DM300, fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase' },
 
-  // Just Do It toggle
-  justDoItToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  justDoItLabel: {
-    fontFamily: DM300,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  toggleTrack: {
-    width: 32,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    position: 'relative',
-  },
-  toggleThumb: {
-    position: 'absolute',
-    top: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
+  justDoItToggle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  justDoItLabel: { fontFamily: DM300, fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase' },
+  toggleTrack: { width: 32, height: 18, borderRadius: 9, borderWidth: 1, position: 'relative' },
+  toggleThumb: { position: 'absolute', top: 2, width: 12, height: 12, borderRadius: 6 },
 
-  // Messages
-  messageArea: {
-    flex: 1,
-  },
-  messageContent: {
-    padding: 16,
-    paddingBottom: 8,
-    flexGrow: 1,
-  },
+  messageArea: { flex: 1 },
+  messageContent: { padding: 16, paddingBottom: 8, flexGrow: 1 },
 
-  // Empty state
-  emptyState: {
-    paddingTop: 24,
-    marginBottom: 8,
-  },
+  emptyState: { paddingTop: 24, marginBottom: 8 },
   emptyGreeting: {
-    fontFamily: CG300,
-    fontStyle: 'italic',
-    fontSize: 22,
-    color: '#2A2420',
-    lineHeight: 29,
-    marginBottom: 6,
+    fontFamily: CG300, fontStyle: 'italic', fontSize: 22,
+    color: '#2A2420', lineHeight: 29, marginBottom: 6,
   },
-  emptySubtitle: {
-    fontFamily: DM300,
-    fontSize: 13,
-    color: MUTED,
-    lineHeight: 20,
-  },
+  emptySubtitle: { fontFamily: DM300, fontSize: 13, color: MUTED, lineHeight: 20 },
 
-  // Message rows
-  msgRow: {
-    marginBottom: 8,
-  },
-  msgRowUser: {
-    alignItems: 'flex-end',
-  },
-  msgRowAi: {
-    alignItems: 'flex-start',
-  },
+  msgRow: { marginBottom: 8 },
+  msgRowUser: { alignItems: 'flex-end' },
+  msgRowAi: { alignItems: 'flex-start', marginBottom: 8 },
 
-  // Bubbles
-  bubble: {
-    maxWidth: '82%',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  userBubble: {
-    backgroundColor: GOLD,
-    borderRadius: 16,
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    backgroundColor: CARD,
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: {
-    fontSize: 14,
-    lineHeight: 21.7,
-  },
-  userBubbleText: {
-    fontFamily: DM300,
-    color: INK,
-  },
-  aiBubbleText: {
-    fontFamily: DM300,
-    color: DARK,
-  },
+  bubble: { maxWidth: '82%', paddingVertical: 10, paddingHorizontal: 14 },
+  userBubble: { backgroundColor: GOLD, borderRadius: 16, borderBottomRightRadius: 4 },
+  aiBubble: { backgroundColor: CARD, borderRadius: 16, borderBottomLeftRadius: 4, paddingVertical: 10, paddingHorizontal: 14 },
+  bubbleText: { fontSize: 14, lineHeight: 21.7 },
+  userBubbleText: { fontFamily: DM300, color: INK },
+  aiBubbleText: { fontFamily: DM300, color: DARK },
 
-  // Typing dots
-  typingDots: {
-    flexDirection: 'row',
-    gap: 5,
-    padding: 8,
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: GOLD,
-    opacity: 0.7,
-  },
+  typingDots: { flexDirection: 'row', gap: 5, alignItems: 'center', minHeight: 20 },
+  typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD },
 
-  // Action card
   actionCard: {
     backgroundColor: 'rgba(201,168,76,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.3)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
-    marginTop: 2,
-    marginHorizontal: 2,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)',
+    borderRadius: 14, padding: 14,
+    marginBottom: 8, marginTop: 2, marginHorizontal: 2,
   },
   actionCardLabel: {
-    fontFamily: DM300,
-    fontSize: 8,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: GOLD,
-    marginBottom: 8,
+    fontFamily: DM300, fontSize: 8, letterSpacing: 3,
+    textTransform: 'uppercase', color: GOLD, marginBottom: 8,
   },
-  actionCardPreview: {
-    fontFamily: DM300,
-    fontSize: 14,
-    color: DARK,
-    marginBottom: 14,
-    lineHeight: 21,
-  },
-  actionCardButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  actionCardPreview: { fontFamily: DM300, fontSize: 14, color: DARK, marginBottom: 14, lineHeight: 21 },
+  actionCardButtons: { flexDirection: 'row', gap: 10 },
   actionConfirmBtn: {
-    flex: 1,
-    height: 42,
-    backgroundColor: GOLD,
-    borderRadius: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, height: 42, backgroundColor: GOLD,
+    borderRadius: 100, alignItems: 'center', justifyContent: 'center',
   },
-  actionConfirmBtnBusy: {
-    backgroundColor: 'rgba(201,168,76,0.5)',
-  },
-  actionConfirmText: {
-    fontFamily: DM400,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: INK,
-  },
+  actionConfirmBtnBusy: { backgroundColor: 'rgba(201,168,76,0.5)' },
+  actionConfirmText: { fontFamily: DM400, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK },
   actionCancelBtn: {
-    height: 42,
-    paddingHorizontal: 18,
-    borderWidth: 0.5,
-    borderColor: '#D4D0CA',
-    borderRadius: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 42, paddingHorizontal: 18, borderWidth: 0.5,
+    borderColor: '#D4D0CA', borderRadius: 100, alignItems: 'center', justifyContent: 'center',
   },
-  actionCancelText: {
-    fontFamily: DM300,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: MUTED,
-  },
+  actionCancelText: { fontFamily: DM300, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: MUTED },
 
-  // Suggestion chips
-  chipsScroll: {
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  chipsContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    gap: 8,
-    flexDirection: 'row',
-  },
+  chipsScroll: { flexGrow: 0, flexShrink: 0 },
+  chipsContent: { paddingHorizontal: 20, paddingBottom: 10, gap: 8, flexDirection: 'row' },
   chip: {
-    height: 34,
-    paddingHorizontal: 12,
-    backgroundColor: CARD,
-    borderWidth: 0.5,
-    borderColor: 'rgba(201,168,76,0.4)',
-    borderRadius: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 34, paddingHorizontal: 12, backgroundColor: CARD,
+    borderWidth: 0.5, borderColor: 'rgba(201,168,76,0.4)',
+    borderRadius: 100, alignItems: 'center', justifyContent: 'center',
   },
-  chipText: {
-    fontFamily: DM300,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: GOLD,
-    flexShrink: 0,
-  },
+  chipText: { fontFamily: DM300, fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: GOLD, flexShrink: 0 },
 
-  // Input bar
   inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    borderTopWidth: 0.5,
-    borderTopColor: BORDER,
-    backgroundColor: BG,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingTop: 10,
+    borderTopWidth: 0.5, borderTopColor: BORDER, backgroundColor: BG,
   },
   textInput: {
-    flex: 1,
-    height: 46,
-    backgroundColor: CARD,
-    borderWidth: 0.5,
-    borderColor: BORDER,
-    borderRadius: 100,
-    paddingHorizontal: 18,
-    fontFamily: DM300,
-    fontSize: 14,
-    color: DARK,
+    flex: 1, height: 46, backgroundColor: CARD,
+    borderWidth: 0.5, borderColor: BORDER, borderRadius: 100,
+    paddingHorizontal: 18, fontFamily: DM300, fontSize: 14, color: DARK,
   },
-  sendBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  sendBtnActive: {
-    backgroundColor: GOLD,
-  },
-  sendBtnInactive: {
-    backgroundColor: '#E8E5DF',
-  },
-  sendIcon: {
-    fontSize: 16,
-    fontFamily: DM400,
-  },
+  sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sendBtnActive: { backgroundColor: GOLD },
+  sendBtnInactive: { backgroundColor: '#E8E5DF' },
+  sendIcon: { fontSize: 16, fontFamily: DM400 },
 });
