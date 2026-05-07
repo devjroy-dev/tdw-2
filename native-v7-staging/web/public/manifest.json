@@ -1,0 +1,65 @@
+{
+  "name": "The Dream Wedding",
+  "short_name": "TDW",
+  "description": "The Curated Wedding OS",
+  "start_url": "https://app.thedreamwedding.in/",
+  "display": "standalone",
+  "background_color": "#F8F7F5",
+  "theme_color": "#F8F7F5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "scope": "https://app.thedreamwedding.in/",
+  "id": "in.thedreamwedding.app",
+  "categories": [
+    "lifestyle",
+    "wedding",
+    "shopping"
+  ],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "The Dream Wedding"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discover Vendors",
+      "url": "/couple/discover/hub",
+      "description": "Browse premium wedding vendors"
+    },
+    {
+      "name": "My Plan",
+      "url": "/couple/plan",
+      "description": "Manage your wedding plan"
+    }
+  ]
+}

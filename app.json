@@ -18,6 +18,10 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "android.permission.READ_CONTACTS",
         "android.permission.WRITE_CONTACTS"
       ],
       "adaptiveIcon": {
@@ -68,6 +72,12 @@
       "backgroundColor": "#F5F0E8",
       "resizeMode": "contain",
       "image": "./assets/images/splash-icon.png"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/883af0e2-8826-4a99-aedb-f85eb1d2d912"
     }
   }
 }
