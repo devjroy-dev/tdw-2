@@ -126,9 +126,9 @@ export default function VendorTopBar() {
               >
                 {isDreamAi ? (
                   <View style={styles.dreamAiLabel}>
-                    <Text style={[styles.pillText, active && styles.pillTextActive]}>✦ AI</Text>
-                    <View style={[styles.betaBadge, active && styles.betaBadgeActive]}>
-                      <Text style={[styles.betaText, active && styles.betaTextActive]}>beta</Text>
+                    <Text style={styles.pillAiText}>✦ AI</Text>
+                    <View style={styles.betaBadge}>
+                      <Text style={styles.betaText}>beta</Text>
                     </View>
                   </View>
                 ) : (
@@ -216,30 +216,28 @@ const styles = StyleSheet.create({
 
   pillGroup: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#EDEAE4', borderRadius: 20, padding: 3,
+    backgroundColor: 'rgba(17,17,17,0.06)', borderRadius: 20, padding: 3,
   },
-  pill: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'transparent' },
+  pill: { borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: 'transparent' },
   pillActiveDefault: {
-    backgroundColor: CARD,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.10, shadowRadius: 2, elevation: 1,
+    backgroundColor: INK,
   },
   pillActiveDreamAi: {
-    backgroundColor: GOLD,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.10, shadowRadius: 2, elevation: 1,
+    backgroundColor: 'transparent',
   },
   pillText:       { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: MUTED },
-  pillTextActive: { color: INK },
+  pillTextActive: { color: '#F8F7F5' },
+  pillTextActiveDreamAi: { color: GOLD },
+  pillAiText:     { fontFamily: JOST, fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: GOLD },
 
   dreamAiLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   betaBadge: {
     borderRadius: 100, paddingHorizontal: 5, paddingVertical: 1,
     backgroundColor: 'rgba(201,168,76,0.1)', borderWidth: 0.5, borderColor: 'rgba(201,168,76,0.3)',
   },
-  betaBadgeActive: { backgroundColor: 'rgba(12,10,9,0.15)', borderColor: 'rgba(12,10,9,0.2)' },
+  betaBadgeActive: { backgroundColor: 'rgba(201,168,76,0.1)', borderColor: 'rgba(201,168,76,0.3)' },
   betaText:        { fontFamily: JOST, fontSize: 6, letterSpacing: 1, textTransform: 'uppercase', color: GOLD },
-  betaTextActive:  { color: INK },
+  betaTextActive:  { color: GOLD },
 
   profileCircle: {
     width: 32, height: 32, borderRadius: 16,
