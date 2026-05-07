@@ -120,7 +120,7 @@ function DiscoverFeed({ onClose, userId, mode }: {
   mode: 'feed' | 'blind';
 }) {
   const insets = useSafeAreaInsets();
-  const [vendors, setVendors] = useState(SEED_VENDORS);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [vendorIdx, setVendorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
   const [overlayVisible, setOverlayVisible] = useState(false);
@@ -135,7 +135,7 @@ function DiscoverFeed({ onClose, userId, mode }: {
       .then(r => r.json())
       .then(d => {
         const raw = Array.isArray(d) ? d : (d?.data || d?.vendors || []);
-        if (raw.length === 0) return; // keep seed
+        if (raw.length === 0) { setVendors([]); return; }
         const mapped = raw.map((v: any) => ({
           id: v.id,
           name: mode === 'blind' ? '— — —' : (v.name || v.vendor_name || 'Vendor'),
@@ -146,6 +146,7 @@ function DiscoverFeed({ onClose, userId, mode }: {
           priceLabel: mode === 'blind' ? '' : (v.starting_price ? `₹${(v.starting_price / 100000).toFixed(1)}L onwards` : ''),
           tagline: v.tagline || v.about?.slice(0, 60) || '',
           images: [
+            ...(v.photos || []),
             ...(v.featured_photos || []),
             ...(v.portfolio_images || []),
           ].filter(Boolean).slice(0, 6),
