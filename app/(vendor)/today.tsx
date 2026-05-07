@@ -67,7 +67,7 @@ function attentionCount(n: number) {
   return 'Three moments for today.';
 }
 function deltaLabel(d: number) {
-  if (d === 0) return '\u2014';
+  if (d === 0) return '—';
   return (d > 0 ? '+' : '') + d + ' vs last week';
 }
 
@@ -124,7 +124,7 @@ function AttentionCard({ item, onPress }: { item: AttentionItem; onPress?: () =>
           </View>
         )}
         <Text style={[styles.attentionCta, { color: isHotDate ? hotColour : MUTED, marginLeft: isOverdue ? 0 : 'auto' as any }]}>
-          {item.cta} \u2192
+          {item.cta} →
         </Text>
       </View>
     </TouchableOpacity>
@@ -147,21 +147,21 @@ function QuickActions({ category, onDreamAi }: { category?: string; onDreamAi: (
   const universal = [
     { label: 'New Client',  icon: '+', onTap: () => router.push('/(vendor)/clients') },
     { label: 'New Invoice', icon: 'Rs', onTap: () => router.push('/(vendor)/money') },
-    { label: 'Block Date',  icon: '\u25fb', onTap: () => router.push('/(vendor)/studio') },
-    { label: 'Ask DreamAi', icon: '\u2756', onTap: onDreamAi },
-    { label: 'Leads',       icon: '\u2197', onTap: () => router.push('/(vendor)/studio') },
+    { label: 'Block Date',  icon: '◻', onTap: () => router.push('/(vendor)/studio') },
+    { label: 'Ask DreamAi', icon: '❖', onTap: onDreamAi },
+    { label: 'Leads',       icon: '↗', onTap: () => router.push('/(vendor)/studio') },
   ];
 
   const catAction = ({
-    photographer:  { label: 'Add Shoot',    icon: '\u25c8', onTap: () => router.push('/(vendor)/studio') },
-    videographer:  { label: 'Add Shoot',    icon: '\u25c8', onTap: () => router.push('/(vendor)/studio') },
-    mua:           { label: 'Add Trial',    icon: '\u25ce', onTap: () => router.push('/(vendor)/clients') },
-    decorator:     { label: 'Site Visit',   icon: '\u2b21', onTap: () => router.push('/(vendor)/studio') },
-    venue:         { label: 'Book Tour',    icon: '\u2b21', onTap: () => router.push('/(vendor)/clients') },
-    designer:      { label: 'Book Fitting', icon: '\u25ce', onTap: () => router.push('/(vendor)/clients') },
-    jeweller:      { label: 'Book Viewing', icon: '\u25ce', onTap: () => router.push('/(vendor)/clients') },
+    photographer:  { label: 'Add Shoot',    icon: '◈', onTap: () => router.push('/(vendor)/studio') },
+    videographer:  { label: 'Add Shoot',    icon: '◈', onTap: () => router.push('/(vendor)/studio') },
+    mua:           { label: 'Add Trial',    icon: '◎', onTap: () => router.push('/(vendor)/clients') },
+    decorator:     { label: 'Site Visit',   icon: '⬡', onTap: () => router.push('/(vendor)/studio') },
+    venue:         { label: 'Book Tour',    icon: '⬡', onTap: () => router.push('/(vendor)/clients') },
+    designer:      { label: 'Book Fitting', icon: '◎', onTap: () => router.push('/(vendor)/clients') },
+    jeweller:      { label: 'Book Viewing', icon: '◎', onTap: () => router.push('/(vendor)/clients') },
   } as Record<string, { label: string; icon: string; onTap: () => void }>)[category?.toLowerCase() || '']
-    || { label: 'Add Task', icon: '\u25d0', onTap: () => router.push('/(vendor)/studio') };
+    || { label: 'Add Task', icon: '◐', onTap: () => router.push('/(vendor)/studio') };
 
   const actions = [...universal, catAction];
 
@@ -199,7 +199,7 @@ function OnboardingCard({ num, title, subtitle, ctaLabel, onCta, onDone }: {
       <Text style={styles.onboardingSub}>{subtitle}</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
         <TouchableOpacity onPress={onCta}>
-          <Text style={styles.onboardingCta}>{ctaLabel} \u2192</Text>
+          <Text style={styles.onboardingCta}>{ctaLabel} →</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onDone}>
           <Text style={styles.onboardingDone}>Mark done</Text>
@@ -369,7 +369,7 @@ export default function VendorTodayScreen() {
               activeOpacity={0.85}
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setIntroDismissed(true); }}
             >
-              <Text style={styles.introCtaText}>GOT IT — LET'S START \u2192</Text>
+              <Text style={styles.introCtaText}>GOT IT — LET'S START →</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -403,10 +403,10 @@ export default function VendorTodayScreen() {
             onPress={() => router.push('/(vendor)/dreamai')}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-              <Text style={styles.nudgeStar}>\u2756</Text>
+              <Text style={styles.nudgeStar}>❖</Text>
               <Text style={styles.nudgeText}>{nudge.text}</Text>
             </View>
-            <Text style={styles.nudgeCta}>ASK \u2192</Text>
+            <Text style={styles.nudgeCta}>ASK →</Text>
           </TouchableOpacity>
         )}
 
@@ -419,7 +419,7 @@ export default function VendorTodayScreen() {
             </Text>
             <Text style={styles.urgencySub}>Complete your bio and submit for Discovery.</Text>
             <TouchableOpacity onPress={() => router.push('/(vendor)/studio')}>
-              <Text style={styles.urgencyCta}>COMPLETE NOW \u2192</Text>
+              <Text style={styles.urgencyCta}>COMPLETE NOW →</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -429,7 +429,7 @@ export default function VendorTodayScreen() {
           <View style={[styles.card, styles.gentleNudge]}>
             <Text style={styles.gentleNudgeText}>Ready to go live? Your Discovery profile is waiting.</Text>
             <TouchableOpacity onPress={() => router.push('/(vendor)/studio')}>
-              <Text style={styles.gentleNudgeCta}>SUBMIT \u2192</Text>
+              <Text style={styles.gentleNudgeCta}>SUBMIT →</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -445,7 +445,7 @@ export default function VendorTodayScreen() {
             <Text style={styles.waHint}>Send: "What can you do?"</Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
               <TouchableOpacity style={styles.waBtn}>
-                <Text style={styles.waBtnText}>OPEN WHATSAPP \u2192</Text>
+                <Text style={styles.waBtnText}>OPEN WHATSAPP →</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={async () => { await AsyncStorage.setItem('vendor_wa_dismissed', 'true'); setWaDismissed(true); }}>
                 <Text style={styles.waDismiss}>Dismiss</Text>
@@ -574,13 +574,13 @@ export default function VendorTodayScreen() {
           <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
             <View style={styles.tipDivider} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.tipLabel}>\u2756 TIP</Text>
+              <Text style={styles.tipLabel}>❖ TIP</Text>
               <Text style={styles.tipText} numberOfLines={2}>
                 <Text style={styles.tipTitle}>{todaysTip.title}</Text>
-                {' \u2014 '}{todaysTip.desc.length > 55 ? todaysTip.desc.slice(0, 55) + '...' : todaysTip.desc}
+                {' — '}{todaysTip.desc.length > 55 ? todaysTip.desc.slice(0, 55) + '...' : todaysTip.desc}
               </Text>
               <TouchableOpacity onPress={() => router.push('/(vendor)/studio')}>
-                <Text style={styles.tipMore}>More \u2192</Text>
+                <Text style={styles.tipMore}>More →</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -592,7 +592,7 @@ export default function VendorTodayScreen() {
           activeOpacity={0.85}
           onPress={() => router.push('/(vendor)/dreamai')}
         >
-          <Text style={styles.dreamaiStar}>\u2756</Text>
+          <Text style={styles.dreamaiStar}>❖</Text>
           <Text style={styles.dreamaiLabel}>DreamAi</Text>
           <Text style={styles.dreamaiPlaceholder}>Ask anything about your business...</Text>
         </TouchableOpacity>
