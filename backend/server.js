@@ -4504,45 +4504,15 @@ app.get('/api/v2/auth/pin-status', async (req, res) => {
   try {
     const { phone, role } = req.query;
     if (!phone) return res.status(400).json({ found: false, pin_set: false, userId: null });
-
     const bare = ('' + phone).replace(/\D/g, '').slice(-10);
-
     if (role === 'vendor') {
-      // Vendors: phone stored as bare 10-digit in vendors table
-      const { data: vendor } = await supabase
-        .from('vendors')
-        .select('id, password_hash, name')
-        .eq('phone', bare)
-        .maybeSingle();
-
+      const { data: vendor } = await supabase.from('vendors').select('id, pin_hash, name').eq('phone', bare).maybeSingle();
       if (!vendor) return res.json({ found: false, pin_set: false, userId: null });
-
-      return res.json({
-        found: true,
-        userId: vendor.id,
-        pin_set: !!vendor.password_hash,
-        name: vendor.name || null,
-      });
+      return res.json({ found: true, userId: vendor.id, pin_set: !!vendor.pin_hash, name: vendor.name || null });
     }
-
-    // Couples: phone stored as +91XXXXXXXXXX in users table
-    const fullPhone = '+91' + bare;
-    const { data: user } = await supabase
-      .from('users')
-      .select('id, password_hash, name, couple_tier')
-      .eq('phone', fullPhone)
-      .maybeSingle();
-
+    const { data: user } = await supabase.from('users').select('id, pin_hash, name, couple_tier').eq('phone', '+91' + bare).maybeSingle();
     if (!user) return res.json({ found: false, pin_set: false, userId: null });
-
-    return res.json({
-      found: true,
-      userId: user.id,
-      pin_set: !!user.password_hash,
-      name: user.name || null,
-      couple_tier: user.couple_tier || 'lite',
-    });
-
+    return res.json({ found: true, userId: user.id, pin_set: !!user.pin_hash, name: user.name || null, couple_tier: user.couple_tier || 'lite' });
   } catch (error) {
     console.error('[pin-status] error:', error.message);
     res.status(500).json({ found: false, pin_set: false, userId: null });
@@ -4557,68 +4527,52 @@ app.post('/api/v2/auth/verify-pin', async (req, res) => {
   try {
     const { userId, pin, role, phone } = req.body;
     if (!pin) return res.status(400).json({ success: false, error: 'PIN required' });
-
     if (role === 'vendor') {
-      // Look up by userId or phone
       let vendor = null;
-      if (userId) {
-        const { data } = await supabase.from('vendors').select('id, password_hash, name, vendor_tier').eq('id', userId).maybeSingle();
-        vendor = data;
-      }
-      if (!vendor && phone) {
-        const bare = ('' + phone).replace(/\D/g, '').slice(-10);
-        const { data } = await supabase.from('vendors').select('id, password_hash, name, vendor_tier').eq('phone', bare).maybeSingle();
-        vendor = data;
-      }
-      if (!vendor || !vendor.password_hash) return res.json({ success: false, error: 'Account not found' });
-
-      const match = await require('bcryptjs').compare(pin, vendor.password_hash);
+      if (userId) { const { data } = await supabase.from('vendors').select('id, pin_hash, name').eq('id', userId).maybeSingle(); vendor = data; }
+      if (!vendor && phone) { const bare = ('' + phone).replace(/\D/g, '').slice(-10); const { data } = await supabase.from('vendors').select('id, pin_hash, name').eq('phone', bare).maybeSingle(); vendor = data; }
+      if (!vendor || !vendor.pin_hash) return res.json({ success: false, error: 'Account not found' });
+      const match = await bcrypt.compare(pin, vendor.pin_hash);
       if (!match) return res.json({ success: false, error: 'Incorrect PIN' });
-
-      // Get subscription tier
-      const { data: sub } = await supabase
-        .from('vendor_subscriptions')
-        .select('tier')
-        .eq('vendor_id', vendor.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      return res.json({
-        success: true,
-        userId: vendor.id,
-        name: vendor.name || null,
-        vendor_tier: sub?.tier || vendor.vendor_tier || 'essential',
-      });
+      const { data: sub } = await supabase.from('vendor_subscriptions').select('tier').eq('vendor_id', vendor.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      return res.json({ success: true, userId: vendor.id, name: vendor.name || null, vendor_tier: sub?.tier || 'essential' });
     }
-
-    // Couple
     let user = null;
-    if (userId) {
-      const { data } = await supabase.from('users').select('id, password_hash, name, couple_tier').eq('id', userId).maybeSingle();
-      user = data;
-    }
-    if (!user && phone) {
-      const bare = ('' + phone).replace(/\D/g, '').slice(-10);
-      const fullPhone = '+91' + bare;
-      const { data } = await supabase.from('users').select('id, password_hash, name, couple_tier').eq('phone', fullPhone).maybeSingle();
-      user = data;
-    }
-    if (!user || !user.password_hash) return res.json({ success: false, error: 'Account not found' });
-
-    const match = await require('bcryptjs').compare(pin, user.password_hash);
+    if (userId) { const { data } = await supabase.from('users').select('id, pin_hash, name, couple_tier').eq('id', userId).maybeSingle(); user = data; }
+    if (!user && phone) { const bare = ('' + phone).replace(/\D/g, '').slice(-10); const { data } = await supabase.from('users').select('id, pin_hash, name, couple_tier').eq('phone', '+91' + bare).maybeSingle(); user = data; }
+    if (!user || !user.pin_hash) return res.json({ success: false, error: 'Account not found' });
+    const match = await bcrypt.compare(pin, user.pin_hash);
     if (!match) return res.json({ success: false, error: 'Incorrect PIN' });
-
-    return res.json({
-      success: true,
-      userId: user.id,
-      name: user.name || null,
-      couple_tier: user.couple_tier || 'lite',
-      dreamer_type: user.couple_tier || 'lite',
-    });
-
+    return res.json({ success: true, userId: user.id, name: user.name || null, couple_tier: user.couple_tier || 'lite', dreamer_type: user.couple_tier || 'lite' });
   } catch (error) {
     console.error('[verify-pin] error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/v2/auth/set-pin — first-time PIN creation after OTP
+// Body: { userId, pin, role, phone }
+app.post('/api/v2/auth/set-pin', async (req, res) => {
+  try {
+    const { userId, pin, role, phone } = req.body;
+    if (!pin || !/^\d{4}$/.test(pin)) return res.status(400).json({ success: false, error: 'PIN must be 4 digits' });
+    const pinHash = await bcrypt.hash(pin, 10);
+    if (role === 'vendor') {
+      let vid = userId;
+      if (!vid && phone) { const bare = ('' + phone).replace(/\D/g, '').slice(-10); const { data } = await supabase.from('vendors').select('id').eq('phone', bare).maybeSingle(); vid = data?.id; }
+      if (!vid) return res.status(404).json({ success: false, error: 'Vendor not found' });
+      const { error } = await supabase.from('vendors').update({ pin_hash: pinHash }).eq('id', vid);
+      if (error) throw error;
+      return res.json({ success: true });
+    }
+    let uid = userId;
+    if (!uid && phone) { const bare = ('' + phone).replace(/\D/g, '').slice(-10); const { data } = await supabase.from('users').select('id').eq('phone', '+91' + bare).maybeSingle(); uid = data?.id; }
+    if (!uid) return res.status(404).json({ success: false, error: 'User not found' });
+    const { error } = await supabase.from('users').update({ pin_hash: pinHash }).eq('id', uid);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[set-pin] error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
