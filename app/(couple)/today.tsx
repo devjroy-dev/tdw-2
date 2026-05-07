@@ -309,7 +309,7 @@ export default function CoupleTodayScreen() {
           <TouchableOpacity style={styles.pillAi} onPress={() => router.replace('/(couple)/dreamai')}>
             <Text style={styles.pillAiText}>✦ AI</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.pill}>
+          <TouchableOpacity style={styles.pill} onPress={() => router.push('/(couple)/discover')}>
             <Text style={styles.pillText}>DISCOVER</Text>
           </TouchableOpacity>
         </View>
