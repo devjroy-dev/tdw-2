@@ -5,7 +5,7 @@ import {
   RefreshControl, Animated, Image, FlatList, Alert,
   ActivityIndicator, Linking, Dimensions, PanResponder,
 } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -3996,6 +3996,8 @@ function AddEventSheetNative({ visible, onClose, userId, events, onSuccess }: {
 export default function CouplePlanScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>('tasks');
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  useEffect(() => { if (tab) setActiveTab(tab as Tab); }, [tab]);
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<EventOption[]>([]);
   const [tier, setTier] = useState<string>('lite');
