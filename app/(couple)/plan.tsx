@@ -775,7 +775,7 @@ function TasksTab({ userId, events, refetch, onExpenseAdded }: {
         notes: t.notes || undefined,
         is_complete: !!t.is_complete,
       });
-      const taskList: Task[] = Array.isArray(d) ? d.map(mapTask) : [];
+      const taskList: Task[] = Array.isArray(d) ? d.map(mapTask) : (Array.isArray(d?.data) ? d.data.map(mapTask) : []);
       setTasks(taskList);
     } catch {}
     finally { setLoading(false); }
