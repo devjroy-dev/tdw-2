@@ -73,11 +73,12 @@
       "resizeMode": "contain",
       "image": "./assets/images/splash-icon.png"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
-      "url": "https://u.expo.dev/883af0e2-8826-4a99-aedb-f85eb1d2d912"
+      "url": "https://u.expo.dev/883af0e2-8826-4a99-aedb-f85eb1d2d912",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "channel": "production"
     }
   }
 }

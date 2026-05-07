@@ -7,7 +7,8 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
-      }
+      },
+      "channel": "production"
     },
     "production": {
       "android": {
@@ -15,7 +16,8 @@
       },
       "ios": {
         "simulator": false
-      }
+      },
+      "channel": "production"
     }
   }
 }
