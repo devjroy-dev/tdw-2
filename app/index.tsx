@@ -127,8 +127,8 @@ export default function LandingScreen() {
 
   // Carousel
   const startCarousel = useCallback(() => {
-    if (intervalRef.current) return;
-    intervalRef.current = setInterval(() => setCur(c => (c + 1) % Math.max(slides.length, 1)), 4000);
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    intervalRef.current = setInterval(() => setCur(c => (c + 1) % Math.max(slides.length, 1)), 3500);
   }, [slides.length]);
 
   const pauseCarousel = useCallback(() => {
