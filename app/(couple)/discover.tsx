@@ -153,7 +153,7 @@ function DiscoverFeed({ onClose, userId, mode }: {
         })).filter((v: any) => v.images.length > 0);
         if (mapped.length > 0) setVendors(mapped);
       })
-      .catch(() => {}); // keep seed on error
+      .catch(() => { if (vendors.length === 0) setVendors(SEED_VENDORS); }); // seed only on error
   }, [userId, mode]);
 
   const touchStart = useRef<{ x: number; y: number; t: number } | null>(null);
@@ -168,6 +168,17 @@ function DiscoverFeed({ onClose, userId, mode }: {
   const DOUBLE_TAP_MS = 280;
 
   const vendor = vendors[vendorIdx] || vendors[0];
+
+  // Loading state while fetch is in flight
+  if (!vendor) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0C0A09', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontFamily: 'CormorantGaramond_300Light', fontSize: 22, color: '#F8F7F5', fontStyle: 'italic' }}>
+          Finding makers for you…
+        </Text>
+      </View>
+    );
+  }
 
   function goNextVendor() {
     setVendorIdx(i => (i + 1) % vendors.length);
