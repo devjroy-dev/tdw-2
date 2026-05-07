@@ -91,7 +91,7 @@ export default function AdminInvitesPage() {
     <>
       <style>{fonts}</style>
       {toast && (
-        <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, padding: '10px 20px', borderRadius: 4, zIndex: 9999 }}>{toast}</div>
+        <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 13, padding: '10px 20px', borderRadius: 4, zIndex: 9999 }}>{toast}</div>
       )}
 
       {/* Header */}
@@ -121,7 +121,7 @@ export default function AdminInvitesPage() {
         <label style={lbl}>Expiry Date (optional)</label>
         <input type="date" value={expires} onChange={e => setExpires(e.target.value)} style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #E2DED8', outline: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 300, fontSize: 12, color: '#111111', padding: '6px 0', marginBottom: 20 }} />
 
-        <button onClick={generate} disabled={generating} style={{ width: '100%', background: '#111111', color: '#111111', border: 'none', padding: '14px 0', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 2 }}>
+        <button onClick={generate} disabled={generating} style={{ width: '100%', background: '#111111', color: '#F8F7F5', border: 'none', padding: '14px 0', fontFamily: '"Jost", sans-serif', fontWeight: 300, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 2 }}>
           {generating ? 'Generating…' : 'Generate Code'}
         </button>
 

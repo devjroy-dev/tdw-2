@@ -6,7 +6,7 @@ const H = { 'Content-Type': 'application/json', 'x-admin-password': 'Mira@255135
 
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
 }
 
 interface FeaturedVendor { id: string; name: string; category: string; city: string; tier: string; is_verified: boolean; }
@@ -56,7 +56,7 @@ export default function FeaturedPage() {
         <p style={{ fontFamily: "'Jost',sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>Admin</p>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 32, color: '#111111', margin: 0 }}>Featured Placement</p>
-          <button onClick={() => setShowSearch(s => !s)} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#111111', border: 'none', borderRadius: 8, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>+ Add Vendor</button>
+          <button onClick={() => setShowSearch(s => !s)} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 8, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>+ Add Vendor</button>
         </div>
         <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '8px 0 0', lineHeight: 1.5 }}>Vendors featured here appear at the top of the Discovery feed. This is your editorial curation layer.</p>
       </div>

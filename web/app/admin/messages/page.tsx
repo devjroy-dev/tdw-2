@@ -8,7 +8,7 @@ function fmtDate(d: string) { return d ? new Date(d).toLocaleDateString('en-IN',
 function timeAgo(d: string) { const diff = Date.now() - new Date(d).getTime(); const h = Math.floor(diff/3600000); const dd = Math.floor(diff/86400000); if (h < 1) return 'just now'; if (h < 24) return `${h}h ago`; if (dd < 7) return `${dd}d ago`; return fmtDate(d); }
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
 }
 
 interface FlaggedMsg { id: string; enquiry_id: string; content: string; from_role: string; created_at: string; couple_name: string; vendor_name: string; }

@@ -19,7 +19,7 @@ function Shimmer({ h: height, w = '100%', br = 8 }: { h: number; w?: string | nu
 
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
 }
 
 interface Counter { total: number; today_delta?: number; delta?: number; }
@@ -125,7 +125,7 @@ export default function CommandCentrePage() {
 
       {/* Quick actions */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        <button onClick={backfill} disabled={backfilling} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#111111', border: 'none', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: backfilling ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+        <button onClick={backfill} disabled={backfilling} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: backfilling ? 0.6 : 1, whiteSpace: 'nowrap' }}>
           {backfilling ? '⟳ Backfilling...' : '⟳ Backfill Entity Links'}
         </button>
         <button onClick={exportReport} style={{ height: 36, padding: '0 16px', background: 'transparent', color: '#111111', border: '1px solid #E2DED8', borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>

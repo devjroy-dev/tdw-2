@@ -8,7 +8,7 @@ const H = { 'Content-Type': 'application/json', 'x-admin-password': 'Mira@255135
 function fmtDate(d: string) { return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'; }
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
 }
 
 const TIER_COLORS: Record<string, string> = { essential: '#888580', signature: '#C9A84C', prestige: '#111' };
@@ -161,7 +161,7 @@ export default function MakersPage() {
           <p style={{ fontFamily: "'Jost',sans-serif", fontWeight: 200, fontSize: 9, color: '#888580', letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 4px' }}>Admin</p>
           <p style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, fontSize: 32, color: '#111111', margin: 0 }}>Makers <span style={{ fontSize: 18, color: '#888580' }}>({makers.length})</span></p>
         </div>
-        <button onClick={() => router.push('/admin/images')} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#111111', border: 'none', borderRadius: 8, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>⬡ Approve Images</button>
+        <button onClick={() => router.push('/admin/images')} style={{ height: 36, padding: '0 16px', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 8, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>⬡ Approve Images</button>
       </div>
 
       {/* Search + filters */}

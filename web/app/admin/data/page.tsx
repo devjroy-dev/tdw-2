@@ -6,7 +6,7 @@ const H = { 'Content-Type': 'application/json', 'x-admin-password': 'Mira@255135
 
 function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#111111', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
+  return <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#111111', color: '#F8F7F5', fontFamily: "'DM Sans',sans-serif", fontSize: 13, padding: '10px 20px', borderRadius: 100, zIndex: 9999, whiteSpace: 'nowrap' }}>{msg}</div>;
 }
 
 interface LinkStat { link_type: string; count: number; }
@@ -46,7 +46,7 @@ export default function DataToolsPage() {
             <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 300, color: '#111111', margin: '0 0 12px' }}>Backfill Entity Links?</p>
             <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 300, color: '#888580', margin: '0 0 24px', lineHeight: 1.6 }}>This will scan moodboard_items, vendor_enquiries, and couple_vendors for all Dreamers and create missing entity_links rows. Safe to run multiple times — uses ON CONFLICT DO NOTHING.</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={runBackfill} style={{ flex: 1, height: 44, background: '#111111', color: '#111111', border: 'none', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>Run Backfill</button>
+              <button onClick={runBackfill} style={{ flex: 1, height: 44, background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>Run Backfill</button>
               <button onClick={() => setShowBackfillConfirm(false)} style={{ height: 44, padding: '0 20px', background: 'transparent', border: '1px solid #E2DED8', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, color: '#888580', cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function DataToolsPage() {
               </div>
             )}
           </div>
-          <button onClick={() => setShowBackfillConfirm(true)} disabled={backfilling} style={{ height: 44, padding: '0 20px', background: '#111111', color: '#111111', border: 'none', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: backfilling ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+          <button onClick={() => setShowBackfillConfirm(true)} disabled={backfilling} style={{ height: 44, padding: '0 20px', background: '#111111', color: '#F8F7F5', border: 'none', borderRadius: 100, fontFamily: "'Jost',sans-serif", fontSize: 9, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', opacity: backfilling ? 0.6 : 1, whiteSpace: 'nowrap' }}>
             {backfilling ? '⟳ Running...' : '⟳ Run Backfill'}
           </button>
         </div>
