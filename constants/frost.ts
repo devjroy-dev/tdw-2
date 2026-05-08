@@ -246,14 +246,14 @@ export const FrostCopy = {
 } as const;
 
 // ─── DISCOVER HERO IMAGES — 5 paid/curated spots ─────────────────────────────
-// First five are paid placements managed by Dev/Swati from admin.
-// Replace these URIs with real curated content via admin in production.
+// Managed from admin at /admin/discover-heroes. These are fallbacks only —
+// the native canvas fetches live from /api/v2/discover-heroes.
 export const DiscoverHeroes: Array<{ uri: string; vendor?: string; caption?: string }> = [
-  { uri: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=90&auto=format&fit=crop', vendor: 'Hero \u00B7 Spot 1' },
-  { uri: 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=1600&q=90&auto=format&fit=crop', vendor: 'Hero \u00B7 Spot 2' },
-  { uri: 'https://images.unsplash.com/photo-1583394293214-28a4b0843b1d?w=1600&q=90&auto=format&fit=crop', vendor: 'Hero \u00B7 Spot 3' },
-  { uri: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1600&q=90&auto=format&fit=crop', vendor: 'Hero \u00B7 Spot 4' },
-  { uri: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1600&q=90&auto=format&fit=crop', vendor: 'Hero \u00B7 Spot 5' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg', vendor: 'Hero \u00B7 Spot 1' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266049/IMG_9613_m69ddg.jpg', vendor: 'Hero \u00B7 Spot 2' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1776657982/pr39fasjcom3qfqlv9dd.jpg', vendor: 'Hero \u00B7 Spot 3' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1776349629/zzpw0ksa0cttm9gbdhqm.jpg', vendor: 'Hero \u00B7 Spot 4' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1775922562/Swati_bva6au.jpg', vendor: 'Hero \u00B7 Spot 5' },
 ];
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────

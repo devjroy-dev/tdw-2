@@ -29,7 +29,7 @@ interface FrostPaneProps {
 }
 
 const DEFAULT_IMAGE =
-  'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=85&auto=format&fit=crop';
+  'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg';
 
 export default function FrostPane({
   imageUri = DEFAULT_IMAGE,

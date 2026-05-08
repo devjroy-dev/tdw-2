@@ -23,7 +23,7 @@ import { BlurView } from 'expo-blur';
 // Soft warm bridal scene — placeholder underlying image. Drained to greyscale
 // at rest, blooms back to color on canvas reveal in v0.3.
 const UNDERLYING =
-  'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=85&auto=format&fit=crop';
+  'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg';
 
 export default function FrostBackdrop() {
   if (Platform.OS === 'web') {

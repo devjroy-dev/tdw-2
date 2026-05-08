@@ -38,12 +38,12 @@ const ANDROID_BLUR_SUPPORTED =
 
 // ─── Underlying image ────────────────────────────────────────────────────────
 const UNDER_IMAGE =
-  'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=85&auto=format&fit=crop';
+  'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg';
 
 const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1519741497674-611481863552?w=1080&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=1080&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1583394293214-28a4b0843b1d?w=1080&q=85&auto=format&fit=crop',
+  'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg',
+  'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266049/IMG_9613_m69ddg.jpg',
+  'https://res.cloudinary.com/dccso5ljv/image/upload/v1776657982/pr39fasjcom3qfqlv9dd.jpg',
 ];
 
 // ─── Static fallback line picker — used while idle endpoint loads ────────────
