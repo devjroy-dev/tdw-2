@@ -167,6 +167,7 @@ export default function CoupleOtpScreen() {
   }
 
   async function handleBiometricEnable() {
+    setShowBiometricOffer(false);
     await setBiometricEnabled(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const s = await getCoupleSession();
@@ -193,11 +194,12 @@ export default function CoupleOtpScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={async () => {
+              setShowBiometricOffer(false);
               const s = await getCoupleSession();
               const isFrost = s?.dreamer_type === 'couple' || !s?.dreamer_type;
               router.replace((isFrost ? '/(frost)/landing' : '/(couple)/today') as any);
             }}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}
           >
             <Text style={styles.biometricLaterText}>Maybe later</Text>
           </TouchableOpacity>

@@ -7,13 +7,6 @@
  *     - Muse/Discover full-bleed image canvases (real colour)
  *     - Discover hero carousel BEFORE More is tapped (real colour)
  *
- * ZIP 6 — Android frost fix:
- *   Android historically rendered as flat translucent rectangles (no blur of
- *   the material below). expo-blur 12.9+ ships an experimental BlurView for
- *   Android API 31+ via the "dimezisBlurView" method, which actually samples
- *   and blurs what's behind the view. We feature-detect API level — devices
- *   below 31 keep the translucent solid fallback.
- *
  * Modes:
  *   - 'button'   — default. Light frosted, slightly brighter than page.
  *                  Use for Journey tiles, list rows, action buttons.
@@ -43,13 +36,6 @@ interface FrostedSurfaceProps {
   /** Disabled = no press, slightly muted appearance. */
   disabled?: boolean;
 }
-
-// Android API 31+ supports the experimental dimezis blur view. Below that,
-// we fall back to a translucent solid which still reads as frosted-ish.
-const ANDROID_BLUR_SUPPORTED =
-  Platform.OS === 'android' &&
-  typeof Platform.Version === 'number' &&
-  (Platform.Version as number) >= FrostMaterial.androidMinApi;
 
 export default function FrostedSurface({
   children,
@@ -89,17 +75,7 @@ export default function FrostedSurface({
         />
       );
     }
-    // Android — true blur on API 31+, translucent fallback otherwise
-    if (ANDROID_BLUR_SUPPORTED) {
-      return (
-        <BlurView
-          intensity={isComposer ? FrostMaterial.composerBlurAndroid : FrostMaterial.buttonBlurAndroid}
-          tint={isComposer ? 'default' : 'light'}
-          experimentalBlurMethod={FrostMaterial.androidExperimentalMethod}
-          style={StyleSheet.absoluteFill}
-        />
-      );
-    }
+    // Android — translucent tint
     return (
       <View
         style={[
