@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { FrostColors, FrostFonts, FrostSpace, FrostRadius } from '../constants/frost';
-import { setCoupleSession } from '../services/frostApi';
+import { setCoupleSession } from '../utils/session';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
@@ -302,7 +302,11 @@ export default function CoupleLoginScreen() {
       } else {
         router.replace('/couple-pin-login');
       }
-    } catch { setOtpError('Verification failed. Try again.'); }
+    } catch (e) {
+      // Log the actual error — silent catches cost us hours debugging the wrong layer.
+      console.error('[verifyOtp]', e);
+      setOtpError('Verification failed. Try again.');
+    }
     setLoading(false);
   };
 
