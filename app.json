@@ -9,10 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "in.thedreamwedding.dreamer"
+      "bundleIdentifier": "in.thedreamwedding.app"
     },
     "android": {
-      "package": "in.thedreamwedding.dreamer",
+      "package": "in.thedreamwedding.app",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
