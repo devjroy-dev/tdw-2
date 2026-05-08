@@ -327,3 +327,95 @@ export async function saveToMuse(opts: {
     return { success: false, error: err?.message || 'network' };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ZIP 9 — Circle API helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CircleActivityEvent {
+  id: string;
+  actor_user_id: string | null;
+  actor_role: 'bride' | 'circle_member' | 'dreamai' | 'system';
+  event_type: string;
+  payload: Record<string, any>;
+  entity_type: string | null;
+  entity_id: string | null;
+  created_at: string;
+}
+
+export interface CircleThread {
+  thread_id: string;
+  kind: 'group' | 'dm';
+  label: string;
+  group_id?: string;
+  co_planner_id?: string;
+  role?: string;
+  dreamai_access_granted?: boolean;
+  last_message: { content: string; sender_name: string; sender_role: string; created_at: string } | null;
+  last_active: string | null;
+}
+
+export interface CircleMessage {
+  id: string;
+  thread_id: string;
+  sender_user_id: string;
+  sender_name: string;
+  sender_role: string;
+  content: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export async function fetchCircleFeed(limit = 30): Promise<CircleActivityEvent[]> {
+  const session = await getCoupleSession();
+  if (!session) return [];
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/frost/circle/feed/${session.id}?limit=${limit}`);
+    return r?.success ? (r.data || []) : [];
+  } catch { return []; }
+}
+
+export async function fetchCircleThreads(): Promise<CircleThread[]> {
+  const session = await getCoupleSession();
+  if (!session) return [];
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/frost/circle/threads/${session.id}`);
+    return r?.success ? (r.data || []) : [];
+  } catch { return []; }
+}
+
+export async function fetchCircleThreadMessages(threadId: string, limit = 50): Promise<CircleMessage[]> {
+  const session = await getCoupleSession();
+  if (!session) return [];
+  try {
+    const encoded = encodeURIComponent(threadId);
+    const r = await safeFetch(`${API_BASE}/api/v2/frost/circle/threads/${session.id}/${encoded}/messages?limit=${limit}`);
+    return r?.success ? (r.data || []) : [];
+  } catch { return []; }
+}
+
+export async function sendCircleMessage(threadId: string, body: string): Promise<boolean> {
+  const session = await getCoupleSession();
+  if (!session) return false;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/frost/circle/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: session.id, thread_id: threadId, body, sender_name: session.name || 'You' }),
+    });
+    return !!r?.success;
+  } catch { return false; }
+}
+
+export async function fetchCircleUnreadCount(): Promise<number> {
+  // Counts activity events from last 7 days as a proxy for unread
+  const session = await getCoupleSession();
+  if (!session) return 0;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/frost/circle/feed/${session.id}?limit=50`);
+    if (!r?.success) return 0;
+    const events: CircleActivityEvent[] = r.data || [];
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return events.filter(e => new Date(e.created_at).getTime() > cutoff).length;
+  } catch { return 0; }
+}
