@@ -249,7 +249,7 @@ export default function FrostLanding() {
           style={[styles.journeyBar, { paddingBottom: Math.max(insets.bottom, 12) }]}
         >
           <View style={styles.journeyRule} />
-          <Text style={styles.journeyLabel}>{FrostCopy.landing.journeyLabel}</Text>
+          <Text style={styles.journeyLabel} numberOfLines={1} adjustsFontSizeToFit>{FrostCopy.landing.journeyLabel}</Text>
         </Pressable>
       </View>
     </View>
@@ -409,6 +409,8 @@ const styles = StyleSheet.create({
     borderTopColor: FrostColors.hairline,
     paddingTop: FrostSpace.l - 2,
     alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: FrostSpace.xxl,
   },
   journeyRule: {
     width: 28,
