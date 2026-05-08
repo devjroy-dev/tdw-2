@@ -291,11 +291,13 @@ export default function CoupleLoginScreen() {
         setLoading(false);
         return;
       }
-      await setCoupleSession(d);
+      // Response shape: { success: true, user: { id, name, pin_set, couple_tier } }
+      const userData = d.user || d;
+      await setCoupleSession({ ...userData, phone: '+91' + bare });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (d.isNewUser) {
+      if (userData.isNewUser || !userData.name) {
         router.replace('/couple-onboarding');
-      } else if (!d.pin_set) {
+      } else if (!userData.pin_set) {
         router.replace('/(frost)/landing' as any);
       } else {
         router.replace('/couple-pin-login');
