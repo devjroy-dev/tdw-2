@@ -21,7 +21,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, Image, StyleSheet, Animated, Pressable, StatusBar,
-  Dimensions, PanResponder,
+  Dimensions, PanResponder, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,38 +32,52 @@ import {
 import { saveToMuse } from '../../../../services/frostApi';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const SWIPE_THRESHOLD   = 120;          // distance from centre needed to commit
-const SWIPE_VELOCITY    = 0.4;
-const ROTATION_RANGE    = SCREEN_W * 1.5;
-const TAP_MAX_MOVE      = 10;
-const TAP_MAX_TIME      = 250;
-const DOUBLE_TAP_MS     = 300;          // also used for double-LEFT detection
+
+const API_BASE           = 'https://dream-wedding-production-89ae.up.railway.app';
+const SWIPE_THRESHOLD    = 120;
+const SWIPE_VELOCITY     = 0.4;
+const ROTATION_RANGE     = SCREEN_W * 1.5;
+const TAP_MAX_MOVE       = 10;
+const TAP_MAX_TIME       = 250;
+const DOUBLE_TAP_MS      = 300;
 const SWIPE_OFF_DURATION = 220;
 
 interface DiscoverImage {
   id: string;
   imageUrl: string;
+  caption?: string | null;
   vendorId?: string;
 }
 
-// Placeholder pool. Replace with /api/v2/discover/blind-swipe results.
-const PLACEHOLDER_IMAGES: DiscoverImage[] = [
-  { id: 'i1', imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i2', imageUrl: 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i3', imageUrl: 'https://images.unsplash.com/photo-1583394293214-28a4b0843b1d?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i4', imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i5', imageUrl: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i6', imageUrl: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i7', imageUrl: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1200&q=85&auto=format&fit=crop' },
-  { id: 'i8', imageUrl: 'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200&q=85&auto=format&fit=crop' },
-];
-
 export default function BlindSwipe() {
   const insets = useSafeAreaInsets();
-  const [images] = useState<DiscoverImage[]>(PLACEHOLDER_IMAGES);
+  // Images fetched from exploring_photos — your curated editorial pool.
+  // When vendor photos are ready, swap the endpoint to /api/v2/discover/blind-swipe.
+  const [images, setImages] = useState<DiscoverImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(true);
   const [idx, setIdx] = useState(0);
-  const [history, setHistory] = useState<number[]>([]);  // stack of indexes user has passed (for undo)
+  const [history, setHistory] = useState<number[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Fetch editorial photos on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/v2/exploring-photos`);
+        const d = await r.json();
+        if (!cancelled && d.success && Array.isArray(d.photos) && d.photos.length > 0) {
+          setImages(d.photos.map((p: any) => ({
+            id: p.id,
+            imageUrl: p.image_url,
+            caption: p.caption ?? null,
+          })));
+        }
+      } catch { /* silent — empty state handles it */ }
+      if (!cancelled) setLoadingImages(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Card position
   const pan       = useRef(new Animated.ValueXY()).current;
@@ -300,6 +314,32 @@ export default function BlindSwipe() {
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     };
   }, []);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Render guards — loading + empty
+  // ────────────────────────────────────────────────────────────────────────────
+
+  if (loadingImages) {
+    return (
+      <View style={[styles.root, styles.centered]}>
+        <StatusBar barStyle="light-content" />
+        <ActivityIndicator color={FrostColors.goldMuted} size="large" />
+      </View>
+    );
+  }
+
+  if (images.length === 0) {
+    return (
+      <View style={[styles.root, styles.centered]}>
+        <StatusBar barStyle="light-content" />
+        <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+        <Text style={styles.emptyHint}>Check back soon — curated work is on the way.</Text>
+        <Pressable onPress={() => router.back()} style={styles.emptyClose} hitSlop={16}>
+          <X size={22} color={FrostColors.white} strokeWidth={1.5} />
+        </Pressable>
+      </View>
+    );
+  }
 
   // ────────────────────────────────────────────────────────────────────────────
   // Render
@@ -544,5 +584,34 @@ const styles = StyleSheet.create({
     paddingVertical: FrostSpace.s,
     borderRadius: 100,
     overflow: 'hidden',
+  },
+
+  // Loading / empty states
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: FrostSpace.xxl,
+  },
+  emptyTitle: {
+    fontFamily: FrostFonts.display,
+    fontSize: 26,
+    color: FrostColors.white,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: FrostSpace.s,
+  },
+  emptyHint: {
+    fontFamily: FrostFonts.body,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.55)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyClose: {
+    position: 'absolute',
+    top: 60,
+    right: FrostSpace.xxl,
+    width: 32, height: 32,
+    alignItems: 'center', justifyContent: 'center',
   },
 });
