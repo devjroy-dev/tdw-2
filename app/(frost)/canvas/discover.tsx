@@ -1,17 +1,17 @@
 /**
- * Frost \u00B7 Canvas \u00B7 Discover (beta)
+ * Frost · Canvas · Discover (beta)
  *
  * Architecture:
  *   1. Default state: full-bleed carousel of 5 paid hero spots cycling through.
  *      No frost. Real colour. Magazine cover mode.
  *   2. Top-right small frosted pill button: "More" with subtle muted-gold border
  *      and gold label. Discoverable but doesn't break the picture.
- *   3. Tap More \u2192 frosted overlay covers the hero carousel \u2192 reveals 4
+ *   3. Tap More → frosted overlay covers the hero carousel → reveals 4
  *      navigation buttons (frosted) for the original Discover modes:
- *        \u00B7 Blind Swipe
- *        \u00B7 My Feed
- *        \u00B7 Couture
- *        \u00B7 Categories
+ *        · Blind Swipe
+ *        · My Discovery
+ *        · Couture
+ *        · Categories
  *   4. Each button navigates to its dedicated subroute that ports the existing
  *      swipe grammar from native discover.tsx (vertical=next vendor,
  *      horizontal=next photo, double-tap=save).
@@ -39,6 +39,12 @@ const NAV_OPTIONS: Array<{ id: keyof typeof FrostCopy.discoverCanvas.options; ro
   { id: 'couture',    route: '/(frost)/canvas/discover/couture' },
   { id: 'categories', route: '/(frost)/canvas/discover/categories' },
 ];
+
+// Android API 31+ supports experimental dimezis BlurView (true material).
+const ANDROID_BLUR_SUPPORTED =
+  Platform.OS === 'android' &&
+  typeof Platform.Version === 'number' &&
+  (Platform.Version as number) >= FrostMaterial.androidMinApi;
 
 export default function CanvasDiscover() {
   const insets = useSafeAreaInsets();
@@ -137,6 +143,13 @@ export default function CanvasDiscover() {
           />
         ) : Platform.OS === 'ios' ? (
           <BlurView intensity={FrostMaterial.pageBlurIOS} tint="light" style={StyleSheet.absoluteFill} />
+        ) : ANDROID_BLUR_SUPPORTED ? (
+          <BlurView
+            intensity={FrostMaterial.pageBlurAndroid}
+            tint="light"
+            experimentalBlurMethod={FrostMaterial.androidExperimentalMethod}
+            style={StyleSheet.absoluteFill}
+          />
         ) : (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: FrostMaterial.androidPageTint }]} />
         )}

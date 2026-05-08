@@ -114,11 +114,13 @@ export const FrostMaterial = {
   // Page-level frost (covers everything — landing, journey, dream)
   pageBlurWeb:      'blur(20px) saturate(105%)',
   pageBlurIOS:      45,
+  pageBlurAndroid:  30,
   androidPageTint:  'rgba(244,242,238,0.62)',
 
   // Box-level frost (rest state of UnveilCanvas — lighter, layered on page-frost)
   boxBlurWeb:       'blur(10px)',
   boxBlurIOS:       30,
+  boxBlurAndroid:   22,
   androidBoxTint:   'rgba(244,242,238,0.32)',
 
   // BUTTON / ROW / PANEL frost — used by FrostedSurface (NEW in v2)
@@ -126,12 +128,19 @@ export const FrostMaterial = {
   // buttons read as tactile against the surroundings without breaking material.
   buttonBlurWeb:    'blur(14px) saturate(110%)',
   buttonBlurIOS:    35,
+  buttonBlurAndroid: 26,
   androidButtonTint: 'rgba(255,253,248,0.55)',
 
   // COMPOSER frost — darker, used inside Dream chat compose bar
   composerBlurWeb:    'blur(28px) saturate(115%) brightness(0.94)',
   composerBlurIOS:    55,
+  composerBlurAndroid: 38,
   androidComposerTint: 'rgba(245,242,235,0.78)',
+
+  // Android experimental BlurView — true material on API 31+ (Android 12+).
+  // Falls back to androidPageTint/etc translucent solids on older devices.
+  androidExperimentalMethod: 'dimezisBlurView' as const,
+  androidMinApi: 31,
 
   // Image filters (web)
   greyscaleFilter:    'grayscale(100%) contrast(0.92) brightness(1.05)',
@@ -175,15 +184,38 @@ export const FrostCopy = {
   },
 
   discoverCanvas: {
-    eyebrow: 'DISCOVER \u00B7 BETA',
+    eyebrow: 'DISCOVER · BETA',
     moreLabel: 'More',
     overlayTitle: 'How would you like to look?',
     options: {
-      blindSwipe: { title: 'Blind Swipe', sub: 'One vendor at a time. Vertical for the next, horizontal for more of them.' },
-      myFeed:     { title: 'My Feed',     sub: 'Scroll through everyone we have curated for you.' },
-      couture:    { title: 'Couture',     sub: 'Atelier-only. Invitation pieces, by appointment.' },
-      categories: { title: 'Categories',  sub: 'MUA, photography, decor, jewellery, and more.' },
+      blindSwipe: { title: 'Blind Swipe',     sub: 'One image at a time. Right to save, left to pass.' },
+      myFeed:     { title: 'My Discovery',    sub: 'Vertical for the next vendor, horizontal for more of them.' },
+      couture:    { title: 'Couture',         sub: 'Atelier-only. Invitation pieces, by appointment.' },
+      categories: { title: 'Categories',      sub: 'MUA, photography, decor, jewellery, and more.' },
     },
+    blindSwipeEyebrow:    'DISCOVER · BLIND SWIPE',
+    discoveryFeedEyebrow: 'DISCOVER · MY DISCOVERY',
+    filter: {
+      title: 'Filters',
+      categoryLabel: 'Category',
+      priceLabel: 'Budget',
+      apply: 'Apply',
+      reset: 'Reset',
+      allCategory: 'All',
+    },
+    discoveryCategories: [
+      { id: 'all',         label: 'All' },
+      { id: 'photography', label: 'Photography' },
+      { id: 'mua',         label: 'Makeup & Hair' },
+      { id: 'decor',       label: 'Decor' },
+      { id: 'venue',       label: 'Venue' },
+      { id: 'designer',    label: 'Designer' },
+      { id: 'event',       label: 'Event Mgmt' },
+      { id: 'jewellery',   label: 'Jewellery' },
+    ],
+    priceMin: 25000,
+    priceMax: 2500000,
+    priceStep: 25000,
   },
 
   dreamCanvas: {

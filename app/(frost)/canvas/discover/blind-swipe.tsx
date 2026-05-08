@@ -1,257 +1,469 @@
 /**
- * Frost \u00B7 Canvas \u00B7 Discover \u00B7 Blind Swipe
+ * Frost · Canvas · Discover · Blind Swipe (ZIP 6 — Tinder mechanics)
  *
- * Full-bleed gestural feed. Original native discover.tsx swipe grammar:
- *   - Vertical swipe (up/down)   = next/previous VENDOR
- *   - Horizontal swipe (l/r)     = next/previous PHOTO of same vendor
- *   - Single tap                 = toggle detail overlay
- *   - Double tap                 = save to Muse
- *   - Down swipe with overlay    = dismiss overlay
+ * Mechanics:
+ *   - Full-bleed single approved Discover image at a time.
+ *   - Right swipe  = HEART → save image to Muse + yellow heart animation centre.
+ *   - Left swipe   = PASS → next image.
+ *   - Double LEFT  = UNDO (brings back the last-passed image — accident recovery).
+ *   - Double TAP   = HEART → save to Muse + yellow heart animation.
+ *   - No vertical swipe. No carousel dots. No multi-image-per-card.
+ *   - Tinder card translation feel: card follows finger horizontally, rotates,
+ *     fades the next-card hint at the edges. Snap on release past threshold.
  *
- * v1 stub uses 5 placeholder vendors. Real wiring uses /api/v2/discover/feed
- * (existing) and POST /api/couple/muse/save (existing) in v1.3.
+ * Source of images: GET /api/v2/discover/blind-swipe (existing endpoint).
+ * Save: saveToMuse({ imageUrl, vendorId? }) — routes through bride-chat.
+ *
+ * NOTE: Blind Swipe and Discovery Feed are unrelated. Hearts saved here do NOT
+ * influence the Discovery Feed canvas.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, Image, StyleSheet, Animated, Pressable, StatusBar,
+  Dimensions, PanResponder,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Heart } from 'lucide-react-native';
+import { X, Heart, Undo2 } from 'lucide-react-native';
 import {
-  FrostColors, FrostType, FrostSpace, FrostFonts, FrostMotion,
+  FrostColors, FrostType, FrostSpace, FrostFonts, FrostCopy,
 } from '../../../../constants/frost';
+import { saveToMuse } from '../../../../services/frostApi';
 
-const SWIPE_THRESHOLD = FrostMotion.swipeThreshold;
-const SWIPE_VELOCITY  = 0.5;
-const TAP_MAX_MOVE    = 10;
-const TAP_MAX_TIME    = 250;
-const DOUBLE_TAP_MS   = 280;
+const { width: SCREEN_W } = Dimensions.get('window');
+const SWIPE_THRESHOLD   = 120;          // distance from centre needed to commit
+const SWIPE_VELOCITY    = 0.4;
+const ROTATION_RANGE    = SCREEN_W * 1.5;
+const TAP_MAX_MOVE      = 10;
+const TAP_MAX_TIME      = 250;
+const DOUBLE_TAP_MS     = 300;          // also used for double-LEFT detection
+const SWIPE_OFF_DURATION = 220;
 
-interface Vendor {
+interface DiscoverImage {
   id: string;
-  name: string;
-  city: string;
-  category: string;
-  priceLabel: string;
-  tagline: string;
-  images: string[];
+  imageUrl: string;
+  vendorId?: string;
 }
 
-const PLACEHOLDER_VENDORS: Vendor[] = [
-  {
-    id: 'v1', name: 'Arjun Kartha Studio', city: 'New Delhi', category: 'Photography',
-    priceLabel: '\u20B92.5L onwards', tagline: 'Light as a love language.',
-    images: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200&q=85&auto=format&fit=crop',
-    ],
-  },
-  {
-    id: 'v2', name: 'Sophia Laurent Artistry', city: 'Mumbai', category: 'Makeup & Hair',
-    priceLabel: '\u20B91.8L onwards', tagline: 'South Asian skin is our language.',
-    images: [
-      'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200&q=85&auto=format&fit=crop',
-    ],
-  },
-  {
-    id: 'v3', name: 'House of Blooms', city: 'Bangalore', category: 'Decor',
-    priceLabel: '\u20B91.5L onwards', tagline: 'Every installation, designed once \u2014 for you.',
-    images: [
-      'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1200&q=85&auto=format&fit=crop',
-    ],
-  },
+// Placeholder pool. Replace with /api/v2/discover/blind-swipe results.
+const PLACEHOLDER_IMAGES: DiscoverImage[] = [
+  { id: 'i1', imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i2', imageUrl: 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i3', imageUrl: 'https://images.unsplash.com/photo-1583394293214-28a4b0843b1d?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i4', imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i5', imageUrl: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i6', imageUrl: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i7', imageUrl: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1200&q=85&auto=format&fit=crop' },
+  { id: 'i8', imageUrl: 'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200&q=85&auto=format&fit=crop' },
 ];
 
 export default function BlindSwipe() {
   const insets = useSafeAreaInsets();
-  const [vendorIdx, setVendorIdx] = useState(0);
-  const [imageIdx, setImageIdx] = useState(0);
-  const [overlayVisible, setOverlayVisible] = useState(false);
-  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [images] = useState<DiscoverImage[]>(PLACEHOLDER_IMAGES);
+  const [idx, setIdx] = useState(0);
+  const [history, setHistory] = useState<number[]>([]);  // stack of indexes user has passed (for undo)
+  const [toast, setToast] = useState<string | null>(null);
 
-  const touchStart = useRef<{ x: number; y: number; t: number } | null>(null);
-  const tapCount = useRef(0);
-  const lastTapTime = useRef(0);
-  const tapTimer = useRef<NodeJS.Timeout | null>(null);
-  const heartScale = useRef(new Animated.Value(0)).current;
+  // Card position
+  const pan       = useRef(new Animated.ValueXY()).current;
+  const heartPop  = useRef(new Animated.Value(0)).current;
 
-  const vendor = PLACEHOLDER_VENDORS[vendorIdx];
+  // Refs for state that the PanResponder closure needs to read at gesture-end time.
+  // (PanResponder is created once via useRef, so direct state references would go stale.)
+  const idxRef          = useRef(idx);
+  const historyRef      = useRef(history);
+  const imagesRef       = useRef(images);
+  const panXRef         = useRef(0);   // tracks pan.x without poking private API
+  const gestureStartRef = useRef(0);   // recorded in onPanResponderGrant
 
-  function goNextVendor() {
-    setVendorIdx(i => (i + 1) % PLACEHOLDER_VENDORS.length);
-    setImageIdx(0);
-    setOverlayVisible(false);
-  }
-  function goPrevVendor() {
-    setVendorIdx(i => (i - 1 + PLACEHOLDER_VENDORS.length) % PLACEHOLDER_VENDORS.length);
-    setImageIdx(0);
-    setOverlayVisible(false);
-  }
-  function nextImage() { setImageIdx(i => Math.min(i + 1, vendor.images.length - 1)); }
-  function prevImage() { setImageIdx(i => Math.max(i - 1, 0)); }
+  // Tap / double-tap detection state
+  const lastLeftTimeRef = useRef(0);
+  const tapCountRef     = useRef(0);
+  const lastTapTimeRef  = useRef(0);
+  const tapTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function handleDoubleTap() {
-    setSaveToast('Saved to Muse \u2665');
+  // Keep refs in sync with the latest render values
+  useEffect(() => { idxRef.current = idx; }, [idx]);
+  useEffect(() => { historyRef.current = history; }, [history]);
+  useEffect(() => { imagesRef.current = images; }, [images]);
+
+  // Subscribe pan.x → panXRef so we never read pan.x._value
+  useEffect(() => {
+    const id = pan.x.addListener(({ value }) => { panXRef.current = value; });
+    return () => pan.x.removeListener(id);
+  }, [pan.x]);
+
+  const current = images[idx % images.length];
+  const peek    = images[(idx + 1) % images.length];
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Animation helpers
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const rotate = pan.x.interpolate({
+    inputRange:  [-ROTATION_RANGE, 0, ROTATION_RANGE],
+    outputRange: ['-18deg', '0deg', '18deg'],
+    extrapolate: 'clamp',
+  });
+  const heartOpacity = pan.x.interpolate({
+    inputRange:  [0, SWIPE_THRESHOLD * 0.4, SWIPE_THRESHOLD],
+    outputRange: [0, 0.45, 0.9],
+    extrapolate: 'clamp',
+  });
+  const passOpacity = pan.x.interpolate({
+    inputRange:  [-SWIPE_THRESHOLD, -SWIPE_THRESHOLD * 0.4, 0],
+    outputRange: [0.7, 0.35, 0],
+    extrapolate: 'clamp',
+  });
+  const peekScale = pan.x.interpolate({
+    inputRange:  [-SCREEN_W, 0, SCREEN_W],
+    outputRange: [1, 0.94, 1],
+    extrapolate: 'clamp',
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Save / advance / undo  (stable callbacks — read latest state via refs)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const flashHeart = () => {
     Animated.sequence([
-      Animated.timing(heartScale, { toValue: 1, duration: 180, useNativeDriver: true }),
-      Animated.delay(400),
-      Animated.timing(heartScale, { toValue: 0, duration: 240, useNativeDriver: true }),
+      Animated.spring(heartPop, { toValue: 1, friction: 4, tension: 110, useNativeDriver: true }),
+      Animated.delay(420),
+      Animated.timing(heartPop, { toValue: 0, duration: 280, useNativeDriver: true }),
     ]).start();
-    setTimeout(() => setSaveToast(null), 1400);
-    // v1.3: POST /api/couple/muse/save { couple_id, vendor_id, event:'general' }
-  }
-  function handleSingleTap() { setOverlayVisible(v => !v); }
+  };
 
-  function onTouchStart(e: any) {
-    const t = e.nativeEvent.touches[0];
-    touchStart.current = { x: t.pageX, y: t.pageY, t: Date.now() };
-  }
+  const showToast = (text: string) => {
+    setToast(text);
+    setTimeout(() => setToast(null), 1600);
+  };
 
-  function onTouchEnd(e: any) {
-    if (!touchStart.current) return;
-    const start = touchStart.current;
-    touchStart.current = null;
-    const end = e.nativeEvent.changedTouches[0];
-    const dx = end.pageX - start.x;
-    const dy = end.pageY - start.y;
-    const dt = Date.now() - start.t;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
+  const handleSaveCurrent = async () => {
+    const cur = imagesRef.current[idxRef.current % imagesRef.current.length];
+    flashHeart();
+    showToast('Saved to Muse ♥');
+    try {
+      await saveToMuse({ imageUrl: cur.imageUrl, vendorId: cur.vendorId });
+    } catch {
+      // silent — toast already shown; optimistic UX
+    }
+  };
 
-    // Tap detection
-    if (absX < TAP_MAX_MOVE && absY < TAP_MAX_MOVE && dt < TAP_MAX_TIME) {
-      const now = Date.now();
-      const since = now - lastTapTime.current;
-      if (since < DOUBLE_TAP_MS && tapCount.current >= 1) {
-        if (tapTimer.current) clearTimeout(tapTimer.current);
-        tapCount.current = 0;
-        handleDoubleTap();
-      } else {
-        tapCount.current = 1;
-        lastTapTime.current = now;
-        tapTimer.current = setTimeout(() => {
-          if (tapCount.current === 1) handleSingleTap();
-          tapCount.current = 0;
-        }, DOUBLE_TAP_MS);
-      }
+  const advanceTo = (nextIdx: number, fromX: number) => {
+    Animated.timing(pan, {
+      toValue: { x: fromX > 0 ? SCREEN_W * 1.4 : -SCREEN_W * 1.4, y: 0 },
+      duration: SWIPE_OFF_DURATION,
+      useNativeDriver: true,
+    }).start(() => {
+      setIdx(nextIdx);
+      pan.setValue({ x: 0, y: 0 });
+    });
+  };
+
+  const goNext = (_savedFirst: boolean, fromX: number) => {
+    const cur = idxRef.current;
+    setHistory((h) => [...h.slice(-19), cur]);
+    advanceTo(cur + 1, fromX);
+  };
+
+  const goPass = (fromX: number) => {
+    const cur = idxRef.current;
+    setHistory((h) => [...h.slice(-19), cur]);
+    advanceTo(cur + 1, fromX);
+  };
+
+  const undoLast = () => {
+    const h = historyRef.current;
+    if (h.length === 0) {
+      showToast('Nothing to undo');
       return;
     }
+    const last = h[h.length - 1];
+    pan.setValue({ x: -SCREEN_W * 1.4, y: 0 });
+    setIdx(last);
+    setHistory(h.slice(0, -1));
+    Animated.spring(pan, {
+      toValue: { x: 0, y: 0 },
+      friction: 7,
+      tension: 80,
+      useNativeDriver: true,
+    }).start();
+    showToast('Brought back');
+  };
 
-    const velocity = Math.max(absX, absY) / Math.max(dt, 1);
-    const passed = Math.max(absX, absY) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY;
-    if (!passed) return;
+  // ────────────────────────────────────────────────────────────────────────────
+  // PanResponder — card drag + tap detection (stable; reads via refs)
+  // ────────────────────────────────────────────────────────────────────────────
 
-    // Dismiss overlay on down swipe
-    if (overlayVisible && absY > absX && dy > 80) {
-      setOverlayVisible(false);
-      return;
-    }
-    // Vertical \u2192 change vendor
-    if (absY > absX) {
-      if (dy < -SWIPE_THRESHOLD) goNextVendor();
-      else if (dy > SWIPE_THRESHOLD) goPrevVendor();
-    } else {
-      // Horizontal \u2192 change photo
-      if (dx < -SWIPE_THRESHOLD) nextImage();
-      else if (dx > SWIPE_THRESHOLD) prevImage();
-    }
-  }
+  // Refs for handler functions so the PanResponder can call the latest closure
+  const handleSaveCurrentRef = useRef(handleSaveCurrent);
+  const goNextRef            = useRef(goNext);
+  const goPassRef            = useRef(goPass);
+  const undoLastRef          = useRef(undoLast);
+  useEffect(() => { handleSaveCurrentRef.current = handleSaveCurrent; });
+  useEffect(() => { goNextRef.current = goNext; });
+  useEffect(() => { goPassRef.current = goPass; });
+  useEffect(() => { undoLastRef.current = undoLast; });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
+      onPanResponderGrant: () => {
+        // Record gesture start time (replaces the old `(g as any).t0`)
+        gestureStartRef.current = Date.now();
+        // Use tracked panX value via listener ref (replaces `(pan.x as any)._value`)
+        pan.setOffset({ x: panXRef.current, y: 0 });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_, g) => {
+        // Constrain mostly horizontal motion
+        pan.setValue({ x: g.dx, y: g.dy * 0.15 });
+      },
+      onPanResponderRelease: (_, g) => {
+        pan.flattenOffset();
+        const absX = Math.abs(g.dx);
+        const absY = Math.abs(g.dy);
+        const dt = Math.max(1, Date.now() - gestureStartRef.current);
+
+        // TAP detection
+        if (absX < TAP_MAX_MOVE && absY < TAP_MAX_MOVE && dt < TAP_MAX_TIME) {
+          const now = Date.now();
+          const since = now - lastTapTimeRef.current;
+          if (since < DOUBLE_TAP_MS && tapCountRef.current >= 1) {
+            if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+            tapCountRef.current = 0;
+            handleSaveCurrentRef.current();
+            Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: true }).start();
+            return;
+          }
+          tapCountRef.current = 1;
+          lastTapTimeRef.current = now;
+          tapTimerRef.current = setTimeout(() => {
+            tapCountRef.current = 0;
+          }, DOUBLE_TAP_MS);
+          // Single tap: Blind Swipe shows no detail overlay — just settle
+          Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: true }).start();
+          return;
+        }
+
+        // SWIPE detection — horizontal only
+        const velocity = absX / dt;
+        const passed = absX > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY;
+
+        if (!passed || absY > absX) {
+          // Snap back
+          Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            friction: 6,
+            useNativeDriver: true,
+          }).start();
+          return;
+        }
+
+        if (g.dx > 0) {
+          // RIGHT = heart + save + advance
+          handleSaveCurrentRef.current();
+          goNextRef.current(true, g.dx);
+        } else {
+          // LEFT = pass — but check for double-left (undo)
+          const now = Date.now();
+          const sinceLastLeft = now - lastLeftTimeRef.current;
+          if (sinceLastLeft < 600) {
+            // DOUBLE LEFT — snap card back, then undo last pass
+            Animated.spring(pan, {
+              toValue: { x: 0, y: 0 },
+              friction: 7,
+              useNativeDriver: true,
+            }).start(() => undoLastRef.current());
+            lastLeftTimeRef.current = 0;
+            return;
+          }
+          lastLeftTimeRef.current = now;
+          goPassRef.current(g.dx);
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+          friction: 6,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
+
+  // Cleanup tap timer on unmount
+  useEffect(() => {
+    return () => {
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    };
+  }, []);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Render
+  // ────────────────────────────────────────────────────────────────────────────
 
   return (
-    <View style={StyleSheet.absoluteFillObject}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <View
-        style={styles.feed}
-        onStartShouldSetResponder={() => true}
-        onResponderGrant={onTouchStart}
-        onResponderRelease={onTouchEnd}
-      >
-        <Image
-          source={{ uri: vendor.images[imageIdx] || vendor.images[0] }}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode="cover"
-        />
+      {/* Black scrim base */}
+      <View style={styles.base} />
 
-        {/* Image dots */}
-        <View style={[styles.dotsRow, { top: insets.top + 76 }]}>
-          {vendor.images.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, i === imageIdx && styles.dotActive]}
-            />
-          ))}
-        </View>
-
-        {/* Top bar */}
-        <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
-          <View style={styles.topBarLeft}>
-            <View style={styles.eyebrowDot} />
-            <Text style={styles.eyebrow}>DISCOVER \u00B7 BLIND SWIPE</Text>
-          </View>
-          <Pressable onPress={() => router.back()} hitSlop={16} style={styles.closeBtn}>
-            <X size={22} color={FrostColors.white} strokeWidth={1.5} />
-          </Pressable>
-        </View>
-
-        {/* Detail overlay */}
-        {overlayVisible ? (
-          <View style={styles.overlay} pointerEvents="none">
-            <Text style={styles.overlayCategory}>{vendor.category.toUpperCase()}</Text>
-            <Text style={styles.overlayName}>{vendor.name}</Text>
-            <Text style={styles.overlayCity}>{vendor.city} \u00B7 {vendor.priceLabel}</Text>
-            <Text style={styles.overlayTagline}>\u201C{vendor.tagline}\u201D</Text>
-            <Text style={styles.overlayHint}>Tap again to dismiss \u00B7 swipe up for next \u00B7 double-tap to save</Text>
-          </View>
-        ) : null}
-
-        {/* Heart save indicator */}
+      {/* Peek card (next image) — sits behind the active card */}
+      {peek ? (
         <Animated.View
-          pointerEvents="none"
           style={[
-            styles.heartWrap,
+            styles.cardLayer,
             {
-              opacity: heartScale,
-              transform: [{ scale: heartScale.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.2] }) }],
+              transform: [{ scale: peekScale }],
             },
           ]}
+          pointerEvents="none"
         >
-          <Heart size={64} color={FrostColors.white} fill={FrostColors.goldTrue} strokeWidth={1.5} />
+          <Image source={{ uri: peek.imageUrl }} style={styles.image} resizeMode="cover" />
+        </Animated.View>
+      ) : null}
+
+      {/* Active card — full-bleed, draggable */}
+      <Animated.View
+        style={[
+          styles.cardLayer,
+          {
+            transform: [
+              { translateX: pan.x },
+              { translateY: pan.y },
+              { rotate },
+            ],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <Image source={{ uri: current.imageUrl }} style={styles.image} resizeMode="cover" />
+
+        {/* Live heart indicator (during right drag) */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.liveHeart, { opacity: heartOpacity }]}
+        >
+          <Heart
+            size={92}
+            color={FrostColors.white}
+            fill={FrostColors.goldTrue}
+            strokeWidth={1.5}
+          />
         </Animated.View>
 
-        {/* Save toast */}
-        {saveToast ? (
-          <View style={[styles.toast, { bottom: insets.bottom + 36 }]}>
-            <Text style={styles.toastText}>{saveToast}</Text>
-          </View>
-        ) : null}
+        {/* Live pass indicator (during left drag) */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.livePass, { opacity: passOpacity }]}
+        >
+          <Text style={styles.passText}>PASS</Text>
+        </Animated.View>
+      </Animated.View>
+
+      {/* Centre heart pop on save (double-tap or right-swipe commit) */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.heartPop,
+          {
+            opacity: heartPop,
+            transform: [{
+              scale: heartPop.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.25] }),
+            }],
+          },
+        ]}
+      >
+        <Heart
+          size={140}
+          color={FrostColors.white}
+          fill={FrostColors.goldTrue}
+          strokeWidth={1.2}
+        />
+      </Animated.View>
+
+      {/* Top bar */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.topBarLeft}>
+          <View style={styles.eyebrowDot} />
+          <Text style={styles.eyebrow}>{FrostCopy.discoverCanvas.blindSwipeEyebrow}</Text>
+        </View>
+        <Pressable onPress={() => router.back()} hitSlop={16} style={styles.closeBtn}>
+          <X size={22} color={FrostColors.white} strokeWidth={1.5} />
+        </Pressable>
       </View>
+
+      {/* Bottom hint + undo affordance */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 18 }]}>
+        <Pressable
+          onPress={() => undoLast()}
+          hitSlop={14}
+          style={styles.undoBtn}
+        >
+          <Undo2 size={16} color={FrostColors.white} strokeWidth={1.5} />
+          <Text style={styles.undoLabel}>Undo</Text>
+        </Pressable>
+        <Text style={styles.hint}>Right to save · Left to pass · Double-tap saves</Text>
+      </View>
+
+      {/* Toast */}
+      {toast ? (
+        <View style={[styles.toast, { bottom: insets.bottom + 80 }]}>
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  feed: { flex: 1, backgroundColor: FrostColors.black },
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
-  dotsRow: {
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: FrostColors.black },
+  base: { ...StyleSheet.absoluteFillObject, backgroundColor: FrostColors.black },
+
+  cardLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+
+  liveHeart: {
     position: 'absolute',
+    top: '38%',
+    right: 36,
+  },
+  livePass: {
+    position: 'absolute',
+    top: '38%',
+    left: 36,
+    transform: [{ rotate: '-12deg' }],
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderWidth: 3,
+    borderColor: FrostColors.white,
+    borderRadius: 8,
+  },
+  passText: {
+    fontFamily: FrostFonts.labelMedium,
+    fontSize: 24,
+    letterSpacing: 4,
+    color: FrostColors.white,
+  },
+
+  heartPop: {
+    position: 'absolute',
+    top: '36%',
     left: 0, right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 24, height: 2,
-    borderRadius: 1,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
-  dotActive: {
-    backgroundColor: FrostColors.white,
+    alignItems: 'center',
+    zIndex: 30,
   },
 
   topBar: {
@@ -281,65 +493,53 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  overlay: {
+  bottomBar: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     paddingHorizontal: FrostSpace.xxl,
-    paddingVertical: FrostSpace.huge,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  overlayCategory: {
-    fontFamily: FrostFonts.label,
-    fontSize: 10,
-    letterSpacing: 4,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: FrostSpace.s,
-  },
-  overlayName: {
-    fontFamily: FrostFonts.display,
-    fontSize: 32,
-    color: FrostColors.white,
-    fontStyle: 'italic',
-    marginBottom: FrostSpace.xs,
-  },
-  overlayCity: {
-    fontFamily: FrostFonts.body,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    marginBottom: FrostSpace.l,
-  },
-  overlayTagline: {
-    fontFamily: FrostFonts.display,
-    fontSize: 18,
-    fontStyle: 'italic',
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 26,
-    marginBottom: FrostSpace.xl,
-  },
-  overlayHint: {
-    fontFamily: FrostFonts.body,
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
-    fontStyle: 'italic',
-  },
-
-  heartWrap: {
-    position: 'absolute',
-    top: '40%',
-    left: 0, right: 0,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 20,
+  },
+  undoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 100,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  undoLabel: {
+    fontFamily: FrostFonts.label,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: FrostColors.white,
+  },
+  hint: {
+    fontFamily: FrostFonts.body,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+    flexShrink: 1,
+    textAlign: 'right',
+    marginLeft: 12,
   },
 
   toast: {
     position: 'absolute',
     left: 0, right: 0,
     alignItems: 'center',
+    zIndex: 25,
   },
   toastText: {
     fontFamily: FrostFonts.body,
-    fontSize: 14,
+    fontSize: 13,
     color: FrostColors.white,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     paddingHorizontal: FrostSpace.l,
     paddingVertical: FrostSpace.s,
     borderRadius: 100,

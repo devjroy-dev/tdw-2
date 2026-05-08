@@ -30,6 +30,12 @@ import { brideIdle } from '../../services/frostApi';
 // ─── Wedding date — to be wired to user profile in v1.7 ──────────────────────
 const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 
+// Android API 31+ supports experimental dimezis BlurView (true material).
+const ANDROID_BLUR_SUPPORTED =
+  Platform.OS === 'android' &&
+  typeof Platform.Version === 'number' &&
+  (Platform.Version as number) >= FrostMaterial.androidMinApi;
+
 // ─── Underlying image ────────────────────────────────────────────────────────
 const UNDER_IMAGE =
   'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=85&auto=format&fit=crop';
@@ -178,6 +184,14 @@ export default function FrostLanding() {
         <BlurView
           intensity={FrostMaterial.pageBlurIOS}
           tint="light"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      ) : ANDROID_BLUR_SUPPORTED ? (
+        <BlurView
+          intensity={FrostMaterial.pageBlurAndroid}
+          tint="light"
+          experimentalBlurMethod={FrostMaterial.androidExperimentalMethod}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
