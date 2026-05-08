@@ -27,7 +27,8 @@ const NAV = [
     { label: 'Invite Codes',         path: '/admin/invites',   icon: '⌘' },
   ]},
   { group: 'PLATFORM', items: [
-    { label: 'Cover Placement',  path: '/admin/cover',    icon: '⬡' },
+    { label: 'Cover Placement',  path: '/admin/cover',           icon: '⬡' },
+    { label: 'Discover Heroes',  path: '/admin/discover-heroes', icon: '✦' },
     { label: 'Preview Vendors',  path: '/admin/preview',  icon: '◈' },
     { label: 'Exploring Photos', path: '/admin/exploring', icon: '✦' },
     { label: 'Messages',         path: '/admin/messages', icon: '💬' },

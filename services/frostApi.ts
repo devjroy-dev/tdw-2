@@ -419,3 +419,30 @@ export async function fetchCircleUnreadCount(): Promise<number> {
     return events.filter(e => new Date(e.created_at).getTime() > cutoff).length;
   } catch { return 0; }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Discover Heroes — full-bleed paid carousel on /(frost)/canvas/discover
+//
+// Admin-managed via /admin/discover-heroes (5 active slots). The backend
+// returns photos sorted by display_order ASC, only active ones, no auth required
+// (this is read-side; admin write requires x-admin-password).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DiscoverHero {
+  id: string;
+  image_url: string;
+  display_order: number;
+  caption?: string | null;
+  vendor_id?: string | null;
+}
+
+export async function fetchDiscoverHeroes(): Promise<DiscoverHero[]> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/discover-heroes`);
+    if (r?.success && Array.isArray(r.data)) return r.data as DiscoverHero[];
+    if (Array.isArray(r?.heroes)) return r.heroes as DiscoverHero[]; // fallback shape
+    return [];
+  } catch {
+    return [];
+  }
+}

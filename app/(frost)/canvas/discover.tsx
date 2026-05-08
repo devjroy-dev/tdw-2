@@ -22,16 +22,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, Image, StyleSheet, Animated, Pressable, Platform, StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Plus } from 'lucide-react-native';
+import { X, Plus, Sparkles } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostRadius,
-  FrostMotion, FrostMaterial, FrostCopy, DiscoverHeroes,
+  FrostMotion, FrostMaterial, FrostCopy,
 } from '../../../constants/frost';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
+import { fetchDiscoverHeroes, type DiscoverHero } from '../../../services/frostApi';
 
 const NAV_OPTIONS: Array<{ id: keyof typeof FrostCopy.discoverCanvas.options; route: string }> = [
   { id: 'blindSwipe', route: '/(frost)/canvas/discover/blind-swipe' },
@@ -48,15 +50,31 @@ const ANDROID_BLUR_SUPPORTED =
 
 export default function CanvasDiscover() {
   const insets = useSafeAreaInsets();
+  const [heroes, setHeroes] = useState<DiscoverHero[]>([]);
+  const [loadingHeroes, setLoadingHeroes] = useState(true);
   const [heroIdx, setHeroIdx] = useState(0);
-  const [nextIdx, setNextIdx] = useState(1 % DiscoverHeroes.length);
+  const [nextIdx, setNextIdx] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const heroFade = useRef(new Animated.Value(0)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  // Hero carousel cross-fade
+  // Fetch heroes on mount (admin-managed via /admin/discover-heroes)
   useEffect(() => {
-    if (DiscoverHeroes.length <= 1) return;
+    let cancelled = false;
+    (async () => {
+      const data = await fetchDiscoverHeroes();
+      if (cancelled) return;
+      setHeroes(data);
+      // Initial nextIdx wraps to second image, or 0 if there's only one
+      setNextIdx(data.length > 1 ? 1 : 0);
+      setLoadingHeroes(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hero carousel cross-fade — reads live heroes.length so it works after fetch
+  useEffect(() => {
+    if (heroes.length <= 1) return;
     const id = setInterval(() => {
       Animated.timing(heroFade, {
         toValue: 1,
@@ -64,12 +82,12 @@ export default function CanvasDiscover() {
         useNativeDriver: true,
       }).start(() => {
         setHeroIdx(nextIdx);
-        setNextIdx((nextIdx + 1) % DiscoverHeroes.length);
+        setNextIdx((nextIdx + 1) % heroes.length);
         heroFade.setValue(0);
       });
     }, FrostMotion.heroInterval);
     return () => clearInterval(id);
-  }, [nextIdx, heroFade]);
+  }, [nextIdx, heroFade, heroes.length]);
 
   // More overlay fade in/out
   useEffect(() => {
@@ -82,6 +100,37 @@ export default function CanvasDiscover() {
 
   const close = () => router.back();
 
+  // Empty / loading guards — never reach the [heroIdx] array access on an empty list
+  if (loadingHeroes) {
+    return (
+      <View style={[styles.root, styles.statefulCenter]}>
+        <StatusBar barStyle="light-content" />
+        <ActivityIndicator color={FrostColors.goldMuted} />
+      </View>
+    );
+  }
+
+  if (heroes.length === 0) {
+    return (
+      <View style={[styles.root, styles.statefulCenter]}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.emptyIconWrap}>
+          <Sparkles size={28} color={FrostColors.goldMuted} strokeWidth={1.5} />
+        </View>
+        <Text style={styles.emptyTitle}>Discover, momentarily.</Text>
+        <Text style={styles.emptySub}>
+          Curated covers are on the way. Check back in a little while.
+        </Text>
+        <Pressable onPress={close} style={styles.emptyClose} hitSlop={16}>
+          <X size={22} color={FrostColors.white} strokeWidth={1.5} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  const currentHero = heroes[heroIdx % heroes.length];
+  const peekHero    = heroes[nextIdx % heroes.length];
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle={moreOpen ? 'dark-content' : 'light-content'} />
@@ -89,13 +138,13 @@ export default function CanvasDiscover() {
       {/* HERO CAROUSEL — full-bleed, real colour */}
       <View style={StyleSheet.absoluteFill}>
         <Image
-          source={{ uri: DiscoverHeroes[heroIdx].uri }}
+          source={{ uri: currentHero.image_url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroFade }]}>
           <Image
-            source={{ uri: DiscoverHeroes[nextIdx].uri }}
+            source={{ uri: peekHero.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
           />
@@ -300,5 +349,40 @@ const styles = StyleSheet.create({
     ...FrostType.bodySmall,
     color: FrostColors.soft,
     lineHeight: 19,
+  },
+
+  // Loading / empty states (no heroes yet)
+  statefulCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: FrostSpace.xxl,
+  },
+  emptyIconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(168,146,75,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: FrostSpace.l,
+  },
+  emptyTitle: {
+    fontFamily: FrostFonts.display,
+    fontSize: 28,
+    color: FrostColors.white,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: FrostSpace.s,
+  },
+  emptySub: {
+    fontFamily: FrostFonts.body,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: FrostSpace.l,
+  },
+  emptyClose: {
+    position: 'absolute',
+    top: 60, right: FrostSpace.xxl,
+    width: 32, height: 32,
+    alignItems: 'center', justifyContent: 'center',
   },
 });

@@ -65,10 +65,16 @@ export default function CoupleOnboardingScreen() {
       .then(r => r.json())
       .then(d => { if (d.photos?.length) setSlides(d.photos.map((p: any) => p.image_url)); })
       .catch(() => {});
-    const t = setInterval(() => setSlide(p => (p + 1) % Math.max(slides.length, 1)), 4500);
     setTimeout(() => nameRef.current?.focus(), 300);
-    return () => clearInterval(t);
   }, []);
+
+  // Carousel rotation — separate effect so the interval reads the live slides count.
+  // (Putting it in the mount effect captures slides.length === 0 forever.)
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const t = setInterval(() => setSlide(p => (p + 1) % slides.length), 4500);
+    return () => clearInterval(t);
+  }, [slides.length]);
 
   const buildWeddingDate = (): string | null => {
     if (dateMode === 'exact' && exactDate) return exactDate;
