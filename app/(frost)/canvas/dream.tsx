@@ -23,12 +23,13 @@ import {
 } from '../../../components/frost/FrostDreamMessages';
 import DreamYesNo from '../../../components/frost/DreamYesNo';
 import DreamSummaryCard from '../../../components/frost/DreamSummaryCard';
+import DreamSuggestionsCarousel from '../../../components/frost/DreamSuggestionsCarousel';
 import {
   FrostColors, FrostFonts, FrostSpace, FrostRadius, FrostCopy,
 } from '../../../constants/frost';
 import {
   brideChat, fetchCircleActivity,
-  BrideFollowup, CircleActivityItem,
+  BrideFollowup, CircleActivityItem, SurpriseSuggestion,
 } from '../../../services/frostApi';
 
 // ─── Stream message types ────────────────────────────────────────────────────
@@ -39,7 +40,8 @@ type StreamMessage =
   | { kind: 'person'; id: string; name: string; action?: string; text?: string; ts: string }
   | { kind: 'event'; id: string; text: string }
   | { kind: 'summary'; id: string; lines: string[] }
-  | { kind: 'followup'; id: string; prompt: BrideFollowup; context: Record<string, any> };
+  | { kind: 'followup'; id: string; prompt: BrideFollowup; context: Record<string, any> }
+  | { kind: 'suggestions'; id: string; suggestions: SurpriseSuggestion[]; tasteSummary?: string };
 
 const POLL_INTERVAL = 30_000;
 
@@ -143,6 +145,16 @@ export default function CanvasDream() {
           kind: 'summary',
           id: 'sum_' + Date.now(),
           lines: res.summaryLines,
+        });
+      }
+
+      // ZIP 6: surprise_me responses include suggestions — render carousel inline
+      if (res.suggestions && res.suggestions.length > 0) {
+        append({
+          kind: 'suggestions',
+          id: 'sg_' + Date.now(),
+          suggestions: res.suggestions,
+          tasteSummary: res.tasteSummary,
         });
       }
 
@@ -252,6 +264,14 @@ export default function CanvasDream() {
                     prompt={m.prompt}
                     context={m.context}
                     onResolved={handleFollowupResolved}
+                  />
+                );
+              case 'suggestions':
+                return (
+                  <DreamSuggestionsCarousel
+                    key={m.id}
+                    suggestions={m.suggestions}
+                    tasteSummary={m.tasteSummary}
                   />
                 );
             }

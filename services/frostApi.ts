@@ -33,6 +33,9 @@ export interface BrideChatResponse {
   followupPrompts?: BrideFollowup[];
   confirmPreview?: any | null;
   toolsUsed?: string[];
+  // ZIP 5+: surprise_me responses include these
+  suggestions?: SurpriseSuggestion[];
+  tasteSummary?: string;
   error?: string;
 }
 
@@ -231,4 +234,96 @@ export async function fetchCircleActivity(): Promise<CircleActivityItem[]> {
   items.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return items;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ZIP 6 additions — Muse fetch + Surprise Me + save
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface MuseSave {
+  id: string;
+  user_id: string;
+  vendor_id: string | null;
+  image_url: string | null;
+  function_tag: string | null;
+  note: string | null;
+  created_at: string;
+  vendor: any | null;
+}
+
+export interface SurpriseSuggestion {
+  image_url: string;
+  source: 'pinterest' | 'web' | 'vendor' | 'commerce';
+  suggestion_id: string;
+  caption?: string | null;
+  vendor_id?: string;
+  source_url?: string;
+}
+
+export interface SurpriseMeResponse {
+  success: boolean;
+  suggestions: SurpriseSuggestion[];
+  tasteSummary?: string;
+  sourceCounts?: { pinterest: number; web: number; vendor: number; commerce: number };
+  query?: string;
+  error?: string;
+}
+
+export async function fetchMuseSaves(): Promise<MuseSave[]> {
+  const session = await getCoupleSession();
+  if (!session) return [];
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/muse/${session.id}`);
+    if (r?.success && Array.isArray(r.data)) return r.data as MuseSave[];
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+export async function surpriseMe(opts: {
+  functionTag?: string;
+  styleHint?: string;
+  count?: number;
+} = {}): Promise<SurpriseMeResponse> {
+  const session = await getCoupleSession();
+  if (!session) return { success: false, suggestions: [], error: 'no_session' };
+  try {
+    return await safeFetch(`${API_BASE}/api/v2/frost/surprise-me`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: session.id,
+        function_tag: opts.functionTag,
+        style_hint: opts.styleHint,
+        count: opts.count ?? 6,
+      }),
+    });
+  } catch (err: any) {
+    return { success: false, suggestions: [], error: err?.message || 'network' };
+  }
+}
+
+// Routes through bride-chat so the same URL detector + tool router applies
+// whether the bride says "save this" or taps a button. Single backend path.
+export async function saveToMuse(opts: {
+  imageUrl: string;
+  functionTag?: string;
+  note?: string;
+  vendorId?: string;
+}): Promise<{ success: boolean; reply?: string; error?: string }> {
+  const session = await getCoupleSession();
+  if (!session) return { success: false, error: 'no_session' };
+  const fnTagPart = opts.functionTag ? ` for ${opts.functionTag}` : '';
+  const message = `save ${opts.imageUrl}${fnTagPart}${opts.note ? ` — ${opts.note}` : ''}`;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/dreamai/bride-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: session.id, message }),
+    });
+    return { success: !!r?.success, reply: r?.reply };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'network' };
+  }
 }
