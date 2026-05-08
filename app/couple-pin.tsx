@@ -45,7 +45,11 @@ export default function CouplePinScreen() {
   useEffect(() => {
     // If PIN already set — go to today
     getCoupleSession().then(s => {
-      if (s?.pin_set) router.replace('/(couple)/today');
+      if (s?.pin_set) {
+        const isFrost = s?.dreamer_type === 'couple' || !s?.dreamer_type;
+        router.replace((isFrost ? '/(frost)/landing' : '/(couple)/today') as any);
+        return;
+      }
     });
     fetch(`${API}/api/v2/cover-photos`)
       .then(r => r.json())
@@ -83,7 +87,9 @@ export default function CouplePinScreen() {
       if (d.success) {
         await setCoupleSession({ ...session, pin_set: true });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(couple)/today');
+        const sess = await getCoupleSession();
+        const isFrost = sess?.dreamer_type === 'couple' || !sess?.dreamer_type;
+        router.replace((isFrost ? '/(frost)/landing' : '/(couple)/today') as any);
       } else { showToast('Could not set PIN. Try again.'); }
     } catch { showToast('Network error. Try again.'); }
     finally { setLoading(false); }

@@ -123,18 +123,17 @@ export default function CoupleOtpScreen() {
       // Check biometric offer
       const bioAvailable = await isBiometricAvailable();
 
+      // Route couples to Frost, others to legacy couple today
+      const isFrostUser = data.dreamer_type === 'couple' || !data.dreamer_type;
+      const homeRoute = isFrostUser ? '/(frost)/landing' : '/(couple)/today';
+
       if (data.isNewUser) {
-        if (bioAvailable) {
-          // Offer biometric on the onboarding screen instead — cleaner UX
-          router.replace('/couple-onboarding');
-        } else {
-          router.replace('/couple-onboarding');
-        }
+        router.replace('/couple-onboarding');
       } else {
         if (bioAvailable) {
           setShowBiometricOffer(true);
         } else {
-          router.replace('/(couple)/today');
+          router.replace(homeRoute as any);
         }
       }
     } catch (err: any) {
@@ -170,7 +169,9 @@ export default function CoupleOtpScreen() {
   async function handleBiometricEnable() {
     await setBiometricEnabled(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.replace('/(couple)/today');
+    const s = await getCoupleSession();
+    const isFrost = s?.dreamer_type === 'couple' || !s?.dreamer_type;
+    router.replace((isFrost ? '/(frost)/landing' : '/(couple)/today') as any);
   }
 
   // Biometric offer bottom sheet (inline — no external library needed yet)
@@ -191,7 +192,11 @@ export default function CoupleOtpScreen() {
             <Text style={styles.biometricEnableText}>ENABLE</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.replace('/(couple)/today')}
+            onPress={async () => {
+              const s = await getCoupleSession();
+              const isFrost = s?.dreamer_type === 'couple' || !s?.dreamer_type;
+              router.replace((isFrost ? '/(frost)/landing' : '/(couple)/today') as any);
+            }}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Text style={styles.biometricLaterText}>Maybe later</Text>

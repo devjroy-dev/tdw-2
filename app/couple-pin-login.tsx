@@ -74,7 +74,8 @@ export default function CouplePinLoginScreen() {
           couple_tier: d.couple_tier || session?.couple_tier || 'lite',
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(couple)/today');
+        const isFrost = session?.dreamer_type === 'couple' || !session?.dreamer_type;
+        router.replace((isFrost ? '/(frost)/landing' : '/(couple)/today') as any);
       } else {
         const next = attempts + 1;
         setAttempts(next);

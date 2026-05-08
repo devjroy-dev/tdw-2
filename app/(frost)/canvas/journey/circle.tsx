@@ -302,22 +302,22 @@ const styles = StyleSheet.create({
   scroll:        { paddingTop: FrostSpace.xl, paddingBottom: FrostSpace.huge },
   zone:          { paddingHorizontal: FrostSpace.xxl },
   zoneDivider:   { height: StyleSheet.hairlineWidth, backgroundColor: FrostColors.hairline, marginHorizontal: FrostSpace.xxl, marginVertical: FrostSpace.xl, opacity: 0.4 },
-  zoneLabel:     { ...FrostType.eyebrowSmall, marginBottom: FrostSpace.m },
+  zoneLabel:     { ...FrostType.eyebrowSmall, marginBottom: FrostSpace.m, color: '#8C8480' },
   zoneHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: FrostSpace.m },
 
   // Timeline
   timelineCard:  { marginBottom: FrostSpace.s },
   timelineInner: { padding: FrostSpace.xl },
-  timelineTitle: { fontFamily: FrostFonts.display, fontSize: 22, color: FrostColors.ink, fontStyle: 'italic' },
-  timelineSub:   { ...FrostType.bodySmall, color: FrostColors.muted, marginTop: FrostSpace.xs },
+  timelineTitle: { fontFamily: FrostFonts.display, fontSize: 22, color: '#1A1815', fontStyle: 'italic' },
+  timelineSub:   { ...FrostType.bodySmall, color: '#3A3733', marginTop: FrostSpace.xs },
 
   // Feed
   feedRow:     { flexDirection: 'row', alignItems: 'flex-start', marginBottom: FrostSpace.m, gap: FrostSpace.m },
   feedDot:     { width: 5, height: 5, borderRadius: 3, backgroundColor: FrostColors.goldMuted, marginTop: 6 },
   feedBody:    { flex: 1 },
-  feedLine:    { ...FrostType.bodySmall, color: FrostColors.soft },
+  feedLine:    { ...FrostType.bodySmall, color: '#3A3733' },
   feedTime:    { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 2 },
-  emptyHint:   { ...FrostType.bodySmall, color: FrostColors.muted, fontStyle: 'italic', marginBottom: FrostSpace.m },
+  emptyHint:   { ...FrostType.bodySmall, color: '#5A5650', fontStyle: 'italic', marginBottom: FrostSpace.m },
 
   // Invite button
   inviteBtn:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: FrostSpace.m, paddingVertical: 5, borderRadius: FrostRadius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.buttonFrostBorder },
@@ -329,16 +329,16 @@ const styles = StyleSheet.create({
   threadAvatar:  { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(168,146,75,0.10)', alignItems: 'center', justifyContent: 'center' },
   threadBody:    { flex: 1 },
   threadTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  threadLabel:   { fontFamily: FrostFonts.displayMedium, fontSize: 15, color: FrostColors.ink },
+  threadLabel:   { fontFamily: FrostFonts.displayMedium, fontSize: 15, color: '#1A1815' },
   threadTime:    { ...FrostType.eyebrowSmall, fontSize: 9 },
-  threadPreview: { ...FrostType.bodySmall, fontSize: 12, color: FrostColors.muted, marginTop: 2 },
+  threadPreview: { ...FrostType.bodySmall, fontSize: 12, color: '#5A5650', marginTop: 2 },
 
   // Sheet
   sheetOuter:     { flex: 1, backgroundColor: '#F4F2EE' },
   sheetHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: FrostSpace.xl, paddingVertical: FrostSpace.l, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.hairline, gap: FrostSpace.m },
   sheetClose:     { padding: FrostSpace.xs },
   sheetTitleWrap: { flex: 1 },
-  sheetTitle:     { fontFamily: FrostFonts.display, fontSize: 20, color: FrostColors.ink, fontStyle: 'italic' },
+  sheetTitle:     { fontFamily: FrostFonts.display, fontSize: 20, color: '#1A1815', fontStyle: 'italic' },
   sheetRole:      { ...FrostType.eyebrowSmall, marginTop: 2 },
   messageList:    { padding: FrostSpace.xl, gap: FrostSpace.m },
 
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   bubbleMe:       { alignSelf: 'flex-end', backgroundColor: FrostColors.goldTrue, borderRadius: FrostRadius.md, borderBottomRightRadius: 4, padding: FrostSpace.m },
   bubbleThem:     { alignSelf: 'flex-start', backgroundColor: 'rgba(255,253,248,0.80)', borderRadius: FrostRadius.md, borderBottomLeftRadius: 4, padding: FrostSpace.m, borderWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.buttonFrostBorder },
   bubbleSender:   { ...FrostType.eyebrowSmall, fontSize: 9, marginBottom: 3, color: FrostColors.muted },
-  bubbleText:     { fontFamily: FrostFonts.bodyMedium, fontSize: 14, color: FrostColors.ink, lineHeight: 20 },
+  bubbleText:     { fontFamily: FrostFonts.bodyMedium, fontSize: 14, color: '#1A1815', lineHeight: 20 },
   bubbleTextMe:   { color: '#FFFFFF' },
   bubbleTime:     { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 4, color: FrostColors.muted },
   bubbleTimeMe:   { color: 'rgba(255,255,255,0.65)' },
@@ -355,6 +355,6 @@ const styles = StyleSheet.create({
   // Composer
   composer:       {},
   composerInner:  { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: FrostSpace.l, paddingVertical: FrostSpace.m, gap: FrostSpace.m },
-  composerInput:  { flex: 1, fontFamily: FrostFonts.bodyMedium, fontSize: 15, color: FrostColors.ink, maxHeight: 100, paddingVertical: FrostSpace.xs },
+  composerInput:  { flex: 1, fontFamily: FrostFonts.bodyMedium, fontSize: 15, color: '#1A1815', maxHeight: 100, paddingVertical: FrostSpace.xs },
   sendBtn:        { paddingBottom: FrostSpace.xs },
 });

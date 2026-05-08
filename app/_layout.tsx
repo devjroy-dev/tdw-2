@@ -19,7 +19,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 
-SplashScreen.preventAutoHideAsync();
+try { SplashScreen.preventAutoHideAsync(); } catch (_) {}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
