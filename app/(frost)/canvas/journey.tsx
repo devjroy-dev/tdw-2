@@ -9,9 +9,11 @@
 import React, { useState, useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Users, DollarSign, CheckSquare, Store,
-  Calendar, UserCheck, Flame, MessageCircle,
+  Calendar, UserCheck, MessageCircle, LogOut,
   Scissors, Plane, ChevronRight,
 } from 'lucide-react-native';
 import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
@@ -46,7 +48,6 @@ interface SecondaryTool {
 const SECONDARY: SecondaryTool[] = [
   { key: 'events',    Icon: Calendar,      title: 'Events',    route: '/(frost)/canvas/journey/events' },
   { key: 'guests',    Icon: UserCheck,     title: 'Guests',    route: '/(frost)/canvas/journey/guests' },
-  { key: 'hotdates',  Icon: Flame,         title: 'Hot Dates', route: '/(frost)/canvas/journey/hot-dates' },
   { key: 'messages',  Icon: MessageCircle, title: 'Messages',  route: '/(frost)/canvas/journey/messages' },
   { key: 'couture',   Icon: Scissors,      title: 'Couture',   route: '/(frost)/canvas/journey/couture' },
   { key: 'honeymoon', Icon: Plane,         title: 'Honeymoon', route: '/(frost)/canvas/journey/honeymoon' },
@@ -59,6 +60,16 @@ export default function CanvasJourney() {
     const n = await fetchCircleUnreadCount();
     setCircleCount(n);
   }, []);
+
+  const handleSignOut = () => {
+    Alert.alert('Sign out', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: async () => {
+        await AsyncStorage.removeItem('couple_session');
+        router.replace('/couple-login' as any);
+      }},
+    ]);
+  };
 
   useFocusEffect(useCallback(() => {
     loadCount();
@@ -92,6 +103,14 @@ export default function CanvasJourney() {
         <Text style={styles.sectionLabel}>More tools</Text>
 
         <View style={styles.secondaryList}>
+          <FrostedSurface mode="button" onPress={handleSignOut} radius={FrostRadius.md} style={styles.secondaryTile}>
+            <View style={styles.secondaryInner}>
+              <View style={styles.secondaryIconWrap}>
+                <LogOut size={16} color={FrostColors.muted} strokeWidth={1.5} />
+              </View>
+              <Text style={[styles.secondaryTitle, { color: FrostColors.muted }]}>Sign out</Text>
+            </View>
+          </FrostedSurface>
           {SECONDARY.map((tool) => (
             <SecondaryTile key={tool.key} tool={tool} />
           ))}

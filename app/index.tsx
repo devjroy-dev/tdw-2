@@ -1,30 +1,30 @@
-/**
- * app/index.tsx — TEMPORARY FROST PREVIEW REDIRECT
- *
- * This file is the regular app entry point. The original landing/login flow is
- * preserved in git history — to restore the real index.tsx after previewing:
- *
- *     git checkout app/index.tsx
- *
- * To preview Frost: keep this file as-is. App boot → straight to Frost landing.
- * To resume normal app development: run the git checkout above.
- *
- * Do NOT commit this file in this state.
- */
-
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function FrostPreviewRedirect() {
+export default function Index() {
   useEffect(() => {
-    // One-shot redirect on mount.
-    const t = setTimeout(() => {
-      router.replace('/(frost)/landing');
-    }, 0);
-    return () => clearTimeout(t);
+    (async () => {
+      try {
+        const vendorRaw = await AsyncStorage.getItem('vendor_session');
+        if (vendorRaw) {
+          const vs = JSON.parse(vendorRaw);
+          if (vs?.vendorId || vs?.id) { router.replace('/vendor-dashboard' as any); return; }
+        }
+        const coupleRaw = await AsyncStorage.getItem('couple_session');
+        if (coupleRaw) {
+          const cs = JSON.parse(coupleRaw);
+          if (cs?.id || cs?.userId) {
+            if (cs?.dreamer_type === 'co_planner') { router.replace('/(circle)/landing' as any); return; }
+            if (cs?.pin_set) { router.replace('/couple-pin-login' as any); } 
+            else { router.replace('/(frost)/landing' as any); }
+            return;
+          }
+        }
+        router.replace('/couple-login' as any);
+      } catch { router.replace('/couple-login' as any); }
+    })();
   }, []);
-
-  // Render nothing while the redirect fires
   return <View style={{ flex: 1, backgroundColor: '#F4F2EE' }} />;
 }

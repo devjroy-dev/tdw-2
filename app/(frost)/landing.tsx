@@ -57,11 +57,11 @@ function formatDateAsLetters(d: Date) {
 }
 
 function dayNumberToWords(n: number): string {
-  const ones = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth',
-    'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth',
-    'seventeenth', 'eighteenth', 'nineteenth'];
-  const tens = ['', '', 'twentieth', 'thirtieth'];
-  const tensPrefix = ['', '', 'twenty-', 'thirty-'];
+  const ones = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth',
+    'Tenth', 'Eleventh', 'Twelfth', 'Thirteenth', 'Fourteenth', 'Fifteenth', 'Sixteenth',
+    'Seventeenth', 'Eighteenth', 'Nineteenth'];
+  const tens = ['', '', 'Twentieth', 'Thirtieth'];
+  const tensPrefix = ['', '', 'Twenty-', 'Thirty-'];
   if (n < 20) return ones[n];
   if (n % 10 === 0) return tens[Math.floor(n / 10)];
   return tensPrefix[Math.floor(n / 10)] + ones[n % 10];
