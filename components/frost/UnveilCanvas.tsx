@@ -1,151 +1,156 @@
 /**
- * UnveilCanvas — Frost v1.1
+ * UnveilCanvas — Frost's signature box primitive.
  *
- * A TRANSPARENT SHELL with a hairline border.
- * The boxes do NOT have their own background or images.
- * Their visual "content" is the Layer 1.5 image bleeding through from beneath the frost.
+ * A hairline-bordered tap region with an eyebrow label. Long-press fires
+ * onUnveil. The box itself is a transparent shell — its visual content (e.g.
+ * Muse rotating images) is rendered at the same z-level as the underlying
+ * page material, beneath the frost pane, so the pane blurs them together
+ * with the background. This produces the seamless newspaper-under-glass
+ * surface.
  *
- * Long-press (~420ms) → reveal animation → push to canvas route.
- * Tap = no-op (reserved for v1.1+ image cycling).
+ * Children render naturally inside the box border on web (where CSS filter
+ * can desaturate). On native, children render normally and the desaturating
+ * overlay is applied by the parent screen.
  *
- * NO: overflow hidden, NO: border radius, NO: background color.
- * ONLY: hairline border #C8C3BC, eyebrow text, child content at bottom.
+ * For the reveal animation (frost-lifts + colour-returns + scale-to-fullscreen),
+ * see UnveilTransition.tsx — UnveilCanvas only handles the rest state and the
+ * gesture trigger.
  */
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  PanResponder,
-  Platform,
+  View, Pressable, StyleSheet, Animated, Easing, Platform,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
-  Easing,
-  runOnJS,
-} from 'react-native-reanimated';
-import { router } from 'expo-router';
-
-let Haptics: any = null;
-try { Haptics = require('expo-haptics'); } catch {}
+import * as Haptics from 'expo-haptics';
+import { FrostColors, FrostMotion, FrostRadius, FrostType, FrostSpace } from '../../constants/frost';
 
 interface UnveilCanvasProps {
-  route: string;
-  width?: number | string;
-  height?: number;
-  eyebrow?: string;
   children?: React.ReactNode;
-  style?: object;
+  eyebrow?: string;
+  onUnveil: () => void;
+  width?: number;
+  height?: number;
+  /** Set true if this canvas wraps a Dream box (text content stays sharp, not greyscaled). */
+  textContent?: boolean;
 }
 
 export default function UnveilCanvas({
-  route,
-  width,
-  height = 160,
-  eyebrow,
   children,
-  style,
+  eyebrow,
+  onUnveil,
+  width,
+  height,
+  textContent = false,
 }: UnveilCanvasProps) {
-  const isHolding  = useRef(false);
-  const holdTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const unveiled   = useRef(false);
-  const scale      = useSharedValue(1);
+  const pressScale = useRef(new Animated.Value(1)).current;
 
-  const navigate = useCallback(() => {
-    router.push(route as any);
-    setTimeout(() => {
-      scale.value    = 1;
-      unveiled.current = false;
-    }, 600);
-  }, [route]);
+  const handlePressIn = () => {
+    Animated.timing(pressScale, {
+      toValue: 0.98,
+      duration: FrostMotion.pressDuration,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
 
-  const triggerReveal = useCallback(() => {
-    if (unveiled.current) return;
-    unveiled.current = true;
+  const handlePressOut = () => {
+    Animated.timing(pressScale, {
+      toValue: 1,
+      duration: FrostMotion.pressOutDuration,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
 
-    if (Haptics && Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const handleLongPress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    onUnveil();
+  };
 
-    scale.value = withSequence(
-      withTiming(1.03, { duration: 280, easing: Easing.out(Easing.quad) }),
-      withTiming(1.0,  { duration: 120, easing: Easing.inOut(Easing.quad) }),
-    );
-
-    setTimeout(() => runOnJS(navigate)(), 320);
-  }, [navigate]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder:  () => false,
-      onPanResponderGrant: () => {
-        isHolding.current = true;
-        holdTimer.current = setTimeout(() => {
-          if (isHolding.current) triggerReveal();
-        }, 420);
-      },
-      onPanResponderRelease:   () => { isHolding.current = false; if (holdTimer.current) clearTimeout(holdTimer.current); },
-      onPanResponderTerminate: () => { isHolding.current = false; if (holdTimer.current) clearTimeout(holdTimer.current); },
-    })
-  ).current;
-
-  const containerAnim = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  // Wrap children in greyscale filter on web — but ONLY for image content.
+  // Text content (Dream box) should stay sharp.
+  const renderContent = () => {
+    if (Platform.OS === 'web' && !textContent) {
+      return (
+        <View
+          style={[
+            styles.contentLayer,
+            // @ts-expect-error — web-only style
+            {
+              filter: 'grayscale(100%) contrast(0.95) brightness(1.04)',
+              WebkitFilter: 'grayscale(100%) contrast(0.95) brightness(1.04)',
+            },
+          ]}
+        >
+          {children}
+        </View>
+      );
+    }
+    return <View style={styles.contentLayer}>{children}</View>;
+  };
 
   return (
     <Animated.View
       style={[
-        styles.shell,
-        { width: width ?? '100%', height },
-        containerAnim,
-        style,
+        styles.outer,
+        { width, height, transform: [{ scale: pressScale }] },
       ]}
-      {...panResponder.panHandlers}
     >
-      {/* Eyebrow — top left */}
-      {eyebrow ? (
-        <Text style={styles.eyebrow} pointerEvents="none">{eyebrow}</Text>
-      ) : null}
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onLongPress={handleLongPress}
+        delayLongPress={FrostMotion.longPressDelay}
+        style={styles.pressable}
+      >
+        {renderContent()}
 
-      {/* Children — bottom left */}
-      {children ? (
-        <View style={styles.childWrap} pointerEvents="none">
-          {children}
-        </View>
-      ) : null}
+        {eyebrow ? (
+          <View style={styles.eyebrowWrap} pointerEvents="none">
+            <View style={styles.eyebrowDot} />
+            <Animated.Text style={styles.eyebrowText}>{eyebrow}</Animated.Text>
+          </View>
+        ) : null}
+
+        <View style={styles.border} pointerEvents="none" />
+      </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: {
-    // Transparent shell — content shows through from Layer 1.5 beneath the frost
-    backgroundColor: 'transparent',
-    borderWidth: 0.5,
-    borderColor: '#C8C3BC',
-    // NO borderRadius, NO overflow hidden
-    position: 'relative',
+  outer: {
+    borderRadius: FrostRadius.box,
+    overflow: 'hidden',
   },
-  eyebrow: {
+  pressable: { flex: 1, position: 'relative' },
+  contentLayer: { ...StyleSheet.absoluteFillObject },
+  eyebrowWrap: {
     position: 'absolute',
-    top: 10,
-    left: 12,
-    fontFamily: 'Jost_300Light',
-    fontSize: 8,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: '#8C8480',
+    top: FrostSpace.l,
+    left: FrostSpace.l,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: FrostSpace.s,
+    zIndex: 10,
   },
-  childWrap: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
+  eyebrowDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: FrostColors.muted,
+    opacity: 0.85,
+  },
+  eyebrowText: {
+    ...FrostType.eyebrowSmall,
+    color: FrostColors.hint,
+  },
+  border: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: FrostRadius.box,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
   },
 });

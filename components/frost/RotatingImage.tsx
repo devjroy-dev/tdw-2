@@ -1,24 +1,29 @@
 /**
- * RotatingImage — cycles a list of image URIs with cross-fade.
- * Used inside Muse and Discover boxes on the Frost landing.
- *
- * Defaults: 4500ms per image, 800ms fade, infinite loop.
+ * RotatingImage — cross-fades through a list of image URIs.
+ * Used inside Muse and Discover box images on the Frost landing.
+ * Timing comes from FrostMotion tokens.
  */
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Image, StyleSheet, Animated, View } from 'react-native';
+import { FrostMotion } from '../../constants/frost';
 
 interface RotatingImageProps {
   sources: string[];
   intervalMs?: number;
   fadeMs?: number;
+  /** When true, slightly different timing — used to desync neighboring boxes. */
+  offset?: boolean;
 }
 
 export default function RotatingImage({
   sources,
-  intervalMs = 4500,
-  fadeMs = 800,
+  intervalMs = FrostMotion.imageInterval,
+  fadeMs = FrostMotion.imageFade,
+  offset = false,
 }: RotatingImageProps) {
+  const effectiveInterval = offset ? intervalMs + 700 : intervalMs;
+
   const [index, setIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(1 % sources.length);
   const fade = useRef(new Animated.Value(0)).current;
@@ -36,10 +41,10 @@ export default function RotatingImage({
         setNextIndex((nextIndex + 1) % sources.length);
         fade.setValue(0);
       });
-    }, intervalMs);
+    }, effectiveInterval);
 
     return () => clearInterval(id);
-  }, [nextIndex, sources.length, intervalMs, fadeMs, fade]);
+  }, [nextIndex, sources.length, effectiveInterval, fadeMs, fade]);
 
   if (sources.length === 0) return <View style={styles.fill} />;
 

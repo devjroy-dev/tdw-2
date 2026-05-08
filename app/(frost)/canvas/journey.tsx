@@ -1,56 +1,134 @@
 /**
- * Frost — Journey Canvas (v1.5 stub)
- * The working surface: vendor manager, reminders, OCR receipts, settings.
- * v1.5 will build the full tile grid and sub-routes.
+ * Frost \u00B7 Canvas \u00B7 Journey
+ *
+ * Tool grid for the bride's working surfaces. v2 adds Messages tile. All
+ * tiles are now frosted (via updated JourneyTile / FrostedSurface).
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Users, Bell, Receipt, MessageCircle, Mail, Settings,
+} from 'lucide-react-native';
+import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
+import JourneyTile from '../../../components/frost/JourneyTile';
+import {
+  FrostColors, FrostType, FrostSpace, FrostFonts, FrostCopy,
+} from '../../../constants/frost';
 
-export default function JourneyCanvas() {
-  const insets = useSafeAreaInsets();
+interface Tool {
+  Icon: React.ComponentType<any>;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  route: string;
+}
+
+const TOOLS: Tool[] = [
+  {
+    Icon: Users,
+    title: 'Vendors',
+    subtitle: 'Your team \u2014 pricing, messages, receipts.',
+    route: '/(frost)/canvas/journey/vendors',
+  },
+  {
+    Icon: Mail,
+    title: 'Messages',
+    subtitle: 'One-on-one threads with your vendors.',
+    route: '/(frost)/canvas/journey/messages',
+  },
+  {
+    Icon: Bell,
+    title: 'Reminders',
+    subtitle: 'What you want me to remember.',
+    route: '/(frost)/canvas/journey/reminders',
+  },
+  {
+    Icon: Receipt,
+    title: 'Receipts',
+    subtitle: 'Capture, file, find later.',
+    route: '/(frost)/canvas/journey/receipts',
+  },
+  {
+    Icon: MessageCircle,
+    title: 'Broadcast',
+    subtitle: 'Tell some or all of your people at once.',
+    route: '/(frost)/canvas/journey/broadcast',
+  },
+  {
+    Icon: Settings,
+    title: 'Settings',
+    subtitle: 'Your wedding, your preferences.',
+    route: '/(frost)/canvas/journey/settings',
+  },
+];
+
+export default function CanvasJourney() {
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={[styles.closeBtn, { top: insets.top + 16 }]}
+    <FrostCanvasShell eyebrow={FrostCopy.journeyCanvas.eyebrow} mode="frost">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.closeText}>✕</Text>
-      </TouchableOpacity>
-      <View style={styles.center}>
-        <Text style={styles.eyebrow}>CHAPTER ONE</Text>
-        <Text style={styles.title}>Journey</Text>
-        <Text style={styles.sub}>Vendor manager · Reminders · Receipts · Settings</Text>
-        <Text style={styles.coming}>Coming in v1.5</Text>
-      </View>
-    </View>
+        <View style={styles.heading}>
+          <Text style={styles.headingTitle}>{FrostCopy.journeyCanvas.title}</Text>
+          <Text style={styles.headingSub}>{FrostCopy.journeyCanvas.sub}</Text>
+        </View>
+
+        <View style={styles.tiles}>
+          {TOOLS.map((tool) => (
+            <JourneyTile
+              key={tool.title}
+              Icon={tool.Icon}
+              title={tool.title}
+              subtitle={tool.subtitle}
+              badge={tool.badge}
+              onPress={() => router.push(tool.route as any)}
+            />
+          ))}
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            \u2728  Or tell DreamAi what you\u2019d like to do.
+            She\u2019ll handle most of this for you.
+          </Text>
+        </View>
+      </ScrollView>
+    </FrostCanvasShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#E8E5E0' },
-  closeBtn: {
-    position: 'absolute', right: 20, zIndex: 50,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(26,24,21,0.08)',
-    alignItems: 'center', justifyContent: 'center',
+  scrollContent: {
+    paddingTop: FrostSpace.xl,
+    paddingBottom: FrostSpace.huge,
   },
-  closeText: { fontFamily: 'DMSans_300Light', fontSize: 14, color: '#3A3733' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  eyebrow: {
-    fontFamily: 'Jost_300Light', fontSize: 8, letterSpacing: 3.5,
-    textTransform: 'uppercase', color: '#8C8480', marginBottom: 16,
+  heading: {
+    paddingHorizontal: FrostSpace.xxl,
+    paddingBottom: FrostSpace.xl,
   },
-  title: {
-    fontFamily: 'CormorantGaramond_300Light', fontSize: 48,
-    color: '#1A1815', fontStyle: 'italic', textAlign: 'center',
-    lineHeight: 56, marginBottom: 16,
+  headingTitle: {
+    ...FrostType.displayM,
+    fontStyle: 'italic',
+    fontFamily: FrostFonts.display,
   },
-  sub: {
-    fontFamily: 'DMSans_300Light', fontSize: 12, color: '#8C8480',
-    textAlign: 'center', lineHeight: 20, letterSpacing: 0.5, marginBottom: 12,
+  headingSub: {
+    ...FrostType.bodyMedium,
+    color: FrostColors.muted,
+    marginTop: FrostSpace.xs,
   },
-  coming: { fontFamily: 'DMSans_300Light', fontSize: 11, color: '#C8C3BC', letterSpacing: 1 },
+  tiles: {
+    paddingHorizontal: FrostSpace.xxl,
+  },
+  footer: {
+    paddingHorizontal: FrostSpace.xxl,
+    paddingTop: FrostSpace.xl,
+  },
+  footerText: {
+    ...FrostType.displayXS,
+    color: FrostColors.muted,
+    textAlign: 'center',
+  },
 });

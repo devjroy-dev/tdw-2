@@ -1,0 +1,181 @@
+/**
+ * FrostCanvasShell — universal full-bleed canvas wrapper.
+ *
+ * Provides:
+ *   - Consistent top bar (eyebrow text + close X)
+ *   - Safe-area insets handled
+ *   - StatusBar style switch (light for image-heavy canvases, dark for text)
+ *   - Optional bottom bar slot
+ *   - Optional background mode: 'image' (full colour, like Muse/Discover),
+ *     'frost' (re-uses the FrostPane material, like Dream/Journey when at rest)
+ *
+ * Every Frost canvas should wrap its content in this component for visual
+ * consistency across the app.
+ */
+
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, StatusBar, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { X } from 'lucide-react-native';
+import {
+  FrostColors, FrostType, FrostSpace, FrostLayout,
+} from '../../constants/frost';
+import FrostPane from './FrostPane';
+
+type Mode = 'image' | 'frost' | 'plain';
+
+interface FrostCanvasShellProps {
+  /** Eyebrow shown in top bar (e.g. "MUSE", "DREAM"). */
+  eyebrow: string;
+  /** Image canvases set this — full-bleed background hero. */
+  imageUri?: string;
+  /** Background mode. Default: 'image' if imageUri provided, else 'frost'. */
+  mode?: Mode;
+  /** Page content. */
+  children: React.ReactNode;
+  /** Optional bottom bar (e.g. DreamAi compose input, Journey actions). */
+  bottomBar?: React.ReactNode;
+  /** Status bar tint. 'auto' picks based on mode. */
+  statusBarStyle?: 'light' | 'dark' | 'auto';
+  /** Override close behaviour. */
+  onClose?: () => void;
+}
+
+export default function FrostCanvasShell({
+  eyebrow,
+  imageUri,
+  mode,
+  children,
+  bottomBar,
+  statusBarStyle = 'auto',
+  onClose,
+}: FrostCanvasShellProps) {
+  const insets = useSafeAreaInsets();
+
+  const resolvedMode: Mode = mode ?? (imageUri ? 'image' : 'frost');
+  const resolvedStatusBar =
+    statusBarStyle === 'auto'
+      ? resolvedMode === 'image'
+        ? 'light'
+        : 'dark'
+      : statusBarStyle;
+
+  const onCloseInternal = onClose ?? (() => router.back());
+
+  // Top bar text colour depends on background mode
+  const topBarTextColor =
+    resolvedMode === 'image' ? FrostColors.white : FrostColors.muted;
+  const topBarIconColor =
+    resolvedMode === 'image' ? FrostColors.white : FrostColors.ink;
+
+  return (
+    <View style={styles.root}>
+      <StatusBar
+        barStyle={resolvedStatusBar === 'light' ? 'light-content' : 'dark-content'}
+      />
+
+      {/* BACKGROUND */}
+      {resolvedMode === 'image' && imageUri ? (
+        <Image
+          source={{ uri: imageUri }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      ) : resolvedMode === 'frost' ? (
+        <FrostPane />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: FrostColors.pageFallback }]} />
+      )}
+
+      {/* TOP BAR */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.topBarLeft}>
+          <View
+            style={[
+              styles.eyebrowDot,
+              { backgroundColor: resolvedMode === 'image' ? FrostColors.white : FrostColors.muted },
+            ]}
+          />
+          <Text style={[styles.eyebrow, { color: topBarTextColor }]}>{eyebrow}</Text>
+        </View>
+        <Pressable onPress={onCloseInternal} hitSlop={16} style={styles.closeBtn}>
+          <X size={22} color={topBarIconColor} strokeWidth={1.5} />
+        </Pressable>
+      </View>
+
+      {/* CONTENT */}
+      <View
+        style={[
+          styles.content,
+          {
+            paddingTop: insets.top + FrostLayout.canvasTopBarHeight,
+            paddingBottom: bottomBar ? FrostLayout.canvasBottomBarHeight + insets.bottom : insets.bottom,
+          },
+        ]}
+      >
+        {children}
+      </View>
+
+      {/* BOTTOM BAR */}
+      {bottomBar ? (
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: insets.bottom },
+          ]}
+        >
+          {bottomBar}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: FrostColors.black },
+
+  topBar: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: FrostLayout.canvasTopBarHeight + 24,
+    paddingHorizontal: FrostSpace.xxl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: FrostSpace.s,
+  },
+  eyebrowDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.9,
+  },
+  eyebrow: {
+    ...FrostType.eyebrowMedium,
+    letterSpacing: 4,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  content: {
+    flex: 1,
+  },
+
+  bottomBar: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(244,242,238,0.92)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: FrostColors.hairline,
+  },
+});

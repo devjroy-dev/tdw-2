@@ -1,0 +1,220 @@
+/**
+ * FrostConfirmCard — composite-tool confirmation primitive.
+ *
+ * When the bride says "Booked Swati for 1L, 30% advance" and DreamAi parses
+ * 4 mutations, the backend returns ONE FrostConfirmPreview. The native UI
+ * renders it as a single card with summary lines + Confirm/Cancel.
+ *
+ * On Confirm: card animates to Done state (checkmark + closing line of AI
+ * voice), then collapses. On Cancel: dismissed.
+ *
+ * Hard rule: maximum TWO cards per turn. If the AI tries 3+, the backend
+ * either merges or returns "I'll help with the first thing — tell me the
+ * next one after?" This component renders ONE card. Multi-card stacks are
+ * the parent's responsibility (rare).
+ */
+
+import React, { useRef, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { Check } from 'lucide-react-native';
+import {
+  FrostColors, FrostType, FrostSpace, FrostRadius, FrostFonts, FrostMotion,
+  FrostConfirmPreview,
+} from '../../constants/frost';
+
+interface FrostConfirmCardProps {
+  preview: FrostConfirmPreview;
+  /** Called after the bride taps Confirm. Parent runs the actual mutation. */
+  onConfirm: () => Promise<void> | void;
+  onCancel?: () => void;
+  /** AI voice line shown in the Done state. */
+  doneMessage?: string;
+}
+
+type CardState = 'idle' | 'confirming' | 'done';
+
+export default function FrostConfirmCard({
+  preview,
+  onConfirm,
+  onCancel,
+  doneMessage = 'Done.',
+}: FrostConfirmCardProps) {
+  const [state, setState] = useState<CardState>('idle');
+  const opacity = useRef(new Animated.Value(1)).current;
+  const doneOpacity = useRef(new Animated.Value(0)).current;
+
+  const handleConfirm = async () => {
+    setState('confirming');
+    try {
+      await onConfirm();
+      setState('done');
+      Animated.timing(doneOpacity, {
+        toValue: 1,
+        duration: FrostMotion.cardDoneDuration,
+        useNativeDriver: true,
+      }).start();
+    } catch (err) {
+      setState('idle');
+    }
+  };
+
+  if (state === 'done') {
+    return (
+      <Animated.View style={[styles.card, styles.cardDone, { opacity: doneOpacity }]}>
+        <View style={styles.doneIconWrap}>
+          <Check size={20} color={FrostColors.goldTrue} strokeWidth={1.8} />
+        </View>
+        <Text style={styles.doneText}>{doneMessage}</Text>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View style={[styles.card, { opacity }]}>
+      <Text style={styles.title}>{preview.summaryTitle}</Text>
+
+      <View style={styles.summaryList}>
+        {preview.summaryLines.map((line, idx) => (
+          <View key={idx} style={styles.summaryRow}>
+            <View style={styles.summaryDot} />
+            <Text style={styles.summaryText}>{line}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.actions}>
+        {onCancel ? (
+          <Pressable
+            onPress={onCancel}
+            style={({ pressed }) => [styles.btn, styles.btnSecondary, pressed && styles.btnPressed]}
+            disabled={state === 'confirming'}
+          >
+            <Text style={styles.btnSecondaryText}>
+              {preview.cancelLabel ?? 'Not yet'}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        <Pressable
+          onPress={handleConfirm}
+          style={({ pressed }) => [
+            styles.btn,
+            styles.btnPrimary,
+            pressed && styles.btnPressed,
+            state === 'confirming' && styles.btnDisabled,
+          ]}
+          disabled={state === 'confirming'}
+        >
+          <Text style={styles.btnPrimaryText}>
+            {state === 'confirming' ? 'Working\u2026' : (preview.confirmLabel ?? 'Confirm')}
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: FrostColors.white,
+    borderRadius: FrostRadius.box,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
+    padding: FrostSpace.xl,
+    marginHorizontal: FrostSpace.xxl,
+    marginVertical: FrostSpace.m,
+  },
+  cardDone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: FrostSpace.m,
+    paddingVertical: FrostSpace.l,
+  },
+
+  title: {
+    ...FrostType.displayM,
+    fontSize: 22,
+    lineHeight: 28,
+    color: FrostColors.ink,
+    marginBottom: FrostSpace.l,
+    fontFamily: FrostFonts.display,
+  },
+
+  summaryList: {
+    gap: FrostSpace.s,
+    marginBottom: FrostSpace.xl,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: FrostSpace.m,
+  },
+  summaryDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: FrostColors.goldMuted,
+    marginTop: 9,
+  },
+  summaryText: {
+    ...FrostType.bodyMedium,
+    flex: 1,
+    color: FrostColors.soft,
+  },
+
+  actions: {
+    flexDirection: 'row',
+    gap: FrostSpace.m,
+    justifyContent: 'flex-end',
+  },
+  btn: {
+    paddingHorizontal: FrostSpace.xl,
+    paddingVertical: FrostSpace.m,
+    borderRadius: FrostRadius.pill,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnPrimary: {
+    backgroundColor: FrostColors.ink,
+  },
+  btnPrimaryText: {
+    fontFamily: FrostFonts.labelMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: FrostColors.white,
+  },
+  btnSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
+  },
+  btnSecondaryText: {
+    fontFamily: FrostFonts.labelMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: FrostColors.soft,
+  },
+  btnPressed: {
+    opacity: 0.85,
+  },
+  btnDisabled: {
+    opacity: 0.6,
+  },
+
+  doneIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(168,146,75,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneText: {
+    ...FrostType.displayXS,
+    flex: 1,
+    color: FrostColors.ink,
+  },
+});

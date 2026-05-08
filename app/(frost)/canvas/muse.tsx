@@ -1,51 +1,41 @@
 /**
- * Frost — Muse Canvas (v1.2 stub)
- * Full-bleed gallery of saved bridal inspiration.
- * v1.2 will wire real /api/couple/muse/:userId
+ * Frost · Canvas · Muse
+ *
+ * Full-bleed gallery of the bride's saved moments. v1 shell shows the hero
+ * image at full saturation — this is the colour-from-frost moment. The
+ * full grid + per-photo detail wires in v1.2 (uses /api/couple/muse/:id).
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
+import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
+import { FrostColors, FrostType, FrostSpace, FrostCopy } from '../../../constants/frost';
 
-export default function MuseCanvas() {
-  const insets = useSafeAreaInsets();
+const HERO =
+  'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=90&auto=format&fit=crop';
+
+export default function CanvasMuse() {
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={[styles.closeBtn, { top: insets.top + 16 }]}
-      >
-        <Text style={styles.closeText}>✕</Text>
-      </TouchableOpacity>
-      <View style={styles.center}>
-        <Text style={styles.eyebrow}>MUSE</Text>
-        <Text style={styles.title}>Your vision board{'\n'}lives here.</Text>
-        <Text style={styles.sub}>Coming in v1.2</Text>
+    <FrostCanvasShell
+      eyebrow={FrostCopy.museCanvas.eyebrow}
+      imageUri={HERO}
+    >
+      <View style={styles.bottom}>
+        <Text style={styles.caption}>{FrostCopy.museCanvas.emptyCaption}</Text>
       </View>
-    </View>
+    </FrostCanvasShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#E8E5E0' },
-  closeBtn: {
-    position: 'absolute', right: 20, zIndex: 50,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(26,24,21,0.08)',
-    alignItems: 'center', justifyContent: 'center',
+  bottom: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: FrostSpace.xxl,
+    paddingBottom: FrostSpace.huge,
   },
-  closeText: { fontFamily: 'DMSans_300Light', fontSize: 14, color: '#3A3733' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  eyebrow: {
-    fontFamily: 'Jost_300Light', fontSize: 8, letterSpacing: 3.5,
-    textTransform: 'uppercase', color: '#8C8480', marginBottom: 16,
+  caption: {
+    ...FrostType.displayXS,
+    color: 'rgba(255,255,255,0.92)',
   },
-  title: {
-    fontFamily: 'CormorantGaramond_300Light', fontSize: 32,
-    color: '#1A1815', fontStyle: 'italic', textAlign: 'center', lineHeight: 40,
-    marginBottom: 16,
-  },
-  sub: { fontFamily: 'DMSans_300Light', fontSize: 12, color: '#8C8480', letterSpacing: 1 },
 });
