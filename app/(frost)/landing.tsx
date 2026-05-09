@@ -46,7 +46,7 @@ const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 // ═══════════════════════════════════════════════════════════════════════════
 
 type HomeModeKey = 'SANCTUARY' | 'A' | 'B' | 'C' | 'E1' | 'E2' | 'E3' | 'E4';
-const HOME_MODE: HomeModeKey = 'SANCTUARY';
+const HOME_MODE: HomeModeKey = 'E1';
 
 // ─── Mode descriptors ──────────────────────────────────────────────────────
 type Layout = 'classic' | 'mosaic';
