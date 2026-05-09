@@ -543,16 +543,16 @@ export default function FrostLanding() {
             style={{ flex: 4 }}
           >
             <LinearGradient colors={mode.heroGradient!} style={styles.mosaicHero}>
-              <Text style={styles.weekday}>{weekday}</Text>
-              <Text style={styles.dateLine}>{dayWord} of {month}</Text>
-              <Text style={styles.year}>{year}</Text>
-              <View style={styles.rule} />
+              <Text style={styles.mosaicWeekday}>{weekday}</Text>
+              <Text style={styles.mosaicDateLine}>{dayWord} of {month}</Text>
+              <Text style={styles.mosaicYear}>{year}</Text>
+              <View style={styles.mosaicRule} />
               <View style={styles.daysWrap}>
-                <Text style={styles.daysNum}>{days}</Text>
-                <Text style={styles.daysWord}>{FrostCopy.landing.daysWord}</Text>
+                <Text style={styles.mosaicDaysNum}>{days}</Text>
+                <Text style={styles.mosaicDaysWord}>{FrostCopy.landing.daysWord}</Text>
               </View>
               {SHOW_MODE_PICKER ? (
-                <Text style={styles.modeBadge}>{homeMode}</Text>
+                <Text style={styles.mosaicModeBadge}>{homeMode}</Text>
               ) : null}
             </LinearGradient>
           </Pressable>
@@ -590,34 +590,42 @@ export default function FrostLanding() {
             </Pressable>
           </View>
 
-          <Pressable onPress={goDream} onLongPress={goDream} accessibilityLabel="Dream Ai">
+          <Pressable
+            onPress={goDream} onLongPress={goDream}
+            accessibilityLabel="Dream Ai"
+            style={{ flex: 2.4 }}
+          >
             <LinearGradient colors={mode.dreamGradient!} style={styles.mosaicVoice}>
-              <Text style={styles.dreamLabel}>Dream Ai</Text>
-              <View style={styles.dreamLine}>
-                <Text style={styles.dreamGlyph}>✦</Text>
-                <Text style={styles.dreamText}>{lineA}</Text>
+              <Text style={styles.mosaicDreamLabel}>Dream Ai</Text>
+              <View style={styles.mosaicDreamLine}>
+                <Text style={styles.mosaicDreamGlyph}>✦</Text>
+                <Text style={styles.mosaicDreamText}>{lineA}</Text>
               </View>
-              <View style={styles.dreamLine}>
-                <Text style={styles.dreamGlyph}>✦</Text>
-                <Text style={styles.dreamText}>{lineB}</Text>
+              <View style={styles.mosaicDreamLine}>
+                <Text style={styles.mosaicDreamGlyph}>✦</Text>
+                <Text style={styles.mosaicDreamText}>{lineB}</Text>
               </View>
             </LinearGradient>
           </Pressable>
 
-          <Pressable onPress={goCircle} onLongPress={goCircle} accessibilityLabel="Circle">
+          <Pressable
+            onPress={goCircle} onLongPress={goCircle}
+            accessibilityLabel="Circle"
+            style={{ flex: 1.8 }}
+          >
             <LinearGradient colors={mode.circleGradient!} style={styles.mosaicVoice}>
-              <Text style={styles.circleLabel}>Circle</Text>
+              <Text style={styles.mosaicCircleLabel}>Circle</Text>
               {circleLines.length > 0 ? (
                 circleLines.map((line, idx) => (
-                  <View key={idx} style={styles.circleLine}>
-                    <Text style={styles.circleGlyph}>✦</Text>
-                    <Text style={styles.circleText}>{line}</Text>
+                  <View key={idx} style={styles.mosaicCircleLine}>
+                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                    <Text style={styles.mosaicCircleText}>{line}</Text>
                   </View>
                 ))
               ) : (
-                <View style={styles.circleLine}>
-                  <Text style={styles.circleGlyph}>✦</Text>
-                  <Text style={styles.circleText}>Quiet here for now.</Text>
+                <View style={styles.mosaicCircleLine}>
+                  <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                  <Text style={styles.mosaicCircleText}>Quiet here for now.</Text>
                 </View>
               )}
             </LinearGradient>
@@ -626,10 +634,10 @@ export default function FrostLanding() {
           <Pressable
             onPress={goJourney} onLongPress={goJourney}
             accessibilityLabel="Journey"
-            style={{ paddingBottom: Math.max(insets.bottom, 0) }}
+            style={{ flex: 1.2, paddingBottom: Math.max(insets.bottom, 0) }}
           >
             <LinearGradient colors={mode.journeyGradient!} style={styles.mosaicJourney}>
-              <Text style={styles.journeyLabel}>Journey</Text>
+              <Text style={styles.mosaicJourneyLabel}>Journey</Text>
             </LinearGradient>
           </Pressable>
         </View>
@@ -776,12 +784,12 @@ function makeStyles(m: ModeDescriptor) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: m.pagePaper },
 
-    // Mosaic
+    // ── Mosaic ────────────────────────────────────────────────────────
     mosaicScreen: { flex: 1, flexDirection: 'column' },
     mosaicHero: {
       flex: 1,
       alignItems: 'center', justifyContent: 'center',
-      paddingHorizontal: 18, paddingVertical: 18,
+      paddingHorizontal: 16, paddingVertical: 16,
     },
     mosaicPhotoRow: { flex: 4, flexDirection: 'row' },
     mosaicPhotoTile: {
@@ -791,25 +799,113 @@ function makeStyles(m: ModeDescriptor) {
       borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: m.hairline,
     },
     mosaicTileLabel: {
-      position: 'absolute', top: 14, left: 14,
+      position: 'absolute', top: 10, left: 10,
       fontFamily: FrostFonts.label, fontWeight: '300',
-      fontSize: 9, letterSpacing: 3,
+      fontSize: 8, letterSpacing: 3,
       color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase',
       textShadowColor: 'rgba(0,0,0,0.55)',
       textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
     },
     mosaicTileDot: {
-      position: 'absolute', top: 16, right: 16,
+      position: 'absolute', top: 12, right: 12,
       width: 5, height: 5, borderRadius: 2.5, backgroundColor: m.brass,
     },
     mosaicVoice: {
-      paddingVertical: 16, paddingHorizontal: 22,
+      flex: 1,
+      paddingVertical: 14, paddingHorizontal: 18,
+      justifyContent: 'center',
+      gap: 6,
       borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: m.hairline,
     },
     mosaicJourney: {
-      paddingVertical: 18, alignItems: 'center',
+      flex: 1,
+      paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
       borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: m.hairline,
     },
+
+    // Mosaic hero text — uses real italic Cormorant faces, sized to mockup
+    mosaicWeekday: {
+      fontFamily: 'CormorantGaramond_400Regular_Italic',
+      fontSize: 22, lineHeight: 24,
+      color: m.ink,
+    },
+    mosaicDateLine: {
+      fontFamily: 'CormorantGaramond_400Regular_Italic',
+      fontSize: 26, lineHeight: 28,
+      letterSpacing: 0.3, color: m.brass,
+      textAlign: 'center', paddingHorizontal: 4,
+    },
+    mosaicYear: {
+      fontFamily: 'CormorantGaramond_300Light',
+      fontSize: 13, letterSpacing: 0.8,
+      marginTop: 6, color: m.soft,
+    },
+    mosaicRule: {
+      width: 22, height: 1,
+      backgroundColor: m.brassMuted, opacity: 0.5,
+      marginVertical: 16,
+    },
+    mosaicDaysNum: {
+      fontFamily: 'CormorantGaramond_300Light_Italic',
+      fontSize: 38, lineHeight: 38,
+      color: m.brassMuted,
+    },
+    mosaicDaysWord: {
+      fontFamily: FrostFonts.label, fontWeight: '300',
+      fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
+      color: m.soft,
+    },
+    mosaicModeBadge: {
+      marginTop: 10,
+      fontFamily: FrostFonts.label, fontWeight: '300',
+      fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
+      color: m.brassMuted, opacity: 0.7,
+    },
+
+    // Mosaic Dream Ai voice text
+    mosaicDreamLabel: {
+      fontFamily: 'CormorantGaramond_400Regular_Italic',
+      fontSize: 14, color: m.brass,
+    },
+    mosaicDreamLine: {
+      flexDirection: 'row', gap: 6, alignItems: 'flex-start',
+    },
+    mosaicDreamGlyph: {
+      fontSize: 8, color: m.brass, marginTop: 3,
+    },
+    mosaicDreamText: {
+      flex: 1,
+      fontFamily: 'CormorantGaramond_300Light_Italic',
+      fontSize: 11.5, lineHeight: 15.5,
+      color: m.soft,
+    },
+
+    // Mosaic Circle voice text
+    mosaicCircleLabel: {
+      fontFamily: 'CormorantGaramond_400Regular_Italic',
+      fontSize: 14, color: m.brass,
+    },
+    mosaicCircleLine: {
+      flexDirection: 'row', gap: 6, alignItems: 'flex-start',
+    },
+    mosaicCircleGlyph: {
+      fontSize: 8, color: m.brass, marginTop: 3,
+    },
+    mosaicCircleText: {
+      flex: 1,
+      fontFamily: 'CormorantGaramond_300Light_Italic',
+      fontSize: 11.5, lineHeight: 15.5,
+      color: m.soft,
+    },
+
+    // Mosaic Journey label
+    mosaicJourneyLabel: {
+      fontFamily: 'CormorantGaramond_400Regular_Italic',
+      fontSize: 16, letterSpacing: 0.4,
+      color: m.brass,
+    },
+
+    // ── Hero (classic) — UNTOUCHED, used by SANCTUARY/A/B/C only ───────
 
     // Hero (classic)
     hero: { alignItems: 'center', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 },
