@@ -1,23 +1,22 @@
 /**
- * Frost — Landing (v4 — vintage palette + F-2 frost on photos).
+ * Frost — Landing (v5 — eight-mode toggle for home-screen rendition test).
  *
- * What changed from v3:
- *   - Vintage palette (matches the Vogue/Harper's-Bazaar carbon-print mood)
- *   - F-2 frost on photos: each greyscale image is wrapped in a low-intensity
- *     BlurView so the photographs feel hazy. The page itself is flat — no
- *     full-page blur (it never worked on Android, and the per-image approach
- *     produces the visible softening Dev was after).
- *   - Dream Ai card now sits on the same darker stamp as the Journey button
- *     (both anchor surfaces share one tonal stop)
- *   - Image latency: image-frames render in stamp-grey immediately so the
- *     boxes never appear empty during fetch
+ * This file ships eight visual modes behind a single top-level constant so we
+ * can A/B/C/D/E test on real device without rebuilds. Once a winner is picked,
+ * a small follow-up patch deletes the seven losers and the toggle.
  *
- * What stayed:
- *   - Two image boxes side by side, gold dot in the corner of each
- *   - Wide Dream AI card (gold "Dream Ai" eyebrow + 2 italic Cormorant lines)
- *   - Journey button at the foot
- *   - useFocusEffect refresh on every home-screen entry
- *   - Anti-collision via /api/v2/frost/home-images/:userId
+ * Modes:
+ *   SANCTUARY — current state. Vintage palette, F-2 frost on photos.
+ *   A         — colour photos. Everything else identical to SANCTUARY.
+ *   B         — colour photos + cooler/whiter paper + sharp 8px corners.
+ *   C         — PWA energy. Taller photos (1.15 aspect), dark gradient at the
+ *               bottom of each photo, sharp 0px corners, reduced page padding.
+ *   E1        — borderless mosaic. Dark navy gradient hero, colour photos.
+ *   E2        — borderless mosaic. Dark navy gradient hero, B&W photos.
+ *   E3        — borderless mosaic. Dirty-white paper hero, colour photos.
+ *   E4        — borderless mosaic. Dirty-white paper hero, B&W photos.
+ *
+ * To test: edit HOME_MODE below, save, hot-reload picks it up.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -30,30 +29,239 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { Grayscale } from 'react-native-color-matrix-image-filters';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   FrostFonts, FrostCopy,
 } from '../../constants/frost';
 import {
   brideIdle, fetchHomeImages, fetchCircleFeed, formatCircleActivity,
-  CircleActivityEvent,
 } from '../../services/frostApi';
 
 // ─── Wedding date — wired to user profile in v1.7 ──────────────────────────
 const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 
-// ─── v4 vintage tokens (locked) ────────────────────────────────────────────
-// All in the warm-grey family. Page paper is the lightest stop, the anchor
-// stamp (Dream Ai + Journey) is deeper, photographs sit at greyscale.
-const PAGE_PAPER       = '#D8D3CC';      // home page background — nudged warmer (round 3)
-const CARD_FILL        = '#ECE9E4';      // image box fill (slightly cooler pale)
-const STAMP_FILL       = '#C0BCB6';      // Dream Ai card + Journey stamp (matched, deeper)
-const HAIRLINE         = '#B5B1AC';
-const HAIRLINE_STRONG  = '#A39E97';
-const INK              = '#2C2823';      // warm charcoal display
-const SOFT             = '#5A5650';      // warm mid-grey body
-const BRASS            = '#BFA04D';      // polished brass — pops on warmer page (round 3)
+// ═══════════════════════════════════════════════════════════════════════════
+// HOME MODE TOGGLE — flip this string to A/B/C/E1/E2/E3/E4/SANCTUARY.
+// Hot reload picks it up. No rebuild needed. Default = SANCTUARY (safe revert).
+// ═══════════════════════════════════════════════════════════════════════════
 
-// Per-image frost tint sits on top of the BlurView for a subtle warm wash.
+type HomeModeKey = 'SANCTUARY' | 'A' | 'B' | 'C' | 'E1' | 'E2' | 'E3' | 'E4';
+const HOME_MODE: HomeModeKey = 'SANCTUARY';
+
+// ─── Mode descriptors ──────────────────────────────────────────────────────
+type Layout = 'classic' | 'mosaic';
+type PhotoTreatment = 'frost' | 'colour' | 'bw';
+
+interface ModeDescriptor {
+  layout:           Layout;
+  photoTreatment:   PhotoTreatment;
+  // Palette
+  pagePaper:        string;
+  cardFill:         string;
+  stampFill:        string;
+  hairline:         string;
+  hairlineStrong:   string;
+  ink:              string;
+  soft:             string;
+  brass:            string;
+  brassMuted:       string;
+  // Photo frame radii (classic layout only)
+  imgBoxRadius:     number;
+  photoFrameRadius: number;
+  cardRadius:       number;
+  // Photo aspect (classic layout only)
+  photoAspect:      number;
+  // Status bar tint
+  statusBarStyle:   'dark-content' | 'light-content';
+  // Mosaic-specific gradient stops (mosaic layout only)
+  heroGradient?:    [string, string];
+  dreamGradient?:   [string, string];
+  circleGradient?:  [string, string];
+  journeyGradient?: [string, string];
+  // C only — bottom-of-photo dark gradient for legibility
+  photoBottomGradient?: boolean;
+}
+
+const MODES: Record<HomeModeKey, ModeDescriptor> = {
+  // ── SANCTUARY: current state (revert default) ────────────────────────────
+  SANCTUARY: {
+    layout:           'classic',
+    photoTreatment:   'frost',
+    pagePaper:        '#D8D3CC',
+    cardFill:         '#ECE9E4',
+    stampFill:        '#C0BCB6',
+    hairline:         '#B5B1AC',
+    hairlineStrong:   '#A39E97',
+    ink:              '#2C2823',
+    soft:             '#5A5650',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     18,
+    photoFrameRadius: 12,
+    cardRadius:       18,
+    photoAspect:      1 / 1.18,
+    statusBarStyle:   'dark-content',
+  },
+
+  // ── A: colour photos. Otherwise identical to SANCTUARY. ──────────────────
+  A: {
+    layout:           'classic',
+    photoTreatment:   'colour',
+    pagePaper:        '#D8D3CC',
+    cardFill:         '#ECE9E4',
+    stampFill:        '#C0BCB6',
+    hairline:         '#B5B1AC',
+    hairlineStrong:   '#A39E97',
+    ink:              '#2C2823',
+    soft:             '#5A5650',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     18,
+    photoFrameRadius: 12,
+    cardRadius:       18,
+    photoAspect:      1 / 1.18,
+    statusBarStyle:   'dark-content',
+  },
+
+  // ── B: cooler/whiter paper + sharper corners ─────────────────────────────
+  B: {
+    layout:           'classic',
+    photoTreatment:   'colour',
+    pagePaper:        '#EDEAE4',
+    cardFill:         '#F4F1EB',
+    stampFill:        '#D2CEC8',
+    hairline:         '#C2BEB8',
+    hairlineStrong:   '#A39E97',
+    ink:              '#2C2823',
+    soft:             '#5A5650',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     8,
+    photoFrameRadius: 6,
+    cardRadius:       8,
+    photoAspect:      1 / 1.18,
+    statusBarStyle:   'dark-content',
+  },
+
+  // ── C: PWA energy on classic layout ──────────────────────────────────────
+  C: {
+    layout:           'classic',
+    photoTreatment:   'colour',
+    pagePaper:        '#D8D3CC',
+    cardFill:         '#1A1612',
+    stampFill:        '#C0BCB6',
+    hairline:         '#B5B1AC',
+    hairlineStrong:   '#A39E97',
+    ink:              '#2C2823',
+    soft:             '#5A5650',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     0,
+    photoFrameRadius: 0,
+    cardRadius:       0,
+    photoAspect:      1 / 1.32,                  // taller, more dramatic
+    statusBarStyle:   'dark-content',
+    photoBottomGradient: true,
+  },
+
+  // ── E1: mosaic, dark, colour photos ──────────────────────────────────────
+  E1: {
+    layout:           'mosaic',
+    photoTreatment:   'colour',
+    pagePaper:        '#1B1612',
+    cardFill:         '#1B1612',
+    stampFill:        '#2D2620',
+    hairline:         'rgba(191,160,77,0.18)',
+    hairlineStrong:   'rgba(191,160,77,0.22)',
+    ink:              '#F5F0E8',
+    soft:             'rgba(245,240,232,0.62)',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     0,
+    photoFrameRadius: 0,
+    cardRadius:       0,
+    photoAspect:      1 / 1,
+    statusBarStyle:   'light-content',
+    heroGradient:     ['#1B1612', '#2A2018'],
+    dreamGradient:    ['#2D2620', '#1A1612'],
+    circleGradient:   ['#1F1A18', '#2C2520'],
+    journeyGradient:  ['#15110E', '#221C18'],
+  },
+
+  // ── E2: mosaic, dark, B&W photos ─────────────────────────────────────────
+  E2: {
+    layout:           'mosaic',
+    photoTreatment:   'bw',
+    pagePaper:        '#1B1612',
+    cardFill:         '#1B1612',
+    stampFill:        '#2D2620',
+    hairline:         'rgba(191,160,77,0.18)',
+    hairlineStrong:   'rgba(191,160,77,0.22)',
+    ink:              '#F5F0E8',
+    soft:             'rgba(245,240,232,0.62)',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     0,
+    photoFrameRadius: 0,
+    cardRadius:       0,
+    photoAspect:      1 / 1,
+    statusBarStyle:   'light-content',
+    heroGradient:     ['#1B1612', '#2A2018'],
+    dreamGradient:    ['#2D2620', '#1A1612'],
+    circleGradient:   ['#1F1A18', '#2C2520'],
+    journeyGradient:  ['#15110E', '#221C18'],
+  },
+
+  // ── E3: mosaic, light, colour photos ─────────────────────────────────────
+  E3: {
+    layout:           'mosaic',
+    photoTreatment:   'colour',
+    pagePaper:        '#D8D3CC',
+    cardFill:         '#D8D3CC',
+    stampFill:        '#C8C2BA',
+    hairline:         'rgba(44,40,35,0.12)',
+    hairlineStrong:   'rgba(44,40,35,0.18)',
+    ink:              '#2C2823',
+    soft:             '#5A5650',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     0,
+    photoFrameRadius: 0,
+    cardRadius:       0,
+    photoAspect:      1 / 1,
+    statusBarStyle:   'dark-content',
+    heroGradient:     ['#D8D3CC', '#CFC9C1'],
+    dreamGradient:    ['#C8C2BA', '#BBB5AC'],
+    circleGradient:   ['#BCB6AD', '#B0AAA1'],
+    journeyGradient:  ['#A8A29A', '#948E86'],
+  },
+
+  // ── E4: mosaic, light, B&W photos ────────────────────────────────────────
+  E4: {
+    layout:           'mosaic',
+    photoTreatment:   'bw',
+    pagePaper:        '#D8D3CC',
+    cardFill:         '#D8D3CC',
+    stampFill:        '#C8C2BA',
+    hairline:         'rgba(44,40,35,0.12)',
+    hairlineStrong:   'rgba(44,40,35,0.18)',
+    ink:              '#2C2823',
+    soft:             '#5A5650',
+    brass:            '#BFA04D',
+    brassMuted:       '#A8924B',
+    imgBoxRadius:     0,
+    photoFrameRadius: 0,
+    cardRadius:       0,
+    photoAspect:      1 / 1,
+    statusBarStyle:   'dark-content',
+    heroGradient:     ['#D8D3CC', '#CFC9C1'],
+    dreamGradient:    ['#C8C2BA', '#BBB5AC'],
+    circleGradient:   ['#BCB6AD', '#B0AAA1'],
+    journeyGradient:  ['#A8A29A', '#948E86'],
+  },
+};
+
+// Per-image frost tint (SANCTUARY only)
 const PHOTO_FROST_TINT = 'rgba(154,149,142,0.10)';
 
 // ─── Static fallback line picker ──────────────────────────────────────────
@@ -81,20 +289,26 @@ function daysUntil(target: Date): number {
   return Math.max(0, Math.round((t.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-// ─── F-2 frosted greyscale image — the visible softness primitive ─────────
-// On native: greyscale wrapper → image → low-intensity BlurView on top with
-// a soft warm tint. Real blur on the photograph itself.
-// On web: CSS filter chain — grayscale + blur — applied directly to the image.
-function FrostedGreyImage({
+// ─── Photo treatment primitive ─────────────────────────────────────────────
+// One component, three behaviours: frost (SANCTUARY), colour (A/B/C/E1/E3),
+// bw (E2/E4). On native, bw uses the same Grayscale wrapper as frost minus
+// the BlurView. On web, all three are CSS filters on the Image.
+function ModePhoto({
   uri,
+  treatment,
   containerStyle,
   imageStyle,
 }: {
   uri: string;
+  treatment: PhotoTreatment;
   containerStyle: any;
   imageStyle: any;
 }) {
   if (Platform.OS === 'web') {
+    const filter =
+      treatment === 'frost' ? 'grayscale(100%) blur(2.5px) contrast(0.95)' :
+      treatment === 'bw'    ? 'grayscale(100%) contrast(0.95)' :
+                              'none';
     return (
       <Image
         source={{ uri }}
@@ -102,17 +316,38 @@ function FrostedGreyImage({
           imageStyle,
           // @ts-ignore web-only style
           {
-            filter: 'grayscale(100%) blur(2.5px) contrast(0.95)',
-            WebkitFilter: 'grayscale(100%) blur(2.5px) contrast(0.95)',
+            filter: filter !== 'none' ? filter : undefined,
+            WebkitFilter: filter !== 'none' ? filter : undefined,
           },
         ]}
         resizeMode="cover"
       />
     );
   }
+
+  // Native
+  if (treatment === 'colour') {
+    return (
+      <View style={containerStyle}>
+        <Image source={{ uri }} style={imageStyle} resizeMode="cover" />
+      </View>
+    );
+  }
+
+  if (treatment === 'bw') {
+    return (
+      <View style={containerStyle}>
+        <Grayscale amount={1} style={StyleSheet.absoluteFill}>
+          <Image source={{ uri }} style={imageStyle} resizeMode="cover" />
+        </Grayscale>
+      </View>
+    );
+  }
+
+  // frost (SANCTUARY)
   return (
     <View style={containerStyle}>
-      <Grayscale amount={1}>
+      <Grayscale amount={1} style={StyleSheet.absoluteFill}>
         <Image source={{ uri }} style={imageStyle} resizeMode="cover" />
       </Grayscale>
       <BlurView
@@ -128,6 +363,8 @@ function FrostedGreyImage({
 // ─── Screen ───────────────────────────────────────────────────────────────
 export default function FrostLanding() {
   const insets = useSafeAreaInsets();
+  const mode = MODES[HOME_MODE];
+  const styles = makeStyles(mode);
 
   // Re-render every minute so countdown stays current
   const [, force] = useState(0);
@@ -207,11 +444,124 @@ export default function FrostLanding() {
   const goCircle   = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/journey/circle' as any); };
   const goJourney  = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/journey' as any); };
 
+  // ── MOSAIC LAYOUT (E1/E2/E3/E4) ────────────────────────────────────────
+  if (mode.layout === 'mosaic') {
+    return (
+      <View style={[styles.root]}>
+        <StatusBar barStyle={mode.statusBarStyle} backgroundColor={mode.pagePaper} />
+
+        <View style={[styles.mosaicScreen, { paddingTop: insets.top }]}>
+          {/* HERO TILE — solid gradient, type only */}
+          <LinearGradient
+            colors={mode.heroGradient!}
+            style={styles.mosaicHero}
+          >
+            <Text style={styles.weekday}>{weekday}</Text>
+            <Text style={styles.dateLine}>{dayWord} of {month}</Text>
+            <Text style={styles.year}>{year}</Text>
+            <View style={styles.rule} />
+            <View style={styles.daysWrap}>
+              <Text style={styles.daysNum}>{days}</Text>
+              <Text style={styles.daysWord}>{FrostCopy.landing.daysWord}</Text>
+            </View>
+          </LinearGradient>
+
+          {/* PHOTO ROW — Muse | Discover, edge to edge */}
+          <View style={styles.mosaicPhotoRow}>
+            <Pressable
+              style={[styles.mosaicPhotoTile, styles.mosaicPhotoLeft]}
+              onPress={goMuse}
+              onLongPress={goMuse}
+              accessibilityLabel="Muse"
+            >
+              {museUrl ? (
+                <ModePhoto
+                  uri={museUrl}
+                  treatment={mode.photoTreatment}
+                  containerStyle={StyleSheet.absoluteFill}
+                  imageStyle={styles.photoImg}
+                />
+              ) : null}
+              <Text style={styles.mosaicTileLabel}>Muse</Text>
+              <View style={styles.mosaicTileDot} />
+            </Pressable>
+
+            <Pressable
+              style={styles.mosaicPhotoTile}
+              onPress={goDiscover}
+              onLongPress={goDiscover}
+              accessibilityLabel="Discover"
+            >
+              {discoverUrl ? (
+                <ModePhoto
+                  uri={discoverUrl}
+                  treatment={mode.photoTreatment}
+                  containerStyle={StyleSheet.absoluteFill}
+                  imageStyle={styles.photoImg}
+                />
+              ) : null}
+              <Text style={styles.mosaicTileLabel}>Discover</Text>
+              <View style={styles.mosaicTileDot} />
+            </Pressable>
+          </View>
+
+          {/* DREAM AI — gradient tile */}
+          <Pressable onPress={goDream} onLongPress={goDream} accessibilityLabel="Dream Ai">
+            <LinearGradient colors={mode.dreamGradient!} style={styles.mosaicVoice}>
+              <Text style={styles.dreamLabel}>Dream Ai</Text>
+              <View style={styles.dreamLine}>
+                <Text style={styles.dreamGlyph}>✦</Text>
+                <Text style={styles.dreamText}>{lineA}</Text>
+              </View>
+              <View style={styles.dreamLine}>
+                <Text style={styles.dreamGlyph}>✦</Text>
+                <Text style={styles.dreamText}>{lineB}</Text>
+              </View>
+            </LinearGradient>
+          </Pressable>
+
+          {/* CIRCLE — gradient tile */}
+          <Pressable onPress={goCircle} onLongPress={goCircle} accessibilityLabel="Circle">
+            <LinearGradient colors={mode.circleGradient!} style={styles.mosaicVoice}>
+              <Text style={styles.circleLabel}>Circle</Text>
+              {circleLines.length > 0 ? (
+                circleLines.map((line, idx) => (
+                  <View key={idx} style={styles.circleLine}>
+                    <Text style={styles.circleGlyph}>✦</Text>
+                    <Text style={styles.circleText}>{line}</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.circleLine}>
+                  <Text style={styles.circleGlyph}>✦</Text>
+                  <Text style={styles.circleText}>Quiet here for now.</Text>
+                </View>
+              )}
+            </LinearGradient>
+          </Pressable>
+
+          {/* JOURNEY — gradient foot anchor */}
+          <Pressable
+            onPress={goJourney}
+            onLongPress={goJourney}
+            accessibilityLabel="Journey"
+            style={{ paddingBottom: Math.max(insets.bottom, 0) }}
+          >
+            <LinearGradient colors={mode.journeyGradient!} style={styles.mosaicJourney}>
+              <Text style={styles.journeyLabel}>Journey</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  // ── CLASSIC LAYOUT (SANCTUARY/A/B/C) ───────────────────────────────────
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={PAGE_PAPER} />
+      <StatusBar barStyle={mode.statusBarStyle} backgroundColor={mode.pagePaper} />
 
-      {/* ── Hero block ── */}
+      {/* Hero block */}
       <View style={styles.hero}>
         <Text style={styles.weekday}>{weekday}</Text>
         <Text style={styles.dateLine}>{dayWord} of {month}</Text>
@@ -223,7 +573,7 @@ export default function FrostLanding() {
         </View>
       </View>
 
-      {/* ── Two image boxes ── */}
+      {/* Two image boxes */}
       <View style={styles.gridRow}>
         <Pressable
           style={styles.imgBox}
@@ -233,14 +583,22 @@ export default function FrostLanding() {
         >
           <View style={styles.photoFrame}>
             {museUrl ? (
-              <FrostedGreyImage
+              <ModePhoto
                 uri={museUrl}
+                treatment={mode.photoTreatment}
                 containerStyle={StyleSheet.absoluteFill}
                 imageStyle={styles.photoImg}
               />
             ) : null}
+            {mode.photoBottomGradient ? (
+              <LinearGradient
+                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.45)']}
+                style={styles.photoGradientBottom}
+                pointerEvents="none"
+              />
+            ) : null}
           </View>
-          <View style={[styles.boxDot, { backgroundColor: BRASS }]} />
+          <View style={[styles.boxDot, { backgroundColor: mode.brass }]} />
         </Pressable>
 
         <Pressable
@@ -251,18 +609,26 @@ export default function FrostLanding() {
         >
           <View style={styles.photoFrame}>
             {discoverUrl ? (
-              <FrostedGreyImage
+              <ModePhoto
                 uri={discoverUrl}
+                treatment={mode.photoTreatment}
                 containerStyle={StyleSheet.absoluteFill}
                 imageStyle={styles.photoImg}
               />
             ) : null}
+            {mode.photoBottomGradient ? (
+              <LinearGradient
+                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.45)']}
+                style={styles.photoGradientBottom}
+                pointerEvents="none"
+              />
+            ) : null}
           </View>
-          <View style={[styles.boxDot, { backgroundColor: BRASS }]} />
+          <View style={[styles.boxDot, { backgroundColor: mode.brass }]} />
         </Pressable>
       </View>
 
-      {/* ── Dream AI card (now on the same deeper stamp as Journey) ── */}
+      {/* Dream AI card */}
       <Pressable
         style={styles.dreamCard}
         onPress={goDream}
@@ -280,7 +646,7 @@ export default function FrostLanding() {
         </View>
       </Pressable>
 
-      {/* ── Circle card (round 3 — paired voice with Dream Ai) ── */}
+      {/* Circle card */}
       <Pressable
         style={styles.circleCard}
         onPress={goCircle}
@@ -305,7 +671,7 @@ export default function FrostLanding() {
 
       <View style={{ flex: 1 }} />
 
-      {/* ── Journey button ── */}
+      {/* Journey button */}
       <Pressable
         onPress={goJourney}
         onLongPress={goJourney}
@@ -319,207 +685,283 @@ export default function FrostLanding() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: PAGE_PAPER,
-  },
+function makeStyles(m: ModeDescriptor) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: m.pagePaper,
+    },
 
-  // Hero
-  hero: {
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 12,
-  },
-  weekday: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '300',
-    fontSize: 22,
-    lineHeight: 26,
-    color: INK,
-  },
-  dateLine: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '400',
-    fontStyle: 'italic',
-    fontSize: 30,
-    lineHeight: 34,
-    color: BRASS,
-    letterSpacing: 0.3,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  year: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '300',
-    fontSize: 18,
-    lineHeight: 22,
-    color: INK,
-    marginTop: 2,
-  },
-  rule: {
-    width: 40,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: HAIRLINE,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  daysWrap: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
-  },
-  daysNum: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '500',
-    fontSize: 24,
-    lineHeight: 28,
-    color: BRASS,
-  },
-  daysWord: {
-    fontFamily: FrostFonts.label,
-    fontWeight: '400',
-    fontSize: 10,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: BRASS,
-  },
+    // ── Mosaic layout ─────────────────────────────────────────────────────
+    mosaicScreen: {
+      flex: 1,
+      flexDirection: 'column',
+    },
+    mosaicHero: {
+      flex: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 18,
+      paddingVertical: 18,
+    },
+    mosaicPhotoRow: {
+      flex: 4,
+      flexDirection: 'row',
+    },
+    mosaicPhotoTile: {
+      flex: 1,
+      overflow: 'hidden',
+      backgroundColor: m.cardFill,
+      position: 'relative',
+    },
+    mosaicPhotoLeft: {
+      borderRightWidth: StyleSheet.hairlineWidth,
+      borderRightColor: m.hairline,
+    },
+    mosaicTileLabel: {
+      position: 'absolute',
+      top: 14,
+      left: 14,
+      fontFamily: FrostFonts.label,
+      fontWeight: '300',
+      fontSize: 9,
+      letterSpacing: 3,
+      color: m.layout === 'mosaic' && m.photoTreatment !== 'bw' && m.statusBarStyle === 'dark-content'
+        ? 'rgba(255,255,255,0.92)'
+        : 'rgba(255,255,255,0.92)',
+      textTransform: 'uppercase',
+      textShadowColor: 'rgba(0,0,0,0.55)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
+    },
+    mosaicTileDot: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      width: 5,
+      height: 5,
+      borderRadius: 2.5,
+      backgroundColor: m.brass,
+    },
+    mosaicVoice: {
+      paddingVertical: 16,
+      paddingHorizontal: 22,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: m.hairline,
+    },
+    mosaicJourney: {
+      paddingVertical: 18,
+      alignItems: 'center',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: m.hairline,
+    },
 
-  // Image boxes — now show stamp-coloured frames immediately so they never appear empty
-  gridRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 18,
-    marginTop: 10,
-  },
-  imgBox: {
-    flex: 1,
-    aspectRatio: 1 / 1.18,
-    backgroundColor: STAMP_FILL,        // matches dream/journey stamp — coherent if image is slow
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: HAIRLINE,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  photoFrame: {
-    position: 'absolute',
-    top: 8, left: 8, right: 8, bottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: CARD_FILL,         // soft pale fill while image loads
-  },
-  photoImg: {
-    width: '100%',
-    height: '100%',
-  },
-  boxDot: {
-    position: 'absolute',
-    left: 18,
-    top: 18,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
+    // ── Hero (classic) ────────────────────────────────────────────────────
+    hero: {
+      alignItems: 'center',
+      paddingHorizontal: 18,
+      paddingTop: 14,
+      paddingBottom: 12,
+    },
+    weekday: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '300',
+      fontSize: 22,
+      lineHeight: 26,
+      color: m.ink,
+    },
+    dateLine: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '400',
+      fontStyle: 'italic',
+      fontSize: 30,
+      lineHeight: 34,
+      color: m.brass,
+      letterSpacing: 0.3,
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    year: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '300',
+      fontSize: 18,
+      lineHeight: 22,
+      color: m.ink,
+      marginTop: 2,
+    },
+    rule: {
+      width: 40,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: m.hairline,
+      marginTop: 10,
+      marginBottom: 8,
+    },
+    daysWrap: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 8,
+    },
+    daysNum: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '500',
+      fontSize: 24,
+      lineHeight: 28,
+      color: m.brass,
+    },
+    daysWord: {
+      fontFamily: FrostFonts.label,
+      fontWeight: '400',
+      fontSize: 10,
+      letterSpacing: 3,
+      textTransform: 'uppercase',
+      color: m.brass,
+    },
 
-  // Dream AI card — now on STAMP_FILL (matching Journey)
-  dreamCard: {
-    marginTop: 12,
-    marginHorizontal: 18,
-    backgroundColor: STAMP_FILL,        // matched to Journey
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: HAIRLINE_STRONG,
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-  },
-  dreamLabel: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '600',
-    fontStyle: 'italic',
-    fontSize: 19,
-    letterSpacing: 0.4,
-    color: BRASS,
-    marginBottom: 10,
-  },
-  dreamLine: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-    marginTop: 4,
-  },
-  dreamGlyph: {
-    fontSize: 13,
-    color: SOFT,
-    marginTop: 3,
-  },
-  dreamText: {
-    flex: 1,
-    fontFamily: FrostFonts.display,
-    fontWeight: '300',
-    fontStyle: 'italic',
-    fontSize: 15,
-    lineHeight: 21,
-    color: SOFT,
-  },
+    // ── Image boxes (classic) ─────────────────────────────────────────────
+    gridRow: {
+      flexDirection: 'row',
+      gap: m.cardRadius === 0 ? 0 : 12,
+      paddingHorizontal: m.cardRadius === 0 ? 0 : 18,
+      marginTop: m.cardRadius === 0 ? 0 : 10,
+    },
+    imgBox: {
+      flex: 1,
+      aspectRatio: m.photoAspect,
+      backgroundColor: m.stampFill,
+      borderWidth: m.cardRadius === 0 ? 0 : StyleSheet.hairlineWidth,
+      borderColor: m.hairline,
+      borderRadius: m.imgBoxRadius,
+      overflow: 'hidden',
+    },
+    photoFrame: {
+      position: 'absolute',
+      top:    m.cardRadius === 0 ? 0 : 8,
+      left:   m.cardRadius === 0 ? 0 : 8,
+      right:  m.cardRadius === 0 ? 0 : 8,
+      bottom: m.cardRadius === 0 ? 0 : 8,
+      borderRadius: m.photoFrameRadius,
+      overflow: 'hidden',
+      backgroundColor: m.cardFill,
+    },
+    photoImg: {
+      width: '100%',
+      height: '100%',
+    },
+    photoGradientBottom: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: '38%',
+    },
+    boxDot: {
+      position: 'absolute',
+      left: m.cardRadius === 0 ? 14 : 18,
+      top:  m.cardRadius === 0 ? 14 : 18,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
 
-  // Circle card — paired voice with Dream Ai (same dimensions)
-  circleCard: {
-    marginTop: 12,
-    marginHorizontal: 18,
-    backgroundColor: STAMP_FILL,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: HAIRLINE_STRONG,
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-  },
-  circleLabel: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '600',
-    fontStyle: 'italic',
-    fontSize: 19,
-    letterSpacing: 0.4,
-    color: BRASS,
-    marginBottom: 10,
-  },
-  circleLine: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-    marginTop: 4,
-  },
-  circleGlyph: {
-    fontSize: 13,
-    color: SOFT,
-    marginTop: 3,
-  },
-  circleText: {
-    flex: 1,
-    fontFamily: FrostFonts.display,
-    fontWeight: '300',
-    fontStyle: 'italic',
-    fontSize: 15,
-    lineHeight: 21,
-    color: SOFT,
-  },
+    // ── Dream Ai card (classic) ───────────────────────────────────────────
+    dreamCard: {
+      marginTop: m.cardRadius === 0 ? 0 : 12,
+      marginHorizontal: m.cardRadius === 0 ? 0 : 18,
+      backgroundColor: m.stampFill,
+      borderWidth: m.cardRadius === 0 ? 0 : StyleSheet.hairlineWidth,
+      borderColor: m.hairlineStrong,
+      borderRadius: m.cardRadius,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+    },
+    dreamLabel: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '600',
+      fontStyle: 'italic',
+      fontSize: 19,
+      letterSpacing: 0.4,
+      color: m.brass,
+      marginBottom: 10,
+    },
+    dreamLine: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'flex-start',
+      marginTop: 4,
+    },
+    dreamGlyph: {
+      fontSize: 13,
+      color: m.soft,
+      marginTop: 3,
+    },
+    dreamText: {
+      flex: 1,
+      fontFamily: FrostFonts.display,
+      fontWeight: '300',
+      fontStyle: 'italic',
+      fontSize: 15,
+      lineHeight: 21,
+      color: m.soft,
+    },
 
-  // Journey button
-  journeyBox: {
-    marginHorizontal: 18,
-    backgroundColor: STAMP_FILL,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: HAIRLINE_STRONG,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  journeyLabel: {
-    fontFamily: FrostFonts.display,
-    fontWeight: '600',
-    fontStyle: 'italic',
-    fontSize: 19,
-    letterSpacing: 0.8,
-    color: BRASS,
-  },
-});
+    // ── Circle card (classic) ─────────────────────────────────────────────
+    circleCard: {
+      marginTop: m.cardRadius === 0 ? 0 : 12,
+      marginHorizontal: m.cardRadius === 0 ? 0 : 18,
+      backgroundColor: m.stampFill,
+      borderWidth: m.cardRadius === 0 ? 0 : StyleSheet.hairlineWidth,
+      borderColor: m.hairlineStrong,
+      borderRadius: m.cardRadius,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+    },
+    circleLabel: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '600',
+      fontStyle: 'italic',
+      fontSize: 19,
+      letterSpacing: 0.4,
+      color: m.brass,
+      marginBottom: 10,
+    },
+    circleLine: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'flex-start',
+      marginTop: 4,
+    },
+    circleGlyph: {
+      fontSize: 13,
+      color: m.soft,
+      marginTop: 3,
+    },
+    circleText: {
+      flex: 1,
+      fontFamily: FrostFonts.display,
+      fontWeight: '300',
+      fontStyle: 'italic',
+      fontSize: 15,
+      lineHeight: 21,
+      color: m.soft,
+    },
+
+    // ── Journey button (classic) ──────────────────────────────────────────
+    journeyBox: {
+      marginHorizontal: m.cardRadius === 0 ? 0 : 18,
+      backgroundColor: m.stampFill,
+      borderWidth: m.cardRadius === 0 ? 0 : StyleSheet.hairlineWidth,
+      borderColor: m.hairlineStrong,
+      borderRadius: m.cardRadius === 0 ? 0 : 14,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    journeyLabel: {
+      fontFamily: FrostFonts.display,
+      fontWeight: '600',
+      fontStyle: 'italic',
+      fontSize: 19,
+      letterSpacing: 0.8,
+      color: m.brass,
+    },
+  });
+}
