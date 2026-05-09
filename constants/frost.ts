@@ -100,7 +100,7 @@ export const FrostMotion = {
   imageInterval:    4500,
   idleRefresh:      60_000,
   // Discover hero carousel — slower than box rotation to feel editorial
-  heroInterval:     5800,
+  heroInterval:     3500,
   heroFade:         1100,
   // More overlay open/close
   moreOverlay:      320,

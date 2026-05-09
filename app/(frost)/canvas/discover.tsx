@@ -1,22 +1,28 @@
 /**
- * Frost · Canvas · Discover (beta)
+ * Frost \u00B7 Canvas \u00B7 Discover (beta)
  *
  * Architecture:
- *   1. Default state: full-bleed carousel of 5 paid hero spots cycling through.
- *      No frost. Real colour. Magazine cover mode.
- *   2. Top-right small frosted pill button: "More" with subtle muted-gold border
- *      and gold label. Discoverable but doesn't break the picture.
- *   3. Tap More → frosted overlay covers the hero carousel → reveals 4
- *      navigation buttons (frosted) for the original Discover modes:
- *        · Blind Swipe
- *        · My Discovery
- *        · Couture
- *        · Categories
- *   4. Each button navigates to its dedicated subroute that ports the existing
- *      swipe grammar from native discover.tsx (vertical=next vendor,
- *      horizontal=next photo, double-tap=save).
+ *   1. Default state: full-bleed carousel of paid hero spots cycling through
+ *      every 3.5s. Full colour, no greyscale, no frost. Magazine-cover mode.
+ *   2. The hero photo is non-interactive on tap \u2014 a tap on a full-bleed
+ *      photograph should not navigate. Long-press anywhere on the photo
+ *      opens the More overlay (same overlay the More button opens).
+ *   3. Top-right small frosted "More" pill button \u2014 discoverable affordance,
+ *      tap to toggle the overlay. Same target as the long-press gesture.
+ *   4. More overlay reveals 4 navigation buttons (frosted) for the original
+ *      Discover modes:
+ *        \u00B7 Blind Swipe
+ *        \u00B7 My Discovery
+ *        \u00B7 Couture
+ *        \u00B7 Categories
  *
- * Heroes are managed via admin in production; here they're placeholders.
+ *   Heroes are managed via admin in production; here they're placeholders.
+ *
+ *   GREYSCALE LOCK (working_protocol): no greyscaling on Discover, Circle,
+ *   Dream Ai, or any future Frost canvas. Greyscale is permitted only in
+ *   landing.tsx for the SANCTUARY/E2/E4 home modes during the picker phase.
+ *   When E1 or E3 is locked as the home winner, greyscale exits Frost
+ *   entirely and react-native-color-matrix-image-filters is uninstalled.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -28,7 +34,6 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Plus, Sparkles } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
-import { Grayscale } from 'react-native-color-matrix-image-filters';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostRadius,
   FrostMotion, FrostMaterial, FrostCopy,
@@ -148,32 +153,29 @@ export default function CanvasDiscover() {
     <View style={styles.root}>
       <StatusBar barStyle={moreOpen ? 'dark-content' : 'light-content'} />
 
-      {/* HERO CAROUSEL — sanctuary mode (greyscale). Tap → Blind Swipe (catalogue).
-          ROUND 3 FIX: Grayscale wrapper needs sized container — was rendering
-          black on Android because absoluteFill alone doesn't give the native
-          filter a proper bounding box. Pattern: outer View with flex:1 holds
-          the dimensions; Grayscale wraps the Image; Image fills the bounds. */}
+      {/* HERO CAROUSEL \u2014 colour, full-bleed. Long-press anywhere on the
+          photo opens the More overlay (same target as the More button).
+          A plain tap does nothing on purpose: a full-bleed photograph
+          should not be a navigation button \u2014 the dedicated More pill is
+          the discoverable affordance. */}
       <Pressable
         style={StyleSheet.absoluteFill}
-        onPress={() => router.push('/(frost)/canvas/discover/blind-swipe' as any)}
+        onLongPress={() => setMoreOpen(true)}
+        delayLongPress={420}
       >
         <View style={StyleSheet.absoluteFill}>
-          <Grayscale amount={1} style={StyleSheet.absoluteFill}>
-            <Image
-              source={{ uri: currentHero.image_url }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-            />
-          </Grayscale>
+          <Image
+            source={{ uri: currentHero.image_url }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
         </View>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroFade }]}>
-          <Grayscale amount={1} style={StyleSheet.absoluteFill}>
-            <Image
-              source={{ uri: peekHero.image_url }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-            />
-          </Grayscale>
+          <Image
+            source={{ uri: peekHero.image_url }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
         </Animated.View>
       </Pressable>
 
