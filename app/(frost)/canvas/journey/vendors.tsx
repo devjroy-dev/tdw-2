@@ -1,80 +1,186 @@
 /**
- * Frost \u00B7 Journey \u00B7 Vendors (v2 \u2014 frosted)
+ * Frost \u00B7 Journey \u00B7 Vendors (v3 \u2014 wired)
+ *
+ * The bride's team. Pipeline view: Considering \u2192 In Talks \u2192 Booked \u2192 Paid.
+ * No status changes from here \u2014 the bride tells Dream Ai when something
+ * moves. The page is the witness.
+ *
+ * One gesture: long-press a row \u2192 delete via FrostConfirmSheet.
  */
 
-import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-import { ChevronRight } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ScrollView, View, Text, Pressable, StyleSheet, RefreshControl,
+} from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
-import FrostedSurface from '../../../../components/frost/FrostedSurface';
+import FrostGestureHint from '../../../../components/frost/FrostGestureHint';
+import FrostConfirmSheet from '../../../../components/frost/FrostConfirmSheet';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import {
+  fetchMyVendors, deleteVendor, CoupleVendor,
+} from '../../../../services/frostApi';
 
-interface VendorRow {
-  id: string;
-  name: string;
-  category: string;
-  status: 'booked' | 'in-talks' | 'enquired';
-  priceText?: string;
+function fmtINR(n: number): string {
+  if (!n) return '\u20B90';
+  return '\u20B9' + n.toLocaleString('en-IN');
 }
 
-const PLACEHOLDER_VENDORS: VendorRow[] = [
-  { id: '1', name: 'Swati Tomar', category: 'MUA', status: 'booked', priceText: '\u20B91,00,000' },
-  { id: '2', name: 'Arjun Kartha Studio', category: 'Photography', status: 'in-talks', priceText: '\u20B92,50,000' },
-  { id: '3', name: 'House of Blooms', category: 'Decor', status: 'enquired' },
+// Pipeline order, top to bottom. Status values from couple_vendors.status.
+// Anything not in this list goes under "Other".
+const PIPELINE: { key: string; label: string }[] = [
+  { key: 'booked',         label: 'BOOKED' },
+  { key: 'paid',           label: 'PAID' },
+  { key: 'shortlisted',    label: 'SHORTLISTED' },
+  { key: 'considering',    label: 'CONSIDERING' },
+  { key: 'in_discussion',  label: 'IN TALKS' },
+  { key: 'contacted',      label: 'IN TALKS' },
+  { key: 'enquired',       label: 'ENQUIRED' },
+  { key: 'declined',       label: 'PASSED ON' },
 ];
 
 export default function JourneyVendors() {
+  const [vendors, setVendors] = useState<CoupleVendor[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CoupleVendor | null>(null);
+
+  const load = useCallback(async () => {
+    setError(false);
+    const r = await fetchMyVendors();
+    if (r === null) { setError(true); setVendors([]); }
+    else setVendors(r);
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
+
+  const handleLongPress = useCallback((v: CoupleVendor) => {
+    Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium);
+    setDeleteTarget(v);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    setVendors(prev => prev?.filter(x => x.id !== id) ?? null);
+    const ok = await deleteVendor(id);
+    if (!ok) load();
+  }, [deleteTarget, load]);
+
+  const all = vendors ?? [];
+  const isEmpty = !loading && !error && all.length === 0;
+
+  // Group by pipeline buckets, preserving order. Merge in_discussion+contacted.
+  const groupMap = new Map<string, CoupleVendor[]>();
+  for (const p of PIPELINE) groupMap.set(p.label, []);
+  groupMap.set('OTHER', []);
+  for (const v of all) {
+    const status = (v.status || '').toLowerCase();
+    const matched = PIPELINE.find(p => p.key === status);
+    const label = matched ? matched.label : 'OTHER';
+    groupMap.get(label)!.push(v);
+  }
+  // Build display list in pipeline order, skipping empty groups.
+  const seenLabels = new Set<string>();
+  const groups: { label: string; items: CoupleVendor[] }[] = [];
+  for (const p of PIPELINE) {
+    if (seenLabels.has(p.label)) continue;
+    seenLabels.add(p.label);
+    const items = groupMap.get(p.label) || [];
+    if (items.length > 0) groups.push({ label: p.label, items });
+  }
+  const others = groupMap.get('OTHER') || [];
+  if (others.length > 0) groups.push({ label: 'OTHER', items: others });
+
   return (
     <FrostCanvasShell eyebrow="JOURNEY \u00B7 VENDORS" mode="frost">
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.heading}>Your team.</Text>
-        <Text style={styles.sub}>The people making your wedding.</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FrostColors.goldMuted} />
+        }
+      >
+        <Text style={styles.heading}>My team.</Text>
 
-        <View style={styles.list}>
-          {PLACEHOLDER_VENDORS.map(v => (
-            <FrostedSurface
-              key={v.id}
-              mode="button"
-              onPress={() => router.push(`/(frost)/canvas/journey/vendor/${v.id}` as any)}
-              style={{ marginBottom: FrostSpace.s }}
-            >
-              <View style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{v.name}</Text>
-                  <View style={styles.metaRow}>
-                    <Text style={styles.category}>{v.category}</Text>
-                    <Text style={styles.dot}>\u00B7</Text>
-                    <Text style={[styles.status, statusColor(v.status)]}>{statusLabel(v.status)}</Text>
-                    {v.priceText ? (
-                      <>
-                        <Text style={styles.dot}>\u00B7</Text>
-                        <Text style={styles.price}>{v.priceText}</Text>
-                      </>
-                    ) : null}
-                  </View>
-                </View>
-                <ChevronRight size={18} color={FrostColors.muted} strokeWidth={1.5} />
-              </View>
-            </FrostedSurface>
-          ))}
-        </View>
+        {all.length > 0 ? (
+          <FrostGestureHint storageKey="vendors" text="Hold to remove. Tell Dream Ai to change anything else." />
+        ) : null}
+
+        {loading ? (
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+        ) : error ? (
+          <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
+        ) : isEmpty ? (
+          <Text style={styles.emptyText}>No one yet.</Text>
+        ) : (
+          groups.map(g => (
+            <View key={g.label} style={styles.section}>
+              <Text style={styles.sectionLabel}>{g.label}</Text>
+              {g.items.map(v => (
+                <VendorRow
+                  key={v.id}
+                  vendor={v}
+                  onLongPress={() => handleLongPress(v)}
+                />
+              ))}
+            </View>
+          ))
+        )}
       </ScrollView>
+
+      <FrostConfirmSheet
+        visible={!!deleteTarget}
+        title={'Remove this vendor?'}
+        body={deleteTarget ? `${deleteTarget.name} will be removed from your team. Ask Dream Ai if you want them back.` : ''}
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </FrostCanvasShell>
   );
 }
 
-function statusLabel(s: VendorRow['status']) {
-  if (s === 'booked') return 'Booked';
-  if (s === 'in-talks') return 'In talks';
-  return 'Enquired';
-}
+// ─── Row ────────────────────────────────────────────────────────────────────
 
-function statusColor(s: VendorRow['status']) {
-  if (s === 'booked') return { color: FrostColors.goldMuted };
-  return { color: FrostColors.muted };
+function VendorRow({
+  vendor, onLongPress,
+}: {
+  vendor: CoupleVendor;
+  onLongPress: () => void;
+}) {
+  const initial = (vendor.category?.[0] || vendor.name?.[0] || '\u00B7').toUpperCase();
+  const meta = [
+    vendor.category,
+    (vendor.events && vendor.events.length > 0) ? vendor.events.join(', ') : null,
+    vendor.quoted_total ? fmtINR(vendor.quoted_total) : null,
+  ].filter(Boolean).join(' \u00B7 ');
+
+  return (
+    <Pressable
+      onLongPress={onLongPress}
+      delayLongPress={420}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{initial}</Text>
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.rowName} numberOfLines={1}>{vendor.name}</Text>
+        {meta ? <Text style={styles.rowMeta} numberOfLines={1}>{meta}</Text> : null}
+      </View>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -88,45 +194,59 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontFamily: FrostFonts.display,
   },
-  sub: {
-    ...FrostType.bodyMedium,
+  section: { marginTop: FrostSpace.xl },
+  sectionLabel: {
+    ...FrostType.eyebrowSmall,
     color: FrostColors.muted,
-    marginTop: FrostSpace.xs,
-    marginBottom: FrostSpace.xl,
+    marginBottom: FrostSpace.m,
+    letterSpacing: 2.4,
   },
-  list: {},
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: FrostSpace.l,
-    paddingHorizontal: FrostSpace.l,
+    gap: FrostSpace.m,
   },
-  name: {
-    fontFamily: FrostFonts.display,
-    fontSize: 19,
+  rowPressed: { opacity: 0.7 },
+  avatar: {
+    width: 36, height: 36, borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: FrostFonts.label,
+    fontSize: 11,
+    color: FrostColors.muted,
+  },
+  rowName: {
+    ...FrostType.bodyLarge,
     color: FrostColors.ink,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FrostSpace.s,
-    marginTop: 4,
-  },
-  category: {
-    ...FrostType.eyebrowSmall,
-    letterSpacing: 1.4,
-  },
-  status: {
-    ...FrostType.eyebrowSmall,
-    letterSpacing: 1.4,
-  },
-  price: {
-    ...FrostType.bodySmall,
-    color: FrostColors.soft,
-    fontFamily: FrostFonts.bodyMedium,
-  },
-  dot: {
+  rowMeta: {
     ...FrostType.bodySmall,
     color: FrostColors.muted,
+    marginTop: 2,
+  },
+  stateWrap: { paddingTop: 80, alignItems: 'center' },
+  loadingDots: {
+    fontFamily: FrostFonts.display,
+    fontSize: 36,
+    color: FrostColors.goldMuted,
+    letterSpacing: 6,
+  },
+  emptyText: {
+    ...FrostType.displayS,
+    fontStyle: 'italic',
+    color: FrostColors.muted,
+    textAlign: 'center',
+    paddingTop: 80,
+  },
+  errorText: {
+    ...FrostType.bodyMedium,
+    fontStyle: 'italic',
+    color: FrostColors.muted,
+    textAlign: 'center',
+    paddingTop: 80,
   },
 });

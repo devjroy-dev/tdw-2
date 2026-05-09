@@ -1,15 +1,9 @@
 /**
- * Frost \u00B7 Journey \u00B7 Broadcast (My people \u2014 coming-soon stub)
+ * Frost \u00B7 Journey \u00B7 Honeymoon (coming-soon stub)
  *
- * The bride's personal address book for sending broadcast messages to
- * friends/bridesmaids/sisters via WhatsApp deep-link. Distinct from Circle
- * (wedding-collaborators workspace).
- *
- * Full build deferred to a separate session: needs new backend table
- * (bride_broadcast_contacts), POST/GET endpoints, contact-add sheet,
- * compose sheet, and platform-specific WhatsApp intent handling.
- *
- * This page exists so the Journey hub tile doesn't 404.
+ * Destination packages and bookings. Backend doesn't exist yet; bride-facing
+ * experience is shipped post-launch. This page exists so the Journey hub
+ * tile doesn't 404.
  */
 
 import React from 'react';
@@ -19,13 +13,13 @@ import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
 
-export default function JourneyBroadcast() {
+export default function JourneyHoneymoon() {
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 MY PEOPLE" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY \u00B7 HONEYMOON" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
-          <Text style={styles.title}>My people.</Text>
-          <Text style={styles.body}>Send a single message to many.{'\n'}Coming soon.</Text>
+          <Text style={styles.title}>After all this.</Text>
+          <Text style={styles.body}>Destinations and slow days, coming soon.</Text>
         </View>
       </ScrollView>
     </FrostCanvasShell>
@@ -57,6 +51,5 @@ const styles = StyleSheet.create({
     ...FrostType.bodyMedium,
     color: FrostColors.muted,
     textAlign: 'center',
-    lineHeight: 22,
   },
 });

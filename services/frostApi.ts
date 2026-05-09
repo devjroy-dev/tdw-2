@@ -578,3 +578,241 @@ export async function fetchDiscoverHeroes(): Promise<DiscoverHero[]> {
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// JOURNEY READ-PAGES — API helpers (Phase 1.5)
+//
+// These power the witness pages: Reminders, Expenses, Vendors, Events,
+// Messages. Read-mostly with two single-tap mutations (toggle reminder
+// complete, mark expense paid) and three deletes (reminder, expense, vendor).
+//
+// All helpers return:
+//   - `null` on hard failure (network / non-2xx / parse error)
+//   - the parsed data on success
+// Pages render an error state when null is returned.
+//
+// DB column names match Supabase exactly (per holy_grail Section 8 lock).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Reminders ───────────────────────────────────────────────────────────────
+
+export interface Reminder {
+  id: string;
+  couple_id: string;
+  text: string;
+  event?: string | null;
+  priority?: string | null;
+  due_date?: string | null;
+  is_complete: boolean;
+  created_at?: string;
+  completed_at?: string | null;
+  assigned_to?: string | null;
+}
+
+export async function fetchMyReminders(): Promise<Reminder[] | null> {
+  const session = await getCoupleSession();
+  if (!session) return null;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/checklist/${session.id}`);
+    if (r?.success && Array.isArray(r.data)) return r.data as Reminder[];
+    return null;
+  } catch { return null; }
+}
+
+export async function toggleReminderComplete(reminderId: string, isComplete: boolean): Promise<boolean> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/checklist/${reminderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_complete: isComplete }),
+    });
+    return !!r?.success;
+  } catch { return false; }
+}
+
+export async function deleteReminder(reminderId: string): Promise<boolean> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/checklist/${reminderId}`, {
+      method: 'DELETE',
+    });
+    return !!r?.success;
+  } catch { return false; }
+}
+
+// ─── Expenses ────────────────────────────────────────────────────────────────
+
+export interface Expense {
+  id: string;
+  couple_id: string;
+  event?: string | null;
+  category?: string | null;
+  description?: string | null;
+  vendor_name?: string | null;
+  planned_amount?: number | null;
+  actual_amount?: number | null;
+  payment_status?: 'pending' | 'paid' | 'committed' | string | null;
+  receipt_url?: string | null;
+  due_date?: string | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+export async function fetchMyExpenses(): Promise<Expense[] | null> {
+  const session = await getCoupleSession();
+  if (!session) return null;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/expenses/${session.id}`);
+    if (r?.success && Array.isArray(r.data)) return r.data as Expense[];
+    return null;
+  } catch { return null; }
+}
+
+export async function markExpensePaid(expenseId: string): Promise<boolean> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/expenses/${expenseId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_status: 'paid' }),
+    });
+    return !!r?.success;
+  } catch { return false; }
+}
+
+export async function deleteExpense(expenseId: string): Promise<boolean> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/expenses/${expenseId}`, {
+      method: 'DELETE',
+    });
+    return !!r?.success;
+  } catch { return false; }
+}
+
+// ─── Vendors ─────────────────────────────────────────────────────────────────
+
+export interface CoupleVendor {
+  id: string;
+  couple_id: string;
+  vendor_id?: string | null;
+  name: string;
+  category?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  events?: string[] | null;
+  status?: string | null;
+  quoted_total?: number | null;
+  balance_due_date?: string | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function fetchMyVendors(): Promise<CoupleVendor[] | null> {
+  const session = await getCoupleSession();
+  if (!session) return null;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/vendors/${session.id}`);
+    if (r?.success && Array.isArray(r.data)) return r.data as CoupleVendor[];
+    return null;
+  } catch { return null; }
+}
+
+export async function deleteVendor(vendorRowId: string): Promise<boolean> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/vendors/${vendorRowId}`, {
+      method: 'DELETE',
+    });
+    return !!r?.success;
+  } catch { return false; }
+}
+
+// ─── Events ──────────────────────────────────────────────────────────────────
+
+export interface CoupleEvent {
+  id: string;
+  couple_id: string;
+  event_name?: string | null;
+  event_type?: string | null;
+  event_date?: string | null;
+  venue?: string | null;
+  task_count?: number;
+  vendor_count?: number;
+  guest_count?: number;
+  category_budgets?: any[];
+  sort_order?: number;
+}
+
+export async function fetchMyEvents(): Promise<CoupleEvent[] | null> {
+  const session = await getCoupleSession();
+  if (!session) return null;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/couple/events/${session.id}`);
+    if (r?.success && Array.isArray(r.data)) return r.data as CoupleEvent[];
+    return null;
+  } catch { return null; }
+}
+
+// ─── Messages (vendor enquiry threads) ───────────────────────────────────────
+
+export interface EnquiryThread {
+  id: string;
+  vendor_id: string;
+  couple_id: string;
+  status?: string;
+  last_message_at?: string;
+  last_message_preview?: string;
+  last_message_from?: 'couple' | 'vendor' | string;
+  couple_unread_count?: number;
+  vendor_unread_count?: number;
+  vendor?: {
+    id: string;
+    name?: string;
+    category?: string;
+    city?: string;
+    portfolio_images?: string[];
+    featured_photos?: string[];
+    phone?: string;
+  } | null;
+}
+
+export interface EnquiryMessage {
+  id: string;
+  enquiry_id: string;
+  from_role: 'couple' | 'vendor';
+  content: string;
+  created_at: string;
+  attachments?: any[];
+}
+
+export async function fetchMyEnquiries(): Promise<EnquiryThread[] | null> {
+  const session = await getCoupleSession();
+  if (!session) return null;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/enquiries/couple/${session.id}`);
+    if (r?.success && Array.isArray(r.data)) return r.data as EnquiryThread[];
+    return null;
+  } catch { return null; }
+}
+
+export async function fetchEnquiryThread(enquiryId: string): Promise<{
+  enquiry: EnquiryThread;
+  messages: EnquiryMessage[];
+  vendor: any;
+} | null> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/enquiries/${enquiryId}`);
+    if (r?.success && r.data) return r.data;
+    return null;
+  } catch { return null; }
+}
+
+export async function sendEnquiryMessage(enquiryId: string, content: string): Promise<boolean> {
+  try {
+    const r = await safeFetch(`${API_BASE}/api/enquiries/${enquiryId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_role: 'couple', content }),
+    });
+    return !!r?.success;
+  } catch { return false; }
+}

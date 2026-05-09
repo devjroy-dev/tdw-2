@@ -1,105 +1,231 @@
 /**
- * Frost \u00B7 Journey \u00B7 Messages
+ * Frost \u00B7 Journey \u00B7 Messages (v3 \u2014 wired)
  *
- * One-on-one threads with vendors who are on the platform. Tap a thread to
- * open that vendor's profile (which contains the same conversation, plus
- * pricing, receipts, etc.). No groups, never. WhatsApp does groups.
+ * Vendor enquiry threads. Each row = one vendor + last-message preview +
+ * unread count if any. Tap a row to view + reply (inline thread view).
  *
- * v1 stub. Real wiring uses /api/enquiries/couple/:userId or new dedicated
- * vendor-messages endpoint TBD in v1.5.
+ * Read + reply only. No new-thread creation from here \u2014 that happens via
+ * Discover when the bride sends an enquiry to a new vendor.
  */
 
-import React from 'react';
-import { ScrollView, View, Text, Image, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView, View, Text, Pressable, StyleSheet, RefreshControl,
+  TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { Send } from 'lucide-react-native';
 import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
-import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
-
-interface Thread {
-  vendorId: string;
-  name: string;
-  category: string;
-  lastMessage: string;
-  ts: string;
-  unread?: number;
-  avatar?: string;
-}
-
-const PLACEHOLDER_THREADS: Thread[] = [
-  {
-    vendorId: '1',
-    name: 'Swati Tomar',
-    category: 'MUA',
-    lastMessage: 'Yes, available on the 12th. Sending you the look board.',
-    ts: '2h',
-    unread: 1,
-  },
-  {
-    vendorId: '2',
-    name: 'Arjun Kartha Studio',
-    category: 'Photography',
-    lastMessage: 'The advance has been received. Booked.',
-    ts: 'Yesterday',
-  },
-  {
-    vendorId: '3',
-    name: 'House of Blooms',
-    category: 'Decor',
-    lastMessage: 'Shared the moodboard for the mehendi. Let me know.',
-    ts: 'Apr 28',
-  },
-];
+import {
+  fetchMyEnquiries, fetchEnquiryThread, sendEnquiryMessage,
+  EnquiryThread, EnquiryMessage,
+} from '../../../../services/frostApi';
 
 export default function JourneyMessages() {
+  const [threads, setThreads] = useState<EnquiryThread[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
+  const [openThread, setOpenThread] = useState<EnquiryThread | null>(null);
+
+  const load = useCallback(async () => {
+    setError(false);
+    const r = await fetchMyEnquiries();
+    if (r === null) { setError(true); setThreads([]); }
+    else setThreads(r);
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
+
+  const all = threads ?? [];
+  const isEmpty = !loading && !error && all.length === 0;
+
+  if (openThread) {
+    return <ThreadView thread={openThread} onBack={() => { setOpenThread(null); load(); }} />;
+  }
+
   return (
     <FrostCanvasShell eyebrow="JOURNEY \u00B7 MESSAGES" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FrostColors.goldMuted} />
+        }
       >
-        <Text style={styles.heading}>Your conversations.</Text>
-        <Text style={styles.sub}>One-on-one with each of your vendors.</Text>
+        <Text style={styles.heading}>What's been said.</Text>
 
-        <View style={styles.list}>
-          {PLACEHOLDER_THREADS.map(t => (
-            <FrostedSurface
-              key={t.vendorId}
-              mode="button"
-              onPress={() => router.push(`/(frost)/canvas/journey/vendor/${t.vendorId}` as any)}
-              style={{ marginBottom: FrostSpace.s }}
-            >
-              <View style={styles.row}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarLetter}>{t.name[0]}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.headerRow}>
-                    <Text style={styles.name}>{t.name}</Text>
-                    <Text style={styles.ts}>{t.ts}</Text>
-                  </View>
-                  <Text style={styles.category}>{t.category.toUpperCase()}</Text>
-                  <Text
-                    style={[
-                      styles.preview,
-                      t.unread && styles.previewUnread,
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {t.lastMessage}
-                  </Text>
-                </View>
-                {t.unread ? (
-                  <View style={styles.unreadDot} />
-                ) : null}
-              </View>
-            </FrostedSurface>
-          ))}
-        </View>
+        {loading ? (
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+        ) : error ? (
+          <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
+        ) : isEmpty ? (
+          <Text style={styles.emptyText}>No conversations yet.</Text>
+        ) : (
+          <View style={styles.list}>
+            {all.map(t => (
+              <ThreadRow key={t.id} thread={t} onPress={() => setOpenThread(t)} />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </FrostCanvasShell>
+  );
+}
+
+// ─── Thread row ─────────────────────────────────────────────────────────────
+
+function ThreadRow({ thread, onPress }: { thread: EnquiryThread; onPress: () => void }) {
+  const name = thread.vendor?.name || 'Vendor';
+  const category = thread.vendor?.category || '';
+  const preview = thread.last_message_preview || '';
+  const unread = thread.couple_unread_count || 0;
+  const when = formatRelativeTime(thread.last_message_at);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{name[0]?.toUpperCase() || '\u00B7'}</Text>
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={styles.rowTop}>
+          <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
+          {when ? <Text style={styles.rowWhen}>{when}</Text> : null}
+        </View>
+        {preview ? (
+          <Text style={[styles.rowPreview, unread > 0 && styles.rowPreviewUnread]} numberOfLines={1}>
+            {preview}
+          </Text>
+        ) : category ? (
+          <Text style={styles.rowPreview} numberOfLines={1}>{category}</Text>
+        ) : null}
+      </View>
+      {unread > 0 ? (
+        <View style={styles.unreadDot} />
+      ) : null}
+    </Pressable>
+  );
+}
+
+function formatRelativeTime(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.round(diffMs / 60_000);
+  if (diffMin < 1) return 'now';
+  if (diffMin < 60) return diffMin + 'm';
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return diffHr + 'h';
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay < 7) return diffDay + 'd';
+  return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+}
+
+// ─── Thread detail ──────────────────────────────────────────────────────────
+
+function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => void }) {
+  const [messages, setMessages] = useState<EnquiryMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [composing, setComposing] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const load = useCallback(async () => {
+    setError(false);
+    const r = await fetchEnquiryThread(thread.id);
+    if (r === null) { setError(true); setMessages([]); }
+    else setMessages(r.messages || []);
+    setLoading(false);
+  }, [thread.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const send = useCallback(async () => {
+    const content = composing.trim();
+    if (!content || sending) return;
+    setSending(true);
+    const ok = await sendEnquiryMessage(thread.id, content);
+    if (ok) {
+      setComposing('');
+      load();
+    }
+    setSending(false);
+  }, [composing, sending, thread.id, load]);
+
+  return (
+    <FrostCanvasShell eyebrow="JOURNEY \u00B7 MESSAGES" mode="frost">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.threadScroll}>
+          <Pressable onPress={onBack} style={styles.backBtn}>
+            <Text style={styles.backText}>\u2190 BACK</Text>
+          </Pressable>
+          <Text style={styles.heading}>{thread.vendor?.name || 'Vendor'}</Text>
+          {thread.vendor?.category ? (
+            <Text style={styles.threadSub}>{thread.vendor.category}</Text>
+          ) : null}
+
+          {loading ? (
+            <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+          ) : error ? (
+            <Text style={styles.errorText}>I couldn't load this conversation.</Text>
+          ) : messages.length === 0 ? (
+            <Text style={styles.emptyText}>No messages yet.</Text>
+          ) : (
+            <View style={styles.messageList}>
+              {messages.map(m => (
+                <MessageBubble key={m.id} message={m} />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.composerInput}
+            value={composing}
+            onChangeText={setComposing}
+            placeholder="Reply\u2026"
+            placeholderTextColor={FrostColors.muted}
+            multiline
+          />
+          <Pressable
+            onPress={send}
+            disabled={!composing.trim() || sending}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              (!composing.trim() || sending) && styles.sendBtnDisabled,
+              pressed && styles.sendBtnPressed,
+            ]}
+          >
+            <Send size={16} color={FrostColors.white} strokeWidth={1.6} />
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </FrostCanvasShell>
+  );
+}
+
+function MessageBubble({ message }: { message: EnquiryMessage }) {
+  const fromMe = message.from_role === 'couple';
+  return (
+    <View style={[styles.bubbleRow, fromMe ? styles.bubbleRight : styles.bubbleLeft]}>
+      <View style={[styles.bubble, fromMe ? styles.bubbleMe : styles.bubbleThem]}>
+        <Text style={[styles.bubbleText, fromMe && styles.bubbleTextMe]}>{message.content}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -114,64 +240,150 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontFamily: FrostFonts.display,
   },
-  sub: {
-    ...FrostType.bodyMedium,
-    color: FrostColors.muted,
-    marginTop: FrostSpace.xs,
-    marginBottom: FrostSpace.xl,
-  },
-  list: { gap: 0 },
+  list: { marginTop: FrostSpace.l },
+
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: FrostSpace.l,
-    paddingHorizontal: FrostSpace.l,
     gap: FrostSpace.m,
   },
+  rowPressed: { opacity: 0.7 },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: FrostSpace.s,
+  },
   avatar: {
-    width: 40, height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(168,146,75,0.18)',
+    width: 40, height: 40, borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarLetter: {
-    fontFamily: FrostFonts.display,
-    fontSize: 18,
-    color: FrostColors.goldMuted,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-  },
-  name: {
-    fontFamily: FrostFonts.bodyBold,
-    fontSize: 15,
-    color: FrostColors.ink,
-  },
-  ts: {
-    ...FrostType.eyebrowSmall,
-    fontSize: 9,
-    letterSpacing: 1.4,
-  },
-  category: {
-    ...FrostType.eyebrowSmall,
-    letterSpacing: 1.4,
-    marginTop: 2,
-  },
-  preview: {
-    ...FrostType.bodySmall,
-    marginTop: FrostSpace.xs,
+  avatarText: {
+    fontFamily: FrostFonts.label,
+    fontSize: 12,
     color: FrostColors.muted,
   },
-  previewUnread: {
+  rowName: {
+    ...FrostType.bodyLarge,
+    color: FrostColors.ink,
+    flex: 1,
+  },
+  rowWhen: {
+    ...FrostType.eyebrowSmall,
+    color: FrostColors.muted,
+    letterSpacing: 1,
+  },
+  rowPreview: {
+    ...FrostType.bodySmall,
+    color: FrostColors.muted,
+    marginTop: 2,
+  },
+  rowPreviewUnread: {
     color: FrostColors.ink,
     fontFamily: FrostFonts.bodyMedium,
   },
   unreadDot: {
-    width: 8, height: 8,
-    borderRadius: 4,
-    backgroundColor: FrostColors.goldMuted,
-    marginTop: 8,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: FrostColors.goldTrue,
+  },
+
+  // Thread view
+  threadScroll: {
+    paddingHorizontal: FrostSpace.xxl,
+    paddingTop: FrostSpace.xl,
+    paddingBottom: FrostSpace.huge,
+  },
+  backBtn: { marginBottom: FrostSpace.l },
+  backText: {
+    ...FrostType.eyebrowSmall,
+    color: FrostColors.muted,
+    letterSpacing: 1.6,
+  },
+  threadSub: {
+    ...FrostType.bodySmall,
+    color: FrostColors.muted,
+    marginTop: 2,
+    marginBottom: FrostSpace.xl,
+  },
+  messageList: { gap: FrostSpace.s, marginTop: FrostSpace.l },
+  bubbleRow: { flexDirection: 'row' },
+  bubbleLeft: { justifyContent: 'flex-start' },
+  bubbleRight: { justifyContent: 'flex-end' },
+  bubble: {
+    paddingHorizontal: FrostSpace.l,
+    paddingVertical: FrostSpace.m,
+    borderRadius: 16,
+    maxWidth: '78%',
+  },
+  bubbleMe: {
+    backgroundColor: FrostColors.ink,
+  },
+  bubbleThem: {
+    backgroundColor: 'rgba(236,233,228,0.7)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
+  },
+  bubbleText: {
+    ...FrostType.bodyMedium,
+    color: FrostColors.ink,
+  },
+  bubbleTextMe: { color: FrostColors.white },
+
+  composer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: FrostSpace.s,
+    paddingHorizontal: FrostSpace.l,
+    paddingVertical: FrostSpace.m,
+    paddingBottom: FrostSpace.l,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: FrostColors.hairline,
+    backgroundColor: 'rgba(236,233,228,0.6)',
+  },
+  composerInput: {
+    flex: 1,
+    maxHeight: 100,
+    minHeight: 38,
+    paddingHorizontal: FrostSpace.m,
+    paddingVertical: 8,
+    fontFamily: FrostFonts.body,
+    fontSize: 15,
+    color: FrostColors.ink,
+    backgroundColor: 'rgba(255,253,248,0.4)',
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FrostColors.hairline,
+  },
+  sendBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: FrostColors.ink,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  sendBtnPressed: { opacity: 0.85 },
+  sendBtnDisabled: { opacity: 0.4 },
+
+  stateWrap: { paddingTop: 80, alignItems: 'center' },
+  loadingDots: {
+    fontFamily: FrostFonts.display,
+    fontSize: 36,
+    color: FrostColors.goldMuted,
+    letterSpacing: 6,
+  },
+  emptyText: {
+    ...FrostType.displayS,
+    fontStyle: 'italic',
+    color: FrostColors.muted,
+    textAlign: 'center',
+    paddingTop: 80,
+  },
+  errorText: {
+    ...FrostType.bodyMedium,
+    fontStyle: 'italic',
+    color: FrostColors.muted,
+    textAlign: 'center',
+    paddingTop: 80,
   },
 });

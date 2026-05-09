@@ -32,10 +32,10 @@ interface PrimaryTool {
 }
 
 const PRIMARY: PrimaryTool[] = [
-  { key: 'circle',  Icon: Users,       title: 'Circle',  subtitle: 'Family, planners,\nyour people',  route: '/(frost)/canvas/journey/circle' },
-  { key: 'money',   Icon: DollarSign,  title: 'Money',   subtitle: 'Budget, payments,\nreceipts',      route: '/(frost)/canvas/journey/money' },
-  { key: 'tasks',   Icon: CheckSquare, title: 'Tasks',   subtitle: 'What needs\nto happen',           route: '/(frost)/canvas/journey/reminders' },
-  { key: 'vendors', Icon: Store,       title: 'Vendors', subtitle: 'Your booked\nteam',               route: '/(frost)/canvas/journey/vendors' },
+  { key: 'circle',   Icon: Users,       title: 'Circle',   subtitle: 'Family, planners,\nyour people',  route: '/(frost)/canvas/journey/circle' },
+  { key: 'expenses', Icon: DollarSign,  title: 'Expenses', subtitle: 'What I owe,\nwhat I have paid',  route: '/(frost)/canvas/journey/expenses' },
+  { key: 'tasks',    Icon: CheckSquare, title: 'Reminders',subtitle: 'What needs\nto happen',           route: '/(frost)/canvas/journey/reminders' },
+  { key: 'vendors',  Icon: Store,       title: 'Vendors',  subtitle: 'My team',                         route: '/(frost)/canvas/journey/vendors' },
 ];
 
 interface SecondaryTool {
@@ -47,7 +47,7 @@ interface SecondaryTool {
 
 const SECONDARY: SecondaryTool[] = [
   { key: 'events',    Icon: Calendar,      title: 'Events',    route: '/(frost)/canvas/journey/events' },
-  { key: 'guests',    Icon: UserCheck,     title: 'Guests',    route: '/(frost)/canvas/journey/guests' },
+  { key: 'broadcast', Icon: UserCheck,     title: 'My people', route: '/(frost)/canvas/journey/broadcast' },
   { key: 'messages',  Icon: MessageCircle, title: 'Messages',  route: '/(frost)/canvas/journey/messages' },
   { key: 'couture',   Icon: Scissors,      title: 'Couture',   route: '/(frost)/canvas/journey/couture' },
   { key: 'honeymoon', Icon: Plane,         title: 'Honeymoon', route: '/(frost)/canvas/journey/honeymoon' },

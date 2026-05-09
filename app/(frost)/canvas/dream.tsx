@@ -14,7 +14,7 @@
  *      relevant Journey sub-page. e.g. long-press "✓ Done. Swati's locked
  *      in." routes to /(frost)/canvas/journey/vendors. Routing map:
  *        tool: 'vendors' → /journey/vendors
- *        tool: 'money'   → /journey/receipts
+ *        tool: 'money'   → /journey/expenses
  *        tool: 'tasks'   → /journey/reminders
  *
  * All previous behaviour preserved: greeting, Circle activity poll, summary
@@ -64,7 +64,7 @@ const POLL_INTERVAL = 30_000;
 function anchorToRoute(anchor: ToolAnchor): string | null {
   switch (anchor.tool) {
     case 'vendors': return '/(frost)/canvas/journey/vendors';
-    case 'money':   return '/(frost)/canvas/journey/receipts';
+    case 'money':   return '/(frost)/canvas/journey/expenses';
     case 'tasks':   return '/(frost)/canvas/journey/reminders';
     default:        return null;
   }
