@@ -32,6 +32,7 @@ import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
 import FrostConfirmCard from '../../../components/frost/FrostConfirmCard';
 import FrostContactCard from '../../../components/frost/FrostContactCard';
+import FrostClarifyCard from '../../../components/frost/FrostClarifyCard';
 import {
   AILine, PersonAction, InlineEvent,
 } from '../../../components/frost/FrostDreamMessages';
@@ -43,7 +44,7 @@ import {
 } from '../../../constants/frost';
 import {
   brideChat, brideConfirm, fetchCircleActivity,
-  BrideFollowup, CircleActivityItem, SurpriseSuggestion, ToolAnchor, ContactAction,
+  BrideFollowup, CircleActivityItem, SurpriseSuggestion, ToolAnchor, ContactAction, ClarifyOption,
 } from '../../../services/frostApi';
 
 // ─── Stream message types ────────────────────────────────────────────────────
@@ -57,7 +58,8 @@ type StreamMessage =
   | { kind: 'followup'; id: string; prompt: BrideFollowup; context: Record<string, any> }
   | { kind: 'suggestions'; id: string; suggestions: SurpriseSuggestion[]; tasteSummary?: string }
   | { kind: 'confirm'; id: string; preview: any }
-  | { kind: 'contact'; id: string; action: ContactAction };
+  | { kind: 'contact'; id: string; action: ContactAction }
+  | { kind: 'clarify'; id: string; options: ClarifyOption[] };
 
 const POLL_INTERVAL = 30_000;
 
@@ -209,6 +211,18 @@ export default function CanvasDream() {
         });
       }
 
+      // PHASE 1.7: render clarify pills when bride-chat returned options.
+      // The model couldn't disambiguate a multi-match query (e.g. two Swatis);
+      // bride taps a pill, which fires send_text back as a user message,
+      // and the original tool re-runs with the disambiguator.
+      if (res.clarifyOptions && res.clarifyOptions.length > 0) {
+        append({
+          kind: 'clarify',
+          id: 'clr_' + Date.now(),
+          options: res.clarifyOptions,
+        });
+      }
+
       if (res.followupPrompts && res.followupPrompts.length > 0) {
         res.followupPrompts.forEach((p, idx) => {
           setTimeout(() => {
@@ -243,6 +257,104 @@ export default function CanvasDream() {
       text: replyText,
       ts: formatTime(),
     });
+  };
+
+  // PHASE 1.7: bride taps a pill in FrostClarifyCard. We send `send_text` to
+  // bride-chat as if she had typed it. Mirrors handleSend's logic but takes
+  // text as an arg instead of reading from the input field.
+  const handleClarifySelect = async (sendText: string) => {
+    const trimmed = sendText.trim();
+    if (!trimmed || sending) return;
+
+    setSending(true);
+
+    append({
+      kind: 'user',
+      id: 'usr_clr_' + Date.now(),
+      text: trimmed,
+      ts: formatTime(),
+    });
+
+    historyRef.current = historyRef.current.slice(-9);
+    historyRef.current.push({ role: 'user', text: trimmed });
+
+    try {
+      const res = await brideChat(trimmed, historyRef.current.slice(0, -1));
+      const replyText = res.reply || 'Hmm, let me think.';
+
+      const firstAnchor: ToolAnchor | undefined =
+        res.toolAnchors && res.toolAnchors.length > 0 ? res.toolAnchors[0] : undefined;
+
+      append({
+        kind: 'ai',
+        id: 'ai_clr_' + Date.now(),
+        text: replyText,
+        ts: formatTime(),
+        anchor: firstAnchor,
+      });
+
+      if (res.summaryLines && res.summaryLines.length > 0) {
+        append({
+          kind: 'summary',
+          id: 'sum_clr_' + Date.now(),
+          lines: res.summaryLines,
+        });
+      }
+      if (res.suggestions && res.suggestions.length > 0) {
+        append({
+          kind: 'suggestions',
+          id: 'sg_clr_' + Date.now(),
+          suggestions: res.suggestions,
+          tasteSummary: res.tasteSummary,
+        });
+      }
+      if (res.confirmPreview) {
+        append({
+          kind: 'confirm',
+          id: 'cfm_clr_' + Date.now(),
+          preview: res.confirmPreview,
+        });
+      }
+      if (res.contactAction) {
+        append({
+          kind: 'contact',
+          id: 'ctc_clr_' + Date.now(),
+          action: res.contactAction,
+        });
+      }
+      // Clarify chains (rare — model returned options again because the
+      // disambiguator was still ambiguous): render another pill set.
+      if (res.clarifyOptions && res.clarifyOptions.length > 0) {
+        append({
+          kind: 'clarify',
+          id: 'clr2_' + Date.now(),
+          options: res.clarifyOptions,
+        });
+      }
+      if (res.followupPrompts && res.followupPrompts.length > 0) {
+        res.followupPrompts.forEach((p, idx) => {
+          setTimeout(() => {
+            append({
+              kind: 'followup',
+              id: 'fup_clr_' + Date.now() + '_' + idx,
+              prompt: p,
+              context: extractFollowupContext(trimmed),
+            });
+          }, 320 * (idx + 1));
+        });
+      }
+
+      historyRef.current.push({ role: 'assistant', text: replyText });
+    } catch {
+      append({
+        kind: 'ai',
+        id: 'ai_clr_err_' + Date.now(),
+        text: 'Something went sideways. Try once more?',
+        ts: formatTime(),
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   // FIX-5 + BUG C FIX: confirm card → call bride-confirm and render the result.
@@ -423,6 +535,14 @@ export default function CanvasDream() {
               );
             case 'contact':
               return <FrostContactCard key={m.id} action={m.action} />;
+            case 'clarify':
+              return (
+                <FrostClarifyCard
+                  key={m.id}
+                  options={m.options}
+                  onSelect={handleClarifySelect}
+                />
+              );
           }
         })}
       </ScrollView>

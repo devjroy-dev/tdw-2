@@ -53,6 +53,16 @@ export interface ContactAction {
   message?: string | null;
 }
 
+// Phase 1.7 — disambiguation pills returned by clarify branches.
+// When the bride says something ambiguous (e.g. "call Swati" with two
+// Swatis on her list), the backend returns up to 4 options. The frontend
+// renders FrostClarifyCard; bride taps; send_text fires back as a fresh
+// user message and the original tool re-runs with the disambiguator.
+export interface ClarifyOption {
+  label: string;
+  send_text: string;
+}
+
 export interface BrideChatResponse {
   success: boolean;
   reply: string;
@@ -60,6 +70,7 @@ export interface BrideChatResponse {
   followupPrompts?: BrideFollowup[];
   confirmPreview?: any | null;
   contactAction?: ContactAction | null;
+  clarifyOptions?: ClarifyOption[] | null;
   toolsUsed?: string[];
   toolAnchors?: ToolAnchor[];
   // ZIP 5+: surprise_me responses include these
