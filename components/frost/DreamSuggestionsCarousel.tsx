@@ -93,7 +93,7 @@ export default function DreamSuggestionsCarousel({
                   strokeWidth={1.7}
                 />
                 <Text style={styles.cardSaveText}>
-                  {isSaved ? 'Saved' : isSaving ? '\u2026' : 'Save'}
+                  {isSaved ? 'Saved' : isSaving ? '…' : 'Save'}
                 </Text>
               </Pressable>
             </View>

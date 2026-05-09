@@ -43,12 +43,23 @@ export interface ToolAnchor {
   entity_id: string;
 }
 
+// Phase 1.6.1 — contact_vendor tool propagates this through bride-chat.
+// Frontend renders FrostContactCard when this is non-null.
+export interface ContactAction {
+  kind: 'call' | 'whatsapp';
+  name: string;
+  phone: string;
+  label?: string | null;
+  message?: string | null;
+}
+
 export interface BrideChatResponse {
   success: boolean;
   reply: string;
   summaryLines?: string[];
   followupPrompts?: BrideFollowup[];
   confirmPreview?: any | null;
+  contactAction?: ContactAction | null;
   toolsUsed?: string[];
   toolAnchors?: ToolAnchor[];
   // ZIP 5+: surprise_me responses include these

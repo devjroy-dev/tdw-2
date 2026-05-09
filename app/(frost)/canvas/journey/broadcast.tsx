@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Journey \u00B7 Broadcast (My people \u2014 coming-soon stub)
+ * Frost · Journey · Broadcast (My people — coming-soon stub)
  *
  * The bride's personal address book for sending broadcast messages to
  * friends/bridesmaids/sisters via WhatsApp deep-link. Distinct from Circle
@@ -21,7 +21,7 @@ import {
 
 export default function JourneyBroadcast() {
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 MY PEOPLE" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · MY PEOPLE" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
           <Text style={styles.title}>My people.</Text>

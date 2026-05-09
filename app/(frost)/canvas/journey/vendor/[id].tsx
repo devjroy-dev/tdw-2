@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Journey \u00B7 Vendor Profile (v2 \u2014 frosted sections)
+ * Frost · Journey · Vendor Profile (v2 — frosted sections)
  *
  * Per-vendor profile. The heaviest screen in Frost. Sections all use frosted
  * panels now, no white cards.
@@ -29,7 +29,7 @@ export default function VendorProfile() {
   const vendorRole = 'Category';
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 VENDOR" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · VENDOR" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>{vendorRole}</Text>

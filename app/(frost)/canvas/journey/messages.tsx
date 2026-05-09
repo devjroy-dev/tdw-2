@@ -1,10 +1,10 @@
 /**
- * Frost \u00B7 Journey \u00B7 Messages (v3 \u2014 wired)
+ * Frost · Journey · Messages (v3 — wired)
  *
  * Vendor enquiry threads. Each row = one vendor + last-message preview +
  * unread count if any. Tap a row to view + reply (inline thread view).
  *
- * Read + reply only. No new-thread creation from here \u2014 that happens via
+ * Read + reply only. No new-thread creation from here — that happens via
  * Discover when the bride sends an enquiry to a new vendor.
  */
 
@@ -52,7 +52,7 @@ export default function JourneyMessages() {
   }
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 MESSAGES" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · MESSAGES" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -62,7 +62,7 @@ export default function JourneyMessages() {
         <Text style={styles.heading}>What's been said.</Text>
 
         {loading ? (
-          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
           <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
@@ -94,7 +94,7 @@ function ThreadRow({ thread, onPress }: { thread: EnquiryThread; onPress: () => 
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{name[0]?.toUpperCase() || '\u00B7'}</Text>
+        <Text style={styles.avatarText}>{name[0]?.toUpperCase() || '·'}</Text>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={styles.rowTop}>
@@ -163,7 +163,7 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
   }, [composing, sending, thread.id, load]);
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 MESSAGES" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · MESSAGES" mode="frost">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -178,7 +178,7 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
           ) : null}
 
           {loading ? (
-            <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+            <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
           ) : error ? (
             <Text style={styles.errorText}>I couldn't load this conversation.</Text>
           ) : messages.length === 0 ? (
@@ -197,7 +197,7 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
             style={styles.composerInput}
             value={composing}
             onChangeText={setComposing}
-            placeholder="Reply\u2026"
+            placeholder="Reply…"
             placeholderTextColor={FrostColors.muted}
             multiline
           />

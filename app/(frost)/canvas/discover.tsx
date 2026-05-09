@@ -1,20 +1,20 @@
 /**
- * Frost \u00B7 Canvas \u00B7 Discover (beta)
+ * Frost · Canvas · Discover (beta)
  *
  * Architecture:
  *   1. Default state: full-bleed carousel of paid hero spots cycling through
  *      every 3.5s. Full colour, no greyscale, no frost. Magazine-cover mode.
- *   2. The hero photo is non-interactive on tap \u2014 a tap on a full-bleed
+ *   2. The hero photo is non-interactive on tap — a tap on a full-bleed
  *      photograph should not navigate. Long-press anywhere on the photo
  *      opens the More overlay (same overlay the More button opens).
- *   3. Top-right small frosted "More" pill button \u2014 discoverable affordance,
+ *   3. Top-right small frosted "More" pill button — discoverable affordance,
  *      tap to toggle the overlay. Same target as the long-press gesture.
  *   4. More overlay reveals 4 navigation buttons (frosted) for the original
  *      Discover modes:
- *        \u00B7 Blind Swipe
- *        \u00B7 My Discovery
- *        \u00B7 Couture
- *        \u00B7 Categories
+ *        · Blind Swipe
+ *        · My Discovery
+ *        · Couture
+ *        · Categories
  *
  *   Heroes are managed via admin in production; here they're placeholders.
  *
@@ -153,10 +153,10 @@ export default function CanvasDiscover() {
     <View style={styles.root}>
       <StatusBar barStyle={moreOpen ? 'dark-content' : 'light-content'} />
 
-      {/* HERO CAROUSEL \u2014 colour, full-bleed. Long-press anywhere on the
+      {/* HERO CAROUSEL — colour, full-bleed. Long-press anywhere on the
           photo opens the More overlay (same target as the More button).
           A plain tap does nothing on purpose: a full-bleed photograph
-          should not be a navigation button \u2014 the dedicated More pill is
+          should not be a navigation button — the dedicated More pill is
           the discoverable affordance. */}
       <Pressable
         style={StyleSheet.absoluteFill}

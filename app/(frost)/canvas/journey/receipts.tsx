@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Journey \u00B7 Receipts (v2 \u2014 frosted)
+ * Frost · Journey · Receipts (v2 — frosted)
  */
 
 import React from 'react';
@@ -12,13 +12,13 @@ import {
 } from '../../../../constants/frost';
 
 const PLACEHOLDER_RECEIPTS = [
-  { id: '1', vendor: 'Swati Tomar', amount: '\u20B930,000', when: 'Today', label: 'Advance' },
-  { id: '2', vendor: 'House of Blooms', amount: '\u20B95,000', when: 'Apr 28', label: 'Consultation' },
+  { id: '1', vendor: 'Swati Tomar', amount: '₹30,000', when: 'Today', label: 'Advance' },
+  { id: '2', vendor: 'House of Blooms', amount: '₹5,000', when: 'Apr 28', label: 'Consultation' },
 ];
 
 export default function JourneyReceipts() {
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 RECEIPTS" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · RECEIPTS" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.heading}>Bills, invoices, contracts.</Text>
         <Text style={styles.sub}>Capture once. Find later. Filed under the right vendor.</Text>
@@ -47,7 +47,7 @@ export default function JourneyReceipts() {
                   <Text style={styles.rowVendor}>{r.vendor}</Text>
                   <View style={styles.rowMeta}>
                     <Text style={styles.rowMetaText}>{r.label}</Text>
-                    <Text style={styles.dot}>\u00B7</Text>
+                    <Text style={styles.dot}>·</Text>
                     <Text style={styles.rowMetaText}>{r.when}</Text>
                   </View>
                 </View>

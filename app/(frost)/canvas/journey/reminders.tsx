@@ -85,7 +85,7 @@ export default function JourneyReminders() {
   const hasDone = done.length > 0;
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 REMINDERS" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · REMINDERS" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -99,7 +99,7 @@ export default function JourneyReminders() {
         ) : null}
 
         {loading ? (
-          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
           <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
@@ -194,7 +194,7 @@ function formatDueDate(due: string | null | undefined): string | null {
     return d.toLocaleDateString('en-IN', { weekday: 'long' }).toUpperCase();
   }
   if (diffDays < 0) {
-    return 'OVERDUE \u00B7 ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }).toUpperCase();
+    return 'OVERDUE · ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }).toUpperCase();
   }
   return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }).toUpperCase();
 }

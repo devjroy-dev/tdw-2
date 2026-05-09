@@ -1,7 +1,7 @@
 /**
- * Frost \u00B7 Journey \u00B7 Expenses (v3 \u2014 wired)
+ * Frost · Journey · Expenses (v3 — wired)
  *
- * The bride's promises and what she's paid \u2014 her people: MUA, photographer,
+ * The bride's promises and what she's paid — her people: MUA, photographer,
  * decorator, lehenga, hairstylist. Frame is "what I owe" not "am I within
  * budget". Two sections: Pending (chronological, due date forward), Paid
  * (greyscaled).
@@ -10,10 +10,10 @@
  *   - Tap "Mark paid" pill on a pending row \u2192 PATCH payment_status='paid'
  *   - Long-press row \u2192 delete via FrostConfirmSheet
  *
- * Tapping the row body is a no-op for now \u2014 details belong to Dream Ai.
+ * Tapping the row body is a no-op for now — details belong to Dream Ai.
  *
  * Header line shows totals: paid / pending. Brass for paid, charcoal for
- * pending. No "total budget" \u2014 that's the parents' frame.
+ * pending. No "total budget" — that's the parents' frame.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -33,8 +33,8 @@ import {
 } from '../../../../services/frostApi';
 
 function fmtINR(n: number): string {
-  if (!n) return '\u20B90';
-  return '\u20B9' + n.toLocaleString('en-IN');
+  if (!n) return '₹0';
+  return '₹' + n.toLocaleString('en-IN');
 }
 
 export default function JourneyExpenses() {
@@ -103,7 +103,7 @@ export default function JourneyExpenses() {
   const hasAny = pending.length > 0 || paid.length > 0;
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 EXPENSES" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · EXPENSES" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -115,7 +115,7 @@ export default function JourneyExpenses() {
         {hasAny ? (
           <Text style={styles.totalsLine}>
             <Text style={styles.totalsPaid}>{fmtINR(totalPaid)} paid</Text>
-            <Text style={styles.totalsSep}>  \u00B7  </Text>
+            <Text style={styles.totalsSep}>  ·  </Text>
             <Text style={styles.totalsPending}>{fmtINR(totalPending)} pending</Text>
           </Text>
         ) : null}
@@ -123,7 +123,7 @@ export default function JourneyExpenses() {
         {hasAny ? <FrostGestureHint storageKey="expenses" text="Tap to know. Hold to act." /> : null}
 
         {loading ? (
-          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
           <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
@@ -201,7 +201,7 @@ function ExpenseRow({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.rowName} numberOfLines={1}>{who}</Text>
         <Text style={styles.rowMeta}>
-          {[expense.description !== who ? expense.description : null, expense.event].filter(Boolean).join(' \u00B7 ')}
+          {[expense.description !== who ? expense.description : null, expense.event].filter(Boolean).join(' · ')}
         </Text>
         {dueLabel ? <Text style={styles.rowWhen}>{dueLabel}</Text> : null}
       </View>
@@ -213,7 +213,7 @@ function ExpenseRow({
             disabled={busy}
             style={({ pressed }) => [styles.markPaidBtn, pressed && styles.markPaidPressed, busy && styles.markPaidBusy]}
           >
-            <Text style={styles.markPaidText}>{busy ? '\u2026' : 'MARK PAID'}</Text>
+            <Text style={styles.markPaidText}>{busy ? '…' : 'MARK PAID'}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -231,7 +231,7 @@ function formatDueDate(due: string | null | undefined): string | null {
   if (diffDays === 0) return 'DUE TODAY';
   if (diffDays === 1) return 'DUE TOMORROW';
   if (diffDays > 1 && diffDays <= 7) return 'DUE ' + d.toLocaleDateString('en-IN', { weekday: 'long' }).toUpperCase();
-  if (diffDays < 0) return 'OVERDUE \u00B7 ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }).toUpperCase();
+  if (diffDays < 0) return 'OVERDUE · ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }).toUpperCase();
   return 'DUE ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }).toUpperCase();
 }
 

@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Journey \u00B7 Honeymoon (coming-soon stub)
+ * Frost · Journey · Honeymoon (coming-soon stub)
  *
  * Destination packages and bookings. Backend doesn't exist yet; bride-facing
  * experience is shipped post-launch. This page exists so the Journey hub
@@ -15,7 +15,7 @@ import {
 
 export default function JourneyHoneymoon() {
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 HONEYMOON" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · HONEYMOON" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
           <Text style={styles.title}>After all this.</Text>

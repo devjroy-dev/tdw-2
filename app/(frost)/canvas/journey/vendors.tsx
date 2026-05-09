@@ -1,8 +1,8 @@
 /**
- * Frost \u00B7 Journey \u00B7 Vendors (v3 \u2014 wired)
+ * Frost · Journey · Vendors (v3 — wired)
  *
  * The bride's team. Pipeline view: Considering \u2192 In Talks \u2192 Booked \u2192 Paid.
- * No status changes from here \u2014 the bride tells Dream Ai when something
+ * No status changes from here — the bride tells Dream Ai when something
  * moves. The page is the witness.
  *
  * One gesture: long-press a row \u2192 delete via FrostConfirmSheet.
@@ -25,8 +25,8 @@ import {
 } from '../../../../services/frostApi';
 
 function fmtINR(n: number): string {
-  if (!n) return '\u20B90';
-  return '\u20B9' + n.toLocaleString('en-IN');
+  if (!n) return '₹0';
+  return '₹' + n.toLocaleString('en-IN');
 }
 
 // Pipeline order, top to bottom. Status values from couple_vendors.status.
@@ -102,7 +102,7 @@ export default function JourneyVendors() {
   if (others.length > 0) groups.push({ label: 'OTHER', items: others });
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 VENDORS" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · VENDORS" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -116,7 +116,7 @@ export default function JourneyVendors() {
         ) : null}
 
         {loading ? (
-          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
           <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
@@ -159,12 +159,12 @@ function VendorRow({
   vendor: CoupleVendor;
   onLongPress: () => void;
 }) {
-  const initial = (vendor.category?.[0] || vendor.name?.[0] || '\u00B7').toUpperCase();
+  const initial = (vendor.category?.[0] || vendor.name?.[0] || '·').toUpperCase();
   const meta = [
     vendor.category,
     (vendor.events && vendor.events.length > 0) ? vendor.events.join(', ') : null,
     vendor.quoted_total ? fmtINR(vendor.quoted_total) : null,
-  ].filter(Boolean).join(' \u00B7 ');
+  ].filter(Boolean).join(' · ');
 
   return (
     <Pressable

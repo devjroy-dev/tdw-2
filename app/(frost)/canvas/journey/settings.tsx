@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Journey \u00B7 Settings (v2 \u2014 frosted)
+ * Frost · Journey · Settings (v2 — frosted)
  */
 
 import React from 'react';
@@ -16,12 +16,12 @@ const FIELDS = [
   { label: 'PARTNER\u2019S NAME', value: 'Set partner\u2019s name' },
   { label: 'WEDDING DATE',        value: '25 September 2026' },
   { label: 'WEDDING CITY',        value: 'Set city' },
-  { label: 'WHATSAPP',            value: '+91 \u2013 \u2013\u2013\u2013\u2013\u2013\u2013\u2013\u2013\u2013' },
+  { label: 'WHATSAPP',            value: '+91 – –––––––––' },
 ];
 
 export default function JourneySettings() {
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 SETTINGS" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · SETTINGS" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.heading}>Yours.</Text>
         <Text style={styles.sub}>Six things. Set them once.</Text>

@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Journey \u00B7 Couture (coming-soon stub)
+ * Frost · Journey · Couture (coming-soon stub)
  *
  * Atelier-only by-appointment pieces. Backend is admin-managed via
  * /admin/couture today; bride-facing experience is shipped in a later session.
@@ -15,7 +15,7 @@ import {
 
 export default function JourneyCouture() {
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 COUTURE" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · COUTURE" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
           <Text style={styles.title}>By appointment.</Text>

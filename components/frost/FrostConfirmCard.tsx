@@ -129,7 +129,7 @@ export default function FrostConfirmCard({
           disabled={state === 'confirming'}
         >
           <Text style={styles.btnPrimaryText}>
-            {state === 'confirming' ? 'Working\u2026' : (preview.confirmLabel ?? 'Confirm')}
+            {state === 'confirming' ? 'Working…' : (preview.confirmLabel ?? 'Confirm')}
           </Text>
         </Pressable>
       </View>

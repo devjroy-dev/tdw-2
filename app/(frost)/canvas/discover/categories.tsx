@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Canvas \u00B7 Discover \u00B7 Categories
+ * Frost · Canvas · Discover · Categories
  *
  * Grid of vendor categories. Tap a category \u2192 filtered list (v1.3 wires
  * /api/v2/discover/feed?category=...).
@@ -30,7 +30,7 @@ export default function Categories() {
   const tileW = (W - FrostSpace.xxl * 2 - FrostSpace.m) / 2;
 
   return (
-    <FrostCanvasShell eyebrow="DISCOVER \u00B7 CATEGORIES" mode="frost">
+    <FrostCanvasShell eyebrow="DISCOVER · CATEGORIES" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}

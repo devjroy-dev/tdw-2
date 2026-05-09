@@ -32,6 +32,7 @@ import * as Haptics from 'expo-haptics';
 import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
 import FrostConfirmCard from '../../../components/frost/FrostConfirmCard';
+import FrostContactCard from '../../../components/frost/FrostContactCard';
 import {
   AILine, PersonAction, InlineEvent,
 } from '../../../components/frost/FrostDreamMessages';
@@ -43,7 +44,7 @@ import {
 } from '../../../constants/frost';
 import {
   brideChat, brideConfirm, fetchCircleActivity,
-  BrideFollowup, CircleActivityItem, SurpriseSuggestion, ToolAnchor,
+  BrideFollowup, CircleActivityItem, SurpriseSuggestion, ToolAnchor, ContactAction,
 } from '../../../services/frostApi';
 
 // ─── Stream message types ────────────────────────────────────────────────────
@@ -56,7 +57,8 @@ type StreamMessage =
   | { kind: 'summary'; id: string; lines: string[] }
   | { kind: 'followup'; id: string; prompt: BrideFollowup; context: Record<string, any> }
   | { kind: 'suggestions'; id: string; suggestions: SurpriseSuggestion[]; tasteSummary?: string }
-  | { kind: 'confirm'; id: string; preview: any };
+  | { kind: 'confirm'; id: string; preview: any }
+  | { kind: 'contact'; id: string; action: ContactAction };
 
 const POLL_INTERVAL = 30_000;
 
@@ -194,6 +196,17 @@ export default function CanvasDream() {
           kind: 'confirm',
           id: 'cfm_' + Date.now(),
           preview: res.confirmPreview,
+        });
+      }
+
+      // PHASE 1.6: render contact card when contact_vendor returned an action.
+      // The bride asked "call X" or "message Y to..."; the card lets her pick
+      // her channel (phone vs WhatsApp call, WhatsApp vs SMS message).
+      if (res.contactAction) {
+        append({
+          kind: 'contact',
+          id: 'ctc_' + Date.now(),
+          action: res.contactAction,
         });
       }
 
@@ -348,7 +361,8 @@ export default function CanvasDream() {
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           ref={scrollRef}
@@ -413,6 +427,8 @@ export default function CanvasDream() {
                     />
                   </View>
                 );
+              case 'contact':
+                return <FrostContactCard key={m.id} action={m.action} />;
             }
           })}
         </ScrollView>

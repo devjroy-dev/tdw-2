@@ -1,9 +1,9 @@
 /**
- * Frost \u00B7 Journey \u00B7 Events (v3 \u2014 wired)
+ * Frost · Journey · Events (v3 — wired)
  *
  * Vertical timeline of the wedding's events. Each event = a date circle on
  * the left, a card on the right with name, venue, and count summary
- * (X reminders \u00B7 Y vendors \u00B7 Z guests). Soonest-upcoming is brass-bordered.
+ * (X reminders · Y vendors · Z guests). Soonest-upcoming is brass-bordered.
  *
  * Read-only. No add, no edit, no delete. The bride glances; she does not
  * organize from here. Date or venue changes go through Dream Ai.
@@ -52,7 +52,7 @@ export default function JourneyEvents() {
   });
 
   return (
-    <FrostCanvasShell eyebrow="JOURNEY \u00B7 EVENTS" mode="frost">
+    <FrostCanvasShell eyebrow="JOURNEY · EVENTS" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -62,7 +62,7 @@ export default function JourneyEvents() {
         <Text style={styles.heading}>The days.</Text>
 
         {loading ? (
-          <View style={styles.stateWrap}><Text style={styles.loadingDots}>\u2026</Text></View>
+          <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
           <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
@@ -87,7 +87,7 @@ function EventNode({ event, highlight }: { event: CoupleEvent; highlight: boolea
   const counts: string[] = [];
   if (event.task_count && event.task_count > 0) counts.push(`${event.task_count} reminder${event.task_count === 1 ? '' : 's'}`);
   if (event.vendor_count && event.vendor_count > 0) counts.push(`${event.vendor_count} vendor${event.vendor_count === 1 ? '' : 's'}`);
-  const countLine = counts.join(' \u00B7 ');
+  const countLine = counts.join(' · ');
 
   return (
     <View style={styles.node}>
@@ -105,9 +105,9 @@ function EventNode({ event, highlight }: { event: CoupleEvent; highlight: boolea
 }
 
 function formatEventDate(d: string | null | undefined): { month: string; day: string } {
-  if (!d) return { month: '', day: '\u2014' };
+  if (!d) return { month: '', day: '—' };
   const date = new Date(d);
-  if (isNaN(date.getTime())) return { month: '', day: '\u2014' };
+  if (isNaN(date.getTime())) return { month: '', day: '—' };
   return {
     month: date.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase(),
     day: String(date.getDate()),

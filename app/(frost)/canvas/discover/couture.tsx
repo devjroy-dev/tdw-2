@@ -1,5 +1,5 @@
 /**
- * Frost \u00B7 Canvas \u00B7 Discover \u00B7 Couture
+ * Frost · Canvas · Discover · Couture
  *
  * Atelier-only invitation pieces. Bookable by appointment (Rs.2-5K fee, 80/20 split).
  * v1 stub. Wiring to existing Couture endpoints later.
@@ -21,7 +21,7 @@ const PLACEHOLDER_COUTURE = [
 
 export default function Couture() {
   return (
-    <FrostCanvasShell eyebrow="DISCOVER \u00B7 COUTURE" mode="frost">
+    <FrostCanvasShell eyebrow="DISCOVER · COUTURE" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}

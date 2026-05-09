@@ -222,7 +222,7 @@ export const FrostCopy = {
     eyebrow: 'DREAM',
     emptyTitle: 'Where your wedding speaks.',
     emptySub: 'Your AI and your Circle in one quiet stream.',
-    inputPlaceholder: 'Tell DreamAi anything\u2026',
+    inputPlaceholder: 'Tell DreamAi anything…',
   },
 
   journeyCanvas: {
@@ -249,11 +249,11 @@ export const FrostCopy = {
 // Managed from admin at /admin/discover-heroes. These are fallbacks only —
 // the native canvas fetches live from /api/v2/discover-heroes.
 export const DiscoverHeroes: Array<{ uri: string; vendor?: string; caption?: string }> = [
-  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg', vendor: 'Hero \u00B7 Spot 1' },
-  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266049/IMG_9613_m69ddg.jpg', vendor: 'Hero \u00B7 Spot 2' },
-  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1776657982/pr39fasjcom3qfqlv9dd.jpg', vendor: 'Hero \u00B7 Spot 3' },
-  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1776349629/zzpw0ksa0cttm9gbdhqm.jpg', vendor: 'Hero \u00B7 Spot 4' },
-  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1775922562/Swati_bva6au.jpg', vendor: 'Hero \u00B7 Spot 5' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266065/IMG_2565.PNG_vua5o3.jpg', vendor: 'Hero · Spot 1' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1778266049/IMG_9613_m69ddg.jpg', vendor: 'Hero · Spot 2' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1776657982/pr39fasjcom3qfqlv9dd.jpg', vendor: 'Hero · Spot 3' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1776349629/zzpw0ksa0cttm9gbdhqm.jpg', vendor: 'Hero · Spot 4' },
+  { uri: 'https://res.cloudinary.com/dccso5ljv/image/upload/v1775922562/Swati_bva6au.jpg', vendor: 'Hero · Spot 5' },
 ];
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────

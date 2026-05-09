@@ -150,7 +150,7 @@ export default function SurpriseMeOverlay({
       {/* LOADING STATE */}
       {loading ? (
         <View style={styles.centeredContent}>
-          <Text style={styles.loadingTitle}>Looking for ideas\u2026</Text>
+          <Text style={styles.loadingTitle}>Looking for ideas…</Text>
           <Text style={styles.loadingSub}>I&#x2019;m reading what you&#x2019;ve saved.</Text>
         </View>
       ) : suggestions.length === 0 ? (
@@ -239,7 +239,7 @@ export default function SurpriseMeOverlay({
                 strokeWidth={1.7}
               />
               <Text style={styles.saveBtnText}>
-                {isSaved ? 'Saved' : isSaving ? 'Saving\u2026' : 'Save to Muse'}
+                {isSaved ? 'Saved' : isSaving ? 'Saving…' : 'Save to Muse'}
               </Text>
             </Pressable>
 
