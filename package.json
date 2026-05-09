@@ -30,6 +30,7 @@
     "expo": "~54.0.34",
     "expo-auth-session": "~7.0.11",
     "expo-blur": "^55.0.14",
+    "react-native-color-matrix-image-filters": "^7.0.0",
     "expo-constants": "~18.0.13",
     "expo-contacts": "~15.0.11",
     "expo-crypto": "~15.0.9",

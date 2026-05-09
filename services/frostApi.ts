@@ -8,10 +8,18 @@
  *   3. Read-only fetches Frost screens use (Muse saves, vendors, etc.)
  *
  * Auth: every call passes the bride's couple_id (resolved from
- *       AsyncStorage 'user_session'.id). Helpers for that live here too.
+ *       AsyncStorage 'couple_session'.id via utils/session.ts —
+ *       SINGLE SOURCE OF TRUTH for session reads/writes).
+ *
+ * BUGFIX (this drop): previously this file had its own getCoupleSession
+ * that read 'user_session' — a key never written by anyone. That made
+ * EVERY Frost API call (bride-chat, brideIdle, fetchMuseSaves, the entire
+ * Circle suite, surpriseMe) silently fail with "Please sign in again."
+ * Fixed by re-exporting from utils/session.ts so the read and write paths
+ * agree on a single key: 'couple_session'.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCoupleSession as utilsGetCoupleSession } from '../utils/session';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 export const API_BASE = 'https://dream-wedding-production-89ae.up.railway.app';
@@ -67,26 +75,21 @@ export interface CircleActivityItem {
 }
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
+//
+// Re-export from utils/session.ts. This file used to maintain its own copy
+// that read the wrong AsyncStorage key — leading to a global Frost auth
+// failure. Now there is one true session getter and the bug cannot recur.
 
 interface UserSession { id: string; name?: string; phone?: string; }
 
-let cachedSession: UserSession | null = null;
-
 export async function getCoupleSession(): Promise<UserSession | null> {
-  if (cachedSession) return cachedSession;
-  try {
-    const raw = await AsyncStorage.getItem('user_session');
-    if (!raw) return null;
-    const s = JSON.parse(raw) as UserSession;
-    if (!s.id) return null;
-    cachedSession = s;
-    return s;
-  } catch {
-    return null;
-  }
+  const s = await utilsGetCoupleSession();
+  if (!s || typeof s !== 'object' || !('id' in s) || !s.id) return null;
+  return s as UserSession;
 }
 
-export function clearSessionCache() { cachedSession = null; }
+// Compatibility no-op — older callers may still call this.
+export function clearSessionCache() { /* no cache anymore */ }
 
 // ─── Fetch helper with timeout ───────────────────────────────────────────────
 
@@ -176,6 +179,44 @@ export async function brideIdle(): Promise<BrideIdleResponse> {
         'The light in October will be the colour of old letters.',
         'Pick a colour for the morning. I will think about it with you.',
       ],
+      error: err?.message || 'network',
+    };
+  }
+}
+
+// ─── Home-screen images (NEW — Frost landing) ────────────────────────────────
+//
+// One call, two pictures: Muse + Discover, server-picked, anti-collision
+// enforced, fallback to a different hero if the bride's Muse board is empty.
+// Frost landing calls this in useFocusEffect — refreshes on every entry.
+
+export interface HomeImagesResponse {
+  success: boolean;
+  muse_image_url: string | null;
+  discover_image_url: string | null;
+  muse_is_fallback?: boolean;
+  error?: string;
+}
+
+export async function fetchHomeImages(): Promise<HomeImagesResponse> {
+  const session = await getCoupleSession();
+  if (!session) {
+    return { success: false, muse_image_url: null, discover_image_url: null, error: 'no_session' };
+  }
+  try {
+    const r = await safeFetch(`${API_BASE}/api/v2/frost/home-images/${session.id}`);
+    return {
+      success: !!r?.success,
+      muse_image_url: r?.muse_image_url || null,
+      discover_image_url: r?.discover_image_url || null,
+      muse_is_fallback: !!r?.muse_is_fallback,
+      error: r?.error,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      muse_image_url: null,
+      discover_image_url: null,
       error: err?.message || 'network',
     };
   }
@@ -423,15 +464,15 @@ export async function fetchCircleUnreadCount(): Promise<number> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Discover Heroes — full-bleed paid carousel on /(frost)/canvas/discover
 //
-// Admin-managed via /admin/discover-heroes (5 active slots). The backend
-// returns photos sorted by display_order ASC, only active ones, no auth required
-// (this is read-side; admin write requires x-admin-password).
+// Admin-managed via /admin/discover-heroes (5 active slots). Backend returns
+// photos sorted by sort_order ASC, only active ones, no auth required.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface DiscoverHero {
   id: string;
   image_url: string;
-  display_order: number;
+  display_order?: number;
+  sort_order?: number;
   caption?: string | null;
   vendor_id?: string | null;
 }
