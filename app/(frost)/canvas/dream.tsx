@@ -24,7 +24,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, Pressable, StyleSheet, Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -359,80 +358,74 @@ export default function CanvasDream() {
         </FrostedSurface>
       }
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.streamContent}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.streamContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {messages.map((m) => {
-            switch (m.kind) {
-              case 'ai':
-                // FIX-5: wrap AI messages with an anchor in a long-pressable area
-                if (m.anchor) {
-                  return (
-                    <Pressable
-                      key={m.id}
-                      onLongPress={() => handleAnchorPress(m.anchor!)}
-                      delayLongPress={350}
-                    >
-                      <AILine text={m.text} timestamp={m.ts} />
-                    </Pressable>
-                  );
-                }
-                return <AILine key={m.id} text={m.text} timestamp={m.ts} />;
-              case 'user':
-                return <UserLine key={m.id} text={m.text} ts={m.ts} />;
-              case 'person':
+        {messages.map((m) => {
+          switch (m.kind) {
+            case 'ai':
+              // FIX-5: wrap AI messages with an anchor in a long-pressable area
+              if (m.anchor) {
                 return (
-                  <PersonAction
+                  <Pressable
                     key={m.id}
-                    name={m.name}
-                    action={m.action || ''}
-                    text={m.text}
-                    timestamp={m.ts}
+                    onLongPress={() => handleAnchorPress(m.anchor!)}
+                    delayLongPress={350}
+                  >
+                    <AILine text={m.text} timestamp={m.ts} />
+                  </Pressable>
+                );
+              }
+              return <AILine key={m.id} text={m.text} timestamp={m.ts} />;
+            case 'user':
+              return <UserLine key={m.id} text={m.text} ts={m.ts} />;
+            case 'person':
+              return (
+                <PersonAction
+                  key={m.id}
+                  name={m.name}
+                  action={m.action || ''}
+                  text={m.text}
+                  timestamp={m.ts}
+                />
+              );
+            case 'event':
+              return <InlineEvent key={m.id} text={m.text} />;
+            case 'summary':
+              return <DreamSummaryCard key={m.id} lines={m.lines} />;
+            case 'followup':
+              return (
+                <DreamYesNo
+                  key={m.id}
+                  prompt={m.prompt}
+                  context={m.context}
+                  onResolved={handleFollowupResolved}
+                />
+              );
+            case 'suggestions':
+              return (
+                <DreamSuggestionsCarousel
+                  key={m.id}
+                  suggestions={m.suggestions}
+                  tasteSummary={m.tasteSummary}
+                />
+              );
+            case 'confirm':
+              return (
+                <View key={m.id} style={styles.confirmWrap}>
+                  <FrostConfirmCard
+                    preview={m.preview}
+                    onConfirm={() => handleConfirm(m.preview)}
                   />
-                );
-              case 'event':
-                return <InlineEvent key={m.id} text={m.text} />;
-              case 'summary':
-                return <DreamSummaryCard key={m.id} lines={m.lines} />;
-              case 'followup':
-                return (
-                  <DreamYesNo
-                    key={m.id}
-                    prompt={m.prompt}
-                    context={m.context}
-                    onResolved={handleFollowupResolved}
-                  />
-                );
-              case 'suggestions':
-                return (
-                  <DreamSuggestionsCarousel
-                    key={m.id}
-                    suggestions={m.suggestions}
-                    tasteSummary={m.tasteSummary}
-                  />
-                );
-              case 'confirm':
-                return (
-                  <View key={m.id} style={styles.confirmWrap}>
-                    <FrostConfirmCard
-                      preview={m.preview}
-                      onConfirm={() => handleConfirm(m.preview)}
-                    />
-                  </View>
-                );
-              case 'contact':
-                return <FrostContactCard key={m.id} action={m.action} />;
-            }
-          })}
-        </ScrollView>
-      </KeyboardAvoidingView>
+                </View>
+              );
+            case 'contact':
+              return <FrostContactCard key={m.id} action={m.action} />;
+          }
+        })}
+      </ScrollView>
     </FrostCanvasShell>
   );
 }

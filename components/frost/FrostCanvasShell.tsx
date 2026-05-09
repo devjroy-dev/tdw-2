@@ -14,7 +14,10 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, StatusBar, Image } from 'react-native';
+import {
+  View, Text, Pressable, StyleSheet, StatusBar, Image,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { X } from 'lucide-react-native';
@@ -77,6 +80,42 @@ export default function FrostCanvasShell({
   const topBarIconColor =
     resolvedMode === 'image' ? FrostColors.white : FrostColors.ink;
 
+  // Phase 1.6.2: when the canvas has a bottomBar (input row), wrap content +
+  // bottomBar inside a KeyboardAvoidingView. This lifts the input above the
+  // soft keyboard on Android and iOS instead of letting the keyboard cover it.
+  // Without this, the absolutely-positioned bottomBar sat under the keyboard
+  // (KAV ignores absolutely-positioned children).
+  const Body = (
+    <>
+      {/* CONTENT */}
+      <View
+        style={[
+          styles.content,
+          {
+            paddingTop: insets.top + FrostLayout.canvasTopBarHeight,
+            // Only add bottom padding when no bottomBar — when there is one,
+            // the flex-based layout puts the bottomBar below content directly.
+            paddingBottom: bottomBar ? 0 : insets.bottom,
+          },
+        ]}
+      >
+        {children}
+      </View>
+
+      {/* BOTTOM BAR — flex-positioned (was absolute before Phase 1.6.2) */}
+      {bottomBar ? (
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: insets.bottom },
+          ]}
+        >
+          {bottomBar}
+        </View>
+      ) : null}
+    </>
+  );
+
   return (
     <View style={styles.root}>
       <StatusBar
@@ -112,30 +151,18 @@ export default function FrostCanvasShell({
         </Pressable>
       </View>
 
-      {/* CONTENT */}
-      <View
-        style={[
-          styles.content,
-          {
-            paddingTop: insets.top + FrostLayout.canvasTopBarHeight,
-            paddingBottom: bottomBar ? FrostLayout.canvasBottomBarHeight + insets.bottom : insets.bottom,
-          },
-        ]}
-      >
-        {children}
-      </View>
-
-      {/* BOTTOM BAR */}
+      {/* CONTENT + BOTTOM BAR (KAV-wrapped when bottomBar exists) */}
       {bottomBar ? (
-        <View
-          style={[
-            styles.bottomBar,
-            { paddingBottom: insets.bottom },
-          ]}
+        <KeyboardAvoidingView
+          style={styles.kavWrap}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
-          {bottomBar}
-        </View>
-      ) : null}
+          {Body}
+        </KeyboardAvoidingView>
+      ) : (
+        Body
+      )}
     </View>
   );
 }
@@ -179,9 +206,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // Phase 1.6.2: KeyboardAvoidingView wrapper that takes the remaining vertical
+  // space below the absolutely-positioned top bar, so its layout flow can lift
+  // the bottomBar (input row) above the soft keyboard.
+  kavWrap: {
+    flex: 1,
+  },
+
   bottomBar: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(244,242,238,0.92)',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: FrostColors.hairline,
