@@ -55,6 +55,9 @@ export default function CanvasDiscover() {
   const [loadingHeroes, setLoadingHeroes] = useState(true);
   const [heroIdx, setHeroIdx] = useState(0);
   const [nextIdx, setNextIdx] = useState(0);
+  // ROUND 3: ref reads-latest so interval doesn't re-run every tick.
+  const nextIdxRef = useRef(0);
+  const heroesLenRef = useRef(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const heroFade = useRef(new Animated.Value(0)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -66,29 +69,38 @@ export default function CanvasDiscover() {
       const data = await fetchDiscoverHeroes();
       if (cancelled) return;
       setHeroes(data);
+      heroesLenRef.current = data.length;
       // Initial nextIdx wraps to second image, or 0 if there's only one
-      setNextIdx(data.length > 1 ? 1 : 0);
+      const initial = data.length > 1 ? 1 : 0;
+      setNextIdx(initial);
+      nextIdxRef.current = initial;
       setLoadingHeroes(false);
     })();
     return () => { cancelled = true; };
   }, []);
 
-  // Hero carousel cross-fade — reads live heroes.length so it works after fetch
+  // ROUND 3 FIX: rotation effect now depends ONLY on heroes.length, not nextIdx.
+  // Previously every tick re-ran the effect, clearing/recreating the interval.
+  // Now the interval reads nextIdxRef inside the callback for the latest value.
   useEffect(() => {
     if (heroes.length <= 1) return;
+    heroesLenRef.current = heroes.length;
     const id = setInterval(() => {
       Animated.timing(heroFade, {
         toValue: 1,
         duration: FrostMotion.heroFade,
         useNativeDriver: true,
       }).start(() => {
-        setHeroIdx(nextIdx);
-        setNextIdx((nextIdx + 1) % heroes.length);
+        const cur = nextIdxRef.current;
+        const next = (cur + 1) % heroesLenRef.current;
+        setHeroIdx(cur);
+        setNextIdx(next);
+        nextIdxRef.current = next;
         heroFade.setValue(0);
       });
     }, FrostMotion.heroInterval);
     return () => clearInterval(id);
-  }, [nextIdx, heroFade, heroes.length]);
+  }, [heroes.length, heroFade]);
 
   // More overlay fade in/out
   useEffect(() => {
@@ -136,23 +148,29 @@ export default function CanvasDiscover() {
     <View style={styles.root}>
       <StatusBar barStyle={moreOpen ? 'dark-content' : 'light-content'} />
 
-      {/* HERO CAROUSEL — sanctuary mode (greyscale). Tap → Blind Swipe (catalogue). */}
+      {/* HERO CAROUSEL — sanctuary mode (greyscale). Tap → Blind Swipe (catalogue).
+          ROUND 3 FIX: Grayscale wrapper needs sized container — was rendering
+          black on Android because absoluteFill alone doesn't give the native
+          filter a proper bounding box. Pattern: outer View with flex:1 holds
+          the dimensions; Grayscale wraps the Image; Image fills the bounds. */}
       <Pressable
         style={StyleSheet.absoluteFill}
         onPress={() => router.push('/(frost)/canvas/discover/blind-swipe' as any)}
       >
-        <Grayscale amount={1}>
-          <Image
-            source={{ uri: currentHero.image_url }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-          />
-        </Grayscale>
+        <View style={StyleSheet.absoluteFill}>
+          <Grayscale amount={1} style={StyleSheet.absoluteFill}>
+            <Image
+              source={{ uri: currentHero.image_url }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          </Grayscale>
+        </View>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroFade }]}>
-          <Grayscale amount={1}>
+          <Grayscale amount={1} style={StyleSheet.absoluteFill}>
             <Image
               source={{ uri: peekHero.image_url }}
-              style={StyleSheet.absoluteFill}
+              style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
             />
           </Grayscale>

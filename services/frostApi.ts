@@ -459,6 +459,54 @@ export async function fetchCircleFeed(limit = 30): Promise<CircleActivityEvent[]
   } catch { return []; }
 }
 
+// ─── Circle activity → italic Cormorant line (Round 3 — Circle home box) ──
+//
+// Turns a CircleActivityEvent into a single human-readable italic-Cormorant
+// line that the home Circle card renders. Frontend-formatted for now —
+// move to backend LLM narration in a future session for tone variety.
+export function formatCircleActivity(event: CircleActivityEvent): string {
+  const actor = event.payload?.actor_name || 'Someone';
+  const role = event.actor_role;
+  const type = event.event_type;
+  const payload = event.payload || {};
+
+  // Map common event types to gentle phrasings
+  switch (type) {
+    case 'co_planner_joined':
+      return `${actor} joined your Circle.`;
+    case 'muse_saved':
+      if (payload.function_tag) {
+        return `${actor} saved an idea for ${payload.function_tag}.`;
+      }
+      return `${actor} saved something to your Muse.`;
+    case 'circle_message':
+      if (payload.preview) {
+        const trimmed = String(payload.preview).slice(0, 60);
+        return `${actor} said "${trimmed}${payload.preview.length > 60 ? '…' : ''}"`;
+      }
+      return `${actor} sent a message to your Circle.`;
+    case 'enquiry_sent':
+      if (payload.vendor_name) {
+        return `${actor} reached out to ${payload.vendor_name}.`;
+      }
+      return `${actor} reached out to a vendor for you.`;
+    case 'vendor_approved':
+      if (payload.vendor_name) {
+        return `${actor} approved ${payload.vendor_name}.`;
+      }
+      return `${actor} approved a vendor pick.`;
+    default:
+      // Soft generic fallback — keeps the line warm even for unknown event types
+      if (role === 'circle_member') {
+        return `${actor} did something in your Circle.`;
+      }
+      if (role === 'dreamai') {
+        return `Dream Ai logged a moment for you.`;
+      }
+      return 'A quiet update from your Circle.';
+  }
+}
+
 export async function fetchCircleThreads(): Promise<CircleThread[]> {
   const session = await getCoupleSession();
   if (!session) return [];

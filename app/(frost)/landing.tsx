@@ -33,7 +33,10 @@ import { Grayscale } from 'react-native-color-matrix-image-filters';
 import {
   FrostFonts, FrostCopy,
 } from '../../constants/frost';
-import { brideIdle, fetchHomeImages } from '../../services/frostApi';
+import {
+  brideIdle, fetchHomeImages, fetchCircleFeed, formatCircleActivity,
+  CircleActivityEvent,
+} from '../../services/frostApi';
 
 // ─── Wedding date — wired to user profile in v1.7 ──────────────────────────
 const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
@@ -41,14 +44,14 @@ const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 // ─── v4 vintage tokens (locked) ────────────────────────────────────────────
 // All in the warm-grey family. Page paper is the lightest stop, the anchor
 // stamp (Dream Ai + Journey) is deeper, photographs sit at greyscale.
-const PAGE_PAPER       = '#E2DFDA';      // home page background — light warm grey
+const PAGE_PAPER       = '#D8D3CC';      // home page background — nudged warmer (round 3)
 const CARD_FILL        = '#ECE9E4';      // image box fill (slightly cooler pale)
 const STAMP_FILL       = '#C0BCB6';      // Dream Ai card + Journey stamp (matched, deeper)
 const HAIRLINE         = '#B5B1AC';
 const HAIRLINE_STRONG  = '#A39E97';
 const INK              = '#2C2823';      // warm charcoal display
 const SOFT             = '#5A5650';      // warm mid-grey body
-const BRASS            = '#A8924B';      // aged brass (the new "gold")
+const BRASS            = '#BFA04D';      // polished brass — pops on warmer page (round 3)
 
 // Per-image frost tint sits on top of the BlurView for a subtle warm wash.
 const PHOTO_FROST_TINT = 'rgba(154,149,142,0.10)';
@@ -158,6 +161,9 @@ export default function FrostLanding() {
   const [museUrl, setMuseUrl] = useState<string | null>(null);
   const [discoverUrl, setDiscoverUrl] = useState<string | null>(null);
 
+  // Circle activity feed — refresh on every focus, same protocol as images
+  const [circleLines, setCircleLines] = useState<string[]>([]);
+
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -169,6 +175,17 @@ export default function FrostLanding() {
           setDiscoverUrl(r.discover_image_url || null);
         } catch {
           // silent — boxes show empty stamp colour
+        }
+      })();
+      // Circle activity — latest 2 events, same refresh-on-focus protocol
+      (async () => {
+        try {
+          const events = await fetchCircleFeed(10);
+          if (cancelled) return;
+          const lines = (events || []).slice(0, 2).map(formatCircleActivity);
+          setCircleLines(lines);
+        } catch {
+          // silent — empty state line will render
         }
       })();
       return () => { cancelled = true; };
@@ -187,6 +204,7 @@ export default function FrostLanding() {
   const goMuse     = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/muse' as any); };
   const goDiscover = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/discover' as any); };
   const goDream    = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/dream' as any); };
+  const goCircle   = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/journey/circle' as any); };
   const goJourney  = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/journey' as any); };
 
   return (
@@ -260,6 +278,29 @@ export default function FrostLanding() {
           <Text style={styles.dreamGlyph}>✦</Text>
           <Text style={styles.dreamText}>{lineB}</Text>
         </View>
+      </Pressable>
+
+      {/* ── Circle card (round 3 — paired voice with Dream Ai) ── */}
+      <Pressable
+        style={styles.circleCard}
+        onPress={goCircle}
+        onLongPress={goCircle}
+        accessibilityLabel="Circle"
+      >
+        <Text style={styles.circleLabel}>Circle</Text>
+        {circleLines.length > 0 ? (
+          circleLines.map((line, idx) => (
+            <View key={idx} style={styles.circleLine}>
+              <Text style={styles.circleGlyph}>✦</Text>
+              <Text style={styles.circleText}>{line}</Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.circleLine}>
+            <Text style={styles.circleGlyph}>✦</Text>
+            <Text style={styles.circleText}>Quiet here for now.</Text>
+          </View>
+        )}
       </Pressable>
 
       <View style={{ flex: 1 }} />
@@ -413,6 +454,47 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   dreamText: {
+    flex: 1,
+    fontFamily: FrostFonts.display,
+    fontWeight: '300',
+    fontStyle: 'italic',
+    fontSize: 15,
+    lineHeight: 21,
+    color: SOFT,
+  },
+
+  // Circle card — paired voice with Dream Ai (same dimensions)
+  circleCard: {
+    marginTop: 12,
+    marginHorizontal: 18,
+    backgroundColor: STAMP_FILL,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: HAIRLINE_STRONG,
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
+  circleLabel: {
+    fontFamily: FrostFonts.display,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    fontSize: 19,
+    letterSpacing: 0.4,
+    color: BRASS,
+    marginBottom: 10,
+  },
+  circleLine: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    marginTop: 4,
+  },
+  circleGlyph: {
+    fontSize: 13,
+    color: SOFT,
+    marginTop: 3,
+  },
+  circleText: {
     flex: 1,
     fontFamily: FrostFonts.display,
     fontWeight: '300',

@@ -35,9 +35,9 @@ export const FrostColors = {
   hint:   '#5A5650',
   hairline: '#C8C3BC',
 
-  // Sacred — vintage aged brass (was bright goldenrod)
-  goldMuted:  '#A8924B',
-  goldTrue:   '#A8924B',          // unified to aged brass — no more bright pop
+  // Sacred — polished brass (pops on warmer page) + aged brass (whispers)
+  goldMuted:  '#A8924B',          // whispers — DAYS label, smaller captions
+  goldTrue:   '#BFA04D',          // polished brass — pops on the warmer page
 
   // Utility
   white:    '#FFFFFF',
