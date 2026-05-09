@@ -78,7 +78,7 @@ export default function CanvasJourney() {
   }, [loadCount]));
 
   return (
-    <FrostCanvasShell eyebrow={FrostCopy.journeyCanvas.eyebrow} mode="frost">
+    <FrostCanvasShell eyebrow={FrostCopy.journeyCanvas.eyebrow} mode="frost" dim>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         <View style={styles.heading}>

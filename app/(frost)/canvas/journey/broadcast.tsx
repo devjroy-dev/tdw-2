@@ -47,16 +47,16 @@ const styles = StyleSheet.create({
     gap: FrostSpace.s,
   },
   title: {
-    ...FrostType.displayM,
-    fontFamily: FrostFonts.display,
-    fontStyle: 'italic',
+    fontFamily: 'CormorantGaramond_400Regular_Italic',
+    fontSize: 28, lineHeight: 32,
     color: FrostColors.ink,
+    letterSpacing: 0.3,
     textAlign: 'center',
   },
   body: {
-    ...FrostType.bodyMedium,
-    color: FrostColors.muted,
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 17, lineHeight: 24,
+    color: FrostColors.soft,
     textAlign: 'center',
-    lineHeight: 22,
   },
 });

@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   eventText: {
     ...FrostType.bodySmall,
     fontStyle: 'italic',
-    color: FrostColors.muted,
+    color: FrostColors.soft,
     textAlign: 'center',
   },
 

@@ -323,7 +323,7 @@ export default function CanvasDream() {
               value={text}
               onChangeText={setText}
               placeholder={FrostCopy.dreamCanvas.inputPlaceholder}
-              placeholderTextColor={FrostColors.muted}
+              placeholderTextColor={FrostColors.soft}
               style={styles.input}
               multiline
               editable={!sending}

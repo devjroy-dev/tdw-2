@@ -242,9 +242,10 @@ const styles = StyleSheet.create({
     paddingBottom: FrostSpace.huge,
   },
   heading: {
-    ...FrostType.displayM,
-    fontStyle: 'italic',
-    fontFamily: FrostFonts.display,
+    fontFamily: 'CormorantGaramond_400Regular_Italic',
+    fontSize: 26, lineHeight: 30,
+    color: FrostColors.ink,
+    letterSpacing: 0.3,
   },
   totalsLine: {
     ...FrostType.bodyMedium,
@@ -262,10 +263,12 @@ const styles = StyleSheet.create({
 
   section: { marginTop: FrostSpace.xl },
   sectionLabel: {
-    ...FrostType.eyebrowSmall,
-    color: FrostColors.muted,
+    fontFamily: FrostFonts.label,
+    fontSize: 9, fontWeight: '300',
+    letterSpacing: 3.5,
+    textTransform: 'uppercase',
+    color: FrostColors.soft,
     marginBottom: FrostSpace.m,
-    letterSpacing: 2.4,
   },
   row: {
     flexDirection: 'row',
@@ -282,7 +285,7 @@ const styles = StyleSheet.create({
   },
   rowMeta: {
     ...FrostType.bodySmall,
-    color: FrostColors.muted,
+    color: FrostColors.soft,
     marginTop: 2,
   },
   rowWhen: {
@@ -327,16 +330,16 @@ const styles = StyleSheet.create({
     letterSpacing: 6,
   },
   emptyText: {
-    ...FrostType.displayS,
-    fontStyle: 'italic',
-    color: FrostColors.muted,
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 18, lineHeight: 24,
+    color: FrostColors.soft,
     textAlign: 'center',
     paddingTop: 80,
   },
   errorText: {
-    ...FrostType.bodyMedium,
-    fontStyle: 'italic',
-    color: FrostColors.muted,
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 16, lineHeight: 22,
+    color: FrostColors.soft,
     textAlign: 'center',
     paddingTop: 80,
   },

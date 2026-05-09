@@ -40,6 +40,12 @@ interface FrostCanvasShellProps {
   statusBarStyle?: 'light' | 'dark' | 'auto';
   /** Override close behaviour. */
   onClose?: () => void;
+  /**
+   * Phase 1.5.2: when true, render the legacy deep-grey backdrop instead of
+   * the bright paper default. Used by the Journey hub (the "doorway" surface).
+   * Every other frost canvas inherits paper.
+   */
+  dim?: boolean;
 }
 
 export default function FrostCanvasShell({
@@ -50,6 +56,7 @@ export default function FrostCanvasShell({
   bottomBar,
   statusBarStyle = 'auto',
   onClose,
+  dim = false,
 }: FrostCanvasShellProps) {
   const insets = useSafeAreaInsets();
 
@@ -63,9 +70,10 @@ export default function FrostCanvasShell({
 
   const onCloseInternal = onClose ?? (() => router.back());
 
-  // Top bar text colour depends on background mode
+  // Top bar text colour depends on background mode + paper brightness
   const topBarTextColor =
-    resolvedMode === 'image' ? FrostColors.white : FrostColors.muted;
+    resolvedMode === 'image' ? FrostColors.white :
+    dim ? FrostColors.muted : FrostColors.soft;
   const topBarIconColor =
     resolvedMode === 'image' ? FrostColors.white : FrostColors.ink;
 
@@ -83,9 +91,9 @@ export default function FrostCanvasShell({
           resizeMode="cover"
         />
       ) : resolvedMode === 'frost' ? (
-        <FrostPane />
+        <FrostPane dim={dim} />
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: FrostColors.pageFallback }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: dim ? FrostColors.pageFallback : '#D8D3CC' }]} />
       )}
 
       {/* TOP BAR */}
@@ -94,7 +102,7 @@ export default function FrostCanvasShell({
           <View
             style={[
               styles.eyebrowDot,
-              { backgroundColor: resolvedMode === 'image' ? FrostColors.white : FrostColors.muted },
+              { backgroundColor: resolvedMode === 'image' ? FrostColors.white : (dim ? FrostColors.muted : FrostColors.soft) },
             ]}
           />
           <Text style={[styles.eyebrow, { color: topBarTextColor }]}>{eyebrow}</Text>

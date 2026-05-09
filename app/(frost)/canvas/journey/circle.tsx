@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   scroll:        { paddingTop: FrostSpace.xl, paddingBottom: FrostSpace.huge },
   zone:          { paddingHorizontal: FrostSpace.xxl },
   zoneDivider:   { height: StyleSheet.hairlineWidth, backgroundColor: FrostColors.hairline, marginHorizontal: FrostSpace.xxl, marginVertical: FrostSpace.xl, opacity: 0.4 },
-  zoneLabel:     { ...FrostType.eyebrowSmall, marginBottom: FrostSpace.m, color: '#8C8480' },
+  zoneLabel:     { fontFamily: FrostFonts.label, fontSize: 9, fontWeight: '300', letterSpacing: 3.5, textTransform: 'uppercase', marginBottom: FrostSpace.m, color: FrostColors.soft },
   zoneHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: FrostSpace.m },
 
   // Timeline
@@ -346,10 +346,10 @@ const styles = StyleSheet.create({
   bubble:         { maxWidth: '80%', marginBottom: FrostSpace.s },
   bubbleMe:       { alignSelf: 'flex-end', backgroundColor: FrostColors.goldTrue, borderRadius: FrostRadius.md, borderBottomRightRadius: 4, padding: FrostSpace.m },
   bubbleThem:     { alignSelf: 'flex-start', backgroundColor: 'rgba(255,253,248,0.80)', borderRadius: FrostRadius.md, borderBottomLeftRadius: 4, padding: FrostSpace.m, borderWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.buttonFrostBorder },
-  bubbleSender:   { ...FrostType.eyebrowSmall, fontSize: 9, marginBottom: 3, color: FrostColors.muted },
+  bubbleSender:   { ...FrostType.eyebrowSmall, fontSize: 9, marginBottom: 3, color: FrostColors.soft },
   bubbleText:     { fontFamily: FrostFonts.bodyMedium, fontSize: 14, color: '#1A1815', lineHeight: 20 },
   bubbleTextMe:   { color: '#FFFFFF' },
-  bubbleTime:     { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 4, color: FrostColors.muted },
+  bubbleTime:     { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 4, color: FrostColors.soft },
   bubbleTimeMe:   { color: 'rgba(255,255,255,0.65)' },
 
   // Composer
