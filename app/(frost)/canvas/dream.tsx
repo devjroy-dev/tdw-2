@@ -233,13 +233,21 @@ export default function CanvasDream() {
     });
   };
 
-  // FIX-5: confirm card → call bride-confirm and render the result.
-  const handleConfirm = useCallback(async (preview: any) => {
-    if (!preview?.action_id) return;
+  // FIX-5 + BUG C FIX: confirm card → call bride-confirm and render the result.
+  //
+  // Returns a boolean to FrostConfirmCard's handleConfirm so it knows whether
+  // to flip to Done state (true) or stay/revert to idle (false). On failure
+  // (action expired, wrong user, server error) we ALSO remove the confirm
+  // card from the message stream entirely — Option B: the bride re-asks
+  // Dream Ai to do the thing rather than re-tapping a card whose action_id
+  // is permanently dead. Action IDs are wiped server-side on first lookup
+  // (success OR failure), so a re-tap would 404 again anyway.
+  const handleConfirm = useCallback(async (preview: any): Promise<boolean> => {
+    if (!preview?.action_id) return false;
     try {
       const result = await brideConfirm(preview.action_id);
       if (result?.success && result?.reply) {
-        // Build an anchor from the result if available
+        // ── Happy path: card flips to Done, append confirmation chat line ──
         const anchor: ToolAnchor | undefined = result.vendor_id
           ? { tool: 'vendors', entity_type: 'vendor', entity_id: String(result.vendor_id) }
           : result.expense_id
@@ -259,21 +267,40 @@ export default function CanvasDream() {
             lines: result.summaryLines,
           });
         }
-      } else if (result?.reply) {
+        return true;
+      }
+      // ── Soft failure: backend returned success:false but with a reply ──
+      // (most common: 404 expired action — "That moment passed. Tell me again?")
+      // Per Bug C frontend spec (Option B): collapse the confirm card AND
+      // append the error reply as a normal AI line below.
+      if (result?.reply) {
+        // Remove the dead confirm card from the stream. action_id is the
+        // unique handle — every confirm card has its own.
+        setMessages(prev => prev.filter(
+          m => !(m.kind === 'confirm' && m.preview?.action_id === preview.action_id)
+        ));
         append({
           kind: 'ai',
           id: 'ai_cfm_err_' + Date.now(),
           text: result.reply,
           ts: formatTime(),
         });
+        return false;
       }
+      // Unknown shape — fall through to thrown-error path below
+      throw new Error('confirm response missing reply');
     } catch {
+      // ── Hard failure: network drop, JSON parse error, etc. ──
+      setMessages(prev => prev.filter(
+        m => !(m.kind === 'confirm' && m.preview?.action_id === preview.action_id)
+      ));
       append({
         kind: 'ai',
         id: 'ai_cfm_err_' + Date.now(),
         text: 'Something went sideways. Try once more?',
         ts: formatTime(),
       });
+      return false;
     }
   }, [append]);
 

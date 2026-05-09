@@ -24,8 +24,19 @@ import {
 
 interface FrostConfirmCardProps {
   preview: FrostConfirmPreview;
-  /** Called after the bride taps Confirm. Parent runs the actual mutation. */
-  onConfirm: () => Promise<void> | void;
+  /**
+   * Called after the bride taps Confirm. Parent runs the actual mutation.
+   *
+   * BUG C FIX: parent must return a truthy value when the action *actually*
+   * succeeded. If it returns false / falsy / nothing, the card collapses
+   * silently and the parent is responsible for rendering an error reply
+   * line in the chat stream. This is what fixes the "tap Lock-In on an
+   * expired action → checkmark appears even though nothing happened" bug.
+   *
+   * Returning void is allowed for backwards compatibility — treated as
+   * success (since pre-fix callers always assumed success on no-throw).
+   */
+  onConfirm: () => Promise<boolean | void> | boolean | void;
   onCancel?: () => void;
   /** AI voice line shown in the Done state. */
   doneMessage?: string;
@@ -46,7 +57,19 @@ export default function FrostConfirmCard({
   const handleConfirm = async () => {
     setState('confirming');
     try {
-      await onConfirm();
+      // BUG C FIX: trust the return value, not just the absence of a throw.
+      // brideConfirm() resolves with { success: false, reply: '...' } on an
+      // expired/wrong-user/server-error action — these are not exceptions,
+      // they're soft failures, and pre-fix code flipped to Done on all of
+      // them.
+      const result = await onConfirm();
+      // Treat undefined/void as success (backwards compatibility for
+      // older call sites that don't yet return a boolean). Treat explicit
+      // false as failure → revert to idle, parent will collapse this card.
+      if (result === false) {
+        setState('idle');
+        return;
+      }
       setState('done');
       Animated.timing(doneOpacity, {
         toValue: 1,
