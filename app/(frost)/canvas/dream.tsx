@@ -1,13 +1,24 @@
 /**
- * Frost · Canvas · Dream (v3 — fully wired).
+ * Frost · Canvas · Dream (v4 — confirm cards + long-press anchors).
  *
- * The bride's conversational surface. Real bride-chat backend wired:
- *   1. Composer POSTs to /api/v2/dreamai/bride-chat
- *   2. Response renders as: AI reply line → DreamSummaryCard (if composite) →
- *      DreamYesNo bubbles for each followup
- *   3. Circle activity (messages + co-planner joins) polled every 30s and
- *      merged into the stream chronologically
- *   4. Auto-scrolls to the latest message
+ * Same conversational surface, plus two new behaviours:
+ *
+ *   1. CONFIRM CARDS — when bride-chat returns confirmPreview (broadcast,
+ *      receipt, booking, payment, settle), the response renders a
+ *      FrostConfirmCard. The bride taps Send/Lock-in/Settle → frontend
+ *      POSTs /api/v2/dreamai/bride-confirm with action_id. Server replays
+ *      the destructive logic. Result message renders.
+ *
+ *   2. LONG-PRESS ANCHORS — every AI message that came from a tool call
+ *      with a tool_anchor metadata can be long-pressed to jump to the
+ *      relevant Journey sub-page. e.g. long-press "✓ Done. Swati's locked
+ *      in." routes to /(frost)/canvas/journey/vendors. Routing map:
+ *        tool: 'vendors' → /journey/vendors
+ *        tool: 'money'   → /journey/receipts
+ *        tool: 'tasks'   → /journey/reminders
+ *
+ * All previous behaviour preserved: greeting, Circle activity poll, summary
+ * cards, follow-up Yes/No bubbles, suggestions carousel, auto-scroll.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,8 +27,11 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
+import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
+import FrostConfirmCard from '../../../components/frost/FrostConfirmCard';
 import {
   AILine, PersonAction, InlineEvent,
 } from '../../../components/frost/FrostDreamMessages';
@@ -28,22 +42,33 @@ import {
   FrostColors, FrostFonts, FrostSpace, FrostRadius, FrostCopy,
 } from '../../../constants/frost';
 import {
-  brideChat, fetchCircleActivity,
-  BrideFollowup, CircleActivityItem, SurpriseSuggestion,
+  brideChat, brideConfirm, fetchCircleActivity,
+  BrideFollowup, CircleActivityItem, SurpriseSuggestion, ToolAnchor,
 } from '../../../services/frostApi';
 
 // ─── Stream message types ────────────────────────────────────────────────────
 
 type StreamMessage =
-  | { kind: 'ai'; id: string; text: string; ts: string }
+  | { kind: 'ai'; id: string; text: string; ts: string; anchor?: ToolAnchor }
   | { kind: 'user'; id: string; text: string; ts: string }
   | { kind: 'person'; id: string; name: string; action?: string; text?: string; ts: string }
   | { kind: 'event'; id: string; text: string }
   | { kind: 'summary'; id: string; lines: string[] }
   | { kind: 'followup'; id: string; prompt: BrideFollowup; context: Record<string, any> }
-  | { kind: 'suggestions'; id: string; suggestions: SurpriseSuggestion[]; tasteSummary?: string };
+  | { kind: 'suggestions'; id: string; suggestions: SurpriseSuggestion[]; tasteSummary?: string }
+  | { kind: 'confirm'; id: string; preview: any };
 
 const POLL_INTERVAL = 30_000;
+
+// ─── Anchor → Journey route map ──────────────────────────────────────────────
+function anchorToRoute(anchor: ToolAnchor): string | null {
+  switch (anchor.tool) {
+    case 'vendors': return '/(frost)/canvas/journey/vendors';
+    case 'money':   return '/(frost)/canvas/journey/receipts';
+    case 'tasks':   return '/(frost)/canvas/journey/reminders';
+    default:        return null;
+  }
+}
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
@@ -133,11 +158,16 @@ export default function CanvasDream() {
       const res = await brideChat(trimmed, historyRef.current.slice(0, -1));
       const replyText = res.reply || 'Hmm, let me think.';
 
+      // First anchor in the response (if any) — pinned to the AI line we render
+      const firstAnchor: ToolAnchor | undefined =
+        res.toolAnchors && res.toolAnchors.length > 0 ? res.toolAnchors[0] : undefined;
+
       append({
         kind: 'ai',
         id: 'ai_' + Date.now(),
         text: replyText,
         ts: formatTime(),
+        anchor: firstAnchor,
       });
 
       if (res.summaryLines && res.summaryLines.length > 0) {
@@ -155,6 +185,15 @@ export default function CanvasDream() {
           id: 'sg_' + Date.now(),
           suggestions: res.suggestions,
           tasteSummary: res.tasteSummary,
+        });
+      }
+
+      // FIX-1+5: render confirm card when backend returned a preview.
+      if (res.confirmPreview) {
+        append({
+          kind: 'confirm',
+          id: 'cfm_' + Date.now(),
+          preview: res.confirmPreview,
         });
       }
 
@@ -193,6 +232,58 @@ export default function CanvasDream() {
       ts: formatTime(),
     });
   };
+
+  // FIX-5: confirm card → call bride-confirm and render the result.
+  const handleConfirm = useCallback(async (preview: any) => {
+    if (!preview?.action_id) return;
+    try {
+      const result = await brideConfirm(preview.action_id);
+      if (result?.success && result?.reply) {
+        // Build an anchor from the result if available
+        const anchor: ToolAnchor | undefined = result.vendor_id
+          ? { tool: 'vendors', entity_type: 'vendor', entity_id: String(result.vendor_id) }
+          : result.expense_id
+          ? { tool: 'money', entity_type: 'expense', entity_id: String(result.expense_id) }
+          : undefined;
+        append({
+          kind: 'ai',
+          id: 'ai_cfm_' + Date.now(),
+          text: result.reply,
+          ts: formatTime(),
+          anchor,
+        });
+        if (result.summaryLines && result.summaryLines.length > 0) {
+          append({
+            kind: 'summary',
+            id: 'sum_cfm_' + Date.now(),
+            lines: result.summaryLines,
+          });
+        }
+      } else if (result?.reply) {
+        append({
+          kind: 'ai',
+          id: 'ai_cfm_err_' + Date.now(),
+          text: result.reply,
+          ts: formatTime(),
+        });
+      }
+    } catch {
+      append({
+        kind: 'ai',
+        id: 'ai_cfm_err_' + Date.now(),
+        text: 'Something went sideways. Try once more?',
+        ts: formatTime(),
+      });
+    }
+  }, [append]);
+
+  // FIX-5: long-press an AI message with an anchor → jump to that Journey page.
+  const handleAnchorPress = useCallback((anchor: ToolAnchor) => {
+    const route = anchorToRoute(anchor);
+    if (!route) return;
+    Haptics.selectionAsync?.();
+    router.push(route as any);
+  }, []);
 
   return (
     <FrostCanvasShell
@@ -240,6 +331,18 @@ export default function CanvasDream() {
           {messages.map((m) => {
             switch (m.kind) {
               case 'ai':
+                // FIX-5: wrap AI messages with an anchor in a long-pressable area
+                if (m.anchor) {
+                  return (
+                    <Pressable
+                      key={m.id}
+                      onLongPress={() => handleAnchorPress(m.anchor!)}
+                      delayLongPress={350}
+                    >
+                      <AILine text={m.text} timestamp={m.ts} />
+                    </Pressable>
+                  );
+                }
                 return <AILine key={m.id} text={m.text} timestamp={m.ts} />;
               case 'user':
                 return <UserLine key={m.id} text={m.text} ts={m.ts} />;
@@ -273,6 +376,15 @@ export default function CanvasDream() {
                     suggestions={m.suggestions}
                     tasteSummary={m.tasteSummary}
                   />
+                );
+              case 'confirm':
+                return (
+                  <View key={m.id} style={styles.confirmWrap}>
+                    <FrostConfirmCard
+                      preview={m.preview}
+                      onConfirm={() => handleConfirm(m.preview)}
+                    />
+                  </View>
                 );
             }
           })}
@@ -406,5 +518,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
     textAlign: 'right',
     marginTop: 4,
+  },
+
+  confirmWrap: {
+    paddingHorizontal: FrostSpace.l,
+    paddingVertical: FrostSpace.s,
   },
 });

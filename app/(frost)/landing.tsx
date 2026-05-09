@@ -1,25 +1,23 @@
 /**
- * Frost — Landing (v3 — final mockup, locked).
+ * Frost — Landing (v4 — vintage palette + F-2 frost on photos).
  *
- * Composition:
- *   - Light grey paper page (Layer 1, flat colour, no full-bleed photo)
- *   - Two greyscale image boxes side by side (gold dot, no label)
+ * What changed from v3:
+ *   - Vintage palette (matches the Vogue/Harper's-Bazaar carbon-print mood)
+ *   - F-2 frost on photos: each greyscale image is wrapped in a low-intensity
+ *     BlurView so the photographs feel hazy. The page itself is flat — no
+ *     full-page blur (it never worked on Android, and the per-image approach
+ *     produces the visible softening Dev was after).
+ *   - Dream Ai card now sits on the same darker stamp as the Journey button
+ *     (both anchor surfaces share one tonal stop)
+ *   - Image latency: image-frames render in stamp-grey immediately so the
+ *     boxes never appear empty during fetch
+ *
+ * What stayed:
+ *   - Two image boxes side by side, gold dot in the corner of each
  *   - Wide Dream AI card (gold "Dream Ai" eyebrow + 2 italic Cormorant lines)
- *   - Journey button at the foot (gold italic "Journey", darker container)
- *   - Single frost pane covering everything (Layer 3)
- *   - Text on top of frost (Layer 4) — sharp where it counts, soft where it should be
- *
- * Image rule:
- *   - On every home-screen entry (mount + focus return), refresh both images
- *   - Muse box: random pick from bride's moodboard_items
- *   - Discover box: random pick from active discover_heroes
- *   - Empty Muse → fall back to a different hero than Discover got
- *   - Anti-collision: never render the same URL in both boxes
- *   - All handled server-side by /api/v2/frost/home-images/:userId
- *
- * Greyscale (Path 1):
- *   - Native: react-native-color-matrix-image-filters <Grayscale amount={1}>
- *   - Web: CSS filter: grayscale(100%)
+ *   - Journey button at the foot
+ *   - useFocusEffect refresh on every home-screen entry
+ *   - Anti-collision via /api/v2/frost/home-images/:userId
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -33,30 +31,27 @@ import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { Grayscale } from 'react-native-color-matrix-image-filters';
 import {
-  FrostColors, FrostFonts, FrostMaterial, FrostCopy,
+  FrostFonts, FrostCopy,
 } from '../../constants/frost';
 import { brideIdle, fetchHomeImages } from '../../services/frostApi';
 
 // ─── Wedding date — wired to user profile in v1.7 ──────────────────────────
 const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 
-// Android API 31+ supports experimental dimezis BlurView (true material blur).
-const ANDROID_BLUR_SUPPORTED =
-  Platform.OS === 'android' &&
-  typeof Platform.Version === 'number' &&
-  (Platform.Version as number) >= FrostMaterial.androidMinApi;
-
-// ─── v3 design tokens (locked) ─────────────────────────────────────────────
-const PAGE_GREY        = '#E2DFDA';
-const CARD_FILL        = '#ECE9E4';
-const STAMP_FILL       = '#CFCBC5';
+// ─── v4 vintage tokens (locked) ────────────────────────────────────────────
+// All in the warm-grey family. Page paper is the lightest stop, the anchor
+// stamp (Dream Ai + Journey) is deeper, photographs sit at greyscale.
+const PAGE_PAPER       = '#E2DFDA';      // home page background — light warm grey
+const CARD_FILL        = '#ECE9E4';      // image box fill (slightly cooler pale)
+const STAMP_FILL       = '#C0BCB6';      // Dream Ai card + Journey stamp (matched, deeper)
 const HAIRLINE         = '#B5B1AC';
 const HAIRLINE_STRONG  = '#A39E97';
-const INK_TEXT         = '#1A1815';
-const SOFT_TEXT        = '#3A3733';
-const GOLD             = '#B89A4F';
-const GOLD_BRIGHT      = '#C9A84C';
-const FROST_TINT       = 'rgba(225,222,217,0.18)';
+const INK              = '#2C2823';      // warm charcoal display
+const SOFT             = '#5A5650';      // warm mid-grey body
+const BRASS            = '#A8924B';      // aged brass (the new "gold")
+
+// Per-image frost tint sits on top of the BlurView for a subtle warm wash.
+const PHOTO_FROST_TINT = 'rgba(154,149,142,0.10)';
 
 // ─── Static fallback line picker ──────────────────────────────────────────
 function pickFallbackLines(): [string, string] {
@@ -83,27 +78,47 @@ function daysUntil(target: Date): number {
   return Math.max(0, Math.round((t.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-// ─── Greyscale Image — Path 1 ─────────────────────────────────────────────
-// On native, wrap in <Grayscale amount={1}>. On web, use CSS filter.
-function GreyImage({ uri, style }: { uri: string; style: any }) {
+// ─── F-2 frosted greyscale image — the visible softness primitive ─────────
+// On native: greyscale wrapper → image → low-intensity BlurView on top with
+// a soft warm tint. Real blur on the photograph itself.
+// On web: CSS filter chain — grayscale + blur — applied directly to the image.
+function FrostedGreyImage({
+  uri,
+  containerStyle,
+  imageStyle,
+}: {
+  uri: string;
+  containerStyle: any;
+  imageStyle: any;
+}) {
   if (Platform.OS === 'web') {
     return (
       <Image
         source={{ uri }}
         style={[
-          style,
-          // @ts-ignore web-only
-          { filter: 'grayscale(100%) contrast(0.92) brightness(1.02)',
-            WebkitFilter: 'grayscale(100%) contrast(0.92) brightness(1.02)' },
+          imageStyle,
+          // @ts-ignore web-only style
+          {
+            filter: 'grayscale(100%) blur(2.5px) contrast(0.95)',
+            WebkitFilter: 'grayscale(100%) blur(2.5px) contrast(0.95)',
+          },
         ]}
         resizeMode="cover"
       />
     );
   }
   return (
-    <Grayscale amount={1}>
-      <Image source={{ uri }} style={style} resizeMode="cover" />
-    </Grayscale>
+    <View style={containerStyle}>
+      <Grayscale amount={1}>
+        <Image source={{ uri }} style={imageStyle} resizeMode="cover" />
+      </Grayscale>
+      <BlurView
+        intensity={4}
+        tint="light"
+        style={[StyleSheet.absoluteFill, { backgroundColor: PHOTO_FROST_TINT }]}
+        pointerEvents="none"
+      />
+    </View>
   );
 }
 
@@ -111,7 +126,7 @@ function GreyImage({ uri, style }: { uri: string; style: any }) {
 export default function FrostLanding() {
   const insets = useSafeAreaInsets();
 
-  // Re-render every minute to keep countdown current
+  // Re-render every minute so countdown stays current
   const [, force] = useState(0);
   useEffect(() => {
     const id = setInterval(() => force((x: number) => x + 1), 60_000);
@@ -153,7 +168,7 @@ export default function FrostLanding() {
           setMuseUrl(r.muse_image_url || null);
           setDiscoverUrl(r.discover_image_url || null);
         } catch {
-          // silent — boxes show empty cream
+          // silent — boxes show empty stamp colour
         }
       })();
       return () => { cancelled = true; };
@@ -176,7 +191,7 @@ export default function FrostLanding() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={PAGE_GREY} />
+      <StatusBar barStyle="dark-content" backgroundColor={PAGE_PAPER} />
 
       {/* ── Hero block ── */}
       <View style={styles.hero}>
@@ -198,12 +213,16 @@ export default function FrostLanding() {
           onLongPress={goMuse}
           accessibilityLabel="Muse"
         >
-          {museUrl ? (
-            <View style={styles.photoFrame}>
-              <GreyImage uri={museUrl} style={styles.photoImg} />
-            </View>
-          ) : null}
-          <View style={[styles.boxDot, { backgroundColor: GOLD_BRIGHT }]} />
+          <View style={styles.photoFrame}>
+            {museUrl ? (
+              <FrostedGreyImage
+                uri={museUrl}
+                containerStyle={StyleSheet.absoluteFill}
+                imageStyle={styles.photoImg}
+              />
+            ) : null}
+          </View>
+          <View style={[styles.boxDot, { backgroundColor: BRASS }]} />
         </Pressable>
 
         <Pressable
@@ -212,16 +231,20 @@ export default function FrostLanding() {
           onLongPress={goDiscover}
           accessibilityLabel="Discover"
         >
-          {discoverUrl ? (
-            <View style={styles.photoFrame}>
-              <GreyImage uri={discoverUrl} style={styles.photoImg} />
-            </View>
-          ) : null}
-          <View style={[styles.boxDot, { backgroundColor: GOLD_BRIGHT }]} />
+          <View style={styles.photoFrame}>
+            {discoverUrl ? (
+              <FrostedGreyImage
+                uri={discoverUrl}
+                containerStyle={StyleSheet.absoluteFill}
+                imageStyle={styles.photoImg}
+              />
+            ) : null}
+          </View>
+          <View style={[styles.boxDot, { backgroundColor: BRASS }]} />
         </Pressable>
       </View>
 
-      {/* ── Dream AI card ── */}
+      {/* ── Dream AI card (now on the same deeper stamp as Journey) ── */}
       <Pressable
         style={styles.dreamCard}
         onPress={goDream}
@@ -250,89 +273,6 @@ export default function FrostLanding() {
       >
         <Text style={styles.journeyLabel}>Journey</Text>
       </Pressable>
-
-      {/* ── Single frost pane covering everything (Layer 3) ── */}
-      {/* Sits on top of the imagery + container shapes, but below the text overlay
-          which we render afterwards via a stack of absolute layers. To keep the
-          architecture simple in v3, the frost is the LAST sibling — it covers all
-          content, but text colours are tuned to survive a 2.5px haze. */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {Platform.OS === 'web' ? (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              // @ts-ignore web-only
-              { backdropFilter: 'blur(2.5px) saturate(101%)',
-                WebkitBackdropFilter: 'blur(2.5px) saturate(101%)',
-                backgroundColor: FROST_TINT },
-            ]}
-          />
-        ) : Platform.OS === 'ios' ? (
-          <BlurView
-            intensity={12}
-            tint="light"
-            style={[StyleSheet.absoluteFill, { backgroundColor: FROST_TINT }]}
-          />
-        ) : ANDROID_BLUR_SUPPORTED ? (
-          <BlurView
-            intensity={10}
-            tint="light"
-            experimentalBlurMethod={'dimezisBlurView' as any}
-            style={[StyleSheet.absoluteFill, { backgroundColor: FROST_TINT }]}
-          />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: FROST_TINT }]} />
-        )}
-      </View>
-
-      {/* ── Text overlay (Layer 4) — sits above the frost, sharp ── */}
-      <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { paddingTop: insets.top }]}>
-        <View style={styles.hero} pointerEvents="none">
-          <Text style={styles.weekday}>{weekday}</Text>
-          <Text style={styles.dateLine}>{dayWord} of {month}</Text>
-          <Text style={styles.year}>{year}</Text>
-          <View style={styles.rule} />
-          <View style={styles.daysWrap}>
-            <Text style={styles.daysNum}>{days}</Text>
-            <Text style={styles.daysWord}>{FrostCopy.landing.daysWord}</Text>
-          </View>
-        </View>
-
-        {/* Dot overlays — sharp gold above frost */}
-        <View style={styles.gridRow} pointerEvents="none">
-          <View style={[styles.imgBox, { backgroundColor: 'transparent', borderColor: 'transparent' }]}>
-            <View style={[styles.boxDot, { backgroundColor: GOLD_BRIGHT }]} />
-          </View>
-          <View style={[styles.imgBox, { backgroundColor: 'transparent', borderColor: 'transparent' }]}>
-            <View style={[styles.boxDot, { backgroundColor: GOLD_BRIGHT }]} />
-          </View>
-        </View>
-
-        <View style={[styles.dreamCard, { backgroundColor: 'transparent', borderColor: 'transparent' }]} pointerEvents="none">
-          <Text style={styles.dreamLabel}>Dream Ai</Text>
-          <View style={styles.dreamLine}>
-            <Text style={styles.dreamGlyph}>✦</Text>
-            <Text style={styles.dreamText}>{lineA}</Text>
-          </View>
-          <View style={styles.dreamLine}>
-            <Text style={styles.dreamGlyph}>✦</Text>
-            <Text style={styles.dreamText}>{lineB}</Text>
-          </View>
-        </View>
-
-        <View style={{ flex: 1 }} />
-
-        <View
-          pointerEvents="none"
-          style={[styles.journeyBox, {
-            backgroundColor: 'transparent',
-            borderColor: 'transparent',
-            marginBottom: Math.max(insets.bottom, 16),
-          }]}
-        >
-          <Text style={styles.journeyLabel}>Journey</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -341,7 +281,7 @@ export default function FrostLanding() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: PAGE_GREY,
+    backgroundColor: PAGE_PAPER,
   },
 
   // Hero
@@ -356,7 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     fontSize: 22,
     lineHeight: 26,
-    color: INK_TEXT,
+    color: INK,
   },
   dateLine: {
     fontFamily: FrostFonts.display,
@@ -364,7 +304,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 30,
     lineHeight: 34,
-    color: GOLD_BRIGHT,
+    color: BRASS,
     letterSpacing: 0.3,
     marginTop: 2,
     textAlign: 'center',
@@ -374,7 +314,7 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     fontSize: 18,
     lineHeight: 22,
-    color: INK_TEXT,
+    color: INK,
     marginTop: 2,
   },
   rule: {
@@ -394,7 +334,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 24,
     lineHeight: 28,
-    color: GOLD_BRIGHT,
+    color: BRASS,
   },
   daysWord: {
     fontFamily: FrostFonts.label,
@@ -402,10 +342,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 3,
     textTransform: 'uppercase',
-    color: GOLD,
+    color: BRASS,
   },
 
-  // Image boxes
+  // Image boxes — now show stamp-coloured frames immediately so they never appear empty
   gridRow: {
     flexDirection: 'row',
     gap: 12,
@@ -415,7 +355,7 @@ const styles = StyleSheet.create({
   imgBox: {
     flex: 1,
     aspectRatio: 1 / 1.18,
-    backgroundColor: CARD_FILL,
+    backgroundColor: STAMP_FILL,        // matches dream/journey stamp — coherent if image is slow
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: HAIRLINE,
     borderRadius: 18,
@@ -426,6 +366,7 @@ const styles = StyleSheet.create({
     top: 8, left: 8, right: 8, bottom: 8,
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: CARD_FILL,         // soft pale fill while image loads
   },
   photoImg: {
     width: '100%',
@@ -440,13 +381,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  // Dream AI card
+  // Dream AI card — now on STAMP_FILL (matching Journey)
   dreamCard: {
     marginTop: 12,
     marginHorizontal: 18,
-    backgroundColor: CARD_FILL,
+    backgroundColor: STAMP_FILL,        // matched to Journey
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: HAIRLINE,
+    borderColor: HAIRLINE_STRONG,
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 20,
@@ -457,7 +398,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 19,
     letterSpacing: 0.4,
-    color: GOLD_BRIGHT,
+    color: BRASS,
     marginBottom: 10,
   },
   dreamLine: {
@@ -468,7 +409,7 @@ const styles = StyleSheet.create({
   },
   dreamGlyph: {
     fontSize: 13,
-    color: SOFT_TEXT,
+    color: SOFT,
     marginTop: 3,
   },
   dreamText: {
@@ -478,7 +419,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 15,
     lineHeight: 21,
-    color: SOFT_TEXT,
+    color: SOFT,
   },
 
   // Journey button
@@ -497,6 +438,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 19,
     letterSpacing: 0.8,
-    color: GOLD_BRIGHT,
+    color: BRASS,
   },
 });

@@ -28,6 +28,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Plus, Sparkles } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import { Grayscale } from 'react-native-color-matrix-image-filters';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostRadius,
   FrostMotion, FrostMaterial, FrostCopy,
@@ -135,21 +136,28 @@ export default function CanvasDiscover() {
     <View style={styles.root}>
       <StatusBar barStyle={moreOpen ? 'dark-content' : 'light-content'} />
 
-      {/* HERO CAROUSEL — full-bleed, real colour */}
-      <View style={StyleSheet.absoluteFill}>
-        <Image
-          source={{ uri: currentHero.image_url }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroFade }]}>
+      {/* HERO CAROUSEL — sanctuary mode (greyscale). Tap → Blind Swipe (catalogue). */}
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={() => router.push('/(frost)/canvas/discover/blind-swipe' as any)}
+      >
+        <Grayscale amount={1}>
           <Image
-            source={{ uri: peekHero.image_url }}
+            source={{ uri: currentHero.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
           />
+        </Grayscale>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroFade }]}>
+          <Grayscale amount={1}>
+            <Image
+              source={{ uri: peekHero.image_url }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </Grayscale>
         </Animated.View>
-      </View>
+      </Pressable>
 
       {/* TOP BAR — eyebrow + close X (live above the hero) */}
       <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
@@ -180,15 +188,14 @@ export default function CanvasDiscover() {
         {/* Greyscale + frost over the heroes */}
         {Platform.OS === 'web' ? (
           <View
-            style={[
+            style={([
               StyleSheet.absoluteFill,
-              // @ts-expect-error
               {
                 backdropFilter: FrostMaterial.pageBlurWeb + ' grayscale(100%)',
                 WebkitBackdropFilter: FrostMaterial.pageBlurWeb + ' grayscale(100%)',
                 backgroundColor: FrostColors.frostTint,
               },
-            ]}
+            ]) as any}
           />
         ) : Platform.OS === 'ios' ? (
           <BlurView intensity={FrostMaterial.pageBlurIOS} tint="light" style={StyleSheet.absoluteFill} />

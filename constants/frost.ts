@@ -15,10 +15,10 @@
 // ─── COLOURS ──────────────────────────────────────────────────────────────────
 
 export const FrostColors = {
-  // Page material
-  pageFallback:   '#E8E5E0',
-  frostTint:      'rgba(244,242,238,0.42)',
-  frostTintHeavy: 'rgba(244,242,238,0.62)',
+  // Page material — vintage carbon (sanctuary mode)
+  pageFallback:   '#9A958E',          // deep warm grey — Dream/Journey canvas BG
+  frostTint:      'rgba(154,149,142,0.42)',
+  frostTintHeavy: 'rgba(154,149,142,0.62)',
   desatOverlay:   'rgba(58,55,51,0.45)',
 
   // Frosted button / row / panel material
@@ -28,16 +28,16 @@ export const FrostColors = {
   composerFrostTint:  'rgba(28,24,20,0.22)',     // darker frost for Dream compose bar
   composerHairline:   'rgba(168,146,75,0.30)',
 
-  // Type
-  ink:    '#1A1815',
-  soft:   '#3A3733',
+  // Type — vintage warm charcoal (was crisp near-black)
+  ink:    '#2C2823',          // softened from #1A1815 — feels printed, not freshly inked
+  soft:   '#5A5650',          // warmed mid-grey
   muted:  '#8C8480',
   hint:   '#5A5650',
   hairline: '#C8C3BC',
 
-  // Sacred
+  // Sacred — vintage aged brass (was bright goldenrod)
   goldMuted:  '#A8924B',
-  goldTrue:   '#C9A84C',
+  goldTrue:   '#A8924B',          // unified to aged brass — no more bright pop
 
   // Utility
   white:    '#FFFFFF',
@@ -115,7 +115,7 @@ export const FrostMaterial = {
   pageBlurWeb:      'blur(20px) saturate(105%)',
   pageBlurIOS:      45,
   pageBlurAndroid:  30,
-  androidPageTint:  'rgba(244,242,238,0.62)',
+  androidPageTint:  'rgba(154,149,142,0.55)',  // matched to vintage carbon page
 
   // Box-level frost (rest state of UnveilCanvas — lighter, layered on page-frost)
   boxBlurWeb:       'blur(10px)',

@@ -34,6 +34,15 @@ export interface BrideFollowup {
   noLabel: string;
 }
 
+// ZIP 8: long-press routing metadata returned alongside bride-chat replies.
+// One anchor per AI message; the dream canvas pins it to the rendered AILine
+// and routes long-press to the relevant Journey sub-page.
+export interface ToolAnchor {
+  tool: 'vendors' | 'money' | 'tasks' | string;
+  entity_type: string;
+  entity_id: string;
+}
+
 export interface BrideChatResponse {
   success: boolean;
   reply: string;
@@ -41,6 +50,7 @@ export interface BrideChatResponse {
   followupPrompts?: BrideFollowup[];
   confirmPreview?: any | null;
   toolsUsed?: string[];
+  toolAnchors?: ToolAnchor[];
   // ZIP 5+: surprise_me responses include these
   suggestions?: SurpriseSuggestion[];
   tasteSummary?: string;
@@ -221,6 +231,39 @@ export async function fetchHomeImages(): Promise<HomeImagesResponse> {
     };
   }
 }
+
+// ─── Bride confirm (FIX-5) ────────────────────────────────────────────────
+// Replays a previously-previewed action after the bride taps Confirm in a
+// FrostConfirmCard. Backend looks up action_id in pendingBookings/Payments/
+// Settles/Broadcasts/Receipts and runs the destructive write.
+
+export interface BrideConfirmResponse {
+  success: boolean;
+  reply?: string;
+  summaryLines?: string[];
+  followupPrompts?: BrideFollowup[];
+  vendor_id?: string;
+  expense_id?: string;
+  error?: string;
+}
+
+export async function brideConfirm(
+  action_id: string,
+  vendor_name?: string,
+): Promise<BrideConfirmResponse> {
+  const session = await getCoupleSession();
+  if (!session) return { success: false, error: 'no_session' };
+  try {
+    return await safeFetch(`${API_BASE}/api/v2/dreamai/bride-confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: session.id, action_id, vendor_name }),
+    });
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'network' };
+  }
+}
+
 
 // ─── Circle activity merging ─────────────────────────────────────────────────
 //
