@@ -22,6 +22,8 @@ import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostRadius,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import {
   fetchCircleFeed, fetchCircleThreads, fetchCircleThreadMessages,
   sendCircleMessage, CircleActivityEvent, CircleThread, CircleMessage,
@@ -66,6 +68,8 @@ function timeAgo(iso: string): string {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function JourneyCircle() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [feed, setFeed]       = useState<CircleActivityEvent[]>([]);
   const [threads, setThreads] = useState<CircleThread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,8 +139,8 @@ export default function JourneyCircle() {
           <Text style={styles.zoneLabel}>Timeline</Text>
           <FrostedSurface mode="panel" radius={FrostRadius.box} style={styles.timelineCard}>
             <View style={styles.timelineInner}>
-              <Text style={styles.timelineTitle}>Your Circle is live.</Text>
-              <Text style={styles.timelineSub}>
+              <Text style={[styles.timelineTitle, { color: tokens.ink }]}>Your Circle is live.</Text>
+              <Text style={[styles.timelineSub, { color: tokens.soft }]}>
                 Invite family and planners to join your wedding team.
               </Text>
             </View>
@@ -149,15 +153,15 @@ export default function JourneyCircle() {
         <View style={styles.zone}>
           <Text style={styles.zoneLabel}>Activity</Text>
           {loading ? (
-            <Text style={styles.emptyHint}>Loading…</Text>
+            <Text style={[styles.emptyHint, { color: tokens.soft }]}>Loading…</Text>
           ) : feed.length === 0 ? (
-            <Text style={styles.emptyHint}>Activity will appear here as things happen.</Text>
+            <Text style={[styles.emptyHint, { color: tokens.soft }]}>Activity will appear here as things happen.</Text>
           ) : (
             feed.map((e) => (
               <View key={e.id} style={styles.feedRow}>
                 <View style={styles.feedDot} />
                 <View style={styles.feedBody}>
-                  <Text style={styles.feedLine}>{formatActivityLine(e, bridgeName)}</Text>
+                  <Text style={[styles.feedLine, { color: tokens.soft }]}>{formatActivityLine(e, bridgeName)}</Text>
                   <Text style={styles.feedTime}>{timeAgo(e.created_at)}</Text>
                 </View>
               </View>
@@ -178,19 +182,19 @@ export default function JourneyCircle() {
           </View>
 
           {threads.length === 0 && !loading ? (
-            <Text style={styles.emptyHint}>
+            <Text style={[styles.emptyHint, { color: tokens.soft }]}>
               No Circle members yet. Tap Invite to add your first person.
             </Text>
           ) : null}
 
           {/* Group threads pinned at top */}
           {groupThreads.map((t) => (
-            <ThreadRow key={t.thread_id} thread={t} onPress={() => openThreadSheet(t)} pinned />
+            <ThreadRow key={t.thread_id} thread={t} onPress={() => openThreadSheet(t)} pinned inkColor={tokens.ink} softColor={tokens.soft} />
           ))}
 
           {/* Individual DMs */}
           {dmThreads.map((t) => (
-            <ThreadRow key={t.thread_id} thread={t} onPress={() => openThreadSheet(t)} />
+            <ThreadRow key={t.thread_id} thread={t} onPress={() => openThreadSheet(t)} inkColor={tokens.ink} softColor={tokens.soft} />
           ))}
         </View>
 
@@ -204,7 +208,7 @@ export default function JourneyCircle() {
         onRequestClose={() => setOpenThread(null)}
       >
         <KeyboardAvoidingView
-          style={styles.sheetOuter}
+          style={[styles.sheetOuter, { backgroundColor: tokens.pagePaper }]}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           {/* Sheet header */}
@@ -213,7 +217,7 @@ export default function JourneyCircle() {
               <X size={20} color={FrostColors.muted} strokeWidth={1.5} />
             </Pressable>
             <View style={styles.sheetTitleWrap}>
-              <Text style={styles.sheetTitle}>{openThread?.label}</Text>
+              <Text style={[styles.sheetTitle, { color: tokens.ink }]}>{openThread?.label}</Text>
               {openThread?.role ? (
                 <Text style={styles.sheetRole}>{openThread.role}</Text>
               ) : null}
@@ -227,16 +231,16 @@ export default function JourneyCircle() {
             keyExtractor={(m) => m.id}
             contentContainerStyle={styles.messageList}
             ListEmptyComponent={
-              <Text style={styles.emptyHint}>No messages yet. Say something.</Text>
+              <Text style={[styles.emptyHint, { color: tokens.soft }]}>No messages yet. Say something.</Text>
             }
             renderItem={({ item: m }) => {
               const isMe = m.sender_role === 'bride';
               return (
-                <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
+                <View style={[styles.bubble, isMe ? styles.bubbleMe : [styles.bubbleThem, { backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.80)' }]]}>
                   {!isMe && (
                     <Text style={styles.bubbleSender}>{m.sender_name}</Text>
                   )}
-                  <Text style={[styles.bubbleText, isMe && styles.bubbleTextMe]}>
+                  <Text style={[styles.bubbleText, { color: tokens.ink }, isMe && styles.bubbleTextMe]}>
                     {m.content}
                   </Text>
                   <Text style={[styles.bubbleTime, isMe && styles.bubbleTimeMe]}>
@@ -251,7 +255,7 @@ export default function JourneyCircle() {
           <FrostedSurface mode="composer" style={styles.composer}>
             <View style={styles.composerInner}>
               <TextInput
-                style={styles.composerInput}
+                style={[styles.composerInput, { color: tokens.ink }]}
                 value={composing}
                 onChangeText={setComposing}
                 placeholder="Message…"
@@ -274,7 +278,7 @@ export default function JourneyCircle() {
 
 // ─── ThreadRow ────────────────────────────────────────────────────────────────
 
-function ThreadRow({ thread, onPress, pinned }: { thread: CircleThread; onPress: () => void; pinned?: boolean }) {
+function ThreadRow({ thread, onPress, pinned, inkColor, softColor }: { thread: CircleThread; onPress: () => void; pinned?: boolean; inkColor: string; softColor: string }) {
   const preview = thread.last_message?.content || (pinned ? 'Group thread' : 'No messages yet');
   const time    = thread.last_active ? timeAgo(thread.last_active) : '';
 
@@ -286,10 +290,10 @@ function ThreadRow({ thread, onPress, pinned }: { thread: CircleThread; onPress:
         </View>
         <View style={styles.threadBody}>
           <View style={styles.threadTopRow}>
-            <Text style={styles.threadLabel}>{thread.label}</Text>
+            <Text style={[styles.threadLabel, { color: inkColor }]}>{thread.label}</Text>
             {time ? <Text style={styles.threadTime}>{time}</Text> : null}
           </View>
-          <Text style={styles.threadPreview} numberOfLines={1}>{preview}</Text>
+          <Text style={[styles.threadPreview, { color: softColor }]} numberOfLines={1}>{preview}</Text>
         </View>
       </View>
     </FrostedSurface>
@@ -334,7 +338,7 @@ const styles = StyleSheet.create({
   threadPreview: { ...FrostType.bodySmall, fontSize: 12, color: '#5A5650', marginTop: 2 },
 
   // Sheet
-  sheetOuter:     { flex: 1, backgroundColor: '#F4F2EE' },
+  sheetOuter:     { flex: 1 }, // bg applied inline via tokens
   sheetHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: FrostSpace.xl, paddingVertical: FrostSpace.l, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.hairline, gap: FrostSpace.m },
   sheetClose:     { padding: FrostSpace.xs },
   sheetTitleWrap: { flex: 1 },

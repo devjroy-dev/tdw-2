@@ -19,12 +19,16 @@ import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import {
   fetchMyEnquiries, fetchEnquiryThread, sendEnquiryMessage,
   EnquiryThread, EnquiryMessage,
 } from '../../../../services/frostApi';
 
 export default function JourneyMessages() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [threads, setThreads] = useState<EnquiryThread[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,6 +138,8 @@ function formatRelativeTime(iso?: string): string {
 // ─── Thread detail ──────────────────────────────────────────────────────────
 
 function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => void }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [messages, setMessages] = useState<EnquiryMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -192,9 +198,9 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
           )}
         </ScrollView>
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, { backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.04)' : 'rgba(236,233,228,0.6)' }]}>
           <TextInput
-            style={styles.composerInput}
+            style={[styles.composerInput, { backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.06)' : 'rgba(255,253,248,0.4)', color: tokens.ink }]}
             value={composing}
             onChangeText={setComposing}
             placeholder="Reply…"
@@ -323,7 +329,7 @@ const styles = StyleSheet.create({
     backgroundColor: FrostColors.ink,
   },
   bubbleThem: {
-    backgroundColor: 'rgba(236,233,228,0.7)',
+    backgroundColor: 'rgba(236,233,228,0.7)', // overridden inline per mode
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FrostColors.hairline,
   },
@@ -342,7 +348,7 @@ const styles = StyleSheet.create({
     paddingBottom: FrostSpace.l,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: FrostColors.hairline,
-    backgroundColor: 'rgba(236,233,228,0.6)',
+    backgroundColor: 'rgba(236,233,228,0.6)', // overridden inline per mode
   },
   composerInput: {
     flex: 1,
@@ -353,7 +359,7 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.body,
     fontSize: 15,
     color: FrostColors.ink,
-    backgroundColor: 'rgba(255,253,248,0.4)',
+    backgroundColor: 'rgba(255,253,248,0.4)', // overridden inline per mode
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FrostColors.hairline,

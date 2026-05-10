@@ -18,11 +18,15 @@ import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import {
   fetchMyEvents, CoupleEvent,
 } from '../../../../services/frostApi';
 
 export default function JourneyEvents() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [events, setEvents] = useState<CoupleEvent[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -146,7 +150,7 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FrostColors.hairline,
-    backgroundColor: 'rgba(236,233,228,0.6)',
+    backgroundColor: 'rgba(236,233,228,0.6)', // overridden inline per mode
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
