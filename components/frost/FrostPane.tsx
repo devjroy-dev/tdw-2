@@ -1,30 +1,32 @@
 /**
  * FrostPane — sanctuary backdrop for Frost canvases.
  *
- * Phase 1.5.2 update — paper is the default.
- *   The deep-grey #9A958E was the SANCTUARY-mode background, designed to
- *   pair with greyscaled photos. As Frost moves to colour photo modes
- *   (E1/E3) and the bride opens these surfaces 10-20×/day, deep grey
- *   reads dim and bored. Bright warm paper (#D8D3CC, the same colour as
- *   home page paper) is now the default — readable, alive, continuous
- *   with home.
+ * 3.2 mode-awareness update — background now follows the bride's home_mode
+ * selection (E1 dark / E3 light). Reads useMuseLook() from AsyncStorage
+ * @frost.home_mode so every canvas that renders FrostPane automatically
+ * inherits the correct tonal mode without any per-canvas changes.
  *
- *   The Journey hub keeps the deep-grey doorway look by passing `dim`.
- *   Every other Frost canvas inherits paper.
+ *   E3 (default/light): paper = #D8D3CC, dim = #9A958E
+ *   E1 (dark):          paper = #1B1612, dim = #0F0C0A
+ *
+ * The dim prop is preserved for Journey hub (doorway surface).
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { FrostColors } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 
-const PAPER = '#D8D3CC';   // home page paper — bright reading surface
-const DIM   = '#9A958E';   // legacy deep grey — kept for the doorway (Journey hub)
+// E1 dim stop — slightly deeper than pagePaper for the doorway feel
+const DIM_E1 = '#0F0C0A';
+// E3 dim stop — legacy deep grey
+const DIM_E3 = '#9A958E';
 
 interface FrostPaneProps {
   /** Render children on top of the panel. */
   children?: React.ReactNode;
   /** When true, content area touches are passed through. */
   passthrough?: boolean;
-  /** When true, render the legacy deep-grey background. Default: false (paper). */
+  /** When true, render the doorway (dimmed) background. Default: false. */
   dim?: boolean;
   /** Legacy prop — accepted but ignored. */
   imageUri?: string;
@@ -35,9 +37,15 @@ export default function FrostPane({
   passthrough = false,
   dim = false,
 }: FrostPaneProps) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
+  const bg = dim
+    ? (look === 'E1' ? DIM_E1 : DIM_E3)
+    : tokens.pagePaper;
+
   return (
     <View
-      style={[styles.root, { backgroundColor: dim ? DIM : PAPER }]}
+      style={[styles.root, { backgroundColor: bg }]}
       pointerEvents={passthrough ? 'box-none' : 'auto'}
     >
       {children}

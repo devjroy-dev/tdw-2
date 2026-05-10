@@ -21,6 +21,8 @@ import FrostedSurface from '../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostCopy, FrostRadius,
 } from '../../../constants/frost';
+import { MUSE_LOOKS } from '../../../constants/museTokens';
+import { useMuseLook } from '../../../hooks/useMuseLook';
 import { fetchCircleUnreadCount } from '../../../services/frostApi';
 
 interface PrimaryTool {
@@ -54,6 +56,8 @@ const SECONDARY: SecondaryTool[] = [
 ];
 
 export default function CanvasJourney() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [circleCount, setCircleCount] = useState(0);
 
   const loadCount = useCallback(async () => {
@@ -78,7 +82,12 @@ export default function CanvasJourney() {
   }, [loadCount]));
 
   return (
-    <FrostCanvasShell eyebrow={FrostCopy.journeyCanvas.eyebrow} mode="frost" dim>
+    <FrostCanvasShell
+      eyebrow={FrostCopy.journeyCanvas.eyebrow}
+      mode="frost"
+      dim
+      statusBarStyle={tokens.statusBarStyle === 'light-content' ? 'light' : 'dark'}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         <View style={styles.heading}>

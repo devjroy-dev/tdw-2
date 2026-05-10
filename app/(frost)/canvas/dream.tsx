@@ -47,6 +47,8 @@ import DreamSuggestionsCarousel from '../../../components/frost/DreamSuggestions
 import {
   FrostColors, FrostFonts, FrostSpace, FrostRadius, FrostCopy,
 } from '../../../constants/frost';
+import { MUSE_LOOKS } from '../../../constants/museTokens';
+import { useMuseLook } from '../../../hooks/useMuseLook';
 import {
   brideChat, brideConfirm, fetchCircleActivity,
   BrideFollowup, CircleActivityItem, SurpriseSuggestion, ToolAnchor, ContactAction, ClarifyOption,
@@ -82,6 +84,8 @@ function anchorToRoute(anchor: ToolAnchor): string | null {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function CanvasDream() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -574,6 +578,7 @@ export default function CanvasDream() {
     <FrostCanvasShell
       eyebrow={FrostCopy.dreamCanvas.eyebrow}
       mode="frost"
+      statusBarStyle={tokens.statusBarStyle === 'light-content' ? 'light' : 'dark'}
       bottomBar={
         <FrostedSurface mode="composer" radius={0} style={{ borderRadius: 0 }}>
           <View style={styles.composer}>
@@ -587,14 +592,17 @@ export default function CanvasDream() {
               disabled={sending}
               hitSlop={8}
             >
-              <Paperclip size={18} color={FrostColors.soft} strokeWidth={1.6} />
+              <Paperclip size={18} color={tokens.soft} strokeWidth={1.6} />
             </Pressable>
             <TextInput
               value={text}
               onChangeText={setText}
               placeholder={FrostCopy.dreamCanvas.inputPlaceholder}
-              placeholderTextColor={FrostColors.soft}
-              style={styles.input}
+              placeholderTextColor={tokens.soft}
+              style={[styles.input, {
+                backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.55)',
+                color: tokens.ink,
+              }]}
               multiline
               editable={!sending}
               onSubmitEditing={handleSend}
@@ -605,6 +613,7 @@ export default function CanvasDream() {
               onPress={handleSend}
               style={({ pressed }) => [
                 styles.sendBtn,
+                { backgroundColor: tokens.ink },
                 pressed && { opacity: 0.85 },
                 sending && { opacity: 0.5 },
               ]}
@@ -648,7 +657,7 @@ export default function CanvasDream() {
               }
               return <AILine key={m.id} text={m.text} timestamp={m.ts} />;
             case 'user':
-              return <UserLine key={m.id} text={m.text} ts={m.ts} />;
+              return <UserLine key={m.id} text={m.text} ts={m.ts} bubbleBg={tokens.ink} />;
             case 'person':
               return (
                 <PersonAction
@@ -710,10 +719,10 @@ export default function CanvasDream() {
 
 // ─── User bubble ─────────────────────────────────────────────────────────────
 
-function UserLine({ text, ts }: { text: string; ts: string }) {
+function UserLine({ text, ts, bubbleBg }: { text: string; ts: string; bubbleBg: string }) {
   return (
     <View style={styles.userRow}>
-      <View style={styles.userBubble}>
+      <View style={[styles.userBubble, { backgroundColor: bubbleBg }]}>
         <Text style={styles.userText}>{text}</Text>
         <Text style={styles.userTsText}>{ts}</Text>
       </View>
@@ -796,7 +805,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     maxHeight: 120,
-    backgroundColor: 'rgba(255,253,248,0.55)',
+    // backgroundColor set inline via tokens — see render
+    backgroundColor: 'transparent',
     borderRadius: FrostRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(168,146,75,0.25)',
@@ -812,7 +822,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: FrostColors.ink,
+    // bg set inline via tokens — see render
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -833,7 +843,7 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     maxWidth: '78%',
-    backgroundColor: FrostColors.ink,
+    // bg set inline via tokens — see UserLine render
     borderRadius: FrostRadius.box,
     paddingVertical: FrostSpace.s + 2,
     paddingHorizontal: FrostSpace.l,
