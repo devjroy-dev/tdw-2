@@ -25,15 +25,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, Pressable, StyleSheet, Platform,
 } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { Alert } from 'react-native';
+import { Send, Paperclip } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
 import FrostConfirmCard from '../../../components/frost/FrostConfirmCard';
 import FrostContactCard from '../../../components/frost/FrostContactCard';
 import FrostClarifyCard from '../../../components/frost/FrostClarifyCard';
 import FrostViewPill, { shouldShowViewPill } from '../../../components/frost/FrostViewPill';
+import FrostThinkingDots from '../../../components/frost/FrostThinkingDots';
+import { uploadImage } from '../../../services/cloudinary';
 import {
   AILine, PersonAction, InlineEvent,
 } from '../../../components/frost/FrostDreamMessages';
@@ -60,7 +64,8 @@ type StreamMessage =
   | { kind: 'suggestions'; id: string; suggestions: SurpriseSuggestion[]; tasteSummary?: string }
   | { kind: 'confirm'; id: string; preview: any }
   | { kind: 'contact'; id: string; action: ContactAction }
-  | { kind: 'clarify'; id: string; options: ClarifyOption[] };
+  | { kind: 'clarify'; id: string; options: ClarifyOption[] }
+  | { kind: 'thinking'; id: string };
 
 const POLL_INTERVAL = 30_000;
 
@@ -92,6 +97,24 @@ export default function CanvasDream() {
     const arr = Array.isArray(m) ? m : [m];
     setMessages(prev => [...prev, ...arr]);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
+  }, []);
+
+  // PHASE 2: helpers for the thinking-dots transient stream item.
+  // The thinking item is appended right before brideChat fires and removed
+  // in the finally block — visible for the whole network round trip,
+  // disappears whether the call succeeds or errors.
+  const thinkingIdRef = useRef<string | null>(null);
+  const showThinking = useCallback(() => {
+    const id = 'think_' + Date.now();
+    thinkingIdRef.current = id;
+    setMessages(prev => [...prev, { kind: 'thinking', id }]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
+  }, []);
+  const clearThinking = useCallback(() => {
+    const id = thinkingIdRef.current;
+    if (!id) return;
+    thinkingIdRef.current = null;
+    setMessages(prev => prev.filter(m => !(m.kind === 'thinking' && m.id === id)));
   }, []);
 
   // Initial seed
@@ -158,9 +181,16 @@ export default function CanvasDream() {
     historyRef.current = historyRef.current.slice(-9);
     historyRef.current.push({ role: 'user', text: trimmed });
 
+    // PHASE 2: thinking dots appear during the network round trip.
+    showThinking();
+
     try {
       const res = await brideChat(trimmed, historyRef.current.slice(0, -1));
       const replyText = res.reply || 'Hmm, let me think.';
+
+      // PHASE 2: clear dots before the AI line lands so the stream order reads
+      // user → ai (not user → thinking → ai).
+      clearThinking();
 
       // First anchor in the response (if any) — pinned to the AI line we render
       const firstAnchor: ToolAnchor | undefined =
@@ -239,6 +269,9 @@ export default function CanvasDream() {
 
       historyRef.current.push({ role: 'assistant', text: replyText });
     } catch {
+      // PHASE 2: also clear dots on error path (clearThinking is idempotent
+      // if already called in the success path above).
+      clearThinking();
       append({
         kind: 'ai',
         id: 'ai_err_' + Date.now(),
@@ -249,6 +282,106 @@ export default function CanvasDream() {
       setSending(false);
     }
   };
+
+  // PHASE 2: paperclip → action sheet → camera or library → upload → send URL
+  // via handleSend pipe. The vision classifier on the backend (server.js
+  // line 14043+) handles the URL routing — receipt → ocr_receipt, inspiration
+  // → save_to_muse, vendor screenshot → ask, etc.
+  const handleAttach = useCallback(() => {
+    if (sending) return;
+    Alert.alert('Attach a photo', 'Choose source', [
+      { text: 'Take photo',         onPress: () => pickAndUpload('camera')  },
+      { text: 'Choose from library', onPress: () => pickAndUpload('library') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [sending]);
+
+  const pickAndUpload = useCallback(async (source: 'camera' | 'library') => {
+    try {
+      const perm = source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission needed', `Please allow ${source === 'camera' ? 'camera' : 'photo'} access.`);
+        return;
+      }
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+
+      // Show user line + thinking dots immediately; upload happens in the
+      // background. The bride sees activity within ~150ms instead of waiting
+      // for the whole upload.
+      append({ kind: 'user', id: 'usr_' + Date.now(), text: '📎 Photo', ts: formatTime() });
+      showThinking();
+
+      let imageUrl: string;
+      try {
+        imageUrl = await uploadImage(result.assets[0].uri);
+      } catch {
+        clearThinking();
+        append({
+          kind: 'ai',
+          id: 'ai_uperr_' + Date.now(),
+          text: 'I couldn\'t lift that photo from your phone. Try once more?',
+          ts: formatTime(),
+        });
+        return;
+      }
+
+      // Submit the URL through the same bride-chat pipe so the existing
+      // routing/classifier infrastructure handles it. We don't need to
+      // duplicate handleSend's logic — just call brideChat directly here
+      // and reuse the same render branches.
+      historyRef.current = historyRef.current.slice(-9);
+      historyRef.current.push({ role: 'user', text: imageUrl });
+      try {
+        const res = await brideChat(imageUrl, historyRef.current.slice(0, -1));
+        clearThinking();
+        const replyText = res.reply || 'Hmm, let me think.';
+        const firstAnchor: ToolAnchor | undefined =
+          res.toolAnchors && res.toolAnchors.length > 0 ? res.toolAnchors[0] : undefined;
+        append({
+          kind: 'ai',
+          id: 'ai_img_' + Date.now(),
+          text: replyText,
+          ts: formatTime(),
+          anchor: firstAnchor,
+        });
+        if (res.summaryLines && res.summaryLines.length > 0) {
+          append({ kind: 'summary', id: 'sum_img_' + Date.now(), lines: res.summaryLines });
+        }
+        if (res.confirmPreview) {
+          append({ kind: 'confirm', id: 'cfm_img_' + Date.now(), preview: res.confirmPreview });
+        }
+        if (res.followupPrompts && res.followupPrompts.length > 0) {
+          res.followupPrompts.forEach((p, idx) => {
+            setTimeout(() => {
+              append({
+                kind: 'followup',
+                id: 'fup_img_' + Date.now() + '_' + idx,
+                prompt: p,
+                context: extractFollowupContext(imageUrl),
+              });
+            }, 320 * (idx + 1));
+          });
+        }
+        historyRef.current.push({ role: 'assistant', text: replyText });
+      } catch {
+        clearThinking();
+        append({
+          kind: 'ai',
+          id: 'ai_imgerr_' + Date.now(),
+          text: 'Something went sideways. Try once more?',
+          ts: formatTime(),
+        });
+      }
+    } catch {
+      // Outer catch — picker failed unexpectedly
+      clearThinking();
+    }
+  }, [sending, append, showThinking, clearThinking]);
 
   const handleFollowupResolved = (replyText: string) => {
     if (!replyText) return;
@@ -444,6 +577,18 @@ export default function CanvasDream() {
       bottomBar={
         <FrostedSurface mode="composer" radius={0} style={{ borderRadius: 0 }}>
           <View style={styles.composer}>
+            <Pressable
+              onPress={handleAttach}
+              style={({ pressed }) => [
+                styles.paperclipBtn,
+                pressed && { opacity: 0.55 },
+                sending && { opacity: 0.4 },
+              ]}
+              disabled={sending}
+              hitSlop={8}
+            >
+              <Paperclip size={18} color={FrostColors.soft} strokeWidth={1.6} />
+            </Pressable>
             <TextInput
               value={text}
               onChangeText={setText}
@@ -516,6 +661,8 @@ export default function CanvasDream() {
               );
             case 'event':
               return <InlineEvent key={m.id} text={m.text} />;
+            case 'thinking':
+              return <FrostThinkingDots key={m.id} />;
             case 'summary':
               return <DreamSummaryCard key={m.id} lines={m.lines} />;
             case 'followup':
@@ -666,6 +813,14 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: FrostColors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // PHASE 2: paperclip is restrained — no background fill, just an icon.
+  // The bride's eye reads it as an affordance rather than a primary action.
+  paperclipBtn: {
+    width: 36,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
