@@ -727,6 +727,9 @@ export interface CoupleVendor {
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
+  // PATCH B-5: backend computes sum of actual_amount across paid expenses
+  // for each vendor (case-insensitive name match) and attaches here.
+  paid_total?: number | null;
 }
 
 export async function fetchMyVendors(): Promise<CoupleVendor[] | null> {

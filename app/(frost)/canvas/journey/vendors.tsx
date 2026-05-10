@@ -160,10 +160,20 @@ function VendorRow({
   onLongPress: () => void;
 }) {
   const initial = (vendor.category?.[0] || vendor.name?.[0] || '·').toUpperCase();
+  // PATCH B-5: for booked rows with a quote, replace bare quote with
+  // "₹X of ₹Y paid" payment-progress line. Other statuses keep the bare
+  // quote format. Paid bucket already shows PAID via the section label,
+  // so no progress line needed there either.
+  const isBooked = vendor.status === 'booked';
+  const paidTotal = Number(vendor.paid_total) || 0;
+  const quotedTotal = Number(vendor.quoted_total) || 0;
+  const moneyChunk = isBooked && quotedTotal > 0
+    ? `${fmtINR(paidTotal)} of ${fmtINR(quotedTotal)} paid`
+    : (vendor.quoted_total ? fmtINR(vendor.quoted_total) : null);
   const meta = [
     vendor.category,
     (vendor.events && vendor.events.length > 0) ? vendor.events.join(', ') : null,
-    vendor.quoted_total ? fmtINR(vendor.quoted_total) : null,
+    moneyChunk,
   ].filter(Boolean).join(' · ');
 
   return (
