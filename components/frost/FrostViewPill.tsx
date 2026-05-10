@@ -75,9 +75,9 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.display,
     fontSize: 13,
     fontStyle: 'italic',
-    color: FrostColors.goldMuted,
+    color: FrostColors.goldTrue,
     letterSpacing: 0.3,
     textDecorationLine: 'underline',
-    textDecorationColor: FrostColors.hairline,
+    textDecorationColor: 'rgba(191,160,77,0.45)',
   },
 });
