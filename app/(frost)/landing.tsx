@@ -32,7 +32,7 @@
  *   4. (Optional) the loser modes can be deleted in a follow-up cleanup
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Image, Platform, StatusBar,
   Modal, ScrollView,
@@ -41,6 +41,7 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { Animated, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,6 +51,7 @@ import {
 import {
   brideIdle, fetchHomeImages, fetchCircleFeed, formatCircleActivity,
 } from '../../services/frostApi';
+import { fetchPagesSummary } from '../../services/pagesApi';
 
 // ── Platform-gated Grayscale import ────────────────────────────────────────
 // Imports from GrayscaleShim.native.tsx on iOS/Android (real filter) and
@@ -78,6 +80,12 @@ const DEFAULT_MODE: HomeModeKey = 'E3';
 
 // AsyncStorage key for the per-device chosen mode
 const MODE_STORAGE_KEY = '@frost.home_mode';
+
+// ── SANCTUARY MODE — Content axis (new May 10, Session 29) ──
+// Orthogonal to Tone (homeMode). Each axis persists independently.
+type ContentMode = 'dream' | 'sanctuary';
+const CONTENT_MODE_STORAGE_KEY = '@frost.content_mode';
+const DEFAULT_CONTENT_MODE: ContentMode = 'dream';
 
 // Order modes for tap-to-cycle (matches mockup viewing order)
 const CYCLE_ORDER: HomeModeKey[] = ['E1A', 'E1B', 'E3'];
@@ -115,6 +123,12 @@ interface ModeDescriptor {
   circleGradient?:  [string, string];
   journeyGradient?: [string, string];
   photoBottomGradient?: boolean;
+  // Sanctuary mode gradients — interpolated between circle bottom → journey top
+  // in three equal tonal steps. Same paper, same brass, same fonts. Hidden in
+  // Dream mode; visible only when contentMode === 'sanctuary'.
+  museGradient?:    [string, string];
+  momentsGradient?: [string, string];
+  pagesGradient?:   [string, string];
 }
 
 const MODES: Record<HomeModeKey, ModeDescriptor> = {
@@ -132,6 +146,11 @@ const MODES: Record<HomeModeKey, ModeDescriptor> = {
     heroGradient:    ['#1B1612', '#231D17'],
     dreamGradient:   ['#1F1915', '#1A1410'],
     circleGradient:  ['#1A1410', '#15110E'],
+    // Sanctuary descent: circle bottom #15110E → journey top #15110E
+    // (same point — so we step through three increasingly deep paper stops)
+    museGradient:    ['#15110E', '#13100D'],
+    momentsGradient: ['#13100D', '#110E0B'],
+    pagesGradient:   ['#110E0B', '#100C0A'],
     journeyGradient: ['#15110E', '#100C0A'],
   },
   // E1 B — true descent. Hero darkens monotonically top→bottom, photo paper deeper still,
@@ -147,6 +166,11 @@ const MODES: Record<HomeModeKey, ModeDescriptor> = {
     heroGradient:    ['#1B1612', '#181410'],
     dreamGradient:   ['#14110D', '#100D0A'],
     circleGradient:  ['#130F0A', '#0D0A07'],
+    // Sanctuary descent: circle bottom #0D0A07 → journey top #0F0C09
+    // Cinematic — three deeper steps into the dark
+    museGradient:    ['#0D0A07', '#0B0806'],
+    momentsGradient: ['#0B0806', '#0A0706'],
+    pagesGradient:   ['#0A0706', '#080605'],
     journeyGradient: ['#0F0C09', '#080605'],
   },
   // E3 — light, warm paper. Unchanged from prior shipped behaviour.
@@ -161,6 +185,11 @@ const MODES: Record<HomeModeKey, ModeDescriptor> = {
     heroGradient:    ['#D8D3CC', '#CFC9C1'],
     dreamGradient:   ['#C8C2BA', '#BBB5AC'],
     circleGradient:  ['#BCB6AD', '#B0AAA1'],
+    // Sanctuary descent: circle bottom #B0AAA1 → journey top #A8A29A
+    // Three quiet steps down the warm-grey ramp
+    museGradient:    ['#B0AAA1', '#ACA69D'],
+    momentsGradient: ['#ACA69D', '#A8A29A'],
+    pagesGradient:   ['#A8A29A', '#A09A91'],
     journeyGradient: ['#A8A29A', '#948E86'],
   },
 };
@@ -258,12 +287,21 @@ function ModePhoto({
 }
 
 // ─── Mode picker bottom sheet ──────────────────────────────────────────────
+// Two-section sheet: CONTENT (Dream / Sanctuary) above TONE (E1A / E1B / E3).
+// Stays open after a selection so bride can adjust both axes; italic "Done" dismisses.
+const CONTENT_OPTIONS: { key: ContentMode; title: string; sub: string }[] = [
+  { key: 'dream',     title: 'Dream',     sub: 'Photos and inspiration' },
+  { key: 'sanctuary', title: 'Sanctuary', sub: 'A quiet space — your planner' },
+];
+
 function ModePickerSheet({
-  visible, currentMode, onPick, onClose,
+  visible, currentMode, contentMode, onPick, onPickContent, onClose,
 }: {
   visible: boolean;
   currentMode: HomeModeKey;
+  contentMode: ContentMode;
   onPick: (m: HomeModeKey) => void;
+  onPickContent: (c: ContentMode) => void;
   onClose: () => void;
 }) {
   return (
@@ -272,8 +310,30 @@ function ModePickerSheet({
         <Pressable style={pickerStyles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={pickerStyles.handle} />
           <Text style={pickerStyles.title}>Pick a home rendition</Text>
-          <Text style={pickerStyles.sub}>Tap to switch. Long-press the date to cycle.</Text>
-          <ScrollView style={{ maxHeight: 480 }}>
+          <Text style={pickerStyles.sub}>Tap to switch. The sheet stays open for both.</Text>
+          <ScrollView style={{ maxHeight: 540 }}>
+            {/* CONTENT section */}
+            <Text style={pickerStyles.sectionEyebrow}>CONTENT</Text>
+            {CONTENT_OPTIONS.map((c) => {
+              const isCurrent = c.key === contentMode;
+              return (
+                <Pressable
+                  key={c.key}
+                  onPress={() => onPickContent(c.key)}
+                  style={[pickerStyles.row, isCurrent && pickerStyles.rowActive]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[pickerStyles.rowTitle, isCurrent && pickerStyles.rowTitleActive]}>
+                      {c.title}
+                    </Text>
+                    <Text style={pickerStyles.rowSub}>{c.sub}</Text>
+                  </View>
+                  {isCurrent ? <View style={pickerStyles.dot} /> : null}
+                </Pressable>
+              );
+            })}
+            {/* TONE section */}
+            <Text style={pickerStyles.sectionEyebrow}>TONE</Text>
             {CYCLE_ORDER.map((m) => {
               const isCurrent = m === currentMode;
               return (
@@ -294,7 +354,7 @@ function ModePickerSheet({
             })}
           </ScrollView>
           <Pressable onPress={onClose} style={pickerStyles.dismiss}>
-            <Text style={pickerStyles.dismissText}>Close</Text>
+            <Text style={pickerStyles.dismissText}>Done</Text>
           </Pressable>
         </Pressable>
       </Pressable>
@@ -354,11 +414,20 @@ const pickerStyles = StyleSheet.create({
     width: 8, height: 8, borderRadius: 4, backgroundColor: '#BFA04D',
   },
   dismiss: {
-    marginTop: 10, paddingVertical: 12, alignItems: 'center',
+    marginTop: 14, paddingVertical: 14, alignItems: 'center',
   },
   dismissText: {
-    fontFamily: FrostFonts.label, fontSize: 11, letterSpacing: 2,
-    color: 'rgba(245,240,232,0.6)', textTransform: 'uppercase',
+    // Italic Cormorant for "Done" — frost editorial register, not utility
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 16, letterSpacing: 0.4,
+    color: '#BFA04D',
+  },
+  // Eyebrow above each section (CONTENT, TONE)
+  sectionEyebrow: {
+    fontFamily: FrostFonts.label, fontSize: 9, fontWeight: '300',
+    letterSpacing: 3.6, textTransform: 'uppercase',
+    color: 'rgba(245,240,232,0.42)',
+    marginTop: 14, marginBottom: 8, paddingHorizontal: 14,
   },
 });
 
@@ -368,27 +437,60 @@ export default function FrostLanding() {
 
   // Mode state — initial value loaded from AsyncStorage on mount.
   const [homeMode, setHomeMode] = useState<HomeModeKey>(DEFAULT_MODE);
+  const [contentMode, setContentMode] = useState<ContentMode>(DEFAULT_CONTENT_MODE);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Toast state — used when bride flips Content via badge tap
+  const [toast, setToast] = useState<string | null>(null);
+  const toastFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!SHOW_MODE_PICKER) {
       setHomeMode(DEFAULT_MODE);
-      return;
+      // contentMode still loads — it persists regardless of SHOW_MODE_PICKER
     }
     let cancelled = false;
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(MODE_STORAGE_KEY);
-        if (cancelled) return;
-        if (stored && CYCLE_ORDER.includes(stored as HomeModeKey)) {
-          setHomeMode(stored as HomeModeKey);
+        // Load tonal mode (only when picker is shown)
+        if (SHOW_MODE_PICKER) {
+          const stored = await AsyncStorage.getItem(MODE_STORAGE_KEY);
+          if (!cancelled && stored && CYCLE_ORDER.includes(stored as HomeModeKey)) {
+            setHomeMode(stored as HomeModeKey);
+          }
+        }
+        // Load content mode (always)
+        const storedContent = await AsyncStorage.getItem(CONTENT_MODE_STORAGE_KEY);
+        if (!cancelled && (storedContent === 'dream' || storedContent === 'sanctuary')) {
+          setContentMode(storedContent);
         }
       } catch {
-        // silent — fallback to DEFAULT_MODE
+        // silent — fallback to defaults
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  const persistContentMode = useCallback(async (m: ContentMode) => {
+    setContentMode(m);
+    try { await AsyncStorage.setItem(CONTENT_MODE_STORAGE_KEY, m); } catch {}
+  }, []);
+
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+    Animated.sequence([
+      Animated.timing(toastFade, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastFade, { toValue: 0, duration: 280, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]).start(() => setToast(null));
+  }, [toastFade]);
+
+  const flipContent = useCallback(() => {
+    const next: ContentMode = contentMode === 'dream' ? 'sanctuary' : 'dream';
+    Haptics.selectionAsync?.();
+    persistContentMode(next);
+    showToast(next === 'sanctuary' ? 'Now in Sanctuary' : 'Now in Dream');
+  }, [contentMode, persistContentMode, showToast]);
 
   const persistMode = useCallback(async (m: HomeModeKey) => {
     setHomeMode(m);
@@ -451,14 +553,17 @@ export default function FrostLanding() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      (async () => {
-        try {
-          const r = await fetchHomeImages();
-          if (cancelled || !r?.success) return;
-          setMuseUrl(r.muse_image_url || null);
-          setDiscoverUrl(r.discover_image_url || null);
-        } catch {}
-      })();
+      // Only fetch home images in Dream mode — Sanctuary has no photo row
+      if (contentMode === 'dream') {
+        (async () => {
+          try {
+            const r = await fetchHomeImages();
+            if (cancelled || !r?.success) return;
+            setMuseUrl(r.muse_image_url || null);
+            setDiscoverUrl(r.discover_image_url || null);
+          } catch {}
+        })();
+      }
       (async () => {
         try {
           const events = await fetchCircleFeed(10);
@@ -468,7 +573,26 @@ export default function FrostLanding() {
         } catch {}
       })();
       return () => { cancelled = true; };
-    }, []),
+    }, [contentMode]),
+  );
+
+  // Sanctuary sub-line strings — fetched on focus when in Sanctuary mode
+  const [sanctuarySublines, setSanctuarySublines] = useState<{ muse: string; moments: string; pages: string } | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      if (contentMode === 'sanctuary') {
+        (async () => {
+          try {
+            const r = await fetchPagesSummary();
+            if (cancelled || !r?.success) return;
+            setSanctuarySublines(r.data || null);
+          } catch {}
+        })();
+      }
+      return () => { cancelled = true; };
+    }, [contentMode]),
   );
 
   const { weekday, month, year } = {
@@ -485,127 +609,264 @@ export default function FrostLanding() {
   const goDream    = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/dream' as any); };
   const goCircle   = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/journey/circle' as any); };
   const goJourney  = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/journey' as any); };
+  const goPages    = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/pages' as any); };
+  const goMoments  = () => { Haptics.selectionAsync?.(); showToast('Moments arrives next.'); };
 
-  // ── MOSAIC LAYOUT (E1/E2/E3/E4) ───────────────────────────────────────
+  // ── MOSAIC LAYOUT (E1A/E1B/E3) — Dream OR Sanctuary content ───────────
   if (mode.layout === 'mosaic') {
+    const isSanctuary = contentMode === 'sanctuary';
+    const sanctuaryMuseLine    = sanctuarySublines?.muse || 'Loading…';
+    const sanctuaryMomentsLine = sanctuarySublines?.moments || 'These moments will always remind you of your journey.';
+    const sanctuaryPagesLine   = sanctuarySublines?.pages || 'Loading…';
+
     return (
       <View style={[styles.root]}>
         <StatusBar barStyle={mode.statusBarStyle} backgroundColor={mode.pagePaper} />
 
         <View style={[styles.mosaicScreen, { paddingTop: insets.top }]}>
-          {/* HERO TILE — wraps date + countdown. Tap = cycle, long-press = picker */}
-          <Pressable
-            onPress={cycleMode}
-            onLongPress={openPicker}
-            delayLongPress={500}
-            style={{ flex: 4 }}
-          >
-            <LinearGradient colors={mode.heroGradient!} style={styles.mosaicHero}>
-              <Text style={styles.mosaicWeekday}>{weekday}</Text>
-              <Text style={styles.mosaicDateLine}>{dayWord} of {month}</Text>
-              <Text style={styles.mosaicYear}>{year}</Text>
-              <View style={styles.mosaicRule} />
-              <View style={styles.daysWrap}>
-                <Text style={styles.mosaicDaysNum}>{days}</Text>
-                <Text style={styles.mosaicDaysWord}>{FrostCopy.landing.daysWord}</Text>
-              </View>
+          {/* HERO TILE — wraps date + countdown. Tap = cycle tone, long-press = picker.
+              Mode badge is a separate Pressable, non-propagating — single tap flips Content. */}
+          <View style={{ flex: 4 }}>
+            <Pressable
+              onPress={cycleMode}
+              onLongPress={openPicker}
+              delayLongPress={500}
+              style={{ flex: 1 }}
+            >
+              <LinearGradient colors={mode.heroGradient!} style={styles.mosaicHero}>
+                <Text style={styles.mosaicWeekday}>{weekday}</Text>
+                <Text style={styles.mosaicDateLine}>{dayWord} of {month}</Text>
+                <Text style={styles.mosaicYear}>{year}</Text>
+                <View style={styles.mosaicRule} />
+                <View style={styles.daysWrap}>
+                  <Text style={styles.mosaicDaysNum}>{days}</Text>
+                  <Text style={styles.mosaicDaysWord}>{FrostCopy.landing.daysWord}</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+            {/* Mode badge sits absolute over the hero. Tap flips Content. Doesn't propagate. */}
+            <Pressable
+              onPress={flipContent}
+              hitSlop={12}
+              style={styles.mosaicBadgePressable}
+              accessibilityLabel={`Flip to ${isSanctuary ? 'Dream' : 'Sanctuary'} mode`}
+            >
               {SHOW_MODE_PICKER ? (
                 <Text style={styles.mosaicModeBadge}>{homeMode}</Text>
               ) : null}
-            </LinearGradient>
-          </Pressable>
-
-          {/* PHOTO ROW */}
-          <View style={styles.mosaicPhotoRow}>
-            <Pressable
-              style={[styles.mosaicPhotoTile, styles.mosaicPhotoLeft]}
-              onPress={goMuse} onLongPress={goMuse}
-              accessibilityLabel="Muse"
-            >
-              {museUrl ? (
-                <ModePhoto
-                  uri={museUrl} treatment={mode.photoTreatment}
-                  containerStyle={StyleSheet.absoluteFill} imageStyle={styles.photoImg}
-                />
-              ) : null}
-              <Text style={styles.mosaicTileLabel}>Muse</Text>
-              <View style={styles.mosaicTileDot} />
-            </Pressable>
-
-            <Pressable
-              style={styles.mosaicPhotoTile}
-              onPress={goDiscover} onLongPress={goDiscover}
-              accessibilityLabel="Discover"
-            >
-              {discoverUrl ? (
-                <ModePhoto
-                  uri={discoverUrl} treatment={mode.photoTreatment}
-                  containerStyle={StyleSheet.absoluteFill} imageStyle={styles.photoImg}
-                />
-              ) : null}
-              <Text style={styles.mosaicTileLabel}>Discover</Text>
-              <View style={styles.mosaicTileDot} />
+              <Text style={styles.mosaicModeBadgeContent}>
+                {isSanctuary ? 'SANCTUARY' : 'DREAM'}
+              </Text>
             </Pressable>
           </View>
 
-          <Pressable
-            onPress={goDream} onLongPress={goDream}
-            accessibilityLabel="Dream Ai"
-            style={{ flex: 2.4 }}
-          >
-            <LinearGradient colors={mode.dreamGradient!} style={styles.mosaicVoice}>
-              <Text style={styles.mosaicDreamLabel}>Dream Ai</Text>
-              <View style={styles.mosaicDreamLine}>
-                <Text style={styles.mosaicDreamGlyph}>✦</Text>
-                <Text style={styles.mosaicDreamText}>{lineA}</Text>
-              </View>
-              <View style={styles.mosaicDreamLine}>
-                <Text style={styles.mosaicDreamGlyph}>✦</Text>
-                <Text style={styles.mosaicDreamText}>{lineB}</Text>
-              </View>
-            </LinearGradient>
-          </Pressable>
+          {/* ── DREAM CONTENT — original photo row + 3 voice tiles ── */}
+          {!isSanctuary ? (
+            <>
+              <View style={styles.mosaicPhotoRow}>
+                <Pressable
+                  style={[styles.mosaicPhotoTile, styles.mosaicPhotoLeft]}
+                  onPress={goMuse} onLongPress={goMuse}
+                  accessibilityLabel="Muse"
+                >
+                  {museUrl ? (
+                    <ModePhoto
+                      uri={museUrl} treatment={mode.photoTreatment}
+                      containerStyle={StyleSheet.absoluteFill} imageStyle={styles.photoImg}
+                    />
+                  ) : null}
+                  <Text style={styles.mosaicTileLabel}>Muse</Text>
+                  <View style={styles.mosaicTileDot} />
+                </Pressable>
 
-          <Pressable
-            onPress={goCircle} onLongPress={goCircle}
-            accessibilityLabel="Circle"
-            style={{ flex: 1.8 }}
-          >
-            <LinearGradient colors={mode.circleGradient!} style={styles.mosaicVoice}>
-              <Text style={styles.mosaicCircleLabel}>Circle</Text>
-              {circleLines.length > 0 ? (
-                circleLines.map((line, idx) => (
-                  <View key={idx} style={styles.mosaicCircleLine}>
-                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                    <Text style={styles.mosaicCircleText}>{line}</Text>
+                <Pressable
+                  style={styles.mosaicPhotoTile}
+                  onPress={goDiscover} onLongPress={goDiscover}
+                  accessibilityLabel="Discover"
+                >
+                  {discoverUrl ? (
+                    <ModePhoto
+                      uri={discoverUrl} treatment={mode.photoTreatment}
+                      containerStyle={StyleSheet.absoluteFill} imageStyle={styles.photoImg}
+                    />
+                  ) : null}
+                  <Text style={styles.mosaicTileLabel}>Discover</Text>
+                  <View style={styles.mosaicTileDot} />
+                </Pressable>
+              </View>
+
+              <Pressable
+                onPress={goDream} onLongPress={goDream}
+                accessibilityLabel="Dream Ai"
+                style={{ flex: 2.4 }}
+              >
+                <LinearGradient colors={mode.dreamGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicDreamLabel}>Dream Ai</Text>
+                  <View style={styles.mosaicDreamLine}>
+                    <Text style={styles.mosaicDreamGlyph}>✦</Text>
+                    <Text style={styles.mosaicDreamText}>{lineA}</Text>
                   </View>
-                ))
-              ) : (
-                <View style={styles.mosaicCircleLine}>
-                  <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                  <Text style={styles.mosaicCircleText}>Quiet here for now.</Text>
-                </View>
-              )}
-            </LinearGradient>
-          </Pressable>
+                  <View style={styles.mosaicDreamLine}>
+                    <Text style={styles.mosaicDreamGlyph}>✦</Text>
+                    <Text style={styles.mosaicDreamText}>{lineB}</Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
 
-          <Pressable
-            onPress={goJourney} onLongPress={goJourney}
-            accessibilityLabel="Journey"
-            style={{ flex: 1.2, paddingBottom: Math.max(insets.bottom, 0) }}
-          >
-            <LinearGradient colors={mode.journeyGradient!} style={styles.mosaicJourney}>
-              <Text style={styles.mosaicJourneyLabel}>Journey</Text>
-            </LinearGradient>
-          </Pressable>
+              <Pressable
+                onPress={goCircle} onLongPress={goCircle}
+                accessibilityLabel="Circle"
+                style={{ flex: 1.8 }}
+              >
+                <LinearGradient colors={mode.circleGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicCircleLabel}>Circle</Text>
+                  {circleLines.length > 0 ? (
+                    circleLines.map((line, idx) => (
+                      <View key={idx} style={styles.mosaicCircleLine}>
+                        <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                        <Text style={styles.mosaicCircleText}>{line}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View style={styles.mosaicCircleLine}>
+                      <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                      <Text style={styles.mosaicCircleText}>Quiet here for now.</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={goJourney} onLongPress={goJourney}
+                accessibilityLabel="Journey"
+                style={{ flex: 1.2, paddingBottom: Math.max(insets.bottom, 0) }}
+              >
+                <LinearGradient colors={mode.journeyGradient!} style={styles.mosaicJourney}>
+                  <Text style={styles.mosaicJourneyLabel}>Journey</Text>
+                </LinearGradient>
+              </Pressable>
+            </>
+          ) : (
+            // ── SANCTUARY CONTENT — 6 stacked tonal bands, no photo row ──
+            // Flex distribution: clean 0.25 descent for symmetric pour
+            <>
+              <Pressable
+                onPress={goDream} onLongPress={goDream}
+                accessibilityLabel="Dream Ai"
+                style={{ flex: 2.25 }}
+              >
+                <LinearGradient colors={mode.dreamGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicDreamLabel}>Dream Ai</Text>
+                  <View style={styles.mosaicDreamLine}>
+                    <Text style={styles.mosaicDreamGlyph}>✦</Text>
+                    <Text style={styles.mosaicDreamText}>{lineA}</Text>
+                  </View>
+                  <View style={styles.mosaicDreamLine}>
+                    <Text style={styles.mosaicDreamGlyph}>✦</Text>
+                    <Text style={styles.mosaicDreamText}>{lineB}</Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={goCircle} onLongPress={goCircle}
+                accessibilityLabel="Circle"
+                style={{ flex: 2.0 }}
+              >
+                <LinearGradient colors={mode.circleGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicCircleLabel}>Circle</Text>
+                  {circleLines.length > 0 ? (
+                    circleLines.map((line, idx) => (
+                      <View key={idx} style={styles.mosaicCircleLine}>
+                        <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                        <Text style={styles.mosaicCircleText}>{line}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View style={styles.mosaicCircleLine}>
+                      <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                      <Text style={styles.mosaicCircleText}>Quiet here for now.</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={goMuse} onLongPress={goMuse}
+                accessibilityLabel="Muse"
+                style={{ flex: 1.75 }}
+              >
+                <LinearGradient colors={mode.museGradient || mode.circleGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicCircleLabel}>Muse</Text>
+                  <View style={styles.mosaicCircleLine}>
+                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                    <Text style={styles.mosaicCircleText}>{sanctuaryMuseLine}</Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={goMoments} onLongPress={goMoments}
+                accessibilityLabel="Moments"
+                style={{ flex: 1.5 }}
+              >
+                <LinearGradient colors={mode.momentsGradient || mode.circleGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicCircleLabel}>Moments</Text>
+                  <View style={styles.mosaicCircleLine}>
+                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                    <Text style={styles.mosaicCircleText}>{sanctuaryMomentsLine}</Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={goPages} onLongPress={goPages}
+                accessibilityLabel="Pages"
+                style={{ flex: 1.25 }}
+              >
+                <LinearGradient colors={mode.pagesGradient || mode.circleGradient!} style={styles.mosaicVoice}>
+                  <Text style={styles.mosaicCircleLabel}>Pages</Text>
+                  <View style={styles.mosaicCircleLine}>
+                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
+                    <Text style={styles.mosaicCircleText}>{sanctuaryPagesLine}</Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={goJourney} onLongPress={goJourney}
+                accessibilityLabel="Journey"
+                style={{ flex: 1.0, paddingBottom: Math.max(insets.bottom, 0) }}
+              >
+                <LinearGradient colors={mode.journeyGradient!} style={styles.mosaicJourney}>
+                  <Text style={styles.mosaicJourneyLabel}>Journey</Text>
+                </LinearGradient>
+              </Pressable>
+            </>
+          )}
         </View>
 
         <ModePickerSheet
           visible={pickerOpen}
           currentMode={homeMode}
+          contentMode={contentMode}
           onPick={handlePick}
+          onPickContent={(c) => persistContentMode(c)}
           onClose={() => setPickerOpen(false)}
         />
+
+        {/* Toast — shown when bride flips Content via badge */}
+        {toast ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.toastWrap,
+              { opacity: toastFade, bottom: insets.bottom + 60 },
+            ]}
+          >
+            <Text style={styles.toastText}>{toast}</Text>
+          </Animated.View>
+        ) : null}
       </View>
     );
   }
@@ -730,7 +991,9 @@ export default function FrostLanding() {
       <ModePickerSheet
         visible={pickerOpen}
         currentMode={homeMode}
+        contentMode={contentMode}
         onPick={handlePick}
+        onPickContent={(c) => persistContentMode(c)}
         onClose={() => setPickerOpen(false)}
       />
     </View>
@@ -820,11 +1083,43 @@ function makeStyles(m: ModeDescriptor) {
       fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
       color: m.soft,
     },
+    // Mode badge: tappable surface positioned over the hero's bottom area.
+    // Tap flips Content (Dream ↔ Sanctuary). Tone label sits on top, content
+    // label sits below — together they're the single discoverable affordance.
+    mosaicBadgePressable: {
+      position: 'absolute',
+      bottom: 18,
+      alignSelf: 'center',
+      alignItems: 'center',
+      paddingVertical: 6, paddingHorizontal: 12,
+    },
     mosaicModeBadge: {
-      marginTop: 10,
       fontFamily: FrostFonts.label, fontWeight: '300',
       fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
       color: m.brassMuted, opacity: 0.7,
+    },
+    mosaicModeBadgeContent: {
+      marginTop: 4,
+      fontFamily: FrostFonts.label, fontWeight: '300',
+      fontSize: 9, letterSpacing: 4.4, textTransform: 'uppercase',
+      color: m.brass, opacity: 0.8,
+    },
+    // Toast — shown when bride flips Content via badge.
+    // Italic Cormorant brass on dim charcoal, fade-in fade-out.
+    toastWrap: {
+      position: 'absolute',
+      left: 32, right: 32,
+      paddingVertical: 12, paddingHorizontal: 18,
+      borderRadius: 22,
+      backgroundColor: 'rgba(18,14,11,0.88)',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(191,160,77,0.22)',
+      alignItems: 'center',
+    },
+    toastText: {
+      fontFamily: 'CormorantGaramond_300Light_Italic',
+      fontSize: 16, color: '#BFA04D',
+      letterSpacing: 0.4,
     },
 
     // Mosaic Dream Ai voice text
