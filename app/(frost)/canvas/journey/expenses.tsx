@@ -30,6 +30,7 @@ import {
 } from '../../../../constants/frost';
 import {
   fetchMyExpenses, markExpensePaid, deleteExpense, Expense,
+  fetchMyBudget, CoupleBudget,
 } from '../../../../services/frostApi';
 
 function fmtINR(n: number): string {
@@ -39,6 +40,7 @@ function fmtINR(n: number): string {
 
 export default function JourneyExpenses() {
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
+  const [budget, setBudget] = useState<CoupleBudget | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
@@ -47,9 +49,12 @@ export default function JourneyExpenses() {
 
   const load = useCallback(async () => {
     setError(false);
-    const r = await fetchMyExpenses();
+    // PATCH B-6b: fetch budget in parallel with expenses. Budget is optional
+    // — failure is silent (the budget line just won't render).
+    const [r, b] = await Promise.all([fetchMyExpenses(), fetchMyBudget()]);
     if (r === null) { setError(true); setExpenses([]); }
     else setExpenses(r);
+    setBudget(b);
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -119,6 +124,34 @@ export default function JourneyExpenses() {
             <Text style={styles.totalsPending}>{fmtINR(totalPending)} pending</Text>
           </Text>
         ) : null}
+
+        {/* PATCH B-6b: tertiary budget line + brass progress bar.
+            Renders only if total_budget is set (>0). The "parents' frame"
+            stays at the top — this is a soft anchor underneath, not a
+            replacement of the "what I owe" framing. */}
+        {budget && Number(budget.total_budget) > 0 ? (() => {
+          const total = Number(budget.total_budget) || 0;
+          const allocated = totalPaid + totalPending;
+          const pct = Math.max(0, Math.min(1, allocated / total));
+          const remaining = total - allocated;
+          const overBudget = remaining < 0;
+          return (
+            <View style={styles.budgetWrap}>
+              <Text style={styles.budgetLine}>
+                {overBudget
+                  ? `Over budget by ${fmtINR(Math.abs(remaining))} of ${fmtINR(total)}`
+                  : `${fmtINR(allocated)} of ${fmtINR(total)} budget`}
+              </Text>
+              <View style={styles.budgetBarTrack}>
+                <View style={[
+                  styles.budgetBarFill,
+                  { width: `${pct * 100}%` },
+                  overBudget && styles.budgetBarFillOver,
+                ]} />
+              </View>
+            </View>
+          );
+        })() : null}
 
         {hasAny ? <FrostGestureHint storageKey="expenses" text="Tap to know. Hold to act." /> : null}
 
@@ -342,5 +375,33 @@ const styles = StyleSheet.create({
     color: FrostColors.soft,
     textAlign: 'center',
     paddingTop: 80,
+  },
+  // PATCH B-6b: budget tertiary line + thin brass progress bar.
+  // Sits below the paid/pending totals, above the gesture hint. Soft
+  // tone — italic Cormorant in spirit, restrained colour, no heading
+  // weight. The bar is hairline-thin so it reads as anchor not chart.
+  budgetWrap: {
+    marginTop: FrostSpace.m,
+  },
+  budgetLine: {
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 13, lineHeight: 18,
+    color: FrostColors.soft,
+    letterSpacing: 0.2,
+  },
+  budgetBarTrack: {
+    height: 2,
+    marginTop: 6,
+    backgroundColor: FrostColors.hairline,
+    borderRadius: 1,
+    overflow: 'hidden',
+  },
+  budgetBarFill: {
+    height: '100%',
+    backgroundColor: FrostColors.goldMuted,
+    borderRadius: 1,
+  },
+  budgetBarFillOver: {
+    backgroundColor: FrostColors.goldTrue,
   },
 });

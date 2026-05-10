@@ -679,6 +679,25 @@ export interface Expense {
   created_at?: string;
 }
 
+// PATCH B-6b: bride's overall wedding budget envelope.
+export interface CoupleBudget {
+  couple_id: string;
+  total_budget?: number | null;
+  event_envelopes?: Record<string, number> | null;
+  budget_prompt_shown_at?: string | null;
+  updated_at?: string | null;
+}
+
+export async function fetchMyBudget(): Promise<CoupleBudget | null> {
+  const session = await getCoupleSession();
+  if (!session) return null;
+  try {
+    const r = await safeFetch(`${API_BASE}/api/couple/budget/${session.id}`);
+    if (r?.success && r.data) return r.data as CoupleBudget;
+    return null;
+  } catch { return null; }
+}
+
 export async function fetchMyExpenses(): Promise<Expense[] | null> {
   const session = await getCoupleSession();
   if (!session) return null;
@@ -727,9 +746,6 @@ export interface CoupleVendor {
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
-  // PATCH B-5: backend computes sum of actual_amount across paid expenses
-  // for each vendor (case-insensitive name match) and attaches here.
-  paid_total?: number | null;
 }
 
 export async function fetchMyVendors(): Promise<CoupleVendor[] | null> {
