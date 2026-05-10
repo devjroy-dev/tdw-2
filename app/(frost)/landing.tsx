@@ -756,14 +756,14 @@ export default function FrostLanding() {
                 style={{ flex: 2.25 }}
               >
                 <LinearGradient colors={mode.dreamGradient!} style={styles.mosaicVoice}>
-                  <Text style={styles.mosaicDreamLabel}>Dream Ai</Text>
+                  <Text style={styles.mosaicSanctuaryLabel}>Dream Ai</Text>
                   <View style={styles.mosaicDreamLine}>
-                    <Text style={styles.mosaicDreamGlyph}>✦</Text>
-                    <Text style={styles.mosaicDreamText}>{lineA}</Text>
+                    <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                    <Text style={styles.mosaicSanctuaryText}>{lineA}</Text>
                   </View>
                   <View style={styles.mosaicDreamLine}>
-                    <Text style={styles.mosaicDreamGlyph}>✦</Text>
-                    <Text style={styles.mosaicDreamText}>{lineB}</Text>
+                    <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                    <Text style={styles.mosaicSanctuaryText}>{lineB}</Text>
                   </View>
                 </LinearGradient>
               </Pressable>
@@ -774,18 +774,18 @@ export default function FrostLanding() {
                 style={{ flex: 2.0 }}
               >
                 <LinearGradient colors={mode.circleGradient!} style={styles.mosaicVoice}>
-                  <Text style={styles.mosaicCircleLabel}>Circle</Text>
+                  <Text style={styles.mosaicSanctuaryLabel}>Circle</Text>
                   {circleLines.length > 0 ? (
                     circleLines.map((line, idx) => (
                       <View key={idx} style={styles.mosaicCircleLine}>
-                        <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                        <Text style={styles.mosaicCircleText}>{line}</Text>
+                        <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                        <Text style={styles.mosaicSanctuaryText}>{line}</Text>
                       </View>
                     ))
                   ) : (
                     <View style={styles.mosaicCircleLine}>
-                      <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                      <Text style={styles.mosaicCircleText}>Quiet here for now.</Text>
+                      <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                      <Text style={styles.mosaicSanctuaryText}>Quiet here for now.</Text>
                     </View>
                   )}
                 </LinearGradient>
@@ -797,10 +797,10 @@ export default function FrostLanding() {
                 style={{ flex: 1.75 }}
               >
                 <LinearGradient colors={mode.museGradient || mode.circleGradient!} style={styles.mosaicVoice}>
-                  <Text style={styles.mosaicCircleLabel}>Muse</Text>
+                  <Text style={styles.mosaicSanctuaryLabel}>Muse</Text>
                   <View style={styles.mosaicCircleLine}>
-                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                    <Text style={styles.mosaicCircleText}>{sanctuaryMuseLine}</Text>
+                    <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                    <Text style={styles.mosaicSanctuaryText}>{sanctuaryMuseLine}</Text>
                   </View>
                 </LinearGradient>
               </Pressable>
@@ -811,10 +811,10 @@ export default function FrostLanding() {
                 style={{ flex: 1.5 }}
               >
                 <LinearGradient colors={mode.momentsGradient || mode.circleGradient!} style={styles.mosaicVoice}>
-                  <Text style={styles.mosaicCircleLabel}>Moments</Text>
+                  <Text style={styles.mosaicSanctuaryLabel}>Moments</Text>
                   <View style={styles.mosaicCircleLine}>
-                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                    <Text style={styles.mosaicCircleText}>{sanctuaryMomentsLine}</Text>
+                    <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                    <Text style={styles.mosaicSanctuaryText}>{sanctuaryMomentsLine}</Text>
                   </View>
                 </LinearGradient>
               </Pressable>
@@ -825,10 +825,10 @@ export default function FrostLanding() {
                 style={{ flex: 1.25 }}
               >
                 <LinearGradient colors={mode.pagesGradient || mode.circleGradient!} style={styles.mosaicVoice}>
-                  <Text style={styles.mosaicCircleLabel}>Pages</Text>
+                  <Text style={styles.mosaicSanctuaryLabel}>Pages</Text>
                   <View style={styles.mosaicCircleLine}>
-                    <Text style={styles.mosaicCircleGlyph}>✦</Text>
-                    <Text style={styles.mosaicCircleText}>{sanctuaryPagesLine}</Text>
+                    <Text style={styles.mosaicSanctuaryGlyph}>✦</Text>
+                    <Text style={styles.mosaicSanctuaryText}>{sanctuaryPagesLine}</Text>
                   </View>
                 </LinearGradient>
               </Pressable>
@@ -1163,6 +1163,25 @@ function makeStyles(m: ModeDescriptor) {
       fontFamily: 'CormorantGaramond_400Regular_Italic',
       fontSize: 16, letterSpacing: 0.4,
       color: m.brass,
+    },
+
+    // ── SANCTUARY MODE TYPOGRAPHY (Session 29 evening — May 10) ──
+    // Slightly larger across all five voice bands (Dream Ai, Circle, Muse,
+    // Moments, Pages) when contentMode === 'sanctuary'. Sanctuary has no
+    // photo row to anchor the eye, so typography carries more presence.
+    // Asymmetric bump: labels +2pt (announce), sub-lines +1.5pt (settled).
+    mosaicSanctuaryLabel: {
+      fontFamily: 'CormorantGaramond_400Regular_Italic',
+      fontSize: 16, color: m.brass,
+    },
+    mosaicSanctuaryGlyph: {
+      fontSize: 9, color: m.brass, marginTop: 3,
+    },
+    mosaicSanctuaryText: {
+      flex: 1,
+      fontFamily: 'CormorantGaramond_300Light_Italic',
+      fontSize: 13, lineHeight: 17.5,
+      color: m.soft,
     },
 
     // ── Hero (classic) — UNTOUCHED, used by SANCTUARY/A/B/C only ───────
