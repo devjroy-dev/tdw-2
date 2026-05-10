@@ -33,6 +33,7 @@ import FrostedSurface from '../../../components/frost/FrostedSurface';
 import FrostConfirmCard from '../../../components/frost/FrostConfirmCard';
 import FrostContactCard from '../../../components/frost/FrostContactCard';
 import FrostClarifyCard from '../../../components/frost/FrostClarifyCard';
+import FrostViewPill, { shouldShowViewPill } from '../../../components/frost/FrostViewPill';
 import {
   AILine, PersonAction, InlineEvent,
 } from '../../../components/frost/FrostDreamMessages';
@@ -479,15 +480,25 @@ export default function CanvasDream() {
           switch (m.kind) {
             case 'ai':
               // FIX-5: wrap AI messages with an anchor in a long-pressable area
+              // PATCH B-3b: render a small italic "View" pill below the line when
+              // the anchor is a write (entity_type !== 'list'). Tap the pill =
+              // same route long-press already goes to. The pill is the visible
+              // affordance for the otherwise-invisible long-press behaviour.
               if (m.anchor) {
                 return (
-                  <Pressable
-                    key={m.id}
-                    onLongPress={() => handleAnchorPress(m.anchor!)}
-                    delayLongPress={350}
-                  >
-                    <AILine text={m.text} timestamp={m.ts} />
-                  </Pressable>
+                  <View key={m.id}>
+                    <Pressable
+                      onLongPress={() => handleAnchorPress(m.anchor!)}
+                      delayLongPress={350}
+                    >
+                      <AILine text={m.text} timestamp={m.ts} />
+                    </Pressable>
+                    {shouldShowViewPill(m.anchor) ? (
+                      <View style={styles.viewPillRow}>
+                        <FrostViewPill anchor={m.anchor} />
+                      </View>
+                    ) : null}
+                  </View>
                 );
               }
               return <AILine key={m.id} text={m.text} timestamp={m.ts} />;
@@ -610,6 +621,17 @@ function extractFollowupContext(message: string): Record<string, any> {
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  // PATCH B-3b: indent the View pill under the AI line, matching the AILine
+  // glyph + content padding so the pill sits visually under the message text
+  // (not under the ✦ glyph). 32px (avatar size) + 16px (gap) + 32px (paddingHorizontal)
+  // ≈ 80px total — but in practice mirroring AILine's row.paddingHorizontal +
+  // an extra small inset reads better than aligning to the text exactly.
+  viewPillRow: {
+    paddingLeft: 80,
+    paddingRight: 32,
+    marginTop: -4,
+    marginBottom: 4,
+  },
   streamContent: {
     paddingTop: FrostSpace.l,
     paddingBottom: FrostSpace.xxxl,
