@@ -20,6 +20,8 @@ import React from 'react';
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { FrostColors, FrostMaterial, FrostRadius } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 
 type SurfaceMode = 'button' | 'composer' | 'panel';
 
@@ -46,6 +48,7 @@ export default function FrostedSurface({
   style,
   disabled = false,
 }: FrostedSurfaceProps) {
+  const look = useMuseLook();
   const isPressable = Boolean(onPress || onLongPress) && !disabled;
   const isComposer = mode === 'composer';
 
@@ -54,7 +57,7 @@ export default function FrostedSurface({
       return (
         <BlurView
           intensity={isComposer ? FrostMaterial.composerBlurIOS : FrostMaterial.buttonBlurIOS}
-          tint={isComposer ? 'default' : 'light'}
+          tint={isComposer ? 'default' : look === 'E1' ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
         />
       );
@@ -64,7 +67,7 @@ export default function FrostedSurface({
         <View
           style={[
             StyleSheet.absoluteFill,
-            // @ts-expect-error — web-only style
+            // @ts-ignore — web-only style
             {
               backdropFilter: isComposer ? FrostMaterial.composerBlurWeb : FrostMaterial.buttonBlurWeb,
               WebkitBackdropFilter: isComposer ? FrostMaterial.composerBlurWeb : FrostMaterial.buttonBlurWeb,
@@ -75,17 +78,17 @@ export default function FrostedSurface({
         />
       );
     }
-    // Android — translucent tint
+    // Android — translucent tint, mode-aware
+    // E1 dark: near-transparent lift so tiles read as subtle surfaces, not silver slabs
+    // E3 light: original warm-white tint
+    const androidTint = isComposer
+      ? FrostMaterial.androidComposerTint
+      : look === 'E1'
+        ? 'rgba(255,253,248,0.09)'
+        : FrostMaterial.androidButtonTint;
     return (
       <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            backgroundColor: isComposer
-              ? FrostMaterial.androidComposerTint
-              : FrostMaterial.androidButtonTint,
-          },
-        ]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: androidTint }]}
         pointerEvents="none"
       />
     );

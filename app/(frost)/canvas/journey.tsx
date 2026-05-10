@@ -126,7 +126,7 @@ export default function CanvasJourney() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>{'\u2726'}{'  '}Or tell DreamAi what you'd like to do.</Text>
+          <Text style={[styles.footerText, { color: tokens.soft }]}>{'\u2726'}{'  '}Or tell DreamAi what you'd like to do.</Text>
         </View>
 
       </ScrollView>
