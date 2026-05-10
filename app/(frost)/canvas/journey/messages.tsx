@@ -16,6 +16,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { Send } from 'lucide-react-native';
 import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
+import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
@@ -86,6 +87,8 @@ export default function JourneyMessages() {
 // ─── Thread row ─────────────────────────────────────────────────────────────
 
 function ThreadRow({ thread, onPress }: { thread: EnquiryThread; onPress: () => void }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const name = thread.vendor?.name || 'Vendor';
   const category = thread.vendor?.category || '';
   const preview = thread.last_message_preview || '';
@@ -93,30 +96,34 @@ function ThreadRow({ thread, onPress }: { thread: EnquiryThread; onPress: () => 
   const when = formatRelativeTime(thread.last_message_at);
 
   return (
-    <Pressable
+    <FrostedSurface
+      mode="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      radius={12}
+      style={styles.rowCard}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{name[0]?.toUpperCase() || '·'}</Text>
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <View style={styles.rowTop}>
-          <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
-          {when ? <Text style={styles.rowWhen}>{when}</Text> : null}
+      <View style={styles.row}>
+        <View style={[styles.avatar, { borderColor: tokens.hairline, backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.06)' : 'rgba(168,146,75,0.10)' }]}>
+          <Text style={[styles.avatarText, { color: tokens.soft }]}>{name[0]?.toUpperCase() || '·'}</Text>
         </View>
-        {preview ? (
-          <Text style={[styles.rowPreview, unread > 0 && styles.rowPreviewUnread]} numberOfLines={1}>
-            {preview}
-          </Text>
-        ) : category ? (
-          <Text style={styles.rowPreview} numberOfLines={1}>{category}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={styles.rowTop}>
+            <Text style={[styles.rowName, { color: tokens.ink }]} numberOfLines={1}>{name}</Text>
+            {when ? <Text style={[styles.rowWhen, { color: tokens.soft }]}>{when}</Text> : null}
+          </View>
+          {preview ? (
+            <Text style={[styles.rowPreview, { color: tokens.soft }, unread > 0 && styles.rowPreviewUnread]} numberOfLines={1}>
+              {preview}
+            </Text>
+          ) : category ? (
+            <Text style={[styles.rowPreview, { color: tokens.soft }]} numberOfLines={1}>{category}</Text>
+          ) : null}
+        </View>
+        {unread > 0 ? (
+          <View style={[styles.unreadDot, { backgroundColor: tokens.brass }]} />
         ) : null}
       </View>
-      {unread > 0 ? (
-        <View style={styles.unreadDot} />
-      ) : null}
-    </Pressable>
+    </FrostedSurface>
   );
 }
 
@@ -249,10 +256,12 @@ const styles = StyleSheet.create({
   },
   list: { marginTop: FrostSpace.l },
 
+  rowCard: { marginBottom: FrostSpace.s },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: FrostSpace.l,
+    paddingVertical: FrostSpace.m,
+    paddingHorizontal: FrostSpace.l,
     gap: FrostSpace.m,
   },
   rowPressed: { opacity: 0.7 },
