@@ -137,7 +137,7 @@ export default function FrostPagesCanvas() {
       {/* MENU LAYER */}
       <Animated.View
         pointerEvents={activeSlice ? 'none' : 'auto'}
-        style={[styles.layer, { opacity: menuFade }]}
+        style={[styles.layer, { opacity: menuFade, top: insets.top + 60 }]}
       >
         <View style={styles.menuWrap}>
           <Text style={[styles.headline, { color: tokens.brass }]}>
@@ -165,7 +165,7 @@ export default function FrostPagesCanvas() {
       {/* SLICE LAYER */}
       <Animated.View
         pointerEvents={activeSlice ? 'auto' : 'none'}
-        style={[styles.layer, { opacity: sliceFade }]}
+        style={[styles.layer, { opacity: sliceFade, top: insets.top + 60 }]}
       >
         {activeSlice ? (
           <SliceContent
