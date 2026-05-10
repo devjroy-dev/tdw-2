@@ -11,16 +11,19 @@
  *   - Grayscale import is now Platform-gated to fix web-bundling failure
  *     during `eas update` (color-matrix lib can't be bundled for web).
  *
- * Modes:
- *   SANCTUARY — current state. Vintage palette, F-2 frost on photos.
- *   A         — colour photos. Everything else identical to SANCTUARY.
- *   B         — colour photos + cooler/whiter paper + sharp 8px corners.
- *   C         — PWA energy. Taller photos (1.32 aspect), dark gradient at
- *               the bottom of each photo, sharp 0px corners.
- *   E1        — borderless mosaic. Dark gradient hero, colour photos.
- *   E2        — borderless mosaic. Dark gradient hero, B&W photos.
- *   E3        — borderless mosaic. Dirty-white paper hero, colour photos.
- *   E4        — borderless mosaic. Dirty-white paper hero, B&W photos.
+ * Modes (May 10 evening — picker reduced from 8 modes to 3):
+ *   E1A — Dark mosaic, pleasant tonal range. Hero ends slightly lifted (kept
+ *         from current shipped behaviour); photo paper one step deeper at
+ *         #1F1915 to bridge to dream. Hero→photo is a small step; photo→dream
+ *         handoff is invisible.
+ *   E1B — Dark mosaic, true descent. Hero darkens monotonically; photo paper
+ *         deeper still; each tile continues the corridor walk into the dark
+ *         room. More cinematic.
+ *   E3  — Light mosaic, warm paper. Unchanged from prior shipped E3.
+ *
+ * All three use the new framed-pair photo row (stamp paper around AND between
+ * the two photos, each photo a rounded window). Edge-to-edge mosaic and the
+ * goldMuted hairline seam between photos are gone.
  *
  * To lock a final mode:
  *   1. Pick the winning mode in the in-app picker
@@ -62,7 +65,7 @@ const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 // MODE PICKER CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 
-type HomeModeKey = 'SANCTUARY' | 'A' | 'B' | 'C' | 'E1' | 'E2' | 'E3' | 'E4';
+type HomeModeKey = 'E1A' | 'E1B' | 'E3';
 
 // Set to false when a winner is locked and we want to ship it for everyone.
 // While true, the date is tappable to cycle modes; long-press opens picker.
@@ -71,24 +74,19 @@ const SHOW_MODE_PICKER = true;
 // Default mode if AsyncStorage has nothing stored yet, OR if SHOW_MODE_PICKER
 // is false. When you lock a winner, set this to the winning mode and flip
 // SHOW_MODE_PICKER to false.
-const DEFAULT_MODE: HomeModeKey = 'SANCTUARY';
+const DEFAULT_MODE: HomeModeKey = 'E3';
 
 // AsyncStorage key for the per-device chosen mode
 const MODE_STORAGE_KEY = '@frost.home_mode';
 
 // Order modes for tap-to-cycle (matches mockup viewing order)
-const CYCLE_ORDER: HomeModeKey[] = ['SANCTUARY', 'A', 'B', 'C', 'E1', 'E2', 'E3', 'E4'];
+const CYCLE_ORDER: HomeModeKey[] = ['E1A', 'E1B', 'E3'];
 
 // Friendly names for the picker sheet
 const MODE_LABELS: Record<HomeModeKey, { title: string; sub: string }> = {
-  SANCTUARY: { title: 'Sanctuary',   sub: 'Original — vintage palette, frosted greyscale photos' },
-  A:         { title: 'A',           sub: 'Sanctuary, but photos in colour' },
-  B:         { title: 'B',           sub: 'Whiter paper, sharper edges, colour photos' },
-  C:         { title: 'C',           sub: 'PWA energy — tall photos, dark gradients, edge to edge' },
-  E1:        { title: 'E1 — Mosaic dark, colour',  sub: 'Borderless dark mosaic, colour photos' },
-  E2:        { title: 'E2 — Mosaic dark, B&W',     sub: 'Borderless dark mosaic, B&W photos' },
-  E3:        { title: 'E3 — Mosaic light, colour', sub: 'Borderless light mosaic, colour photos' },
-  E4:        { title: 'E4 — Mosaic light, B&W',    sub: 'Borderless light mosaic, B&W photos' },
+  E1A: { title: 'E1 A — Dark, pleasant',   sub: 'Soft dark descent, photos held in warm-night frame' },
+  E1B: { title: 'E1 B — Dark, cinematic',  sub: 'True descent into the dark room, deeper bottom' },
+  E3:  { title: 'E3 — Light',              sub: 'Warm paper sanctuary, photos held in atelier frame' },
 };
 
 // ─── Mode descriptors ──────────────────────────────────────────────────────
@@ -120,80 +118,40 @@ interface ModeDescriptor {
 }
 
 const MODES: Record<HomeModeKey, ModeDescriptor> = {
-  SANCTUARY: {
-    layout: 'classic', photoTreatment: 'frost',
-    pagePaper: '#D8D3CC', cardFill: '#ECE9E4', stampFill: '#C0BCB6',
-    hairline: '#B5B1AC', hairlineStrong: '#A39E97',
-    ink: '#2C2823', soft: '#5A5650', brass: '#BFA04D', brassMuted: '#A8924B',
-    imgBoxRadius: 18, photoFrameRadius: 12, cardRadius: 18,
-    photoAspect: 1 / 1.18, statusBarStyle: 'dark-content',
-  },
-  A: {
-    layout: 'classic', photoTreatment: 'colour',
-    pagePaper: '#D8D3CC', cardFill: '#ECE9E4', stampFill: '#C0BCB6',
-    hairline: '#B5B1AC', hairlineStrong: '#A39E97',
-    ink: '#2C2823', soft: '#5A5650', brass: '#BFA04D', brassMuted: '#A8924B',
-    imgBoxRadius: 18, photoFrameRadius: 12, cardRadius: 18,
-    photoAspect: 1 / 1.18, statusBarStyle: 'dark-content',
-  },
-  B: {
-    layout: 'classic', photoTreatment: 'colour',
-    pagePaper: '#EDEAE4', cardFill: '#F4F1EB', stampFill: '#D2CEC8',
-    hairline: '#C2BEB8', hairlineStrong: '#A39E97',
-    ink: '#2C2823', soft: '#5A5650', brass: '#BFA04D', brassMuted: '#A8924B',
-    imgBoxRadius: 8, photoFrameRadius: 6, cardRadius: 8,
-    photoAspect: 1 / 1.18, statusBarStyle: 'dark-content',
-  },
-  C: {
-    layout: 'classic', photoTreatment: 'colour',
-    pagePaper: '#D8D3CC', cardFill: '#1A1612', stampFill: '#C0BCB6',
-    hairline: '#B5B1AC', hairlineStrong: '#A39E97',
-    ink: '#2C2823', soft: '#5A5650', brass: '#BFA04D', brassMuted: '#A8924B',
-    imgBoxRadius: 0, photoFrameRadius: 0, cardRadius: 0,
-    photoAspect: 1 / 1.32, statusBarStyle: 'dark-content',
-    photoBottomGradient: true,
-  },
-  E1: {
+  // E1 A — pleasant dark range. Hero ends slightly lifted (current behaviour kept),
+  // photo paper sits one step deeper at #1F1915, then dream descends from there.
+  // Photo→dream handoff is invisible. Hero→photo is a small deepening step.
+  E1A: {
     layout: 'mosaic', photoTreatment: 'colour',
-    pagePaper: '#1B1612', cardFill: '#1B1612', stampFill: '#2D2620',
+    pagePaper: '#1B1612', cardFill: '#1B1612', stampFill: '#1F1915',
     hairline: 'rgba(191,160,77,0.18)', hairlineStrong: 'rgba(191,160,77,0.22)',
     ink: '#F5F0E8', soft: 'rgba(245,240,232,0.62)',
     brass: '#BFA04D', brassMuted: '#A8924B',
     imgBoxRadius: 0, photoFrameRadius: 0, cardRadius: 0,
     photoAspect: 1 / 1, statusBarStyle: 'light-content',
-    heroGradient:    ['#1B1612', '#2A2018'],
-    dreamGradient:   ['#2D2620', '#1A1612'],
-    circleGradient:  ['#1F1A18', '#2C2520'],
-    journeyGradient: ['#15110E', '#221C18'],
+    heroGradient:    ['#1B1612', '#231D17'],
+    dreamGradient:   ['#1F1915', '#1A1410'],
+    circleGradient:  ['#1A1410', '#15110E'],
+    journeyGradient: ['#15110E', '#100C0A'],
   },
-  E2: {
-    layout: 'mosaic', photoTreatment: 'bw',
-    pagePaper: '#1B1612', cardFill: '#1B1612', stampFill: '#2D2620',
+  // E1 B — true descent. Hero darkens monotonically top→bottom, photo paper deeper still,
+  // each subsequent tile continues descending. More cinematic, walks into the dark room.
+  E1B: {
+    layout: 'mosaic', photoTreatment: 'colour',
+    pagePaper: '#1B1612', cardFill: '#1B1612', stampFill: '#14110D',
     hairline: 'rgba(191,160,77,0.18)', hairlineStrong: 'rgba(191,160,77,0.22)',
     ink: '#F5F0E8', soft: 'rgba(245,240,232,0.62)',
     brass: '#BFA04D', brassMuted: '#A8924B',
     imgBoxRadius: 0, photoFrameRadius: 0, cardRadius: 0,
     photoAspect: 1 / 1, statusBarStyle: 'light-content',
-    heroGradient:    ['#1B1612', '#2A2018'],
-    dreamGradient:   ['#2D2620', '#1A1612'],
-    circleGradient:  ['#1F1A18', '#2C2520'],
-    journeyGradient: ['#15110E', '#221C18'],
+    heroGradient:    ['#1B1612', '#181410'],
+    dreamGradient:   ['#14110D', '#100D0A'],
+    circleGradient:  ['#130F0A', '#0D0A07'],
+    journeyGradient: ['#0F0C09', '#080605'],
   },
+  // E3 — light, warm paper. Unchanged from prior shipped behaviour.
   E3: {
     layout: 'mosaic', photoTreatment: 'colour',
-    pagePaper: '#D8D3CC', cardFill: '#D8D3CC', stampFill: '#C8C2BA',
-    hairline: 'rgba(44,40,35,0.12)', hairlineStrong: 'rgba(44,40,35,0.18)',
-    ink: '#2C2823', soft: '#5A5650',
-    brass: '#BFA04D', brassMuted: '#A8924B',
-    imgBoxRadius: 0, photoFrameRadius: 0, cardRadius: 0,
-    photoAspect: 1 / 1, statusBarStyle: 'dark-content',
-    heroGradient:    ['#D8D3CC', '#CFC9C1'],
-    dreamGradient:   ['#C8C2BA', '#BBB5AC'],
-    circleGradient:  ['#BCB6AD', '#B0AAA1'],
-    journeyGradient: ['#A8A29A', '#948E86'],
-  },
-  E4: {
-    layout: 'mosaic', photoTreatment: 'bw',
     pagePaper: '#D8D3CC', cardFill: '#D8D3CC', stampFill: '#C8C2BA',
     hairline: 'rgba(44,40,35,0.12)', hairlineStrong: 'rgba(44,40,35,0.18)',
     ink: '#2C2823', soft: '#5A5650',
@@ -791,13 +749,20 @@ function makeStyles(m: ModeDescriptor) {
       alignItems: 'center', justifyContent: 'center',
       paddingHorizontal: 16, paddingVertical: 16,
     },
-    mosaicPhotoRow: { flex: 4, flexDirection: 'row' },
+    // PHOTO ROW — framed pair architecture. Stamp paper around AND between photos.
+    // Gap between tiles = same as outer padding, so the frame paper holds two
+    // distinct rounded windows side by side. No more edge-to-edge seam.
+    mosaicPhotoRow: {
+      flex: 4, flexDirection: 'row', gap: 8, padding: 8,
+      backgroundColor: m.stampFill,
+    },
     mosaicPhotoTile: {
-      flex: 1, overflow: 'hidden', backgroundColor: m.cardFill, position: 'relative',
+      flex: 1, overflow: 'hidden', backgroundColor: m.cardFill,
+      position: 'relative', borderRadius: 14,
     },
-    mosaicPhotoLeft: {
-      borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: m.hairline,
-    },
+    // Kept for type compatibility (still referenced by JSX) but no longer adds a border.
+    // The seam is gone — frame paper between photos handles the separation.
+    mosaicPhotoLeft: {},
     mosaicTileLabel: {
       position: 'absolute', top: 10, left: 10,
       fontFamily: FrostFonts.label, fontWeight: '300',

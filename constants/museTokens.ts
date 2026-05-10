@@ -70,7 +70,10 @@ export const MUSE_LOOKS: Record<MuseLook, MuseLookTokens> = {
 /** AsyncStorage key — must match landing.tsx MODE_STORAGE_KEY. */
 export const MODE_STORAGE_KEY = '@frost.home_mode';
 
-/** Map the bride's home mode to a Muse look. E1 home → E1 Muse. Else E3. */
+/** Map the bride's home mode to a Muse look.
+ * Both E1A and E1B home → E1 Muse (dark, framed mosaic).
+ * E3 (or anything else, including unknown legacy stored values) → E3 Muse (light).
+ */
 export function muselookFromHomeMode(homeMode: string | null | undefined): MuseLook {
-  return homeMode === 'E1' ? 'E1' : 'E3';
+  return (homeMode === 'E1A' || homeMode === 'E1B') ? 'E1' : 'E3';
 }
