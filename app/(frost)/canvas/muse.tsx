@@ -1,30 +1,42 @@
 /**
- * Frost · Canvas · Muse
+ * Frost · Canvas · Muse (mode-aware redesign — May 10 evening)
  *
- * The bride's saved inspiration. 2-column staggered grid of saves, with a
- * gold "Surprise Me" pill in the top-right that opens the suggestions
- * overlay. Tapping a saved tile expands it (future: detail view).
+ * Visual ship — moves Muse to a symmetrical borderless 2-col mosaic mirroring
+ * the home E1/E3 mosaic discipline. The bride's home_mode (AsyncStorage
+ * @frost.home_mode) selects the look:
+ *   - home_mode === 'E1'  →  E1 dark mosaic
+ *   - anything else       →  E3 light mosaic (default fallback)
  *
- * Data: GET /api/couple/muse/:userId via fetchMuseSaves()
+ * Layout, top to bottom:
+ *   - Eyebrow row    : MUSE eyebrow (left)  ·  X close (right)
+ *   - Pill row       : Surprise Me (left, brass)  ·  More + Edit (right, frost)
+ *   - Mosaic         : symmetrical 2-col, equal-aspect tiles, latest top-left
  *
- * Empty state: when the bride has zero saves, the canvas shows a single
- * hero CTA pulling her toward Surprise Me.
+ * Tile interactions (handled inside MuseGrid):
+ *   - Tap          : reveal № muse-number + taste summary for 5s, then auto-dismiss
+ *   - Long-press   : opens save in full bleed
+ *                       - vendor-linked save  →  vendor profile
+ *                       - external link save  →  Linking.openURL
+ *                       - image-only save     →  full-bleed image overlay
  *
- * Filtering: chip row above the grid lets her filter by ceremony tag.
- * Currently filters client-side from the saves list.
+ * Deferred this session: Edit/delete loop. Edit pill renders but tapping it
+ * surfaces a soft toast — actual delete needs services/frostApi.ts changes
+ * which are inside the auth-cleanup boundary. Returns next session.
+ *
+ * Also deferred: persistent muse_number column on moodboard_items. Today the
+ * grid uses index-based placeholder numbering. Once the DB column ships, swap
+ * MuseGrid's `String(index + 1).padStart(3, '0')` for `save.muse_number`.
  */
-
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator,
-  RefreshControl, Image,
+  RefreshControl, Image, Linking, StatusBar, Animated,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Sparkles, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  FrostColors, FrostFonts, FrostType, FrostSpace, FrostRadius, FrostCopy,
-} from '../../../constants/frost';
+import { FrostFonts } from '../../../constants/frost';
+import { MUSE_LOOKS, type MuseLookTokens } from '../../../constants/museTokens';
+import { useMuseLook } from '../../../hooks/useMuseLook';
 import MuseGrid from '../../../components/frost/MuseGrid';
 import SurpriseMeOverlay from '../../../components/frost/SurpriseMeOverlay';
 import {
@@ -33,23 +45,28 @@ import {
 } from '../../../services/frostApi';
 
 const CEREMONY_FILTERS: { id: string; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'haldi', label: 'Haldi' },
-  { id: 'mehendi', label: 'Mehendi' },
-  { id: 'sangeet', label: 'Sangeet' },
+  { id: 'all',       label: 'All' },
+  { id: 'haldi',     label: 'Haldi' },
+  { id: 'mehendi',   label: 'Mehendi' },
+  { id: 'sangeet',   label: 'Sangeet' },
   { id: 'reception', label: 'Reception' },
-  { id: 'wedding', label: 'Wedding' },
+  { id: 'wedding',   label: 'Wedding' },
 ];
 
 export default function CanvasMuse() {
   const insets = useSafeAreaInsets();
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
 
   const [saves, setSaves] = useState<MuseSave[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [expandedSave, setExpandedSave] = useState<MuseSave | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastFade = useMemo(() => new Animated.Value(0), []);
 
   const load = useCallback(async () => {
     const data = await fetchMuseSaves();
@@ -67,8 +84,40 @@ export default function CanvasMuse() {
 
   const handleSurpriseClose = () => {
     setOverlayVisible(false);
-    // Refetch saves in case bride saved suggestions during the overlay
     load();
+  };
+
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+    Animated.sequence([
+      Animated.timing(toastFade, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(2400),
+      Animated.timing(toastFade, { toValue: 0, duration: 280, useNativeDriver: true }),
+    ]).start(() => setToast(null));
+  }, [toastFade]);
+
+  const handleEditPress = () => {
+    showToast('Editing comes back in a moment.');
+  };
+
+  // Long-press routing per save type
+  const handleTileLongPress = (save: MuseSave) => {
+    // Vendor-linked → vendor profile (uses existing route convention)
+    if (save.vendor?.id) {
+      router.push(`/(frost)/canvas/discover/vendor/${save.vendor.id}` as any);
+      return;
+    }
+    // External link → open URL (Pinterest, Instagram, web)
+    const url = save.image_url || '';
+    const isExternalLink =
+      /pinterest\.com|instagram\.com/i.test(url) &&
+      !/\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(url);
+    if (isExternalLink) {
+      Linking.openURL(url).catch(() => setExpandedSave(save));
+      return;
+    }
+    // Image → full-bleed in-app
+    setExpandedSave(save);
   };
 
   const filteredSaves = activeFilter === 'all'
@@ -76,134 +125,186 @@ export default function CanvasMuse() {
     : saves.filter(s => s.function_tag === activeFilter);
 
   const isEmpty = !loading && saves.length === 0;
-
-  // Determine surprise overlay's preselected functionTag from active filter
   const surpriseFunctionTag = activeFilter !== 'all' ? activeFilter : undefined;
 
-  return (
-    <View style={styles.root}>
-      {/* TOP BAR */}
-      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.topBarLeft}>
-          <View style={styles.eyebrowDot} />
-          <Text style={styles.eyebrow}>{FrostCopy.museCanvas.eyebrow}</Text>
-        </View>
-        <View style={styles.topBarRight}>
-          <Pressable
-            onPress={() => setOverlayVisible(true)}
-            style={({ pressed }) => [styles.surpriseBtn, pressed && { opacity: 0.88 }]}
-          >
-            <Sparkles size={14} color={FrostColors.ink} strokeWidth={2} />
-            <Text style={styles.surpriseLabel}>Surprise Me</Text>
-          </Pressable>
-          <Pressable onPress={() => router.back()} hitSlop={16} style={styles.closeBtn}>
-            <X size={22} color={FrostColors.ink} strokeWidth={1.5} />
-          </Pressable>
-        </View>
-      </View>
+  // Caption resolver for tap-reveal — current source: vendor name or note
+  const captionFor = useCallback((save: MuseSave): string | null => {
+    if (save.note) return save.note;
+    if (save.vendor?.name) return save.vendor.name;
+    return null;
+  }, []);
 
-      {/* CONTENT */}
+  return (
+    <View style={[styles.root, { backgroundColor: tokens.pagePaper }]}>
+      <StatusBar barStyle={tokens.statusBarStyle} backgroundColor={tokens.pagePaper} />
+
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 70 }]}
+        contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={FrostColors.muted}
+            tintColor={tokens.brassMuted}
           />
         }
       >
-        {/* HEADING */}
-        <View style={styles.heading}>
-          <Text style={styles.headingTitle}>Your saved moments.</Text>
-          <Text style={styles.headingSub}>
-            {saves.length === 0
-              ? 'Tap Surprise Me to start, or paste a Pinterest link in Dream.'
-              : `${saves.length} ${saves.length === 1 ? 'inspiration' : 'inspirations'} so far.`}
-          </Text>
+        {/* EYEBROW ROW: MUSE  ·  X */}
+        <View style={[styles.eyebrowRow, { paddingTop: insets.top + 14 }]}>
+          <Text style={[styles.eyebrow, { color: tokens.brassMuted }]}>MUSE</Text>
+          <Pressable onPress={() => router.back()} hitSlop={16}>
+            <Text style={[styles.closeMark, { color: tokens.closeColor }]}>×</Text>
+          </Pressable>
         </View>
 
-        {/* CEREMONY FILTERS */}
-        {!isEmpty ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersRow}
+        {/* PILL ROW: Surprise Me (left, brass) · More + Edit (right, frost) */}
+        <View style={styles.pillRow}>
+          <Pressable
+            onPress={() => setOverlayVisible(true)}
+            style={({ pressed }) => [
+              styles.pillPrimary,
+              { backgroundColor: tokens.brass },
+              pressed && { opacity: 0.88 },
+            ]}
           >
-            {CEREMONY_FILTERS.map(f => (
-              <Pressable
-                key={f.id}
-                onPress={() => setActiveFilter(f.id)}
-                style={({ pressed }) => [
-                  styles.filterChip,
-                  activeFilter === f.id && styles.filterChipActive,
-                  pressed && { opacity: 0.92 },
-                ]}
-              >
-                <Text style={[
-                  styles.filterText,
-                  activeFilter === f.id && styles.filterTextActive,
-                ]}>{f.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+            <Text style={styles.pillPrimaryGlyph}>✦</Text>
+            <Text style={[styles.pillPrimaryText, { color: look === 'E1' ? '#1B1612' : '#2C2823' }]}>
+              Surprise me
+            </Text>
+          </Pressable>
+
+          <View style={styles.pillRightCluster}>
+            <Pressable
+              onPress={() => setMoreOpen(v => !v)}
+              style={({ pressed }) => [
+                styles.pillSecondary,
+                {
+                  backgroundColor: moreOpen ? tokens.brass : tokens.pillSecondaryBg,
+                  borderColor: tokens.pillSecondaryBorder,
+                },
+                pressed && { opacity: 0.88 },
+              ]}
+            >
+              <Text style={[
+                styles.pillSecondaryText,
+                {
+                  color: moreOpen
+                    ? (look === 'E1' ? '#1B1612' : '#2C2823')
+                    : tokens.pillSecondaryText,
+                },
+              ]}>More</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleEditPress}
+              style={({ pressed }) => [
+                styles.pillSecondary,
+                {
+                  backgroundColor: tokens.pillSecondaryBg,
+                  borderColor: tokens.pillSecondaryBorder,
+                },
+                pressed && { opacity: 0.88 },
+              ]}
+            >
+              <Text style={[styles.pillSecondaryText, { color: tokens.pillSecondaryText }]}>
+                Edit
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* MORE PANEL — ceremony filters as a quiet annotation row */}
+        {moreOpen ? (
+          <View style={[styles.morePanel, { borderColor: tokens.hairline }]}>
+            <View style={styles.filtersWrap}>
+              {CEREMONY_FILTERS.map(f => {
+                const active = activeFilter === f.id;
+                return (
+                  <Pressable
+                    key={f.id}
+                    onPress={() => setActiveFilter(f.id)}
+                    style={({ pressed }) => [
+                      styles.filterChip,
+                      pressed && { opacity: 0.92 },
+                    ]}
+                  >
+                    <Text style={[
+                      styles.filterText,
+                      { color: active ? tokens.brass : tokens.soft },
+                    ]}>
+                      {f.label.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         ) : null}
 
-        {/* GRID / EMPTY / LOADING */}
+        {/* MOSAIC GRID */}
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator color={FrostColors.muted} />
+            <ActivityIndicator color={tokens.brassMuted} />
           </View>
         ) : isEmpty ? (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Sparkles size={28} color={FrostColors.goldMuted} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.emptyTitle}>Your Muse is quiet.</Text>
-            <Text style={styles.emptySub}>
+            <Text style={[styles.emptyTitle, { color: tokens.ink }]}>Your Muse is quiet.</Text>
+            <Text style={[styles.emptySub, { color: tokens.soft }]}>
               Tap Surprise Me and I&#x2019;ll find inspiration based on what you love.
             </Text>
             <Pressable
               onPress={() => setOverlayVisible(true)}
-              style={({ pressed }) => [styles.emptyCTA, pressed && { opacity: 0.88 }]}
+              style={({ pressed }) => [
+                styles.emptyCTA,
+                { backgroundColor: tokens.brass },
+                pressed && { opacity: 0.88 },
+              ]}
             >
-              <Sparkles size={16} color={FrostColors.ink} strokeWidth={1.7} />
-              <Text style={styles.emptyCTAText}>Surprise Me</Text>
+              <Text style={[styles.emptyCTAText, { color: look === 'E1' ? '#1B1612' : '#2C2823' }]}>
+                ✦  Surprise me
+              </Text>
             </Pressable>
           </View>
         ) : filteredSaves.length === 0 ? (
           <View style={styles.emptyFilter}>
-            <Text style={styles.emptyFilterText}>
+            <Text style={[styles.emptyFilterText, { color: tokens.soft }]}>
               No saves tagged for {activeFilter} yet.
             </Text>
             <Pressable
               onPress={() => setOverlayVisible(true)}
-              style={({ pressed }) => [styles.emptyCTA, pressed && { opacity: 0.88 }]}
+              style={({ pressed }) => [
+                styles.emptyCTA,
+                { backgroundColor: tokens.brass },
+                pressed && { opacity: 0.88 },
+              ]}
             >
-              <Sparkles size={16} color={FrostColors.ink} strokeWidth={1.7} />
-              <Text style={styles.emptyCTAText}>Find {activeFilter} ideas</Text>
+              <Text style={[styles.emptyCTAText, { color: look === 'E1' ? '#1B1612' : '#2C2823' }]}>
+                ✦  Find {activeFilter} ideas
+              </Text>
             </Pressable>
           </View>
         ) : (
           <MuseGrid
             saves={filteredSaves}
-            onTilePress={(save) => setExpandedSave(save)}
+            tokens={tokens}
+            onTileLongPress={handleTileLongPress}
+            captionFor={captionFor}
           />
         )}
 
-        <View style={{ height: insets.bottom + FrostSpace.huge }} />
+        <View style={{ height: insets.bottom + 36 }} />
       </ScrollView>
 
-      {/* SURPRISE ME OVERLAY */}
+      {/* SURPRISE ME OVERLAY (mode-aware) */}
       <SurpriseMeOverlay
         visible={overlayVisible}
         onClose={handleSurpriseClose}
         functionTag={surpriseFunctionTag}
         onSaved={load}
+        look={look}
       />
 
-      {/* EXPANDED SAVE OVERLAY (lightweight) */}
+      {/* EXPANDED IMAGE OVERLAY — full bleed, warm-charcoal scrim */}
       {expandedSave?.image_url ? (
         <Pressable
           style={styles.expandedOverlay}
@@ -214,188 +315,184 @@ export default function CanvasMuse() {
             style={styles.expandedImage}
             resizeMode="contain"
           />
-          {expandedSave.note ? (
-            <View style={[styles.expandedNote, { bottom: insets.bottom + 24 }]}>
-              <Text style={styles.expandedNoteText}>{expandedSave.note}</Text>
-            </View>
-          ) : null}
           <Pressable
             onPress={() => setExpandedSave(null)}
             style={[styles.expandedClose, { top: insets.top + 14 }]}
             hitSlop={16}
           >
-            <X size={22} color={FrostColors.white} strokeWidth={1.5} />
+            <Text style={styles.expandedCloseMark}>×</Text>
           </Pressable>
         </Pressable>
+      ) : null}
+
+      {/* TOAST — soft notice for deferred Edit */}
+      {toast ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.toast,
+            {
+              opacity: toastFade,
+              backgroundColor: look === 'E1' ? 'rgba(45,38,32,0.96)' : 'rgba(44,40,35,0.94)',
+              bottom: insets.bottom + 32,
+            },
+          ]}
+        >
+          <Text style={styles.toastText}>{toast}</Text>
+        </Animated.View>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: FrostColors.pageFallback },
+  root: { flex: 1 },
+  scroll: { paddingBottom: 0 },
 
-  topBar: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    paddingHorizontal: FrostSpace.xxl,
-    paddingBottom: 12,
+  eyebrowRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    zIndex: 10,
-    backgroundColor: 'rgba(232,229,224,0.94)',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: FrostColors.hairline,
-  },
-  topBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FrostSpace.s,
-  },
-  topBarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FrostSpace.m,
-  },
-  eyebrowDot: {
-    width: 4, height: 4, borderRadius: 2,
-    backgroundColor: FrostColors.muted,
-    opacity: 0.9,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
   },
   eyebrow: {
-    ...FrostType.eyebrowMedium,
-    letterSpacing: 4,
-    color: FrostColors.muted,
+    fontFamily: FrostFonts.label,
+    fontWeight: '300',
+    fontSize: 9.5,
+    letterSpacing: 4.2,
+    textTransform: 'uppercase',
   },
-  surpriseBtn: {
+  closeMark: {
+    fontFamily: FrostFonts.label,
+    fontWeight: '300',
+    fontSize: 22,
+    lineHeight: 22,
+  },
+
+  pillRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+  },
+  pillPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: FrostSpace.l,
+    gap: 5,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: FrostRadius.pill,
-    backgroundColor: FrostColors.goldMuted,
+    borderRadius: 100,
   },
-  surpriseLabel: {
-    fontFamily: FrostFonts.labelMedium,
+  pillPrimaryGlyph: {
     fontSize: 11,
-    letterSpacing: 1.6,
+    color: '#1B1612',
+    lineHeight: 11,
+  },
+  pillPrimaryText: {
+    fontFamily: FrostFonts.labelMedium,
+    fontSize: 9.5,
+    letterSpacing: 2.6,
     textTransform: 'uppercase',
-    color: FrostColors.ink,
+    lineHeight: 11,
   },
-  closeBtn: {
-    width: 32, height: 32,
-    alignItems: 'center', justifyContent: 'center',
+  pillRightCluster: {
+    flexDirection: 'row',
+    gap: 6,
   },
-
-  scroll: {
-    paddingBottom: FrostSpace.xxl,
+  pillSecondary: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  heading: {
-    paddingHorizontal: FrostSpace.xxl,
-    paddingBottom: FrostSpace.l,
-  },
-  headingTitle: {
-    ...FrostType.displayM,
-    fontStyle: 'italic',
-    fontFamily: FrostFonts.display,
-  },
-  headingSub: {
-    ...FrostType.bodyMedium,
-    color: FrostColors.muted,
-    marginTop: FrostSpace.xs,
+  pillSecondaryText: {
+    fontFamily: FrostFonts.label,
+    fontWeight: '300',
+    fontSize: 9.5,
+    letterSpacing: 2.6,
+    textTransform: 'uppercase',
+    lineHeight: 11,
   },
 
-  filtersRow: {
-    paddingHorizontal: FrostSpace.xxl,
-    paddingBottom: FrostSpace.xl,
-    gap: FrostSpace.s,
+  morePanel: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 4,
+  },
+  filtersWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    rowGap: 10,
   },
   filterChip: {
-    paddingHorizontal: FrostSpace.l,
-    paddingVertical: 8,
-    borderRadius: FrostRadius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: FrostColors.hairline,
-    backgroundColor: 'transparent',
-  },
-  filterChipActive: {
-    borderColor: FrostColors.goldMuted,
-    backgroundColor: 'rgba(168,146,75,0.12)',
+    paddingVertical: 4,
   },
   filterText: {
-    ...FrostType.eyebrowSmall,
-    letterSpacing: 1.6,
-    color: FrostColors.muted,
-  },
-  filterTextActive: {
-    color: FrostColors.goldMuted,
+    fontFamily: FrostFonts.label,
+    fontWeight: '300',
+    fontSize: 9,
+    letterSpacing: 2.4,
   },
 
   centered: {
-    paddingVertical: FrostSpace.huge,
+    paddingVertical: 96,
     alignItems: 'center',
   },
 
   emptyState: {
-    paddingHorizontal: FrostSpace.xxl,
-    paddingVertical: FrostSpace.huge,
+    paddingHorizontal: 28,
+    paddingVertical: 80,
     alignItems: 'center',
   },
-  emptyIcon: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(168,146,75,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: FrostSpace.l,
-  },
   emptyTitle: {
-    ...FrostType.displayM,
-    fontStyle: 'italic',
-    fontFamily: FrostFonts.display,
+    fontFamily: 'CormorantGaramond_400Regular_Italic',
+    fontSize: 28,
+    lineHeight: 32,
     textAlign: 'center',
   },
   emptySub: {
-    ...FrostType.bodyMedium,
-    color: FrostColors.muted,
+    fontFamily: FrostFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
-    marginTop: FrostSpace.s,
-    marginBottom: FrostSpace.xl,
-    paddingHorizontal: FrostSpace.l,
+    marginTop: 8,
+    marginBottom: 24,
+    paddingHorizontal: 16,
   },
   emptyCTA: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FrostSpace.s,
-    paddingHorizontal: FrostSpace.xl,
-    paddingVertical: FrostSpace.m,
-    borderRadius: FrostRadius.pill,
-    backgroundColor: FrostColors.goldMuted,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 100,
   },
   emptyCTAText: {
     fontFamily: FrostFonts.labelMedium,
     fontSize: 12,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: FrostColors.ink,
   },
 
   emptyFilter: {
-    paddingHorizontal: FrostSpace.xxl,
-    paddingVertical: FrostSpace.xxxl,
+    paddingHorizontal: 28,
+    paddingVertical: 60,
     alignItems: 'center',
   },
   emptyFilterText: {
-    ...FrostType.bodyMedium,
-    color: FrostColors.muted,
-    marginBottom: FrostSpace.l,
+    fontFamily: FrostFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
+    marginBottom: 16,
   },
 
   expandedOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    backgroundColor: 'rgba(15,12,10,0.96)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 200,
@@ -403,25 +500,33 @@ const styles = StyleSheet.create({
   expandedImage: {
     width: '100%', height: '100%',
   },
-  expandedNote: {
-    position: 'absolute',
-    left: FrostSpace.xxl, right: FrostSpace.xxl,
-    paddingHorizontal: FrostSpace.l,
-    paddingVertical: FrostSpace.m,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: FrostRadius.box,
-  },
-  expandedNoteText: {
-    ...FrostType.bodyMedium,
-    color: FrostColors.white,
-    fontStyle: 'italic',
-    fontFamily: FrostFonts.display,
-    fontSize: 17,
-  },
   expandedClose: {
     position: 'absolute',
-    right: FrostSpace.xxl,
+    right: 18,
     width: 32, height: 32,
     alignItems: 'center', justifyContent: 'center',
+  },
+  expandedCloseMark: {
+    fontFamily: FrostFonts.label,
+    fontWeight: '300',
+    fontSize: 22,
+    lineHeight: 22,
+    color: 'rgba(245,240,232,0.92)',
+  },
+
+  toast: {
+    position: 'absolute',
+    left: 24, right: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 100,
+    alignItems: 'center',
+    zIndex: 300,
+  },
+  toastText: {
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 14,
+    color: 'rgba(245,240,232,0.96)',
+    textAlign: 'center',
   },
 });

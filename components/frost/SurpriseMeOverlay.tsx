@@ -6,20 +6,25 @@
  * and a "Save to Muse" button. The bride can swipe through, save the ones
  * she likes, and dismiss the overlay.
  *
- * Loading state: shimmer + tasteSummary placeholder while suggestions load.
- * Empty state: gentle copy + "Try again" if zero results returned.
+ * Mode-aware: accepts a `look` prop ('E1' | 'E3') so loading/empty state
+ * backgrounds match the host canvas. In-image states (the swipeable card
+ * surface) stay mode-agnostic since they sit on top of a photograph and use
+ * a black scrim regardless.
+ *
+ * May 10 evening update:
+ *   - removed unused expo-blur BlurView import (vestigial, never rendered)
+ *   - accepts `look` prop, threads through to loading/empty surfaces
  */
-
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, Image, StyleSheet, Pressable, Dimensions, Animated, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Heart, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 import {
-  FrostColors, FrostFonts, FrostType, FrostSpace, FrostRadius, FrostMaterial,
+  FrostColors, FrostFonts, FrostType, FrostSpace, FrostRadius,
 } from '../../constants/frost';
+import { MUSE_LOOKS, type MuseLook } from '../../constants/museTokens';
 import {
   surpriseMe, saveToMuse,
   type SurpriseSuggestion,
@@ -32,13 +37,16 @@ interface SurpriseMeOverlayProps {
   functionTag?: string;
   /** Called after each successful save so parent can refetch grid. */
   onSaved?: () => void;
+  /** Mode-aware look for loading/empty surfaces. Defaults to E3. */
+  look?: MuseLook;
 }
 
 export default function SurpriseMeOverlay({
-  visible, onClose, functionTag, onSaved,
+  visible, onClose, functionTag, onSaved, look = 'E3',
 }: SurpriseMeOverlayProps) {
   const insets = useSafeAreaInsets();
   const screenW = Dimensions.get('window').width;
+  const tokens = MUSE_LOOKS[look];
 
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<SurpriseSuggestion[]>([]);
@@ -109,7 +117,7 @@ export default function SurpriseMeOverlay({
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, { opacity: fade }]}>
-      {/* BACKGROUND — current image full-bleed, or frost while loading */}
+      {/* BACKGROUND — current image full-bleed, or mode-aware fallback while loading */}
       {current?.image_url ? (
         <Image
           source={{ uri: current.image_url }}
@@ -117,10 +125,10 @@ export default function SurpriseMeOverlay({
           resizeMode="cover"
         />
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: FrostColors.pageFallback }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: tokens.pagePaper }]} />
       )}
 
-      {/* DARK SCRIM for legibility */}
+      {/* DARK SCRIM for legibility on photographs */}
       {current?.image_url ? (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.18)' }]} pointerEvents="none" />
       ) : null}
@@ -130,18 +138,18 @@ export default function SurpriseMeOverlay({
         <View style={styles.topBarLeft}>
           <Sparkles
             size={14}
-            color={current?.image_url ? FrostColors.white : FrostColors.goldMuted}
+            color={current?.image_url ? FrostColors.white : tokens.brassMuted}
             strokeWidth={1.7}
           />
           <Text style={[
             styles.eyebrow,
-            { color: current?.image_url ? FrostColors.white : FrostColors.muted },
+            { color: current?.image_url ? FrostColors.white : tokens.brassMuted },
           ]}>SURPRISE ME</Text>
         </View>
         <Pressable onPress={handleClose} hitSlop={16} style={styles.closeBtn}>
           <X
             size={22}
-            color={current?.image_url ? FrostColors.white : FrostColors.ink}
+            color={current?.image_url ? FrostColors.white : tokens.ink}
             strokeWidth={1.5}
           />
         </Pressable>
@@ -150,14 +158,26 @@ export default function SurpriseMeOverlay({
       {/* LOADING STATE */}
       {loading ? (
         <View style={styles.centeredContent}>
-          <Text style={styles.loadingTitle}>Looking for ideas…</Text>
-          <Text style={styles.loadingSub}>I&#x2019;m reading what you&#x2019;ve saved.</Text>
+          <Text style={[
+            styles.loadingTitle,
+            { color: tokens.ink },
+          ]}>Looking for ideas&#x2026;</Text>
+          <Text style={[
+            styles.loadingSub,
+            { color: tokens.soft },
+          ]}>I&#x2019;m reading what you&#x2019;ve saved.</Text>
         </View>
       ) : suggestions.length === 0 ? (
         // EMPTY STATE
         <View style={styles.centeredContent}>
-          <Text style={styles.emptyTitle}>Nothing landed this time.</Text>
-          <Text style={styles.emptySub}>Want me to try again?</Text>
+          <Text style={[
+            styles.emptyTitle,
+            { color: tokens.ink },
+          ]}>Nothing landed this time.</Text>
+          <Text style={[
+            styles.emptySub,
+            { color: tokens.soft },
+          ]}>Want me to try again?</Text>
           <Pressable
             onPress={() => {
               setLoading(true);
@@ -167,9 +187,16 @@ export default function SurpriseMeOverlay({
                 setLoading(false);
               });
             }}
-            style={({ pressed }) => [styles.tryAgainBtn, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [
+              styles.tryAgainBtn,
+              { backgroundColor: tokens.brass },
+              pressed && { opacity: 0.85 },
+            ]}
           >
-            <Text style={styles.tryAgainText}>Try again</Text>
+            <Text style={[
+              styles.tryAgainText,
+              { color: look === 'E1' ? '#1B1612' : '#2C2823' },
+            ]}>Try again</Text>
           </Pressable>
         </View>
       ) : (
@@ -234,12 +261,12 @@ export default function SurpriseMeOverlay({
             >
               <Heart
                 size={18}
-                color={isSaved ? FrostColors.goldMuted : FrostColors.ink}
-                fill={isSaved ? FrostColors.goldMuted : 'transparent'}
+                color={isSaved ? tokens.brass : FrostColors.ink}
+                fill={isSaved ? tokens.brass : 'transparent'}
                 strokeWidth={1.7}
               />
               <Text style={styles.saveBtnText}>
-                {isSaved ? 'Saved' : isSaving ? 'Saving…' : 'Save to Muse'}
+                {isSaved ? 'Saved' : isSaving ? 'Saving\u2026' : 'Save to Muse'}
               </Text>
             </Pressable>
 
@@ -308,27 +335,21 @@ const styles = StyleSheet.create({
   },
   loadingTitle: {
     ...FrostType.displayM,
-    fontStyle: 'italic',
-    color: FrostColors.ink,
-    fontFamily: FrostFonts.display,
+    fontFamily: 'CormorantGaramond_400Regular_Italic',
     textAlign: 'center',
   },
   loadingSub: {
     ...FrostType.bodyMedium,
-    color: FrostColors.muted,
     marginTop: FrostSpace.s,
     textAlign: 'center',
   },
   emptyTitle: {
     ...FrostType.displayM,
-    fontStyle: 'italic',
-    color: FrostColors.ink,
-    fontFamily: FrostFonts.display,
+    fontFamily: 'CormorantGaramond_400Regular_Italic',
     textAlign: 'center',
   },
   emptySub: {
     ...FrostType.bodyMedium,
-    color: FrostColors.muted,
     marginTop: FrostSpace.s,
     marginBottom: FrostSpace.xl,
     textAlign: 'center',
@@ -337,14 +358,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: FrostSpace.xl,
     paddingVertical: FrostSpace.m,
     borderRadius: FrostRadius.pill,
-    backgroundColor: FrostColors.goldMuted,
   },
   tryAgainText: {
     fontFamily: FrostFonts.labelMedium,
     fontSize: 12,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: FrostColors.ink,
   },
 
   sourceTag: {
@@ -384,10 +403,9 @@ const styles = StyleSheet.create({
     left: FrostSpace.xxl, right: FrostSpace.xxl,
   },
   captionText: {
-    fontFamily: FrostFonts.display,
+    fontFamily: 'CormorantGaramond_300Light_Italic',
     fontSize: 22,
     lineHeight: 28,
-    fontStyle: 'italic',
     color: FrostColors.white,
   },
 
@@ -397,12 +415,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tasteText: {
-    fontFamily: FrostFonts.body,
+    fontFamily: 'CormorantGaramond_300Light_Italic',
     fontSize: 12,
     letterSpacing: 0.4,
     textAlign: 'center',
     color: 'rgba(255,255,255,0.85)',
-    fontStyle: 'italic',
   },
 
   controls: {
