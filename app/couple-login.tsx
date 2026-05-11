@@ -1,22 +1,19 @@
 /**
- * Frost Gate — Native entry screen for new users.
+ * Frost Gate — Unified Dreamer + Maker landing.
  *
- * Mirrors thedreamwedding.in PWA landing exactly:
- *   - Full-bleed cover photo carousel (from /api/v2/cover-photos)
- *   - Frosted bottom sheet, tap to expand
- *   - I HAVE AN INVITE → invite code → phone → OTP
- *   - REQUEST AN INVITE → simple confirmation message
- *   - SIGN IN → phone → OTP (returning user)
- *   - JUST EXPLORING → Discover canvas
+ * Mirrors PWA web/app/page.tsx role-toggle pattern:
+ *   entry → role_picked → invite_code | signin_phone | request_form
+ *                       → invite_phone → invite_otp → set_pin → done
+ *                       → signin_otp → pin_login → done
  *
- * Uses FrostColors, FrostFonts, FrostSpace from constants/frost.ts
- * Uses FrostedSurface for the bottom panel (same as Frost landing page)
+ * After set_pin success: invite code is consumed via /api/v2/invite/consume.
+ * Sessions saved via utils/session.ts canonical helpers (never AsyncStorage direct).
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Image, StatusBar,
-  TextInput, TouchableOpacity, ActivityIndicator, Animated,
+  TextInput, TouchableOpacity, ActivityIndicator,
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -24,26 +21,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { FrostColors, FrostFonts, FrostSpace, FrostRadius } from '../constants/frost';
-import { setCoupleSession } from '../utils/session';
+import { setCoupleSession, setVendorSession } from '../utils/session';
 
 const API = 'https://dream-wedding-production-89ae.up.railway.app';
 
-// Android API 31+ supports dimezisBlurView
 const ANDROID_BLUR_SUPPORTED =
   Platform.OS === 'android' &&
   typeof Platform.Version === 'number' &&
   (Platform.Version as number) >= 31;
 
+type Role = 'Dreamer' | 'Maker';
 type Screen =
   | 'entry'
+  | 'role_picked'
   | 'invite_code'
   | 'invite_phone'
   | 'invite_otp'
   | 'signin_phone'
   | 'signin_otp'
+  | 'pin_login'
+  | 'set_pin'
+  | 'request_form'
   | 'request_done';
 
-// ─── Bottom frosted panel ─────────────────────────────────────────────────────
 function FrostPanel({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
     <View style={[panelStyles.outer, style]}>
@@ -62,7 +62,6 @@ function FrostPanel({ children, style }: { children: React.ReactNode; style?: an
       <View style={[StyleSheet.absoluteFill, {
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 0,
       }]} pointerEvents="none" />
       <View style={{ position: 'relative', zIndex: 2 }}>{children}</View>
     </View>
@@ -70,13 +69,9 @@ function FrostPanel({ children, style }: { children: React.ReactNode; style?: an
 }
 
 const panelStyles = StyleSheet.create({
-  outer: {
-    overflow: 'hidden',
-    position: 'relative',
-  },
+  outer: { overflow: 'hidden', position: 'relative' },
 });
 
-// ─── Gold primary button ──────────────────────────────────────────────────────
 function GoldBtn({ label, onPress, disabled, loading }: {
   label: string; onPress: () => void; disabled?: boolean; loading?: boolean;
 }) {
@@ -94,7 +89,6 @@ function GoldBtn({ label, onPress, disabled, loading }: {
   );
 }
 
-// ─── Ghost button ─────────────────────────────────────────────────────────────
 function GhostBtn({ label, onPress, small }: { label: string; onPress: () => void; small?: boolean }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.75} style={[btnStyles.ghost, small && btnStyles.ghostSmall]}>
@@ -132,7 +126,6 @@ const btnStyles = StyleSheet.create({
   },
 });
 
-// ─── OTP digit input row ──────────────────────────────────────────────────────
 function OtpRow({ value, onChange, onComplete }: {
   value: string[]; onChange: (v: string[]) => void; onComplete: () => void;
 }) {
@@ -150,7 +143,6 @@ function OtpRow({ value, onChange, onComplete }: {
           onChangeText={t => {
             const digits = t.replace(/\D/g, '');
             if (digits.length > 1) {
-              // Handle paste
               const next = ['', '', '', '', '', ''];
               digits.split('').slice(0, 6).forEach((ch, idx) => { next[idx] = ch; });
               onChange(next);
@@ -174,6 +166,38 @@ function OtpRow({ value, onChange, onComplete }: {
   );
 }
 
+function PinRow({ value, onChange, onComplete }: {
+  value: string[]; onChange: (v: string[]) => void; onComplete: () => void;
+}) {
+  const refs = useRef<Array<TextInput | null>>([]);
+  return (
+    <View style={{ flexDirection: 'row', gap: 10, marginBottom: FrostSpace.l, justifyContent: 'center' }}>
+      {value.map((d, i) => (
+        <TextInput
+          key={i}
+          ref={r => { refs.current[i] = r; }}
+          value={d}
+          keyboardType="numeric"
+          secureTextEntry
+          maxLength={1}
+          style={pinStyles.box}
+          onChangeText={t => {
+            const digits = t.replace(/\D/g, '');
+            const next = [...value]; next[i] = digits.slice(-1); onChange(next);
+            if (digits && i < 3) refs.current[i + 1]?.focus();
+            if (i === 3 && digits) onComplete();
+          }}
+          onKeyPress={({ nativeEvent }) => {
+            if (nativeEvent.key === 'Backspace' && !value[i] && i > 0) {
+              refs.current[i - 1]?.focus();
+            }
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 const otpStyles = StyleSheet.create({
   box: {
     flex: 1, height: 52, borderRadius: FrostRadius.box,
@@ -185,29 +209,49 @@ const otpStyles = StyleSheet.create({
   },
 });
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+const pinStyles = StyleSheet.create({
+  box: {
+    width: 56, height: 64, borderRadius: FrostRadius.box,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(201,168,76,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    color: '#F8F7F5', textAlign: 'center',
+    fontFamily: FrostFonts.display, fontSize: 26,
+  },
+});
+
 export default function CoupleLoginScreen() {
   const insets = useSafeAreaInsets();
 
-  // Cover photo carousel
   const [slides, setSlides] = useState<string[]>([]);
   const [slideIdx, setSlideIdx] = useState(0);
 
-  // Panel state
   const [expanded, setExpanded] = useState(false);
   const [screen, setScreen] = useState<Screen>('entry');
+  const [role, setRole] = useState<Role | null>(null);
 
-  // Form state
-  const [role, setRole] = useState<'Dreamer' | 'Maker' | null>(null);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteError, setInviteError] = useState('');
+  const [inviteUsed, setInviteUsed] = useState(false); // true once code is validated → carry to set_pin
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
+  const [pin, setPin] = useState(['', '', '', '']);
+  const [pinConfirm, setPinConfirm] = useState(['', '', '', '']);
+  const [pinPhase, setPinPhase] = useState<'enter' | 'confirm'>('enter');
+  const [pinError, setPinError] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
-  // Fetch cover photos on mount
+  // Request form
+  const [reqName, setReqName] = useState('');
+  const [reqEmail, setReqEmail] = useState('');
+  const [reqPhone, setReqPhone] = useState('');
+  const [reqInstagram, setReqInstagram] = useState('');
+  const [reqCity, setReqCity] = useState('');
+  const [reqError, setReqError] = useState('');
+
   useEffect(() => {
     fetch(`${API}/api/v2/cover-photos`)
       .then(r => r.json())
@@ -215,31 +259,29 @@ export default function CoupleLoginScreen() {
       .catch(() => {});
   }, []);
 
-  // Carousel rotation — separate effect to avoid stale closure bug
   useEffect(() => {
     if (slides.length <= 1) return;
     const t = setInterval(() => setSlideIdx(p => (p + 1) % slides.length), 4500);
     return () => clearInterval(t);
   }, [slides.length]);
 
-  // Resend countdown
   useEffect(() => {
     if (resendTimer <= 0) return;
     const t = setInterval(() => setResendTimer(s => s - 1), 1000);
     return () => clearInterval(t);
   }, [resendTimer]);
 
-  // ── API calls ───────────────────────────────────────────────────────────────
+  const apiRole = (r: Role | null) => (r === 'Maker' ? 'vendor' : 'dreamer');
 
   const validateInvite = async () => {
     if (!inviteCode.trim() || !role) {
-      setInviteError('Select Dreamer or Maker and enter your code.'); return;
+      setInviteError('Enter your code to continue.'); return;
     }
     setLoading(true);
     try {
       const r = await fetch(`${API}/api/v2/invite/validate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: inviteCode.trim(), role: role === 'Dreamer' ? 'dreamer' : 'vendor' }),
+        body: JSON.stringify({ code: inviteCode.trim(), role: apiRole(role) }),
       });
       const d = await r.json();
       if (d.valid) { setScreen('invite_phone'); setInviteError(''); }
@@ -253,7 +295,10 @@ export default function CoupleLoginScreen() {
     if (bare.length < 10) return;
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/v2/couple/auth/send-otp`, {
+      const endpoint = role === 'Maker'
+        ? `${API}/api/v2/vendor/auth/send-otp`
+        : `${API}/api/v2/couple/auth/send-otp`;
+      const r = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: bare }),
       });
@@ -276,41 +321,164 @@ export default function CoupleLoginScreen() {
     if (code.length < 6) return;
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/v2/couple/auth/verify-otp`, {
+      const isInvitePath = screen === 'invite_otp';
+      const isMaker = role === 'Maker';
+      const endpoint = isMaker
+        ? `${API}/api/v2/vendor/auth/verify-otp`
+        : `${API}/api/v2/couple/auth/verify-otp`;
+      const body: any = { phone: bare, code };
+      if (isInvitePath && inviteCode.trim() && !isMaker) body.invite_code = inviteCode.trim();
+
+      const r = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: bare, code }),
+        body: JSON.stringify(body),
       });
       const d = await r.json();
       if (!d.success) {
         const err = d.error || '';
-        if (err.toLowerCase().includes('no account') || err.toLowerCase().includes('not found')) {
-          setOtpError('No account found. Request an invite to join.');
+        if (err.toLowerCase().includes('no account') || err.toLowerCase().includes('not found') || err.toLowerCase().includes('no vendor')) {
+          setOtpError(isMaker ? 'No vendor account found. Request an invite to join.' : 'No account found. Request an invite to join.');
         } else {
           setOtpError(err || 'Incorrect code. Try again.');
         }
         setLoading(false);
         return;
       }
-      // Response shape: { success: true, user: { id, name, pin_set, couple_tier } }
-      const userData = d.user || d;
-      await setCoupleSession({ ...userData, phone: '+91' + bare });
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (userData.isNewUser || !userData.name) {
-        router.replace('/couple-onboarding');
-      } else if (!userData.pin_set) {
-        router.replace('/(frost)/landing' as any);
+      setInviteUsed(isInvitePath && !!inviteCode.trim());
+
+      if (isMaker) {
+        const v = d.vendor || {};
+        setUserId(v.id);
+        if (v.pin_set) {
+          setScreen('pin_login');
+        } else {
+          setScreen('set_pin'); setPinPhase('enter');
+        }
       } else {
-        router.replace('/couple-pin-login');
+        const userData = d.user || d;
+        setUserId(userData.id || userData.userId);
+        if (userData.pin_set) {
+          setScreen('pin_login');
+        } else {
+          setScreen('set_pin'); setPinPhase('enter');
+        }
       }
     } catch (e) {
-      // Log the actual error — silent catches cost us hours debugging the wrong layer.
       console.error('[verifyOtp]', e);
       setOtpError('Verification failed. Try again.');
     }
     setLoading(false);
   };
 
-  // ── Render helpers ──────────────────────────────────────────────────────────
+  const submitPin = async () => {
+    setPinError('');
+    if (pinPhase === 'enter') {
+      if (pin.join('').length !== 4) { setPinError('Enter 4 digits.'); return; }
+      setPinPhase('confirm');
+      return;
+    }
+    if (pinConfirm.join('') !== pin.join('')) {
+      setPinError('PINs don\'t match. Try again.');
+      setPinConfirm(['', '', '', '']);
+      return;
+    }
+    setLoading(true);
+    try {
+      const bare = phone.replace(/\D/g, '').slice(-10);
+      const r = await fetch(`${API}/api/v2/auth/set-pin`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: bare, pin: pin.join(''), role: apiRole(role) }),
+      });
+      const d = await r.json();
+      if (!d.success && !d.userId) {
+        setPinError(d.error || 'Could not set PIN. Try again.');
+        setLoading(false);
+        return;
+      }
+      const finalUserId = d.userId || userId;
+
+      if (inviteUsed && inviteCode.trim() && finalUserId) {
+        try {
+          await fetch(`${API}/api/v2/invite/consume`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: inviteCode.trim(), user_id: finalUserId }),
+          });
+        } catch (e) { console.warn('[invite/consume]', e); }
+      }
+
+      if (role === 'Maker') {
+        await setVendorSession({ vendorId: finalUserId, id: finalUserId, phone: '+91' + bare, name: null });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace('/vendor-dashboard' as any);
+      } else {
+        await setCoupleSession({ id: finalUserId, userId: finalUserId, phone: '+91' + bare, pin_set: true, couple_tier: 'lite' });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace('/(frost)/landing' as any);
+      }
+    } catch (e) {
+      console.error('[set-pin]', e);
+      setPinError('Could not set PIN. Try again.');
+    }
+    setLoading(false);
+  };
+
+  const verifyPinLogin = async () => {
+    if (pin.join('').length !== 4) return;
+    setLoading(true); setPinError('');
+    try {
+      const bare = phone.replace(/\D/g, '').slice(-10);
+      const r = await fetch(`${API}/api/v2/auth/verify-pin`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: bare, pin: pin.join(''), role: apiRole(role) }),
+      });
+      const d = await r.json();
+      if (!d.success) {
+        setPinError(d.error || 'Incorrect PIN.');
+        setPin(['', '', '', '']);
+        setLoading(false);
+        return;
+      }
+      if (role === 'Maker') {
+        await setVendorSession({ vendorId: d.userId, id: d.userId, phone: '+91' + bare, name: d.name, vendor_tier: d.vendor_tier || 'essential' });
+        router.replace('/vendor-dashboard' as any);
+      } else {
+        await setCoupleSession({ id: d.userId, userId: d.userId, phone: '+91' + bare, pin_set: true, name: d.name, couple_tier: d.couple_tier || 'lite', dreamer_type: d.dreamer_type });
+        router.replace('/(frost)/landing' as any);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      console.error('[verify-pin]', e);
+      setPinError('Sign-in failed. Try again.');
+    }
+    setLoading(false);
+  };
+
+  const submitRequest = async () => {
+    if (!reqName.trim() || !reqEmail.trim() || !reqPhone.trim()) {
+      setReqError('Name, email, and phone are required.'); return;
+    }
+    setLoading(true); setReqError('');
+    try {
+      const r = await fetch(`${API}/api/waitlist`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: reqName.trim(),
+          email: reqEmail.trim(),
+          phone: reqPhone.replace(/\D/g, '').slice(-10),
+          instagram: reqInstagram.trim() || null,
+          category: reqCity.trim() || null,
+          type: role === 'Maker' ? 'vendor' : 'couple',
+          source: 'native_couple_login',
+        }),
+      });
+      const d = await r.json();
+      if (d.success) { setScreen('request_done'); }
+      else setReqError(d.error || 'Could not submit. Try again.');
+    } catch { setReqError('Could not submit. Try again.'); }
+    setLoading(false);
+  };
 
   const inputStyle = {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -336,11 +504,17 @@ export default function CoupleLoginScreen() {
     color: 'rgba(248,247,245,0.5)', marginBottom: FrostSpace.l,
   };
 
-  const back = (to: Screen) => {
-    setInviteError(''); setOtpError(''); setScreen(to);
+  const goBack = (to: Screen, opts?: { keepRole?: boolean }) => {
+    setInviteError(''); setOtpError(''); setPinError(''); setReqError('');
+    if (!opts?.keepRole && to === 'entry') setRole(null);
+    setScreen(to);
   };
 
-  // ── Panel content by screen ─────────────────────────────────────────────────
+  const pickRole = (r: Role) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRole(r);
+    setScreen('role_picked');
+  };
 
   const renderPanelContent = () => {
     if (!expanded) return null;
@@ -348,24 +522,25 @@ export default function CoupleLoginScreen() {
     if (screen === 'entry') {
       return (
         <View style={{ paddingTop: FrostSpace.l }}>
-          <GoldBtn label="I HAVE AN INVITE" onPress={() => setScreen('invite_code')} />
-          <GhostBtn label="REQUEST AN INVITE" onPress={() => setScreen('request_done')} />
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              style={[btnStyles.ghost, btnStyles.ghostSmall, { flex: 1, marginBottom: 0 }]}
-              onPress={() => setScreen('signin_phone')}
-              activeOpacity={0.75}
-            >
-              <Text style={btnStyles.ghostSmallText}>SIGN IN</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[btnStyles.ghost, btnStyles.ghostSmall, { flex: 1, marginBottom: 0 }]}
-              onPress={() => router.push('/(frost)/canvas/discover' as any)}
-              activeOpacity={0.75}
-            >
-              <Text style={btnStyles.ghostSmallText}>JUST EXPLORING</Text>
-            </TouchableOpacity>
-          </View>
+          <GoldBtn label="I'm a Dreamer" onPress={() => pickRole('Dreamer')} />
+          <GoldBtn label="I'm a Maker" onPress={() => pickRole('Maker')} />
+          <GhostBtn label="Just exploring" onPress={() => router.push('/(frost)/landing' as any)} small />
+        </View>
+      );
+    }
+
+    if (screen === 'role_picked') {
+      return (
+        <View style={{ paddingTop: FrostSpace.l }}>
+          <TouchableOpacity onPress={() => goBack('entry')} style={s.backBtn}>
+            <Text style={s.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={[labelStyle, { textAlign: 'center', marginBottom: FrostSpace.m }]}>
+            {role === 'Maker' ? 'You are a Maker' : 'You are a Dreamer'}
+          </Text>
+          <GoldBtn label="I have a code" onPress={() => setScreen('invite_code')} />
+          <GhostBtn label="Sign in" onPress={() => setScreen('signin_phone')} />
+          <GhostBtn label="Request an invite" onPress={() => setScreen('request_form')} small />
         </View>
       );
     }
@@ -373,25 +548,11 @@ export default function CoupleLoginScreen() {
     if (screen === 'invite_code') {
       return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <TouchableOpacity onPress={() => back('entry')} style={s.backBtn}>
+          <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
             <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
           <Text style={titleStyle}>Enter your invite.</Text>
-          <Text style={subtitleStyle}>Your code unlocks access.</Text>
-
-          <Text style={labelStyle}>Are you a</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: FrostSpace.m }}>
-            {(['Dreamer', 'Maker'] as const).map(r => (
-              <TouchableOpacity
-                key={r}
-                onPress={() => setRole(r)}
-                style={[s.roleBtn, role === r && s.roleBtnActive]}
-                activeOpacity={0.8}
-              >
-                <Text style={[s.roleBtnText, role === r && s.roleBtnTextActive]}>{r.toUpperCase()}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={subtitleStyle}>Your {role === 'Maker' ? 'Maker' : 'Dreamer'} code unlocks access.</Text>
 
           <Text style={labelStyle}>Invite code</Text>
           <TextInput
@@ -407,20 +568,24 @@ export default function CoupleLoginScreen() {
           <GoldBtn
             label="Continue →"
             onPress={validateInvite}
-            disabled={!inviteCode.trim() || !role}
+            disabled={!inviteCode.trim()}
             loading={loading}
           />
         </KeyboardAvoidingView>
       );
     }
 
-    if (screen === 'invite_phone') {
+    if (screen === 'invite_phone' || screen === 'signin_phone') {
+      const isInvite = screen === 'invite_phone';
       return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <TouchableOpacity onPress={() => back('invite_code')} style={s.backBtn}>
+          <TouchableOpacity
+            onPress={() => goBack(isInvite ? 'invite_code' : 'role_picked', { keepRole: true })}
+            style={s.backBtn}
+          >
             <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
-          <Text style={titleStyle}>Welcome. Let's begin.</Text>
+          <Text style={titleStyle}>{isInvite ? 'Welcome. Let\'s begin.' : 'Welcome back.'}</Text>
           <Text style={subtitleStyle}>Enter your number. We'll send a code.</Text>
 
           <Text style={labelStyle}>Phone number</Text>
@@ -428,7 +593,7 @@ export default function CoupleLoginScreen() {
             borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.25)' }}>
             <Text style={{ fontFamily: FrostFonts.body, fontSize: 15, color: 'rgba(248,247,245,0.5)',
               paddingRight: 10, borderRightWidth: StyleSheet.hairlineWidth,
-              borderRightColor: 'rgba(255,255,255,0.2)', marginRight: 10 }}>🇮🇳 +91</Text>
+              borderRightColor: 'rgba(255,255,255,0.2)', marginRight: 10 }}>+91</Text>
             <TextInput
               value={phone}
               onChangeText={t => setPhone(t.replace(/\D/g, '').slice(0, 10))}
@@ -443,44 +608,7 @@ export default function CoupleLoginScreen() {
           {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
           <GoldBtn
             label="Send code →"
-            onPress={() => sendOtp(true)}
-            disabled={phone.length < 10}
-            loading={loading}
-          />
-        </KeyboardAvoidingView>
-      );
-    }
-
-    if (screen === 'signin_phone') {
-      return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <TouchableOpacity onPress={() => back('entry')} style={s.backBtn}>
-            <Text style={s.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={titleStyle}>Welcome back.</Text>
-          <Text style={subtitleStyle}>Enter your number to sign in.</Text>
-
-          <Text style={labelStyle}>Phone number</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: FrostSpace.m,
-            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.25)' }}>
-            <Text style={{ fontFamily: FrostFonts.body, fontSize: 15, color: 'rgba(248,247,245,0.5)',
-              paddingRight: 10, borderRightWidth: StyleSheet.hairlineWidth,
-              borderRightColor: 'rgba(255,255,255,0.2)', marginRight: 10 }}>🇮🇳 +91</Text>
-            <TextInput
-              value={phone}
-              onChangeText={t => setPhone(t.replace(/\D/g, '').slice(0, 10))}
-              placeholder="00000 00000"
-              placeholderTextColor="rgba(248,247,245,0.25)"
-              keyboardType="phone-pad"
-              maxLength={10}
-              style={{ flex: 1, fontFamily: FrostFonts.body, fontSize: 16,
-                color: '#F8F7F5', paddingVertical: 10 }}
-            />
-          </View>
-          {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
-          <GoldBtn
-            label="Send code →"
-            onPress={() => sendOtp(false)}
+            onPress={() => sendOtp(isInvite)}
             disabled={phone.length < 10}
             loading={loading}
           />
@@ -492,7 +620,7 @@ export default function CoupleLoginScreen() {
       return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <TouchableOpacity
-            onPress={() => back(screen === 'invite_otp' ? 'invite_phone' : 'signin_phone')}
+            onPress={() => goBack(screen === 'invite_otp' ? 'invite_phone' : 'signin_phone', { keepRole: true })}
             style={s.backBtn}
           >
             <Text style={s.backText}>← Back</Text>
@@ -525,18 +653,104 @@ export default function CoupleLoginScreen() {
       );
     }
 
+    if (screen === 'set_pin') {
+      const isConfirm = pinPhase === 'confirm';
+      return (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Text style={titleStyle}>{isConfirm ? 'Confirm your PIN.' : 'Set a 4-digit PIN.'}</Text>
+          <Text style={subtitleStyle}>
+            {isConfirm ? 'Re-enter to confirm.' : 'You\'ll use this to sign in next time.'}
+          </Text>
+
+          <PinRow
+            value={isConfirm ? pinConfirm : pin}
+            onChange={isConfirm ? setPinConfirm : setPin}
+            onComplete={submitPin}
+          />
+          {pinError ? <Text style={s.errorText}>{pinError}</Text> : null}
+
+          <GoldBtn
+            label={isConfirm ? 'Save PIN →' : 'Next →'}
+            onPress={submitPin}
+            disabled={(isConfirm ? pinConfirm : pin).join('').length < 4}
+            loading={loading}
+          />
+        </KeyboardAvoidingView>
+      );
+    }
+
+    if (screen === 'pin_login') {
+      return (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Text style={titleStyle}>Enter your PIN.</Text>
+          <Text style={subtitleStyle}>Welcome back. Sign in with your 4-digit PIN.</Text>
+
+          <PinRow value={pin} onChange={setPin} onComplete={verifyPinLogin} />
+          {pinError ? <Text style={s.errorText}>{pinError}</Text> : null}
+
+          <GoldBtn
+            label="Sign in →"
+            onPress={verifyPinLogin}
+            disabled={pin.join('').length < 4}
+            loading={loading}
+          />
+        </KeyboardAvoidingView>
+      );
+    }
+
+    if (screen === 'request_form') {
+      return (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
+            <Text style={s.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={titleStyle}>Request an invite.</Text>
+          <Text style={subtitleStyle}>
+            {role === 'Maker' ? 'Tell us about your craft.' : 'Tell us about your wedding.'}
+          </Text>
+
+          <Text style={labelStyle}>Name</Text>
+          <TextInput value={reqName} onChangeText={setReqName} style={inputStyle}
+            placeholder="Full name" placeholderTextColor="rgba(248,247,245,0.25)" />
+
+          <Text style={labelStyle}>Email</Text>
+          <TextInput value={reqEmail} onChangeText={setReqEmail} style={inputStyle}
+            placeholder="you@example.com" placeholderTextColor="rgba(248,247,245,0.25)"
+            keyboardType="email-address" autoCapitalize="none" />
+
+          <Text style={labelStyle}>Phone</Text>
+          <TextInput
+            value={reqPhone}
+            onChangeText={t => setReqPhone(t.replace(/\D/g, '').slice(0, 10))}
+            style={inputStyle}
+            placeholder="00000 00000" placeholderTextColor="rgba(248,247,245,0.25)"
+            keyboardType="phone-pad" maxLength={10} />
+
+          <Text style={labelStyle}>Instagram</Text>
+          <TextInput value={reqInstagram} onChangeText={setReqInstagram} style={inputStyle}
+            placeholder="@handle" placeholderTextColor="rgba(248,247,245,0.25)"
+            autoCapitalize="none" />
+
+          <Text style={labelStyle}>{role === 'Maker' ? 'City / category' : 'City'}</Text>
+          <TextInput value={reqCity} onChangeText={setReqCity} style={inputStyle}
+            placeholder={role === 'Maker' ? 'e.g. Mumbai · Photography' : 'e.g. Mumbai'}
+            placeholderTextColor="rgba(248,247,245,0.25)" />
+
+          {reqError ? <Text style={s.errorText}>{reqError}</Text> : null}
+          <GoldBtn label="Submit →" onPress={submitRequest} loading={loading} />
+        </KeyboardAvoidingView>
+      );
+    }
+
     if (screen === 'request_done') {
       return (
         <View>
-          <TouchableOpacity onPress={() => back('entry')} style={s.backBtn}>
-            <Text style={s.backText}>← Back</Text>
-          </TouchableOpacity>
           <Text style={[titleStyle, { marginBottom: FrostSpace.m }]}>We'll be in touch.</Text>
           <Text style={{ fontFamily: FrostFonts.body, fontSize: 14,
             color: 'rgba(248,247,245,0.6)', lineHeight: 22, marginBottom: FrostSpace.l }}>
             The Dream Wedding is invite-only for now. We'll reach out when a spot opens for you.
           </Text>
-          <GhostBtn label="Back to start" onPress={() => { setScreen('entry'); }} />
+          <GhostBtn label="Back to start" onPress={() => { goBack('entry'); }} />
         </View>
       );
     }
@@ -544,13 +758,10 @@ export default function CoupleLoginScreen() {
     return null;
   };
 
-  // ── Main render ─────────────────────────────────────────────────────────────
-
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Full-bleed cover photo carousel */}
       {slides.length > 0 ? (
         <Image
           source={{ uri: slides[slideIdx] }}
@@ -561,12 +772,9 @@ export default function CoupleLoginScreen() {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: FrostColors.black }]} />
       )}
 
-      {/* Subtle dark gradient scrim */}
       <View style={[StyleSheet.absoluteFill, s.scrim]} pointerEvents="none" />
 
-      {/* Bottom frosted panel */}
       <FrostPanel style={[s.panel, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        {/* Brand row — always visible, tap to expand */}
         <Pressable
           onPress={() => {
             if (!expanded) {
@@ -585,10 +793,9 @@ export default function CoupleLoginScreen() {
           )}
         </Pressable>
 
-        {/* Expandable content */}
         {expanded && (
           <ScrollView
-            style={{ maxHeight: 480 }}
+            style={{ maxHeight: 520 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -602,14 +809,9 @@ export default function CoupleLoginScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: FrostColors.black },
-  scrim: {
-    background: undefined,
-    backgroundColor: 'transparent',
-    // Gradient scrim via solid at bottom
-  },
+  scrim: { backgroundColor: 'transparent' },
   panel: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
   },
@@ -647,18 +849,7 @@ const s = StyleSheet.create({
   },
   errorText: {
     fontFamily: FrostFonts.body, fontSize: 11,
-    color: '#E57373', marginBottom: FrostSpace.m, textAlign: 'center',
+    color: '#E57373',
+    marginBottom: FrostSpace.m, textAlign: 'center',
   },
-  roleBtn: {
-    flex: 1, height: 40, borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  roleBtnActive: { backgroundColor: FrostColors.goldTrue },
-  roleBtnText: {
-    fontFamily: FrostFonts.label, fontSize: 9,
-    letterSpacing: 1.5, textTransform: 'uppercase',
-    color: 'rgba(248,247,245,0.6)',
-  },
-  roleBtnTextActive: { color: FrostColors.ink },
 });
