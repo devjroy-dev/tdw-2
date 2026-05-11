@@ -13,7 +13,6 @@
  *   /(frost)/canvas/journey/vendors   — Vendor list (subroute of Journey)
  *   /(frost)/canvas/journey/vendor/[id] — Vendor profile page
  *   /(frost)/canvas/journey/reminders — Personal reminders
- *   /(frost)/canvas/journey/receipts  — OCR receipts
  *   /(frost)/canvas/journey/broadcast — Phone-book broadcast
  *   /(frost)/canvas/journey/settings  — Settings (compressed single screen)
  */
