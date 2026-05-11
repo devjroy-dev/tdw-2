@@ -28,7 +28,10 @@ function getSession() {
   } catch { return null; }
 }
 
-// ─── Robust ACTION tag parser ─────────────────────────────────────────────────
+// ─── DEPRECATED: v2 ACTION-tag parsers ───────────────────────────────────────
+// v3 /api/v3/dreamai/vendor-chat executes tools server-side, so the client no
+// longer needs to parse [ACTION:...] tags out of replies. Kept for reference.
+/*
 function parseSingleActionTag(tag: string) {
   const tagContent = tag.slice(8, -1); // remove [ACTION: and ]
   const firstPipe = tagContent.indexOf('|');
@@ -56,6 +59,7 @@ function parseActionTag(text: string) {
   const [first, ...rest] = actions as any[];
   return { ...first, cleanText, extraActions: rest };
 }
+*/
 
 // ─── Action Card ──────────────────────────────────────────────────────────────
 function ActionCard({ msg, vendorId, onConfirm, onDismiss }: {
@@ -269,6 +273,68 @@ export default function VendorDreamAiPage() {
     if (!msg || loading) return;
     setInput('');
 
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: msg,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      const history = messages.slice(-10).map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        text: m.text,
+      }));
+
+      // v3 vendor-chat executes tools server-side and returns:
+      //   { success, reply, toolsUsed: [{name, input, result}], iterations }
+      const r = await fetch(API + '/api/v3/dreamai/vendor-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: vendorId,
+          userType: 'vendor',
+          message: msg,
+          context,
+          history,
+        }),
+      });
+      const d = await r.json();
+      const replyText = d.reply || 'Something went wrong. Please try again.';
+      const toolsUsed: Array<{ name: string; input: any; result: any }> = Array.isArray(d.toolsUsed) ? d.toolsUsed : [];
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        text: replyText,
+        timestamp: new Date(),
+      }]);
+
+      // Backend ran tools — refresh vendor context so chips/briefing reflect new state.
+      if (vendorId && toolsUsed.length > 0) {
+        const ctx = await fetch(API + '/api/v2/dreamai/vendor-context/' + vendorId)
+          .then(r => r.json()).catch(() => null);
+        if (ctx) setContext(ctx);
+      }
+    } catch {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'ai', text: 'Could not connect. Please check your connection.', timestamp: new Date(),
+      }]);
+    }
+    setLoading(false);
+  }
+
+  // DEPRECATED: v2 send() with ACTION-tag parsing + client-side execution.
+  // Replaced by the v3 vendor-chat call above. Kept for reference; do not wire up.
+  /*
+  async function send_v2(text?: string) {
+    const msg = (text || input).trim();
+    if (!msg || loading) return;
+    setInput('');
+
     // Track original message for multi-action heuristic
     if (msg !== 'Continue with any remaining actions from my last request.') {
       originalMsgRef.current = msg;
@@ -368,6 +434,7 @@ export default function VendorDreamAiPage() {
     }
     setLoading(false);
   }
+  */
 
   const firstName = vendorName.split(' ')[0] || 'Maker';
 
