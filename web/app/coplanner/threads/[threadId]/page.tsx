@@ -181,10 +181,13 @@ export default function ThreadDetail() {
         <input
           type="text"
           placeholder="Write a message"
+          aria-label="Type your message"
           value={composing}
           onChange={e => setComposing(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           disabled={sending}
+          onFocus={(e) => { e.currentTarget.style.outline = `2px solid ${GOLD}`; e.currentTarget.style.outlineOffset = '2px'; }}
+          onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
           style={{
             flex: 1, height: 44,
             background: 'rgba(255,255,255,0.05)',

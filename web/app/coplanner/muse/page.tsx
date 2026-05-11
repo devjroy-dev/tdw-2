@@ -100,7 +100,7 @@ export default function CoplannerMuse() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={t.image_url}
-                alt=""
+                alt={t.note || (t.function_tag ? `Muse inspiration · ${t.function_tag}` : 'Muse inspiration')}
                 loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
