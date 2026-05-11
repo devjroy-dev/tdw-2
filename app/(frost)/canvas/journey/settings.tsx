@@ -556,7 +556,7 @@ export default function JourneySettings() {
                 value={identityName}
                 onChangeText={setIdentityName}
                 placeholder="Your name"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -568,7 +568,7 @@ export default function JourneySettings() {
                 value={identityPartner}
                 onChangeText={setIdentityPartner}
                 placeholder="Their name"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -612,7 +612,7 @@ export default function JourneySettings() {
                 value={identityCity}
                 onChangeText={setIdentityCity}
                 placeholder="Your city"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -651,7 +651,7 @@ export default function JourneySettings() {
                 value={guestCount}
                 onChangeText={setGuestCount}
                 placeholder="e.g. 300"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 keyboardType="number-pad"
                 maxLength={5}
                 returnKeyType="done"
@@ -708,7 +708,7 @@ export default function JourneySettings() {
                 value={discoveryCity}
                 onChangeText={setDiscoveryCity}
                 placeholder="e.g. Delhi, Mumbai"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -830,7 +830,7 @@ export default function JourneySettings() {
                 value={whatsappNumber}
                 onChangeText={setWhatsappNumber}
                 placeholder="+91 XXXXX XXXXX"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 keyboardType="phone-pad"
                 maxLength={15}
                 returnKeyType="done"

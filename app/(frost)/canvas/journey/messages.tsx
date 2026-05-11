@@ -211,7 +211,7 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
             value={composing}
             onChangeText={setComposing}
             placeholder="Reply…"
-            placeholderTextColor={FrostColors.muted}
+            placeholderTextColor={tokens.soft}
             multiline
           />
           <Pressable
