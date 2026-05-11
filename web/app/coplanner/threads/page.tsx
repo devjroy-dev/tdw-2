@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import {
   API, CREAM, GOLD, MUTED, HAIRLINE, FROST_PANEL,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, brideId,
+  useCircleSession, brideId, brideName,
 } from '../CircleSessionContext';
 
 interface Thread {
@@ -99,7 +99,7 @@ export default function CoplannerThreads() {
             fontFamily: FONT_BODY, fontWeight: 300, fontSize: 13,
             color: MUTED, margin: 0, lineHeight: 1.6,
           }}>
-            No threads yet. When {session.bride_name} starts a conversation
+            No threads yet. When {brideName(session)} starts a conversation
             with you, it&rsquo;ll show up here.
           </p>
         </div>
@@ -109,7 +109,7 @@ export default function CoplannerThreads() {
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {sorted.map(t => {
             const id      = threadId(t);
-            const label   = threadLabel(t, session.bride_name);
+            const label   = threadLabel(t, brideName(session));
             const preview = t.last_message_preview || t.last_message || '';
             const stamp   = timeAgo(t.last_message_at || t.updated_at);
             return (

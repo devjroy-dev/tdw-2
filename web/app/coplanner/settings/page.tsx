@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import {
   CREAM, GOLD, MUTED, HAIRLINE, FROST_PANEL,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, memberName,
+  useCircleSession, brideName, memberName,
 } from '../CircleSessionContext';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -45,7 +45,7 @@ export default function CoplannerSettings() {
       <section style={{ ...FROST_PANEL, padding: 20, marginBottom: 20 }}>
         <Row label="NAME"  value={name} />
         <Row label="ROLE"  value={roleLbl} valueColor={GOLD} />
-        <Row label="CIRCLE FOR" value={session.bride_name} last />
+        <Row label="CIRCLE FOR" value={brideName(session)} last />
       </section>
 
       <section style={{ ...FROST_PANEL, padding: 20, marginBottom: 20 }}>
@@ -53,7 +53,7 @@ export default function CoplannerSettings() {
           fontFamily: FONT_BODY, fontWeight: 300, fontSize: 12,
           color: MUTED, margin: '0 0 16px', lineHeight: 1.6,
         }}>
-          Your name and role were set by {session.bride_name} when she invited you.
+          Your name and role were set by {brideName(session)} when she invited you.
           Ask her to update them if anything looks off.
         </p>
 

@@ -32,15 +32,33 @@ export interface CirclePermissions {
   can_contribute_muse: boolean;
 }
 
+// Backend response shape (server.js :16822 — GET /api/v2/circle/session/:userId):
+//   { user_id, name, phone, pin_set,
+//     co_planner_id, couple_id, role, dreamer_type, permissions,
+//     bride: { name, wedding_date, partner_name } }
+//
+// Historically this type declared flat fields (bride_name, primary_user_id,
+// invitee_name) that the backend never sent. That caused every consumer page
+// to render "undefined" wherever the bride's name appeared, and crashed the
+// threads/[threadId] page on render. This type now matches the wire shape.
+// Always read the bride's name via brideName() and the bride's id via brideId()
+// so future shape changes only need to be handled in one place.
 export interface CircleSession {
   user_id: string;
+  name?: string | null;
+  phone?: string | null;
+  pin_set?: boolean;
   co_planner_id: string;
-  invitee_name: string;
-  bride_name: string;
-  primary_user_id: string;
+  couple_id: string;
   role: CircleRole;
+  dreamer_type?: string;
   permissions: CirclePermissions;
-  // Native may also send couple_id / name — keep open for forward-compat
+  bride?: {
+    name?: string | null;
+    wedding_date?: string | null;
+    partner_name?: string | null;
+  } | null;
+  // Forward-compat: tolerate legacy/extra fields without TS friction.
   [extra: string]: unknown;
 }
 
@@ -54,13 +72,20 @@ export function useCircleSession(): CircleSession {
   return s;
 }
 
-// Resolve the bride's user id — server may have returned it as primary_user_id
-// or as couple_id depending on which endpoint path produced the row.
+// Resolve the bride's user id. Backend sends couple_id; older cached sessions
+// may carry primary_user_id; honour both.
 export function brideId(s: CircleSession): string {
-  return s.primary_user_id || (s.couple_id as string) || '';
+  return (s.couple_id as string) || (s.primary_user_id as string) || '';
 }
 
-// Resolve Mom's display name — invitee_name from the session, or fallback.
+// Resolve the bride's display name. Backend sends bride.name (nested); older
+// cached sessions may carry bride_name (flat); honour both, then fall back.
+export function brideName(s: CircleSession): string {
+  return s.bride?.name || (s.bride_name as string) || 'the bride';
+}
+
+// Resolve the Circle member's own display name. Backend sends `name`; older
+// cached sessions may carry invitee_name; honour both, then fall back.
 export function memberName(s: CircleSession): string {
-  return s.invitee_name || (s.name as string) || 'Friend';
+  return (s.name as string) || (s.invitee_name as string) || 'Friend';
 }
