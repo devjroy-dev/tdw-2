@@ -91,20 +91,20 @@ export default function FrostConfirmCard({
         <View style={styles.doneIconWrap}>
           <Check size={20} color={FrostColors.goldTrue} strokeWidth={1.8} />
         </View>
-        <Text style={styles.doneText}>{doneMessage}</Text>
+        <Text style={[styles.doneText, { color: tokens.ink }]}>{doneMessage}</Text>
       </Animated.View>
     );
   }
 
   return (
     <Animated.View style={[styles.card, { backgroundColor: tokens.cardFill, opacity }]}>
-      <Text style={styles.title}>{preview.summaryTitle}</Text>
+      <Text style={[styles.title, { color: tokens.ink }]}>{preview.summaryTitle}</Text>
 
       <View style={styles.summaryList}>
         {preview.summaryLines.map((line, idx) => (
           <View key={idx} style={styles.summaryRow}>
             <View style={styles.summaryDot} />
-            <Text style={styles.summaryText}>{line}</Text>
+            <Text style={[styles.summaryText, { color: tokens.ink }]}>{line}</Text>
           </View>
         ))}
       </View>
@@ -116,7 +116,7 @@ export default function FrostConfirmCard({
             style={({ pressed }) => [styles.btn, styles.btnSecondary, pressed && styles.btnPressed]}
             disabled={state === 'confirming'}
           >
-            <Text style={styles.btnSecondaryText}>
+            <Text style={[styles.btnSecondaryText, { color: tokens.soft }]}>
               {preview.cancelLabel ?? 'Not yet'}
             </Text>
           </Pressable>
@@ -126,7 +126,7 @@ export default function FrostConfirmCard({
           onPress={handleConfirm}
           style={({ pressed }) => [
             styles.btn,
-            styles.btnPrimary,
+            { backgroundColor: tokens.ink },
             pressed && styles.btnPressed,
             state === 'confirming' && styles.btnDisabled,
           ]}
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     ...FrostType.displayM,
     fontSize: 22,
     lineHeight: 28,
-    color: FrostColors.ink,
+    // color applied inline via tokens.ink
     marginBottom: FrostSpace.l,
     fontFamily: FrostFonts.display,
   },
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   summaryText: {
     ...FrostType.bodyMedium,
     flex: 1,
-    color: FrostColors.soft,
+    // color applied inline via tokens.ink
   },
 
   actions: {
@@ -204,14 +204,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnPrimary: {
-    backgroundColor: FrostColors.ink,
+    // backgroundColor applied inline via tokens.ink
   },
   btnPrimaryText: {
     fontFamily: FrostFonts.labelMedium,
     fontSize: 11,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: FrostColors.white,
+    // color applied inline via tokens.pagePaper
   },
   btnSecondary: {
     backgroundColor: 'transparent',
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: FrostColors.soft,
+    // color applied inline via tokens.soft
   },
   btnPressed: {
     opacity: 0.85,
@@ -243,6 +243,6 @@ const styles = StyleSheet.create({
   doneText: {
     ...FrostType.displayXS,
     flex: 1,
-    color: FrostColors.ink,
+    // color applied inline via tokens.ink
   },
 });

@@ -80,9 +80,9 @@ export default function FrostCanvasShell({
   // Top bar text colour depends on background mode + paper brightness
   const topBarTextColor =
     resolvedMode === 'image' ? FrostColors.white :
-    dim ? FrostColors.muted : FrostColors.soft;
+    dim ? tokens.soft : tokens.soft;
   const topBarIconColor =
-    resolvedMode === 'image' ? FrostColors.white : FrostColors.ink;
+    resolvedMode === 'image' ? FrostColors.white : tokens.ink;
 
   // Phase 1.6.2: when the canvas has a bottomBar (input row), wrap content +
   // bottomBar inside a KeyboardAvoidingView. This lifts the input above the
@@ -150,7 +150,7 @@ export default function FrostCanvasShell({
           <View
             style={[
               styles.eyebrowDot,
-              { backgroundColor: resolvedMode === 'image' ? FrostColors.white : (dim ? FrostColors.muted : FrostColors.soft) },
+              { backgroundColor: resolvedMode === 'image' ? FrostColors.white : tokens.soft },
             ]}
           />
           <Text style={[styles.eyebrow, { color: topBarTextColor }]}>{eyebrow}</Text>

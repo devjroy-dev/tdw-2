@@ -81,8 +81,8 @@ export default function CanvasJourney() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         <View style={styles.heading}>
-          <Text style={styles.headingTitle}>{FrostCopy.journeyCanvas.title}</Text>
-          <Text style={styles.headingSub}>{FrostCopy.journeyCanvas.sub}</Text>
+          <Text style={[styles.headingTitle, { color: tokens.ink }]}>{FrostCopy.journeyCanvas.title}</Text>
+          <Text style={[styles.headingSub, { color: tokens.soft }]}>{FrostCopy.journeyCanvas.sub}</Text>
         </View>
 
         <Text style={styles.sectionLabel}>Your circle & essentials</Text>
@@ -128,8 +128,8 @@ function PrimaryTile({ tool, badge }: { tool: PrimaryTool; badge?: string }) {
         <View style={styles.primaryIconWrap}>
           <tool.Icon size={22} color={FrostColors.goldMuted} strokeWidth={1.5} />
         </View>
-        <Text style={styles.primaryTitle}>{tool.title}</Text>
-        <Text style={styles.primarySub}>{tool.subtitle}</Text>
+        <Text style={[styles.primaryTitle, { color: tokens.ink }]}>{tool.title}</Text>
+        <Text style={[styles.primarySub, { color: tokens.soft }]}>{tool.subtitle}</Text>
       </View>
     </FrostedSurface>
   );
@@ -142,7 +142,7 @@ function SecondaryTile({ tool }: { tool: SecondaryTool }) {
         <View style={styles.secondaryIconWrap}>
           <tool.Icon size={16} color={FrostColors.goldMuted} strokeWidth={1.5} />
         </View>
-        <Text style={styles.secondaryTitle}>{tool.title}</Text>
+        <Text style={[styles.secondaryTitle, { color: tokens.ink }]}>{tool.title}</Text>
         <ChevronRight size={15} color={FrostColors.hairline} strokeWidth={1.5} />
       </View>
     </FrostedSurface>
@@ -153,22 +153,22 @@ const styles = StyleSheet.create({
   scrollContent:     { paddingTop: FrostSpace.xl, paddingBottom: FrostSpace.huge },
   heading:           { paddingHorizontal: FrostSpace.xxl, paddingBottom: FrostSpace.l },
   headingTitle:      { ...FrostType.displayM, fontStyle: 'italic', fontFamily: FrostFonts.display },
-  headingSub:        { ...FrostType.bodyMedium, color: FrostColors.muted, marginTop: FrostSpace.xs },
+  headingSub:        { ...FrostType.bodyMedium, marginTop: FrostSpace.xs }, // color inline
   sectionLabel:      { ...FrostType.eyebrowSmall, paddingHorizontal: FrostSpace.xxl, marginBottom: FrostSpace.s, marginTop: FrostSpace.xs },
   primaryGrid:       { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: FrostSpace.xxl, gap: FrostSpace.m },
   primaryTile:       { width: '47.5%' },
   primaryInner:      { padding: FrostSpace.l, minHeight: 110, position: 'relative' },
   primaryIconWrap:   { marginBottom: FrostSpace.s },
   primaryTitle:      { fontFamily: FrostFonts.display, fontSize: 19, lineHeight: 24, color: FrostColors.ink, marginBottom: 3 },
-  primarySub:        { ...FrostType.bodySmall, fontSize: 11, color: FrostColors.muted, lineHeight: 15 },
+  primarySub:        { ...FrostType.bodySmall, fontSize: 11, lineHeight: 15 }, // color inline
   countPill:         { position: 'absolute', top: FrostSpace.m, right: FrostSpace.m, backgroundColor: FrostColors.goldTrue, borderRadius: FrostRadius.pill, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, zIndex: 10 },
-  countPillText:     { fontFamily: FrostFonts.labelMedium, fontSize: 10, color: '#FFFFFF' },
+  countPillText:     { fontFamily: FrostFonts.labelMedium, fontSize: 10, color: '#1B1612' }, // dark on gold
   divider:           { height: StyleSheet.hairlineWidth, backgroundColor: FrostColors.hairline, marginHorizontal: FrostSpace.xxl, marginVertical: FrostSpace.xl, opacity: 0.5 },
   secondaryList:     { paddingHorizontal: FrostSpace.xxl, gap: FrostSpace.xs },
   secondaryTile:     { marginBottom: 2 },
   secondaryInner:    { flexDirection: 'row', alignItems: 'center', paddingVertical: FrostSpace.m, paddingHorizontal: FrostSpace.l, gap: FrostSpace.m },
   secondaryIconWrap: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  secondaryTitle:    { flex: 1, fontFamily: FrostFonts.bodyMedium, fontSize: 14, color: FrostColors.soft },
+  secondaryTitle:    { flex: 1, fontFamily: FrostFonts.bodyMedium, fontSize: 14 }, // color inline
   footer:            { paddingHorizontal: FrostSpace.xxl, paddingTop: FrostSpace.xl },
-  footerText:        { ...FrostType.displayXS, color: FrostColors.muted, textAlign: 'center' },
+  footerText:        { ...FrostType.displayXS, textAlign: 'center' }, // color inline
 });

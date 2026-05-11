@@ -136,7 +136,7 @@ export default function JourneyCircle() {
 
         {/* ── ZONE 1: Timeline ─────────────────────────────────────────── */}
         <View style={styles.zone}>
-          <Text style={styles.zoneLabel}>Timeline</Text>
+          <Text style={[styles.zoneLabel, { color: tokens.soft }]}>Timeline</Text>
           <FrostedSurface mode="panel" radius={FrostRadius.box} style={styles.timelineCard}>
             <View style={styles.timelineInner}>
               <Text style={[styles.timelineTitle, { color: tokens.ink }]}>Your Circle is live.</Text>
@@ -151,7 +151,7 @@ export default function JourneyCircle() {
 
         {/* ── ZONE 2: Activity feed ─────────────────────────────────────── */}
         <View style={styles.zone}>
-          <Text style={styles.zoneLabel}>Activity</Text>
+          <Text style={[styles.zoneLabel, { color: tokens.soft }]}>Activity</Text>
           {loading ? (
             <Text style={[styles.emptyHint, { color: tokens.soft }]}>Loading…</Text>
           ) : feed.length === 0 ? (
@@ -174,7 +174,7 @@ export default function JourneyCircle() {
         {/* ── ZONE 3: Threads ───────────────────────────────────────────── */}
         <View style={styles.zone}>
           <View style={styles.zoneHeader}>
-            <Text style={styles.zoneLabel}>Threads</Text>
+            <Text style={[styles.zoneLabel, { color: tokens.soft }]}>Threads</Text>
             <Pressable onPress={() => router.push('/(frost)/canvas/journey/circle/invite' as any)} style={styles.inviteBtn}>
               <Plus size={14} color={FrostColors.goldMuted} strokeWidth={1.5} />
               <Text style={styles.inviteBtnText}>Invite</Text>
@@ -238,7 +238,7 @@ export default function JourneyCircle() {
               return (
                 <View style={[styles.bubble, isMe ? styles.bubbleMe : [styles.bubbleThem, { backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.16)' : 'rgba(255,253,248,0.80)' }]]}>
                   {!isMe && (
-                    <Text style={styles.bubbleSender}>{m.sender_name}</Text>
+                    <Text style={[styles.bubbleSender, { color: tokens.ink }]}>{m.sender_name}</Text>
                   )}
                   <Text style={[styles.bubbleText, { color: tokens.ink }, isMe && styles.bubbleTextMe]}>
                     {m.content}
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   scroll:        { paddingTop: FrostSpace.xl, paddingBottom: FrostSpace.huge },
   zone:          { paddingHorizontal: FrostSpace.xxl },
   zoneDivider:   { height: StyleSheet.hairlineWidth, backgroundColor: FrostColors.hairline, marginHorizontal: FrostSpace.xxl, marginVertical: FrostSpace.xl, opacity: 0.4 },
-  zoneLabel:     { fontFamily: FrostFonts.label, fontSize: 9, fontWeight: '300', letterSpacing: 3.5, textTransform: 'uppercase', marginBottom: FrostSpace.m, color: FrostColors.soft },
+  zoneLabel:     { fontFamily: FrostFonts.label, fontSize: 9, fontWeight: '300', letterSpacing: 3.5, textTransform: 'uppercase', marginBottom: FrostSpace.m }, // color inline
   zoneHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: FrostSpace.m },
 
   // Timeline
@@ -357,11 +357,11 @@ const styles = StyleSheet.create({
   bubble:         { maxWidth: '80%', marginBottom: FrostSpace.s },
   bubbleMe:       { alignSelf: 'flex-end', backgroundColor: FrostColors.goldTrue, borderRadius: FrostRadius.md, borderBottomRightRadius: 4, padding: FrostSpace.m },
   bubbleThem:     { alignSelf: 'flex-start', backgroundColor: 'rgba(255,253,248,0.80)', borderRadius: FrostRadius.md, borderBottomLeftRadius: 4, padding: FrostSpace.m, borderWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.buttonFrostBorder },
-  bubbleSender:   { ...FrostType.eyebrowSmall, fontSize: 9, marginBottom: 3, color: FrostColors.soft },
+  bubbleSender:   { ...FrostType.eyebrowSmall, fontSize: 9, marginBottom: 3 }, // color inline
   // color applied inline via tokens.ink — mode-aware
   bubbleText:     { fontFamily: FrostFonts.bodyMedium, fontSize: 14, lineHeight: 20 },
-  bubbleTextMe:   { color: '#FFFFFF' },
-  bubbleTime:     { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 4, color: FrostColors.soft },
+  bubbleTextMe:   { color: '#1B1612' }, // dark on gold — invariant
+  bubbleTime:     { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 4 }, // color inline
   bubbleTimeMe:   { color: 'rgba(255,255,255,0.65)' },
 
   // Composer

@@ -194,7 +194,7 @@ export default function CanvasDiscover() {
           <Pressable onPress={close} hitSlop={16} style={styles.closeBtn}>
             <X
               size={22}
-              color={moreOpen ? FrostColors.ink : FrostColors.white}
+              color={FrostColors.white}
               strokeWidth={1.5}
             />
           </Pressable>
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: FrostColors.goldMuted,
+    color: FrostColors.white,
   },
 
   // Overlay
@@ -370,12 +370,12 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.display,
     fontSize: 22,
     lineHeight: 28,
-    color: FrostColors.white,
+    color: FrostColors.ink,
     marginBottom: 4,
   },
   optionSub: {
     ...FrostType.bodySmall,
-    color: FrostColors.soft,
+    color: FrostColors.ink,
     lineHeight: 19,
   },
 

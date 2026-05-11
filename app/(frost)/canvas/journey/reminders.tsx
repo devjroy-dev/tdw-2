@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     width: 8, height: 8, borderRadius: 4,
     backgroundColor: FrostColors.goldMuted,
   },
-  rowText: { ...FrostType.bodyLarge, color: FrostColors.ink },
+  rowText: { ...FrostType.bodyLarge }, // color inline via inkColor prop (already passed)
   rowTextStrike: {
     textDecorationLine: 'line-through',
     textDecorationColor: FrostColors.muted,
