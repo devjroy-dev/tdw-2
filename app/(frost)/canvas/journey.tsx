@@ -12,7 +12,7 @@ import { router, useFocusEffect } from 'expo-router';
 import {
   Users, DollarSign, CheckSquare, Store,
   Calendar, UserCheck, MessageCircle, Settings,
-  Scissors, Plane, ChevronRight,
+  Scissors, Plane, Archive, ChevronRight,
 } from 'lucide-react-native';
 import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
@@ -49,8 +49,9 @@ const SECONDARY: SecondaryTool[] = [
   { key: 'events',    Icon: Calendar,      title: 'Events',    route: '/(frost)/canvas/journey/events' },
   { key: 'broadcast', Icon: UserCheck,     title: 'My people', route: '/(frost)/canvas/journey/broadcast' },
   { key: 'messages',  Icon: MessageCircle, title: 'Messages',  route: '/(frost)/canvas/journey/messages' },
-  { key: 'couture',   Icon: Scissors,      title: 'Couture',   route: '/(frost)/canvas/journey/couture' },
-  { key: 'honeymoon', Icon: Plane,         title: 'Honeymoon', route: '/(frost)/canvas/journey/honeymoon' },
+  { key: 'couture',   Icon: Scissors,      title: 'Couture',    route: '/(frost)/canvas/journey/couture' },
+  { key: 'memory',    Icon: Archive,       title: 'Memory Box', route: '/(frost)/canvas/journey/memory-box' },
+  { key: 'honeymoon', Icon: Plane,         title: 'Honeymoon',  route: '/(frost)/canvas/journey/honeymoon' },
   { key: 'settings',  Icon: Settings,      title: 'Settings',  route: '/(frost)/canvas/journey/settings' },
 ];
 
