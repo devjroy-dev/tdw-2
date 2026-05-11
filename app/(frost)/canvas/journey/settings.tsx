@@ -86,6 +86,29 @@ function formatDisplayDate(iso: string | null): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Map a thrown error to user-facing copy that distinguishes network failure
+// from server-side rejection. Save handlers attach `.status` + `.serverMessage`
+// to the thrown error so this can branch.
+function classifyError(err: any): string {
+  if (!err) return 'Could not save. Try again.';
+
+  // Network errors (fetch threw before getting a response)
+  const msg = String(err.message ?? '').toLowerCase();
+  if (msg.includes('network') || msg.includes('fetch') || err.code === 'NETWORK_ERROR') {
+    return 'No connection. Check your network and try again.';
+  }
+
+  // HTTP status-based branches
+  if (typeof err.status === 'number') {
+    if (err.status >= 500) return 'Server hiccup. Please try again in a moment.';
+    if (err.status === 404) return 'Save endpoint not available. Reach out to us.';
+    if (err.status === 401 || err.status === 403) return 'Session expired. Sign out and back in.';
+    if (err.status >= 400 && err.serverMessage) return err.serverMessage as string;
+  }
+
+  return 'Could not save. Try again.';
+}
+
 async function uploadToCloudinary(uri: string): Promise<string> {
   const filename = uri.split('/').pop() ?? 'photo.jpg';
   const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
@@ -373,13 +396,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setIdentitySaved);
       showToast('Identity saved.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setIdentitySaving(false); }
   }
 
@@ -398,13 +434,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setPrefsSaved);
       showToast('Preferences saved.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setPrefsSaving(false); }
   }
 
@@ -417,13 +466,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ discovery_categories: selectedCats, discovery_city: discoveryCity.trim() }),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setDiscoverySaved);
       showToast('Discovery preferences saved.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setDiscoverySaving(false); }
   }
 
@@ -459,13 +521,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone }),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setAccountSaved);
       showToast('WhatsApp number updated.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setAccountSaving(false); }
   }
 
