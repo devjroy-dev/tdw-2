@@ -855,8 +855,8 @@ export default function JourneySettings() {
               style={styles.signOutOuter}
             >
               <View style={styles.signOutInner}>
-                <LogOut size={16} color={FrostColors.muted} strokeWidth={1.5} />
-                <Text style={styles.signOutText}>Sign out</Text>
+                <LogOut size={16} color={tokens.ink} strokeWidth={1.5} />
+                <Text style={[styles.signOutText, { color: tokens.ink }]}>Sign out</Text>
               </View>
             </FrostedSurface>
           </View>
@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontFamily: FrostFonts.bodyMedium,
     fontSize: 14,
-    color: FrostColors.muted,
+    // color applied inline via tokens.ink — mode-aware
   },
 
   toast: {
