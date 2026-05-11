@@ -102,9 +102,9 @@ export default function CanvasMuse() {
 
   // Long-press routing per save type
   const handleTileLongPress = (save: MuseSave) => {
-    // Vendor-linked → vendor profile (uses existing route convention)
+    // Vendor-linked → vendor profile (lives under journey/, not discover/)
     if (save.vendor?.id) {
-      router.push(`/(frost)/canvas/discover/vendor/${save.vendor.id}` as any);
+      router.push(`/(frost)/canvas/journey/vendor/${save.vendor.id}` as any);
       return;
     }
     // External link → open URL (Pinterest, Instagram, web)
