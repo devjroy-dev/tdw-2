@@ -21,6 +21,8 @@ import {
   FrostColors, FrostType, FrostSpace, FrostRadius, FrostFonts, FrostMotion,
   FrostConfirmPreview,
 } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 
 interface FrostConfirmCardProps {
   preview: FrostConfirmPreview;
@@ -50,6 +52,8 @@ export default function FrostConfirmCard({
   onCancel,
   doneMessage = 'Done.',
 }: FrostConfirmCardProps) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [state, setState] = useState<CardState>('idle');
   const opacity = useRef(new Animated.Value(1)).current;
   const doneOpacity = useRef(new Animated.Value(0)).current;
@@ -83,7 +87,7 @@ export default function FrostConfirmCard({
 
   if (state === 'done') {
     return (
-      <Animated.View style={[styles.card, styles.cardDone, { opacity: doneOpacity }]}>
+      <Animated.View style={[styles.card, styles.cardDone, { backgroundColor: tokens.cardFill, opacity: doneOpacity }]}>
         <View style={styles.doneIconWrap}>
           <Check size={20} color={FrostColors.goldTrue} strokeWidth={1.8} />
         </View>
@@ -93,7 +97,7 @@ export default function FrostConfirmCard({
   }
 
   return (
-    <Animated.View style={[styles.card, { opacity }]}>
+    <Animated.View style={[styles.card, { backgroundColor: tokens.cardFill, opacity }]}>
       <Text style={styles.title}>{preview.summaryTitle}</Text>
 
       <View style={styles.summaryList}>
@@ -139,7 +143,8 @@ export default function FrostConfirmCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: FrostColors.white,
+    // backgroundColor applied inline via tokens.cardFill — mode-aware
+    // (no white card per Frost doctrine: "white cards are GONE")
     borderRadius: FrostRadius.box,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FrostColors.hairline,
