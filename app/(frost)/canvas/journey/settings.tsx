@@ -197,11 +197,11 @@ function SaveButton({ label, onPress, saving, saved, inkColor }: {
       radius={FrostRadius.pill}
       style={styles.saveBtnOuter}
     >
-      <View style={styles.saveBtnInner}>
+      <View style={[styles.saveBtnInner, saved && { backgroundColor: '#5A8C5C' }]}>
         {saving ? (
           <ActivityIndicator size="small" color={inkColor} />
         ) : (
-          <Text style={[styles.saveBtnText, { color: inkColor }]}>
+          <Text style={[styles.saveBtnText, { color: saved ? '#FAFAF8' : inkColor }]}>
             {saved ? '✓  SAVED' : label.toUpperCase()}
           </Text>
         )}
@@ -907,7 +907,7 @@ export default function JourneySettings() {
                       {tier === 'lite' ? '₹999' : '₹2,999'} one-time
                     </Text>
                   </View>
-                  <Text style={styles.upgradeBadge}>Available from August 1</Text>
+                  <Text style={styles.upgradeBadge}>Available from August 1, 2026</Text>
                 </View>
               </Row>
             )}
