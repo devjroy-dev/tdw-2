@@ -24,6 +24,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, Pressable, StyleSheet, Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Alert } from 'react-native';
 import { Send, Paperclip } from 'lucide-react-native';
@@ -616,48 +617,53 @@ export default function CanvasDream() {
       statusBarStyle={tokens.statusBarStyle === 'light-content' ? 'light' : 'dark'}
       bottomBar={
         <FrostedSurface mode="composer" radius={0} style={{ borderRadius: 0 }}>
-          <View style={styles.composer}>
-            <Pressable
-              onPress={handleAttach}
-              style={({ pressed }) => [
-                styles.paperclipBtn,
-                pressed && { opacity: 0.55 },
-                sending && { opacity: 0.4 },
-              ]}
-              disabled={sending}
-              hitSlop={8}
-            >
-              <Paperclip size={18} color={tokens.soft} strokeWidth={1.6} />
-            </Pressable>
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder={FrostCopy.dreamCanvas.inputPlaceholder}
-              placeholderTextColor={tokens.soft}
-              style={[styles.input, {
-                backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.55)',
-                color: tokens.ink,
-              }]}
-              selectionColor={tokens.brass}
-              multiline
-              editable={!sending}
-              onSubmitEditing={handleSend}
-              blurOnSubmit={false}
-              returnKeyType="send"
-            />
-            <Pressable
-              onPress={handleSend}
-              style={({ pressed }) => [
-                styles.sendBtn,
-                { backgroundColor: tokens.ink },
-                pressed && { opacity: 0.85 },
-                sending && { opacity: 0.5 },
-              ]}
-              disabled={sending}
-            >
-              <Send size={18} color={FrostColors.white} strokeWidth={1.7} />
-            </Pressable>
-          </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
+          >
+            <View style={styles.composer}>
+              <Pressable
+                onPress={handleAttach}
+                style={({ pressed }) => [
+                  styles.paperclipBtn,
+                  pressed && { opacity: 0.55 },
+                  sending && { opacity: 0.4 },
+                ]}
+                disabled={sending}
+                hitSlop={8}
+              >
+                <Paperclip size={18} color={tokens.soft} strokeWidth={1.6} />
+              </Pressable>
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder={FrostCopy.dreamCanvas.inputPlaceholder}
+                placeholderTextColor="#5A5650"
+                style={[styles.input, {
+                  backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.55)',
+                  color: '#2C2823',
+                }]}
+                selectionColor={tokens.brass}
+                multiline
+                editable={!sending}
+                onSubmitEditing={handleSend}
+                blurOnSubmit={false}
+                returnKeyType="send"
+              />
+              <Pressable
+                onPress={handleSend}
+                style={({ pressed }) => [
+                  styles.sendBtn,
+                  { backgroundColor: tokens.ink },
+                  pressed && { opacity: 0.85 },
+                  sending && { opacity: 0.5 },
+                ]}
+                disabled={sending}
+              >
+                <Send size={18} color={FrostColors.white} strokeWidth={1.7} />
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </FrostedSurface>
       }
     >
