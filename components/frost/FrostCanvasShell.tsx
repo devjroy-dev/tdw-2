@@ -24,6 +24,8 @@ import { X } from 'lucide-react-native';
 import {
   FrostColors, FrostType, FrostSpace, FrostLayout,
 } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 import FrostPane from './FrostPane';
 
 type Mode = 'image' | 'frost' | 'plain';
@@ -62,13 +64,15 @@ export default function FrostCanvasShell({
   dim = false,
 }: FrostCanvasShellProps) {
   const insets = useSafeAreaInsets();
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
 
   const resolvedMode: Mode = mode ?? (imageUri ? 'image' : 'frost');
   const resolvedStatusBar =
     statusBarStyle === 'auto'
       ? resolvedMode === 'image'
         ? 'light'
-        : 'dark'
+        : (tokens.statusBarStyle === 'light-content' ? 'light' : 'dark')
       : statusBarStyle;
 
   const onCloseInternal = onClose ?? (() => router.back());
