@@ -260,6 +260,7 @@ export default function JourneyCircle() {
                 onChangeText={setComposing}
                 placeholder="Message…"
                 placeholderTextColor={FrostColors.muted}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 multiline
                 returnKeyType="send"
                 onSubmitEditing={handleSend}

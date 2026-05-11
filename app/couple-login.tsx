@@ -138,6 +138,7 @@ function OtpRow({ value, onChange, onComplete }: {
           ref={r => { refs.current[i] = r; }}
           value={d}
           keyboardType="numeric"
+          keyboardAppearance="dark"
           maxLength={1}
           style={otpStyles.box}
           onChangeText={t => {
@@ -178,6 +179,7 @@ function PinRow({ value, onChange, onComplete }: {
           ref={r => { refs.current[i] = r; }}
           value={d}
           keyboardType="numeric"
+          keyboardAppearance="dark"
           secureTextEntry
           maxLength={1}
           style={pinStyles.box}
@@ -610,6 +612,7 @@ export default function CoupleLoginScreen() {
               placeholder="XXXXXX"
               placeholderTextColor="rgba(248,247,245,0.25)"
               autoCapitalize="characters"
+              keyboardAppearance="dark"
               maxLength={8}
               style={[inputStyle, { textAlign: 'center', letterSpacing: 6, fontSize: 24 }]}
             />
@@ -659,6 +662,7 @@ export default function CoupleLoginScreen() {
                 placeholder="00000 00000"
                 placeholderTextColor="rgba(248,247,245,0.25)"
                 keyboardType="phone-pad"
+                keyboardAppearance="dark"
                 maxLength={10}
                 style={{ flex: 1, fontFamily: FrostFonts.body, fontSize: 16,
                   color: '#F8F7F5', paddingVertical: 10 }}
@@ -812,11 +816,11 @@ export default function CoupleLoginScreen() {
 
             <Text style={labelStyle}>Name</Text>
             <TextInput value={reqName} onChangeText={setReqName} style={inputStyle}
-              placeholder="Full name" placeholderTextColor="rgba(248,247,245,0.25)" />
+              placeholder="Full name" placeholderTextColor="rgba(248,247,245,0.25)" keyboardAppearance="dark" />
 
             <Text style={labelStyle}>Email</Text>
             <TextInput value={reqEmail} onChangeText={setReqEmail} style={inputStyle}
-              placeholder="you@example.com" placeholderTextColor="rgba(248,247,245,0.25)"
+              placeholder="you@example.com" placeholderTextColor="rgba(248,247,245,0.25)" keyboardAppearance="dark"
               keyboardType="email-address" autoCapitalize="none" />
 
             <Text style={labelStyle}>Phone</Text>
@@ -824,18 +828,18 @@ export default function CoupleLoginScreen() {
               value={reqPhone}
               onChangeText={t => setReqPhone(t.replace(/\D/g, '').slice(0, 10))}
               style={inputStyle}
-              placeholder="00000 00000" placeholderTextColor="rgba(248,247,245,0.25)"
+              placeholder="00000 00000" placeholderTextColor="rgba(248,247,245,0.25)" keyboardAppearance="dark"
               keyboardType="phone-pad" maxLength={10} />
 
             <Text style={labelStyle}>Instagram</Text>
             <TextInput value={reqInstagram} onChangeText={setReqInstagram} style={inputStyle}
-              placeholder="@handle" placeholderTextColor="rgba(248,247,245,0.25)"
+              placeholder="@handle" placeholderTextColor="rgba(248,247,245,0.25)" keyboardAppearance="dark"
               autoCapitalize="none" />
 
             <Text style={labelStyle}>{role === 'Maker' ? 'City / category' : 'City'}</Text>
             <TextInput value={reqCity} onChangeText={setReqCity} style={inputStyle}
               placeholder={role === 'Maker' ? 'e.g. Mumbai · Photography' : 'e.g. Mumbai'}
-              placeholderTextColor="rgba(248,247,245,0.25)" />
+              placeholderTextColor="rgba(248,247,245,0.25)" keyboardAppearance="dark" />
 
             {reqError ? <Text style={s.errorText}>{reqError}</Text> : null}
             <GoldBtn label="Submit →" onPress={submitRequest} loading={loading} />

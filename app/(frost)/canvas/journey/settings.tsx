@@ -637,6 +637,7 @@ export default function JourneySettings() {
               <FieldLabel>Bride&apos;s name</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={identityName}
                 onChangeText={setIdentityName}
                 placeholder="Your name"
@@ -649,6 +650,7 @@ export default function JourneySettings() {
               <FieldLabel>Partner&apos;s name</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={identityPartner}
                 onChangeText={setIdentityPartner}
                 placeholder="Their name"
@@ -693,6 +695,7 @@ export default function JourneySettings() {
               <FieldLabel>Wedding city</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={identityCity}
                 onChangeText={setIdentityCity}
                 placeholder="Your city"
@@ -732,6 +735,7 @@ export default function JourneySettings() {
               <FieldLabel>Estimated guest count</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={guestCount}
                 onChangeText={setGuestCount}
                 placeholder="e.g. 300"
@@ -789,6 +793,7 @@ export default function JourneySettings() {
               <FieldLabel>City for discovery</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={discoveryCity}
                 onChangeText={setDiscoveryCity}
                 placeholder="e.g. Delhi, Mumbai"
@@ -911,6 +916,7 @@ export default function JourneySettings() {
               <FieldLabel>WhatsApp number</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={whatsappNumber}
                 onChangeText={setWhatsappNumber}
                 placeholder="+91 XXXXX XXXXX"

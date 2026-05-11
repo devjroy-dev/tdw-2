@@ -644,6 +644,7 @@ export default function CanvasDream() {
                   color: '#2C2823',
                 }]}
                 selectionColor={tokens.brass}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 multiline
                 editable={!sending}
                 onSubmitEditing={handleSend}

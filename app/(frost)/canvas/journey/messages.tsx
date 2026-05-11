@@ -212,6 +212,7 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
             onChangeText={setComposing}
             placeholder="Reply…"
             placeholderTextColor={tokens.soft}
+            keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
             multiline
           />
           <Pressable
