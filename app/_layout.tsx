@@ -1,4 +1,7 @@
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { StatusBar } from 'expo-status-bar';
+
 import {
   CormorantGaramond_300Light,
   CormorantGaramond_300Light_Italic,
@@ -16,15 +19,10 @@ import {
   Jost_300Light,
   Jost_400Regular,
 } from '@expo-google-fonts/jost';
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-
-try { SplashScreen.preventAutoHideAsync(); } catch (_) {}
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  // Fire-and-forget — does NOT block render. System font shows until custom fonts arrive.
+  useFonts({
     CormorantGaramond_300Light,
     CormorantGaramond_300Light_Italic,
     CormorantGaramond_400Regular,
@@ -37,12 +35,6 @@ export default function RootLayout() {
     Jost_300Light,
     Jost_400Regular,
   });
-
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) return null;
 
   return (
     <>
