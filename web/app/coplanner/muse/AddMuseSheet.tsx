@@ -40,16 +40,16 @@ export default function AddMuseSheet({
     }
   };
 
-  const save = async (image_url: string, source_url: string | null) => {
+  const save = async (image_url: string) => {
     setSaving(true); setErr('');
     try {
       const r = await fetch(`${API}/api/v2/circle/muse/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: session.user_id,
+          memberUserId: session.user_id,
           image_url,
-          source_url,
+          function_tag: 'general',
         }),
       });
       const d = await r.json();
@@ -64,14 +64,12 @@ export default function AddMuseSheet({
   const submitUrl = () => {
     const v = url.trim();
     if (!v) return;
-    // If it looks like a direct image URL, use it. Otherwise stash the page URL
-    // as both image_url and source_url; the backend can resolve OG image.
-    save(v, v);
+    save(v);
   };
 
   const onFile = async (file: File) => {
     const secure = await uploadFile(file);
-    if (secure) await save(secure, null);
+    if (secure) await save(secure);
   };
 
   const busy = uploading || saving;

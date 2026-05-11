@@ -10,9 +10,11 @@ import AddMuseSheet from './AddMuseSheet';
 interface MuseTile {
   id: string;
   image_url: string;
-  source_url?: string | null;
-  vendor_name?: string | null;
-  vendor_category?: string | null;
+  function_tag?: string | null;
+  note?: string | null;
+  created_at?: string;
+  saved_by_co_planner_id?: string | null;
+  vendor_id?: string | null;
 }
 
 export default function CoplannerMuse() {
@@ -84,7 +86,7 @@ export default function CoplannerMuse() {
           {tiles.map(t => (
             <a
               key={t.id}
-              href={t.source_url || t.image_url}
+              href={t.image_url}
               target="_blank"
               rel="noreferrer noopener"
               style={{
@@ -102,19 +104,6 @@ export default function CoplannerMuse() {
                 loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
-              {t.vendor_name && (
-                <div style={{
-                  position: 'absolute', left: 0, right: 0, bottom: 0,
-                  padding: '10px 10px 8px',
-                  background: 'linear-gradient(to top, rgba(12,10,9,0.78), transparent)',
-                }}>
-                  <p style={{
-                    fontFamily: FONT_BODY, fontWeight: 400, fontSize: 11,
-                    color: CREAM, margin: 0,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{t.vendor_name}</p>
-                </div>
-              )}
             </a>
           ))}
         </div>
