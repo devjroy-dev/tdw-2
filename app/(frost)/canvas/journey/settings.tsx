@@ -444,7 +444,14 @@ export default function JourneySettings() {
     if (!userId) return;
     setAccountSaving(true);
     try {
-      const clean = whatsappNumber.replace(/\D/g, '').slice(-10);
+      // Left-to-right parse: strip non-digits, drop a leading 91 if the
+      // remainder is longer than 10 (handles +91 / 91 prefix), then take the
+      // FIRST 10 digits (handles trailing junk like '+91 98765 43210 XXX').
+      let digits = whatsappNumber.replace(/\D/g, '');
+      if (digits.length > 10 && digits.startsWith('91')) {
+        digits = digits.slice(2);
+      }
+      const clean = digits.slice(0, 10);
       if (clean.length !== 10) { showToast('Enter a valid 10-digit number.'); return; }
       const fullPhone = '+91' + clean;
       const res = await fetch(`${API}/api/v2/couple/profile/${userId}`, {
