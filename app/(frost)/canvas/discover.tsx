@@ -218,16 +218,16 @@ export default function CanvasDiscover() {
             ]) as any}
           />
         ) : Platform.OS === 'ios' ? (
-          <BlurView intensity={FrostMaterial.pageBlurIOS} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={FrostMaterial.pageBlurIOS} tint="dark" style={StyleSheet.absoluteFill} />
         ) : ANDROID_BLUR_SUPPORTED ? (
           <BlurView
             intensity={FrostMaterial.pageBlurAndroid}
-            tint="light"
+            tint="dark"
             experimentalBlurMethod={FrostMaterial.androidExperimentalMethod}
             style={StyleSheet.absoluteFill}
           />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: FrostMaterial.androidPageTint }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(28,24,20,0.82)' }]} />
         )}
 
         {/* Overlay UI: title + 4 buttons */}
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     ...FrostType.displayM,
     fontStyle: 'italic',
     fontFamily: FrostFonts.display,
-    color: FrostColors.ink,
+    color: FrostColors.white,
     marginBottom: FrostSpace.xxl,
   },
   optionList: {
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.display,
     fontSize: 22,
     lineHeight: 28,
-    color: FrostColors.ink,
+    color: FrostColors.white,
     marginBottom: 4,
   },
   optionSub: {

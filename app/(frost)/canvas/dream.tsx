@@ -603,6 +603,7 @@ export default function CanvasDream() {
                 backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.55)',
                 color: tokens.ink,
               }]}
+              selectionColor={tokens.brass}
               multiline
               editable={!sending}
               onSubmitEditing={handleSend}
@@ -815,7 +816,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     fontFamily: FrostFonts.body,
     fontSize: 15,
-    color: FrostColors.ink,
+    // color applied inline via tokens.ink — mode-aware
     lineHeight: 22,
   },
   sendBtn: {

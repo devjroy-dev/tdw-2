@@ -57,7 +57,7 @@ export default function FrostedSurface({
       return (
         <BlurView
           intensity={isComposer ? FrostMaterial.composerBlurIOS : FrostMaterial.buttonBlurIOS}
-          tint={isComposer ? 'default' : look === 'E1' ? 'dark' : 'light'}
+          tint={isComposer ? (look === 'E1' ? 'dark' : 'default') : look === 'E1' ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
         />
       );
@@ -82,7 +82,7 @@ export default function FrostedSurface({
     // E1 dark: near-transparent lift so tiles read as subtle surfaces, not silver slabs
     // E3 light: original warm-white tint
     const androidTint = isComposer
-      ? FrostMaterial.androidComposerTint
+      ? (look === 'E1' ? 'rgba(255,253,248,0.07)' : FrostMaterial.androidComposerTint)
       : look === 'E1'
         ? 'rgba(255,253,248,0.09)'
         : FrostMaterial.androidButtonTint;
