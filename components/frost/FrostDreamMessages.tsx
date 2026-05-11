@@ -13,14 +13,18 @@
 
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
-import { FrostColors, FrostType, FrostSpace, FrostFonts } from '../../constants/frost';
+import { FrostType, FrostSpace, FrostFonts } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 
 // ─── AI LINE ─────────────────────────────────────────────────────────────────
 
 export function AILine({ text, timestamp }: { text: string; timestamp?: string }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <View style={styles.row}>
-      <Text style={styles.glyph}>✦</Text>
+      <Text style={[styles.glyph, { color: tokens.soft }]}>✦</Text>
       <View style={styles.content}>
         <Text style={styles.aiText}>{text}</Text>
         {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
@@ -42,19 +46,21 @@ interface PersonActionProps {
 export function PersonAction({
   name, avatar, action, text, timestamp,
 }: PersonActionProps) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <View style={styles.row}>
       {avatar ? (
-        <Image source={{ uri: avatar }} style={styles.avatar} />
+        <Image source={{ uri: avatar }} style={[styles.avatar, { backgroundColor: tokens.hairline }]} />
       ) : (
-        <View style={[styles.avatar, styles.avatarFallback]}>
-          <Text style={styles.avatarLetter}>{name[0]?.toUpperCase()}</Text>
+        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: tokens.hairline }]}>
+          <Text style={[styles.avatarLetter, { color: tokens.soft }]}>{name[0]?.toUpperCase()}</Text>
         </View>
       )}
       <View style={styles.content}>
-        <Text style={styles.personLine}>
-          <Text style={styles.personName}>{name}</Text>
-          <Text style={styles.personAction}>{` ${action}`}</Text>
+        <Text style={[styles.personLine, { color: tokens.ink }]}>
+          <Text style={[styles.personName, { color: tokens.ink }]}>{name}</Text>
+          <Text style={[styles.personAction, { color: tokens.soft }]}>{` ${action}`}</Text>
         </Text>
         {text ? <Text style={styles.personText}>{text}</Text> : null}
         {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
@@ -66,9 +72,11 @@ export function PersonAction({
 // ─── INLINE EVENT ────────────────────────────────────────────────────────────
 
 export function InlineEvent({ text }: { text: string }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <View style={styles.eventRow}>
-      <Text style={styles.eventText}>{text}</Text>
+      <Text style={[styles.eventText, { color: tokens.soft }]}>{text}</Text>
     </View>
   );
 }
@@ -88,7 +96,7 @@ const styles = StyleSheet.create({
   glyph: {
     fontFamily: FrostFonts.body,
     fontSize: 14,
-    color: FrostColors.soft,
+    // color applied inline via tokens.soft — mode-aware
     width: AVATAR_SIZE,
     textAlign: 'center',
     marginTop: 2,
@@ -97,7 +105,7 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: FrostColors.hairline,
+    // backgroundColor applied inline via tokens.hairline — mode-aware
   },
   avatarFallback: {
     alignItems: 'center',
@@ -105,7 +113,7 @@ const styles = StyleSheet.create({
   },
   avatarLetter: {
     ...FrostType.bodyMedium,
-    color: FrostColors.soft,
+    // color applied inline via tokens.soft — mode-aware
     fontFamily: FrostFonts.bodyMedium,
   },
   content: {
@@ -117,18 +125,15 @@ const styles = StyleSheet.create({
     ...FrostType.displayXS,
   },
 
-  // Person
+  // Person — colors applied inline (tokens.ink for line/name, tokens.soft for action)
   personLine: {
     ...FrostType.bodyMedium,
-    color: FrostColors.ink,
   },
   personName: {
     fontFamily: FrostFonts.bodyMedium,
-    color: FrostColors.ink,
   },
   personAction: {
     fontFamily: FrostFonts.body,
-    color: FrostColors.soft,
   },
   personText: {
     ...FrostType.bodyMedium,
@@ -144,7 +149,7 @@ const styles = StyleSheet.create({
   eventText: {
     ...FrostType.bodySmall,
     fontStyle: 'italic',
-    color: FrostColors.soft,
+    // color applied inline via tokens.soft — mode-aware
     textAlign: 'center',
   },
 
