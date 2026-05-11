@@ -25,12 +25,16 @@ import FrostedSurface from './FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 
 interface DreamSummaryCardProps {
   lines: string[];
 }
 
 export default function DreamSummaryCard({ lines }: DreamSummaryCardProps) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   if (!lines || lines.length === 0) return null;
 
   return (
@@ -40,7 +44,7 @@ export default function DreamSummaryCard({ lines }: DreamSummaryCardProps) {
           {lines.map((line, idx) => (
             <View key={idx} style={styles.row}>
               <View style={styles.dot} />
-              <Text style={styles.text}>{line}</Text>
+              <Text style={[styles.text, { color: tokens.ink }]}>{line}</Text>
             </View>
           ))}
         </View>
@@ -77,6 +81,6 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.body,
     fontSize: 14,
     lineHeight: 20,
-    color: FrostColors.soft,
+    // color applied inline via tokens.ink
   },
 });

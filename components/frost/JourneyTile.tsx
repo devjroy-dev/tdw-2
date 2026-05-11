@@ -13,6 +13,8 @@ import FrostedSurface from './FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 
 interface JourneyTileProps {
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
@@ -25,6 +27,8 @@ interface JourneyTileProps {
 export default function JourneyTile({
   Icon, title, subtitle, badge, onPress,
 }: JourneyTileProps) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostedSurface
       mode="button"
@@ -37,8 +41,8 @@ export default function JourneyTile({
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          <Text style={[styles.title, { color: tokens.ink }]}>{title}</Text>
+          {subtitle ? <Text style={[styles.subtitle, { color: tokens.soft }]}>{subtitle}</Text> : null}
         </View>
 
         {badge ? (
@@ -69,11 +73,11 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FrostFonts.display,
     fontSize: 19, lineHeight: 24,
-    color: FrostColors.ink,
+    // color inline via tokens.ink
   },
   subtitle: {
     ...FrostType.bodySmall,
-    color: FrostColors.muted,
+    // color inline via tokens.soft
     marginTop: 2,
   },
   badge: {

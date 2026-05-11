@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   API, CREAM, GOLD, INK, MUTED, HAIRLINE,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, brideId, memberName,
+  useCircleSession, brideId, brideName, memberName,
 } from '../../CircleSessionContext';
 
 interface Message {
@@ -114,7 +114,7 @@ export default function ThreadDetail() {
           fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 300,
           fontSize: 22, color: CREAM, margin: 0,
         }}>
-          {thread_id.startsWith('dm:') ? `Chat with ${session.bride_name}` : 'Thread'}
+          {thread_id.startsWith('dm:') ? `Chat with ${brideName(session)}` : 'Thread'}
         </h1>
       </div>
 

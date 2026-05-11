@@ -4,32 +4,36 @@ import { useRouter } from 'next/navigation';
 import {
   API, CREAM, GOLD, MUTED, HAIRLINE, FROST_PANEL,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, brideId,
+  useCircleSession, brideId, brideName,
 } from '../CircleSessionContext';
+
+// Shape matches GET /api/v2/frost/circle/threads/:userId (backend ~15883).
+// Backend sends: thread_id, kind ('dm'|'group'), label, last_message (object), last_active.
+interface LastMessage {
+  content?: string | null;
+  sender_name?: string | null;
+  sender_role?: string | null;
+  created_at?: string | null;
+}
 
 interface Thread {
   thread_id?: string;
-  id?: string;
-  title?: string | null;
-  name?: string | null;
   kind?: string | null;
-  last_message?: string | null;
-  last_message_preview?: string | null;
-  last_message_at?: string | null;
-  updated_at?: string | null;
-  unread?: number;
+  label?: string | null;        // backend field — was incorrectly read as title/name
+  last_message?: LastMessage | null; // object, not string
+  last_active?: string | null;  // backend field — was incorrectly read as last_message_at
+  [extra: string]: unknown;
 }
 
 function threadId(t: Thread): string {
-  return (t.thread_id || t.id || '') as string;
+  return (t.thread_id || '') as string;
 }
 
 function threadLabel(t: Thread, fallbackBride: string): string {
-  if (t.title) return t.title;
-  if (t.name)  return t.name;
+  if (t.label) return t.label;                          // backend sends label directly
   const id = threadId(t);
-  if (id.startsWith('dm:')) return `Chat with ${fallbackBride}`;
-  if (id.startsWith('group:')) return 'Family group';
+  if (id.startsWith('dm:'))  return `Chat with ${fallbackBride}`;
+  if (id.startsWith('grp:')) return 'Group';            // backend uses 'grp:' not 'group:'
   return 'Circle';
 }
 
@@ -67,11 +71,11 @@ export default function CoplannerThreads() {
   }, [bride_id]);
 
   const sorted = [...threads].sort((a, b) => {
-    const aGroup = (a.kind || threadId(a)).toString().startsWith('group') ? 0 : 1;
-    const bGroup = (b.kind || threadId(b)).toString().startsWith('group') ? 0 : 1;
+    const aGroup = a.kind === 'group' ? 0 : 1;          // backend kind: 'group' | 'dm'
+    const bGroup = b.kind === 'group' ? 0 : 1;
     if (aGroup !== bGroup) return aGroup - bGroup;
-    const at = new Date(a.last_message_at || a.updated_at || 0).getTime();
-    const bt = new Date(b.last_message_at || b.updated_at || 0).getTime();
+    const at = new Date((a.last_active as string) || 0).getTime();   // backend: last_active
+    const bt = new Date((b.last_active as string) || 0).getTime();
     return bt - at;
   });
 
@@ -99,7 +103,7 @@ export default function CoplannerThreads() {
             fontFamily: FONT_BODY, fontWeight: 300, fontSize: 13,
             color: MUTED, margin: 0, lineHeight: 1.6,
           }}>
-            No threads yet. When {session.bride_name} starts a conversation
+            No threads yet. When {brideName(session)} starts a conversation
             with you, it&rsquo;ll show up here.
           </p>
         </div>
@@ -109,9 +113,9 @@ export default function CoplannerThreads() {
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {sorted.map(t => {
             const id      = threadId(t);
-            const label   = threadLabel(t, session.bride_name);
-            const preview = t.last_message_preview || t.last_message || '';
-            const stamp   = timeAgo(t.last_message_at || t.updated_at);
+            const label   = threadLabel(t, brideName(session));
+            const preview = t.last_message?.content || '';
+            const stamp   = timeAgo(t.last_active);
             return (
               <li key={id}>
                 <button

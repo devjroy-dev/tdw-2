@@ -28,7 +28,11 @@ export const FrostColors = {
   composerFrostTint:  'rgba(28,24,20,0.22)',     // darker frost for Dream compose bar
   composerHairline:   'rgba(168,146,75,0.30)',
 
-  // Type — vintage warm charcoal (was crisp near-black)
+  // ⚠️  MODE-SENSITIVE — these values only work correctly in E3 (light).
+  // In E1 (dark) they produce near-invisible text against dark backgrounds.
+  // All new code must read tokens.ink / tokens.soft / tokens.hairline
+  // from MUSE_LOOKS[look] instead of these static values.
+  // These are retained temporarily for backwards compatibility only.
   ink:    '#2C2823',          // softened from #1A1815 — feels printed, not freshly inked
   soft:   '#5A5650',          // warmed mid-grey
   muted:  '#8C8480',

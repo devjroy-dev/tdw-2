@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   API, CREAM, GOLD, MUTED, HAIRLINE, FROST_PANEL,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, brideId, memberName,
+  useCircleSession, brideId, brideName, memberName,
 } from './CircleSessionContext';
 
 interface FeedEvent {
@@ -89,7 +89,7 @@ export default function CoplannerHome() {
         fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 300,
         fontSize: 36, lineHeight: 1.15, color: CREAM,
         margin: '0 0 6px',
-      }}>{session.bride_name}&rsquo;s wedding</h1>
+      }}>{brideName(session)}&rsquo;s wedding</h1>
 
       <p style={{
         fontFamily: FONT_BODY, fontWeight: 300, fontSize: 14,
@@ -118,7 +118,7 @@ export default function CoplannerHome() {
             fontFamily: FONT_BODY, fontWeight: 300, fontSize: 13,
             color: MUTED, margin: 0, lineHeight: 1.6,
           }}>
-            Quiet for now. When {session.bride_name} or someone in the Circle saves
+            Quiet for now. When {brideName(session)} or someone in the Circle saves
             a vendor or posts a thought, it&rsquo;ll show up here.
           </p>
         )}

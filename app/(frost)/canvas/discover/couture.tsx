@@ -12,6 +12,8 @@ import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 
 const PLACEHOLDER_COUTURE = [
   { id: 'c1', name: 'Atelier Mehra', specialty: 'Heirloom embroidery', city: 'New Delhi' },
@@ -20,23 +22,25 @@ const PLACEHOLDER_COUTURE = [
 ];
 
 export default function Couture() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostCanvasShell eyebrow="DISCOVER · COUTURE" mode="frost">
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.heading}>By appointment.</Text>
-        <Text style={styles.sub}>The ateliers we know personally. Reservations open here.</Text>
+        <Text style={[styles.heading, { color: tokens.ink }]}>By appointment.</Text>
+        <Text style={[styles.sub, { color: tokens.soft }]}>The ateliers we know personally. Reservations open here.</Text>
 
         <View style={styles.list}>
           {PLACEHOLDER_COUTURE.map(c => (
             <FrostedSurface key={c.id} mode="button" onPress={() => {}}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{c.name}</Text>
-                  <Text style={styles.specialty}>{c.specialty}</Text>
-                  <Text style={styles.city}>{c.city}</Text>
+                  <Text style={[styles.name, { color: tokens.ink }]}>{c.name}</Text>
+                  <Text style={[styles.specialty, { color: tokens.soft }]}>{c.specialty}</Text>
+                  <Text style={[styles.city, { color: tokens.soft }]}>{c.city}</Text>
                 </View>
                 <Text style={styles.cta}>RESERVE</Text>
               </View>
@@ -61,7 +65,7 @@ const styles = StyleSheet.create({
   },
   sub: {
     ...FrostType.bodyMedium,
-    color: FrostColors.muted,
+    // color inline via tokens.soft
     marginTop: FrostSpace.xs,
     marginBottom: FrostSpace.xl,
   },
@@ -76,12 +80,12 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FrostFonts.display,
     fontSize: 20,
-    color: FrostColors.ink,
+    // color inline via tokens.ink
     fontStyle: 'italic',
   },
   specialty: {
     ...FrostType.bodySmall,
-    color: FrostColors.soft,
+    // color inline via tokens.soft
     marginTop: 2,
   },
   city: {

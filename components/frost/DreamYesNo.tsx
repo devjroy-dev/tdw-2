@@ -17,6 +17,8 @@ import * as Haptics from 'expo-haptics';
 import {
   FrostColors, FrostFonts, FrostType, FrostSpace, FrostRadius, FrostMotion,
 } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 import { brideFollowup, BrideFollowup } from '../../services/frostApi';
 
 interface DreamYesNoProps {
@@ -41,6 +43,8 @@ export default function DreamYesNo({
   onResolved,
   disabled = false,
 }: DreamYesNoProps) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [state, setState] = useState<State>('idle');
   const [chosen, setChosen] = useState<'yes' | 'no' | null>(null);
   const fadeBadge = useRef(new Animated.Value(0)).current;
@@ -72,9 +76,9 @@ export default function DreamYesNo({
   if (state === 'done') {
     return (
       <Animated.View style={[styles.row, { opacity: fadeBadge }]}>
-        <Text style={styles.glyph}>✦</Text>
+        <Text style={[styles.glyph, { color: tokens.soft }]}>✦</Text>
         <View style={styles.body}>
-          <Text style={styles.promptTextDone}>{prompt.text}</Text>
+          <Text style={[styles.promptTextDone, { color: tokens.soft }]}>{prompt.text}</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>
               ✓ {chosen === 'yes' ? prompt.yesLabel : prompt.noLabel}
@@ -88,15 +92,15 @@ export default function DreamYesNo({
   // Idle / sending — show buttons
   return (
     <View style={styles.row}>
-      <Text style={styles.glyph}>✦</Text>
+      <Text style={[styles.glyph, { color: tokens.soft }]}>✦</Text>
       <View style={styles.body}>
-        <Text style={styles.promptText}>{prompt.text}</Text>
+        <Text style={[styles.promptText, { color: tokens.ink }]}>{prompt.text}</Text>
         <View style={styles.btnRow}>
           <Pressable
             onPress={() => handleTap('yes')}
             style={({ pressed }) => [
               styles.btn,
-              styles.btnYes,
+              { backgroundColor: tokens.ink, borderColor: tokens.ink },
               pressed && styles.btnPressed,
               state === 'sending' && chosen !== 'yes' && styles.btnDimmed,
             ]}
@@ -116,7 +120,7 @@ export default function DreamYesNo({
             ]}
             disabled={state !== 'idle' || disabled}
           >
-            <Text style={styles.btnNoText}>
+            <Text style={[styles.btnNoText, { color: tokens.soft }]}>
               {state === 'sending' && chosen === 'no' ? '…' : prompt.noLabel}
             </Text>
           </Pressable>
@@ -141,7 +145,7 @@ const styles = StyleSheet.create({
   glyph: {
     fontFamily: FrostFonts.body,
     fontSize: 14,
-    color: FrostColors.soft,
+    // color inline via tokens.soft
     width: AVATAR_SIZE,
     textAlign: 'center',
     marginTop: 2,
@@ -169,7 +173,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   btnYes: {
-    backgroundColor: FrostColors.ink,
+    // backgroundColor inline via tokens.ink
     borderColor: FrostColors.ink,
   },
   btnNo: {
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.4,
     textTransform: 'uppercase',
-    color: FrostColors.soft,
+    // color inline via tokens.soft
   },
 
   badge: {

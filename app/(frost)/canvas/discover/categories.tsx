@@ -12,6 +12,8 @@ import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 
 const { width: W } = Dimensions.get('window');
 
@@ -27,6 +29,8 @@ const CATEGORIES = [
 ];
 
 export default function Categories() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const tileW = (W - FrostSpace.xxl * 2 - FrostSpace.m) / 2;
 
   return (
@@ -35,8 +39,8 @@ export default function Categories() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.heading}>Browse by craft.</Text>
-        <Text style={styles.sub}>Pick what you want to discover next.</Text>
+        <Text style={[styles.heading, { color: tokens.ink }]}>Browse by craft.</Text>
+        <Text style={[styles.sub, { color: tokens.soft }]}>Pick what you want to discover next.</Text>
 
         <View style={styles.grid}>
           {CATEGORIES.map(c => (
@@ -47,7 +51,7 @@ export default function Categories() {
               style={{ width: tileW, marginBottom: FrostSpace.m }}
             >
               <View style={styles.tileInner}>
-                <Text style={styles.tileLabel}>{c.label}</Text>
+                <Text style={[styles.tileLabel, { color: tokens.ink }]}>{c.label}</Text>
               </View>
             </FrostedSurface>
           ))}
@@ -70,7 +74,7 @@ const styles = StyleSheet.create({
   },
   sub: {
     ...FrostType.bodyMedium,
-    color: FrostColors.muted,
+    // color inline via tokens.soft
     marginTop: FrostSpace.xs,
     marginBottom: FrostSpace.xl,
   },
@@ -88,7 +92,7 @@ const styles = StyleSheet.create({
   tileLabel: {
     fontFamily: FrostFonts.display,
     fontSize: 20,
-    color: FrostColors.ink,
+    // color inline via tokens.ink
     fontStyle: 'italic',
   },
 });

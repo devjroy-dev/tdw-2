@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   API, CREAM, GOLD, INK, MUTED, HAIRLINE, FROST_PANEL,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, brideId,
+  useCircleSession, brideId, brideName,
 } from '../CircleSessionContext';
 
 interface ChatTurn {
@@ -85,7 +85,7 @@ export default function CoplannerDreamAi() {
             fontFamily: FONT_BODY, fontWeight: 300, fontSize: 13,
             color: MUTED, margin: 0, lineHeight: 1.7,
           }}>
-            {session.bride_name} hasn&rsquo;t opened Dream Ai for you. Reach out to her.
+            {brideName(session)} hasn&rsquo;t opened Dream Ai for you. Reach out to her.
           </p>
         </div>
       </>

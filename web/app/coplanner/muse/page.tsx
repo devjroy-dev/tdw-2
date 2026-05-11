@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   API, CREAM, GOLD, INK, MUTED, HAIRLINE, FROST_PANEL,
   FONT_DISPLAY, FONT_BODY, FONT_EYEBROW,
-  useCircleSession, brideId,
+  useCircleSession, brideId, brideName,
 } from '../CircleSessionContext';
 import AddMuseSheet from './AddMuseSheet';
 
@@ -51,7 +51,7 @@ export default function CoplannerMuse() {
         fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontWeight: 300,
         fontSize: 32, lineHeight: 1.15, color: CREAM,
         margin: '0 0 6px',
-      }}>{session.bride_name}&rsquo;s board</h1>
+      }}>{brideName(session)}&rsquo;s board</h1>
 
       <p style={{
         fontFamily: FONT_BODY, fontWeight: 300, fontSize: 13,
@@ -71,7 +71,7 @@ export default function CoplannerMuse() {
             fontFamily: FONT_BODY, fontWeight: 300, fontSize: 13,
             color: MUTED, margin: 0, lineHeight: 1.6,
           }}>
-            {session.bride_name} hasn&rsquo;t saved anything yet.
+            {brideName(session)} hasn&rsquo;t saved anything yet.
             {canAdd ? ' Add the first idea?' : ''}
           </p>
         </div>

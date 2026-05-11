@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Image, TouchableOpacity,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -133,7 +134,12 @@ export default function CouplePinLoginScreen() {
         </View>
       )}
 
-      {/* Glass panel */}
+      {/* Glass panel — KAV lifts it above keyboard */}
+      <KeyboardAvoidingView
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
+      >
       <View style={[styles.panel, { paddingBottom: insets.bottom + 32 }]}>
         <Text style={styles.brandName}>The Dream Wedding</Text>
         <Text style={styles.brandTag}>DREAMER PORTAL</Text>
@@ -188,6 +194,7 @@ export default function CouplePinLoginScreen() {
           <Text style={styles.devSignOutText}>SIGN OUT</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -204,7 +211,8 @@ const styles = StyleSheet.create({
   },
   toastText: { fontFamily: 'DMSans_300Light', fontSize: 13, color: GOLD },
   panel: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    // position managed by KeyboardAvoidingView — do not set absolute here
+    left: 0, right: 0,
     backgroundColor: 'rgba(12,10,9,0.3)',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)',

@@ -26,8 +26,8 @@ export function AILine({ text, timestamp }: { text: string; timestamp?: string }
     <View style={styles.row}>
       <Text style={[styles.glyph, { color: tokens.soft }]}>✦</Text>
       <View style={styles.content}>
-        <Text style={styles.aiText}>{text}</Text>
-        {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+        <Text style={[styles.aiText, { color: tokens.ink }]}>{text}</Text>
+        {timestamp ? <Text style={[styles.timestamp, { color: tokens.soft }]}>{timestamp}</Text> : null}
       </View>
     </View>
   );
@@ -62,8 +62,8 @@ export function PersonAction({
           <Text style={[styles.personName, { color: tokens.ink }]}>{name}</Text>
           <Text style={[styles.personAction, { color: tokens.soft }]}>{` ${action}`}</Text>
         </Text>
-        {text ? <Text style={styles.personText}>{text}</Text> : null}
-        {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+        {text ? <Text style={[styles.personText, { color: tokens.ink }]}>{text}</Text> : null}
+        {timestamp ? <Text style={[styles.timestamp, { color: tokens.soft }]}>{timestamp}</Text> : null}
       </View>
     </View>
   );

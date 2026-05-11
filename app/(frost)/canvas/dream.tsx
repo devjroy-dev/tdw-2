@@ -638,10 +638,10 @@ export default function CanvasDream() {
                 value={text}
                 onChangeText={setText}
                 placeholder={FrostCopy.dreamCanvas.inputPlaceholder}
-                placeholderTextColor="#5A5650"
+                placeholderTextColor={tokens.soft}
                 style={[styles.input, {
                   backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.55)',
-                  color: '#2C2823',
+                  color: tokens.ink,
                 }]}
                 selectionColor={tokens.brass}
                 keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
@@ -661,7 +661,7 @@ export default function CanvasDream() {
                 ]}
                 disabled={sending}
               >
-                <Send size={18} color={FrostColors.white} strokeWidth={1.7} />
+                <Send size={18} color={tokens.pagePaper} strokeWidth={1.7} />
               </Pressable>
             </View>
           </KeyboardAvoidingView>
@@ -700,7 +700,7 @@ export default function CanvasDream() {
               }
               return <AILine key={m.id} text={m.text} timestamp={m.ts} />;
             case 'user':
-              return <UserLine key={m.id} text={m.text} ts={m.ts} bubbleBg={tokens.ink} />;
+              return <UserLine key={m.id} text={m.text} ts={m.ts} bubbleBg={tokens.ink} textColor={tokens.pagePaper} tsColor={tokens.soft} />;
             case 'person':
               return (
                 <PersonAction
@@ -762,12 +762,12 @@ export default function CanvasDream() {
 
 // ─── User bubble ─────────────────────────────────────────────────────────────
 
-function UserLine({ text, ts, bubbleBg }: { text: string; ts: string; bubbleBg: string }) {
+function UserLine({ text, ts, bubbleBg, textColor, tsColor }: { text: string; ts: string; bubbleBg: string; textColor: string; tsColor: string }) {
   return (
     <View style={styles.userRow}>
       <View style={[styles.userBubble, { backgroundColor: bubbleBg }]}>
-        <Text style={styles.userText}>{text}</Text>
-        <Text style={styles.userTsText}>{ts}</Text>
+        <Text style={[styles.userText, { color: textColor }]}>{text}</Text>
+        <Text style={[styles.userTsText, { color: tsColor }]}>{ts}</Text>
       </View>
     </View>
   );
@@ -895,13 +895,13 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.body,
     fontSize: 15,
     lineHeight: 22,
-    color: FrostColors.white,
+    // color applied via textColor prop
   },
   userTsText: {
     fontFamily: FrostFonts.label,
     fontSize: 9,
     letterSpacing: 1.4,
-    color: 'rgba(255,255,255,0.55)',
+    // color applied via tsColor prop
     textAlign: 'right',
     marginTop: 4,
   },
