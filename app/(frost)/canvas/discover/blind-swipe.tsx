@@ -5,8 +5,8 @@
  *   - Full-bleed single approved Discover image at a time.
  *   - Right swipe  = HEART → save image to Muse + yellow heart animation centre.
  *   - Left swipe   = PASS → next image.
- *   - Double LEFT  = UNDO (brings back the last-passed image — accident recovery).
  *   - Double TAP   = HEART → save to Muse + yellow heart animation.
+ *   - UNDO         = bottom-left button only (no gesture).
  *   - No vertical swipe. No carousel dots. No multi-image-per-card.
  *   - Tinder card translation feel: card follows finger horizontally, rotates,
  *     fades the next-card hint at the edges. Snap on release past threshold.
@@ -67,11 +67,17 @@ export default function BlindSwipe() {
         const r = await fetch(`${API_BASE}/api/v2/exploring-photos`);
         const d = await r.json();
         if (!cancelled && d.success && Array.isArray(d.photos) && d.photos.length > 0) {
-          setImages(d.photos.map((p: any) => ({
+          const arr: DiscoverImage[] = d.photos.map((p: any) => ({
             id: p.id,
             imageUrl: p.image_url,
             caption: p.caption ?? null,
-          })));
+          }));
+          // Fisher-Yates shuffle so the swipe sequence isn't always identical
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          setImages(arr);
         }
       } catch { /* silent — empty state handles it */ }
       if (!cancelled) setLoadingImages(false);
@@ -92,7 +98,6 @@ export default function BlindSwipe() {
   const gestureStartRef = useRef(0);   // recorded in onPanResponderGrant
 
   // Tap / double-tap detection state
-  const lastLeftTimeRef = useRef(0);
   const tapCountRef     = useRef(0);
   const lastTapTimeRef  = useRef(0);
   const tapTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -281,20 +286,7 @@ export default function BlindSwipe() {
           handleSaveCurrentRef.current();
           goNextRef.current(true, g.dx);
         } else {
-          // LEFT = pass — but check for double-left (undo)
-          const now = Date.now();
-          const sinceLastLeft = now - lastLeftTimeRef.current;
-          if (sinceLastLeft < 600) {
-            // DOUBLE LEFT — snap card back, then undo last pass
-            Animated.spring(pan, {
-              toValue: { x: 0, y: 0 },
-              friction: 7,
-              useNativeDriver: true,
-            }).start(() => undoLastRef.current());
-            lastLeftTimeRef.current = 0;
-            return;
-          }
-          lastLeftTimeRef.current = now;
+          // LEFT = pass. Undo lives on the button only.
           goPassRef.current(g.dx);
         }
       },

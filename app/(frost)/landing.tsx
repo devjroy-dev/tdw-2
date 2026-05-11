@@ -1,35 +1,20 @@
 /**
- * Frost — Landing (v6 — in-app mode picker + AsyncStorage persistence).
+ * Frost — Landing (v7 — Dark/Light picker is a user feature).
  *
- * v6 changes from v5:
- *   - Mode picker UI: tap the date to cycle to next mode, long-press to open
- *     a bottom sheet with all 8 modes listed by name + description.
- *   - Selected mode persists to AsyncStorage so each device/bride can pick her
- *     own and have it stick across app restarts.
- *   - SHOW_MODE_PICKER guard at the top — set to false to permanently lock a
- *     mode (the picker UI hides, the AsyncStorage value is ignored).
- *   - Grayscale import is now Platform-gated to fix web-bundling failure
- *     during `eas update` (color-matrix lib can't be bundled for web).
+ * Modes:
+ *   E1A ("Dark")  — Dark mosaic, warm-night frame.
+ *   E3  ("Light") — Light mosaic, warm paper.
  *
- * Modes (May 10 evening — picker reduced from 8 modes to 3):
- *   E1A — Dark mosaic, pleasant tonal range. Hero ends slightly lifted (kept
- *         from current shipped behaviour); photo paper one step deeper at
- *         #1F1915 to bridge to dream. Hero→photo is a small step; photo→dream
- *         handoff is invisible.
- *   E1B — Dark mosaic, true descent. Hero darkens monotonically; photo paper
- *         deeper still; each tile continues the corridor walk into the dark
- *         room. More cinematic.
- *   E3  — Light mosaic, warm paper. Unchanged from prior shipped E3.
+ * E1B was a dev iteration and has been removed. The picker is now a
+ * permanent user feature (SHOW_MODE_PICKER stays true): long-press the
+ * date to open the sheet and switch tone (Dark / Light) or content
+ * (Dream / Sanctuary). The selection persists per device via AsyncStorage.
  *
- * All three use the new framed-pair photo row (stamp paper around AND between
- * the two photos, each photo a rounded window). Edge-to-edge mosaic and the
- * goldMuted hairline seam between photos are gone.
+ * Internal code variable names (E1A, E3) are retained — only user-facing
+ * strings say "Dark" and "Light".
  *
- * To lock a final mode:
- *   1. Pick the winning mode in the in-app picker
- *   2. Set DEFAULT_MODE below to that mode
- *   3. Set SHOW_MODE_PICKER to false
- *   4. (Optional) the loser modes can be deleted in a follow-up cleanup
+ * Grayscale import stays Platform-gated to keep web bundling working
+ * during `eas update` (color-matrix lib can't be bundled for web).
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -67,15 +52,12 @@ const WEDDING_DATE = new Date('2026-09-25T00:00:00+05:30');
 // MODE PICKER CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 
-type HomeModeKey = 'E1A' | 'E1B' | 'E3';
+type HomeModeKey = 'E1A' | 'E3';
 
-// Set to false when a winner is locked and we want to ship it for everyone.
-// While true, the date is tappable to cycle modes; long-press opens picker.
+// User feature: long-press the date to open the picker sheet. Stays true.
 const SHOW_MODE_PICKER = true;
 
-// Default mode if AsyncStorage has nothing stored yet, OR if SHOW_MODE_PICKER
-// is false. When you lock a winner, set this to the winning mode and flip
-// SHOW_MODE_PICKER to false.
+// Default mode used until the bride picks one (and on first launch).
 const DEFAULT_MODE: HomeModeKey = 'E3';
 
 // AsyncStorage key for the per-device chosen mode
@@ -87,14 +69,13 @@ type ContentMode = 'dream' | 'sanctuary';
 const CONTENT_MODE_STORAGE_KEY = '@frost.content_mode';
 const DEFAULT_CONTENT_MODE: ContentMode = 'dream';
 
-// Order modes for tap-to-cycle (matches mockup viewing order)
-const CYCLE_ORDER: HomeModeKey[] = ['E1A', 'E1B', 'E3'];
+// Order modes for the picker sheet (matches mockup viewing order)
+const CYCLE_ORDER: HomeModeKey[] = ['E1A', 'E3'];
 
-// Friendly names for the picker sheet
+// User-facing names for the picker sheet
 const MODE_LABELS: Record<HomeModeKey, { title: string; sub: string }> = {
-  E1A: { title: 'E1 A — Dark, pleasant',   sub: 'Soft dark descent, photos held in warm-night frame' },
-  E1B: { title: 'E1 B — Dark, cinematic',  sub: 'True descent into the dark room, deeper bottom' },
-  E3:  { title: 'E3 — Light',              sub: 'Warm paper sanctuary, photos held in atelier frame' },
+  E1A: { title: 'Dark',  sub: 'Warm-night frame, soft dark descent' },
+  E3:  { title: 'Light', sub: 'Warm paper, atelier frame' },
 };
 
 // ─── Mode descriptors ──────────────────────────────────────────────────────
@@ -152,26 +133,6 @@ const MODES: Record<HomeModeKey, ModeDescriptor> = {
     momentsGradient: ['#13100D', '#110E0B'],
     pagesGradient:   ['#110E0B', '#100C0A'],
     journeyGradient: ['#15110E', '#100C0A'],
-  },
-  // E1 B — true descent. Hero darkens monotonically top→bottom, photo paper deeper still,
-  // each subsequent tile continues descending. More cinematic, walks into the dark room.
-  E1B: {
-    layout: 'mosaic', photoTreatment: 'colour',
-    pagePaper: '#1B1612', cardFill: '#1B1612', stampFill: '#14110D',
-    hairline: 'rgba(191,160,77,0.18)', hairlineStrong: 'rgba(191,160,77,0.22)',
-    ink: '#F5F0E8', soft: 'rgba(245,240,232,0.62)',
-    brass: '#BFA04D', brassMuted: '#A8924B',
-    imgBoxRadius: 0, photoFrameRadius: 0, cardRadius: 0,
-    photoAspect: 1 / 1, statusBarStyle: 'light-content',
-    heroGradient:    ['#1B1612', '#181410'],
-    dreamGradient:   ['#14110D', '#100D0A'],
-    circleGradient:  ['#130F0A', '#0D0A07'],
-    // Sanctuary descent: circle bottom #0D0A07 → journey top #0F0C09
-    // Cinematic — three deeper steps into the dark
-    museGradient:    ['#0D0A07', '#0B0806'],
-    momentsGradient: ['#0B0806', '#0A0706'],
-    pagesGradient:   ['#0A0706', '#080605'],
-    journeyGradient: ['#0F0C09', '#080605'],
   },
   // E3 — light, warm paper. Unchanged from prior shipped behaviour.
   E3: {
@@ -287,7 +248,7 @@ function ModePhoto({
 }
 
 // ─── Mode picker bottom sheet ──────────────────────────────────────────────
-// Two-section sheet: CONTENT (Dream / Sanctuary) above TONE (E1A / E1B / E3).
+// Two-section sheet: CONTENT (Dream / Sanctuary) above TONE (Dark / Light).
 // Stays open after a selection so bride can adjust both axes; italic "Done" dismisses.
 const CONTENT_OPTIONS: { key: ContentMode; title: string; sub: string }[] = [
   { key: 'dream',     title: 'Dream',     sub: 'Photos and inspiration' },
@@ -310,7 +271,7 @@ function ModePickerSheet({
         <Pressable style={pickerStyles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={pickerStyles.handle} />
           <Text style={pickerStyles.title}>Pick a home rendition</Text>
-          <Text style={pickerStyles.sub}>Tap to switch. The sheet stays open for both.</Text>
+          <Text style={pickerStyles.sub}>Pick tone and content. The sheet stays open for both.</Text>
           <ScrollView style={{ maxHeight: 540 }}>
             {/* CONTENT section */}
             <Text style={pickerStyles.sectionEyebrow}>CONTENT</Text>
@@ -497,14 +458,6 @@ export default function FrostLanding() {
     try { await AsyncStorage.setItem(MODE_STORAGE_KEY, m); } catch {}
   }, []);
 
-  const cycleMode = useCallback(() => {
-    if (!SHOW_MODE_PICKER) return;
-    Haptics.selectionAsync?.();
-    const idx = CYCLE_ORDER.indexOf(homeMode);
-    const next = CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
-    persistMode(next);
-  }, [homeMode, persistMode]);
-
   const openPicker = useCallback(() => {
     if (!SHOW_MODE_PICKER) return;
     Haptics.selectionAsync?.();
@@ -561,6 +514,9 @@ export default function FrostLanding() {
             if (cancelled || !r?.success) return;
             setMuseUrl(r.muse_image_url || null);
             setDiscoverUrl(r.discover_image_url || null);
+            // Prefetch so boxes don't flash empty during refresh
+            if (r.muse_image_url)     Image.prefetch(r.muse_image_url).catch(() => {});
+            if (r.discover_image_url) Image.prefetch(r.discover_image_url).catch(() => {});
           } catch {}
         })();
       }
@@ -612,7 +568,7 @@ export default function FrostLanding() {
   const goPages    = () => { Haptics.selectionAsync?.(); router.push('/(frost)/canvas/pages' as any); };
   const goMoments  = () => { Haptics.selectionAsync?.(); showToast('Moments arrives next.'); };
 
-  // ── MOSAIC LAYOUT (E1A/E1B/E3) — Dream OR Sanctuary content ───────────
+  // ── MOSAIC LAYOUT (Dark/Light) — Dream OR Sanctuary content ───────────
   if (mode.layout === 'mosaic') {
     const isSanctuary = contentMode === 'sanctuary';
     const sanctuaryMuseLine    = sanctuarySublines?.muse || 'Loading…';
@@ -624,11 +580,10 @@ export default function FrostLanding() {
         <StatusBar barStyle={mode.statusBarStyle} backgroundColor={mode.pagePaper} />
 
         <View style={[styles.mosaicScreen, { paddingTop: insets.top }]}>
-          {/* HERO TILE — wraps date + countdown. Tap = cycle tone, long-press = picker.
+          {/* HERO TILE — wraps date + countdown. Long-press = picker.
               Mode badge is a separate Pressable, non-propagating — single tap flips Content. */}
           <View style={{ flex: 4 }}>
             <Pressable
-              onPress={cycleMode}
               onLongPress={openPicker}
               delayLongPress={500}
               style={{ flex: 1 }}
@@ -666,7 +621,7 @@ export default function FrostLanding() {
               <View style={styles.mosaicPhotoRow}>
                 <Pressable
                   style={[styles.mosaicPhotoTile, styles.mosaicPhotoLeft]}
-                  onPress={goMuse} onLongPress={goMuse}
+                  onLongPress={goMuse}
                   accessibilityLabel="Muse"
                 >
                   {museUrl ? (
@@ -681,7 +636,7 @@ export default function FrostLanding() {
 
                 <Pressable
                   style={styles.mosaicPhotoTile}
-                  onPress={goDiscover} onLongPress={goDiscover}
+                  onLongPress={goDiscover}
                   accessibilityLabel="Discover"
                 >
                   {discoverUrl ? (
@@ -696,7 +651,7 @@ export default function FrostLanding() {
               </View>
 
               <Pressable
-                onPress={goDream} onLongPress={goDream}
+                onLongPress={goDream}
                 accessibilityLabel="Dream Ai"
                 style={{ flex: 2.4 }}
               >
@@ -714,7 +669,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goCircle} onLongPress={goCircle}
+                onLongPress={goCircle}
                 accessibilityLabel="Circle"
                 style={{ flex: 1.8 }}
               >
@@ -751,7 +706,7 @@ export default function FrostLanding() {
             // Flex distribution: clean 0.25 descent for symmetric pour
             <>
               <Pressable
-                onPress={goDream} onLongPress={goDream}
+                onLongPress={goDream}
                 accessibilityLabel="Dream Ai"
                 style={{ flex: 2.25 }}
               >
@@ -769,7 +724,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goCircle} onLongPress={goCircle}
+                onLongPress={goCircle}
                 accessibilityLabel="Circle"
                 style={{ flex: 2.0 }}
               >
@@ -792,7 +747,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goMuse} onLongPress={goMuse}
+                onLongPress={goMuse}
                 accessibilityLabel="Muse"
                 style={{ flex: 1.75 }}
               >
@@ -876,9 +831,8 @@ export default function FrostLanding() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <StatusBar barStyle={mode.statusBarStyle} backgroundColor={mode.pagePaper} />
 
-      {/* Hero block — Pressable so tap cycles + long-press opens picker */}
+      {/* Hero block — long-press opens picker */}
       <Pressable
-        onPress={cycleMode}
         onLongPress={openPicker}
         delayLongPress={500}
         style={styles.hero}
@@ -899,7 +853,7 @@ export default function FrostLanding() {
       {/* Two image boxes */}
       <View style={styles.gridRow}>
         <Pressable
-          style={styles.imgBox} onPress={goMuse} onLongPress={goMuse}
+          style={styles.imgBox} onLongPress={goMuse}
           accessibilityLabel="Muse"
         >
           <View style={styles.photoFrame}>
@@ -921,7 +875,7 @@ export default function FrostLanding() {
         </Pressable>
 
         <Pressable
-          style={styles.imgBox} onPress={goDiscover} onLongPress={goDiscover}
+          style={styles.imgBox} onLongPress={goDiscover}
           accessibilityLabel="Discover"
         >
           <View style={styles.photoFrame}>
@@ -944,7 +898,7 @@ export default function FrostLanding() {
       </View>
 
       <Pressable
-        style={styles.dreamCard} onPress={goDream} onLongPress={goDream}
+        style={styles.dreamCard} onLongPress={goDream}
         accessibilityLabel="Dream Ai"
       >
         <Text style={styles.dreamLabel}>Dream Ai</Text>
@@ -959,7 +913,7 @@ export default function FrostLanding() {
       </Pressable>
 
       <Pressable
-        style={styles.circleCard} onPress={goCircle} onLongPress={goCircle}
+        style={styles.circleCard} onLongPress={goCircle}
         accessibilityLabel="Circle"
       >
         <Text style={styles.circleLabel}>Circle</Text>

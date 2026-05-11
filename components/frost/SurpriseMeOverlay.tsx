@@ -72,9 +72,14 @@ export default function SurpriseMeOverlay({
 
     surpriseMe({ functionTag, count: 8 }).then(res => {
       if (cancelled) return;
-      setSuggestions(res.suggestions || []);
+      const list = res.suggestions || [];
+      setSuggestions(list);
       setTasteSummary(res.tasteSummary || '');
       setLoading(false);
+      // Prefetch first 3 image URLs so card transitions don't show black
+      list.slice(0, 3).forEach(s => {
+        if (s.image_url) Image.prefetch(s.image_url).catch(() => {});
+      });
     });
 
     return () => { cancelled = true; };
@@ -182,9 +187,13 @@ export default function SurpriseMeOverlay({
             onPress={() => {
               setLoading(true);
               surpriseMe({ functionTag, count: 8 }).then(r => {
-                setSuggestions(r.suggestions || []);
+                const list = r.suggestions || [];
+                setSuggestions(list);
                 setTasteSummary(r.tasteSummary || '');
                 setLoading(false);
+                list.slice(0, 3).forEach(s => {
+                  if (s.image_url) Image.prefetch(s.image_url).catch(() => {});
+                });
               });
             }}
             style={({ pressed }) => [

@@ -103,11 +103,17 @@ export default function DiscoveryFeed() {
         const r = await fetch(`${API_BASE}/api/v2/exploring-photos`);
         const d = await r.json();
         if (!cancelled && d.success && Array.isArray(d.photos) && d.photos.length > 0) {
-          setPhotos(d.photos.map((p: any) => ({
+          const arr: EditorialPhoto[] = d.photos.map((p: any) => ({
             id: p.id,
             imageUrl: p.image_url,
             caption: p.caption ?? null,
-          })));
+          }));
+          // Fisher-Yates shuffle so the feed order varies between sessions
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          setPhotos(arr);
         }
       } catch { /* silent */ }
       if (!cancelled) setLoadingPhotos(false);

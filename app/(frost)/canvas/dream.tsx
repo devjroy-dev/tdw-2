@@ -30,6 +30,7 @@ import { Send, Paperclip } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FrostCanvasShell from '../../../components/frost/FrostCanvasShell';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
 import FrostConfirmCard from '../../../components/frost/FrostConfirmCard';
@@ -71,6 +72,10 @@ type StreamMessage =
 
 const POLL_INTERVAL = 30_000;
 
+// Chat persistence — survives app restarts. Cap at 30 messages to keep growth bounded.
+const DREAM_HISTORY_KEY = '@frost.dream_history';
+const DREAM_HISTORY_LIMIT = 30;
+
 // ─── Anchor → Journey route map ──────────────────────────────────────────────
 function anchorToRoute(anchor: ToolAnchor): string | null {
   switch (anchor.tool) {
@@ -89,6 +94,10 @@ export default function CanvasDream() {
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  // `restored` flips true after the AsyncStorage read resolves (hit or miss).
+  // Gates the initial seed (so we don't double-seed over restored history) and
+  // gates the writer (so we don't clobber storage with [] before restore lands).
+  const [restored, setRestored] = useState(false);
   const seededRef = useRef(false);
   const seenCircleIds = useRef<Set<string>>(new Set());
   const scrollRef = useRef<ScrollView>(null);
@@ -121,9 +130,35 @@ export default function CanvasDream() {
     setMessages(prev => prev.filter(m => !(m.kind === 'thinking' && m.id === id)));
   }, []);
 
-  // Initial seed
+  // Restore persisted history on mount (empty deps — runs once).
+  // On success we set seededRef so the seed effect below skips its greeting.
   useEffect(() => {
-    if (seededRef.current) return;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(DREAM_HISTORY_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed);
+            seededRef.current = true;
+          }
+        }
+      } catch {}
+      setRestored(true);
+    })();
+  }, []);
+
+  // Persist messages whenever they change — capped at the last 30 to bound growth.
+  // Gated on `restored` so we don't clobber storage with [] before restore lands.
+  useEffect(() => {
+    if (!restored) return;
+    const snapshot = messages.slice(-DREAM_HISTORY_LIMIT);
+    AsyncStorage.setItem(DREAM_HISTORY_KEY, JSON.stringify(snapshot)).catch(() => {});
+  }, [messages, restored]);
+
+  // Initial seed — runs after restore resolves; no-ops if history was restored.
+  useEffect(() => {
+    if (!restored || seededRef.current) return;
     seededRef.current = true;
 
     const seedAndLoad = async () => {
@@ -148,7 +183,7 @@ export default function CanvasDream() {
       } catch {}
     };
     seedAndLoad();
-  }, [append]);
+  }, [restored, append]);
 
   // Poll Circle activity
   useEffect(() => {
