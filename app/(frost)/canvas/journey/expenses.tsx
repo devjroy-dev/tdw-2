@@ -32,6 +32,8 @@ import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostRadius,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import { RAILWAY_URL } from '../../../../constants/tokens';
 import { getCoupleSession } from '../../../../utils/session';
 import { uploadImage } from '../../../../services/cloudinary';
@@ -46,6 +48,8 @@ function fmtINR(n: number): string {
 }
 
 export default function JourneyExpenses() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
   const [budget, setBudget] = useState<CoupleBudget | null>(null);
   const [loading, setLoading] = useState(true);
@@ -192,13 +196,13 @@ export default function JourneyExpenses() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FrostColors.goldMuted} />
         }
       >
-        <Text style={styles.heading}>What I owe.</Text>
+        <Text style={[styles.heading, { color: tokens.ink }]}>What I owe.</Text>
 
         {hasAny ? (
           <Text style={styles.totalsLine}>
             <Text style={styles.totalsPaid}>{fmtINR(totalPaid)} paid</Text>
             <Text style={styles.totalsSep}>  ·  </Text>
-            <Text style={styles.totalsPending}>{fmtINR(totalPending)} pending</Text>
+            <Text style={[styles.totalsPending, { color: tokens.ink }]}>{fmtINR(totalPending)} pending</Text>
           </Text>
         ) : null}
 
@@ -214,12 +218,12 @@ export default function JourneyExpenses() {
           const overBudget = remaining < 0;
           return (
             <View style={styles.budgetWrap}>
-              <Text style={styles.budgetLine}>
+              <Text style={[styles.budgetLine, { color: tokens.soft }]}>
                 {overBudget
                   ? `Over budget by ${fmtINR(Math.abs(remaining))} of ${fmtINR(total)}`
                   : `${fmtINR(allocated)} of ${fmtINR(total)} budget`}
               </Text>
-              <View style={styles.budgetBarTrack}>
+              <View style={[styles.budgetBarTrack, { backgroundColor: tokens.hairline }]}>
                 <View style={[
                   styles.budgetBarFill,
                   { width: `${pct * 100}%` },
@@ -235,14 +239,14 @@ export default function JourneyExpenses() {
         {loading ? (
           <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
-          <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
+          <Text style={[styles.errorText, { color: tokens.soft }]}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
-          <Text style={styles.emptyText}>Nothing logged yet.</Text>
+          <Text style={[styles.emptyText, { color: tokens.soft }]}>Nothing logged yet.</Text>
         ) : (
           <>
             {pending.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>PENDING</Text>
+                <Text style={[styles.sectionLabel, { color: tokens.soft }]}>PENDING</Text>
                 {pending.map(e => (
                   <ExpenseRow
                     key={e.id}
@@ -250,19 +254,23 @@ export default function JourneyExpenses() {
                     onMarkPaid={() => handleMarkPaid(e)}
                     onLongPress={() => handleLongPress(e)}
                     busy={markingId === e.id}
+                    inkColor={tokens.ink}
+                    softColor={tokens.soft}
                   />
                 ))}
               </View>
             ) : null}
             {paid.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>PAID</Text>
+                <Text style={[styles.sectionLabel, { color: tokens.soft }]}>PAID</Text>
                 {paid.map(e => (
                   <ExpenseRow
                     key={e.id}
                     expense={e}
                     onLongPress={() => handleLongPress(e)}
                     paid
+                    inkColor={tokens.ink}
+                    softColor={tokens.soft}
                   />
                 ))}
               </View>
@@ -273,8 +281,8 @@ export default function JourneyExpenses() {
         {/* ── RECEIPTS — proof of expenses ─────────────────────────────── */}
         {!loading && !error ? (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>RECEIPTS</Text>
-            <Text style={styles.receiptsSub}>
+            <Text style={[styles.sectionLabel, { color: tokens.soft }]}>RECEIPTS</Text>
+            <Text style={[styles.receiptsSub, { color: tokens.soft }]}>
               Bills, invoices, advance receipts. Filed under the right vendor.
             </Text>
 
@@ -285,8 +293,8 @@ export default function JourneyExpenses() {
               style={styles.captureBtnOuter}
             >
               <View style={styles.captureBtnInner}>
-                <Plus size={16} color={FrostColors.ink} strokeWidth={1.6} />
-                <Text style={styles.captureBtnText}>
+                <Plus size={16} color={tokens.ink} strokeWidth={1.6} />
+                <Text style={[styles.captureBtnText, { color: tokens.ink }]}>
                   {capturing ? 'Capturing…' : 'Capture a receipt'}
                 </Text>
               </View>
@@ -303,6 +311,8 @@ export default function JourneyExpenses() {
                     key={`r-${e.id}`}
                     expense={e}
                     onPress={() => setViewingReceipt(e.receipt_url ?? null)}
+                    inkColor={tokens.ink}
+                    softColor={tokens.soft}
                   />
                 ))}
               </View>
@@ -351,7 +361,9 @@ export default function JourneyExpenses() {
 
 // ─── Receipt row ────────────────────────────────────────────────────────────
 
-function ReceiptRow({ expense, onPress }: { expense: Expense; onPress: () => void }) {
+function ReceiptRow({ expense, onPress, inkColor, softColor }: {
+  expense: Expense; onPress: () => void; inkColor: string; softColor: string;
+}) {
   const who = expense.vendor_name || expense.description || 'Untitled';
   const amount = expense.actual_amount || expense.planned_amount || 0;
   const meta = [expense.event, formatReceiptDate(expense.due_date || expense.created_at)]
@@ -368,9 +380,9 @@ function ReceiptRow({ expense, onPress }: { expense: Expense; onPress: () => voi
           <FileText size={20} color={FrostColors.goldMuted} strokeWidth={1.5} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.receiptVendor} numberOfLines={1}>{who}</Text>
+          <Text style={[styles.receiptVendor, { color: inkColor }]} numberOfLines={1}>{who}</Text>
           {meta ? (
-            <Text style={styles.receiptMeta} numberOfLines={1}>{meta.toUpperCase()}</Text>
+            <Text style={[styles.receiptMeta, { color: softColor }]} numberOfLines={1}>{meta.toUpperCase()}</Text>
           ) : null}
         </View>
         <Text style={styles.receiptAmount}>{fmtINR(amount)}</Text>
@@ -389,13 +401,15 @@ function formatReceiptDate(iso: string | null | undefined): string | null {
 // ─── Row ────────────────────────────────────────────────────────────────────
 
 function ExpenseRow({
-  expense, onMarkPaid, onLongPress, paid = false, busy = false,
+  expense, onMarkPaid, onLongPress, paid = false, busy = false, inkColor, softColor,
 }: {
   expense: Expense;
   onMarkPaid?: () => void;
   onLongPress: () => void;
   paid?: boolean;
   busy?: boolean;
+  inkColor: string;
+  softColor: string;
 }) {
   const who = expense.vendor_name || expense.description || 'Untitled';
   const amount = paid
@@ -410,14 +424,14 @@ function ExpenseRow({
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed, paid && styles.rowMuted]}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.rowName} numberOfLines={1}>{who}</Text>
-        <Text style={styles.rowMeta}>
+        <Text style={[styles.rowName, { color: inkColor }]} numberOfLines={1}>{who}</Text>
+        <Text style={[styles.rowMeta, { color: softColor }]}>
           {[expense.description !== who ? expense.description : null, expense.event].filter(Boolean).join(' · ')}
         </Text>
         {dueLabel ? <Text style={styles.rowWhen}>{dueLabel}</Text> : null}
       </View>
       <View style={styles.rowRight}>
-        <Text style={[styles.rowAmount, paid && styles.rowAmountPaid]}>{fmtINR(amount)}</Text>
+        <Text style={[styles.rowAmount, paid ? styles.rowAmountPaid : { color: inkColor }]}>{fmtINR(amount)}</Text>
         {!paid && onMarkPaid ? (
           <Pressable
             onPress={(ev) => { ev.stopPropagation?.(); onMarkPaid(); }}

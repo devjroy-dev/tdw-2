@@ -12,14 +12,18 @@ import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 
 export default function JourneyHoneymoon() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostCanvasShell eyebrow="JOURNEY · HONEYMOON" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
-          <Text style={styles.title}>After all this.</Text>
-          <Text style={styles.body}>Destinations and slow days, coming soon.</Text>
+          <Text style={[styles.title, { color: tokens.ink }]}>After all this.</Text>
+          <Text style={[styles.body, { color: tokens.soft }]}>Destinations and slow days, coming soon.</Text>
         </View>
       </ScrollView>
     </FrostCanvasShell>

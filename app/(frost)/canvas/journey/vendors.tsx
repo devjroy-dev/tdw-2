@@ -20,6 +20,8 @@ import FrostConfirmSheet from '../../../../components/frost/FrostConfirmSheet';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import {
   fetchMyVendors, deleteVendor, CoupleVendor,
 } from '../../../../services/frostApi';
@@ -43,6 +45,8 @@ const PIPELINE: { key: string; label: string }[] = [
 ];
 
 export default function JourneyVendors() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [vendors, setVendors] = useState<CoupleVendor[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,7 +113,7 @@ export default function JourneyVendors() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FrostColors.goldMuted} />
         }
       >
-        <Text style={styles.heading}>My team.</Text>
+        <Text style={[styles.heading, { color: tokens.ink }]}>My team.</Text>
 
         {all.length > 0 ? (
           <FrostGestureHint storageKey="vendors" text="Hold to remove. Tell Dream Ai to change anything else." />
@@ -118,18 +122,21 @@ export default function JourneyVendors() {
         {loading ? (
           <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
-          <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
+          <Text style={[styles.errorText, { color: tokens.soft }]}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
-          <Text style={styles.emptyText}>No one yet.</Text>
+          <Text style={[styles.emptyText, { color: tokens.soft }]}>No one yet.</Text>
         ) : (
           groups.map(g => (
             <View key={g.label} style={styles.section}>
-              <Text style={styles.sectionLabel}>{g.label}</Text>
+              <Text style={[styles.sectionLabel, { color: tokens.soft }]}>{g.label}</Text>
               {g.items.map(v => (
                 <VendorRow
                   key={v.id}
                   vendor={v}
                   onLongPress={() => handleLongPress(v)}
+                  inkColor={tokens.ink}
+                  softColor={tokens.soft}
+                  hairlineColor={tokens.hairline}
                 />
               ))}
             </View>
@@ -154,10 +161,13 @@ export default function JourneyVendors() {
 // ─── Row ────────────────────────────────────────────────────────────────────
 
 function VendorRow({
-  vendor, onLongPress,
+  vendor, onLongPress, inkColor, softColor, hairlineColor,
 }: {
   vendor: CoupleVendor;
   onLongPress: () => void;
+  inkColor: string;
+  softColor: string;
+  hairlineColor: string;
 }) {
   const initial = (vendor.category?.[0] || vendor.name?.[0] || '·').toUpperCase();
   // PATCH B-5: for booked rows with a quote, replace bare quote with
@@ -182,12 +192,12 @@ function VendorRow({
       delayLongPress={420}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{initial}</Text>
+      <View style={[styles.avatar, { borderColor: hairlineColor }]}>
+        <Text style={[styles.avatarText, { color: softColor }]}>{initial}</Text>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.rowName} numberOfLines={1}>{vendor.name}</Text>
-        {meta ? <Text style={styles.rowMeta} numberOfLines={1}>{meta}</Text> : null}
+        <Text style={[styles.rowName, { color: inkColor }]} numberOfLines={1}>{vendor.name}</Text>
+        {meta ? <Text style={[styles.rowMeta, { color: softColor }]} numberOfLines={1}>{meta}</Text> : null}
       </View>
     </Pressable>
   );

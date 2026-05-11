@@ -12,14 +12,18 @@ import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 
 export default function JourneyCouture() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostCanvasShell eyebrow="JOURNEY · COUTURE" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
-          <Text style={styles.title}>By appointment.</Text>
-          <Text style={styles.body}>Atelier-only pieces, opening soon.</Text>
+          <Text style={[styles.title, { color: tokens.ink }]}>By appointment.</Text>
+          <Text style={[styles.body, { color: tokens.soft }]}>Atelier-only pieces, opening soon.</Text>
         </View>
       </ScrollView>
     </FrostCanvasShell>

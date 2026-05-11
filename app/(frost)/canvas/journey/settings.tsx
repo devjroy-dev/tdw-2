@@ -45,6 +45,8 @@ import FrostedSurface from '../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostFonts, FrostSpace, FrostRadius,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import { RAILWAY_URL } from '../../../../constants/tokens';
 import { clearCoupleSession, getCoupleSession } from '../../../../utils/session';
 
@@ -158,8 +160,9 @@ function GoldSwitch({ value, onValueChange }: {
   );
 }
 
-function SaveButton({ label, onPress, saving, saved }: {
+function SaveButton({ label, onPress, saving, saved, inkColor }: {
   label: string; onPress: () => void; saving: boolean; saved: boolean;
+  inkColor: string;
 }) {
   return (
     <FrostedSurface
@@ -171,9 +174,9 @@ function SaveButton({ label, onPress, saving, saved }: {
     >
       <View style={styles.saveBtnInner}>
         {saving ? (
-          <ActivityIndicator size="small" color={FrostColors.ink} />
+          <ActivityIndicator size="small" color={inkColor} />
         ) : (
-          <Text style={styles.saveBtnText}>
+          <Text style={[styles.saveBtnText, { color: inkColor }]}>
             {saved ? '✓  SAVED' : label.toUpperCase()}
           </Text>
         )}
@@ -186,6 +189,8 @@ function SaveButton({ label, onPress, saving, saved }: {
 
 export default function JourneySettings() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
 
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -518,8 +523,8 @@ export default function JourneySettings() {
           showsVerticalScrollIndicator={false}
         >
           {/* Heading */}
-          <Text style={styles.heading}>Yours.</Text>
-          <Text style={styles.editorial}>The more you tell us, the better we find.</Text>
+          <Text style={[styles.heading, { color: tokens.ink }]}>Yours.</Text>
+          <Text style={[styles.editorial, { color: tokens.soft }]}>The more you tell us, the better we find.</Text>
 
           {/* ── Section 1: Identity ─────────────────────────────────────── */}
           <View style={styles.section}>
@@ -537,8 +542,8 @@ export default function JourneySettings() {
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>Profile photo</Text>
-                  <Text style={styles.rowSub}>Tap to change</Text>
+                  <Text style={[styles.rowLabel, { color: tokens.ink }]}>Profile photo</Text>
+                  <Text style={[styles.rowSub, { color: tokens.soft }]}>Tap to change</Text>
                 </View>
                 <ChevronRight size={18} color={FrostColors.hairline} strokeWidth={1.5} />
               </View>
@@ -547,7 +552,7 @@ export default function JourneySettings() {
             <Row>
               <FieldLabel>Bride&apos;s name</FieldLabel>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.ink }]}
                 value={identityName}
                 onChangeText={setIdentityName}
                 placeholder="Your name"
@@ -559,7 +564,7 @@ export default function JourneySettings() {
             <Row>
               <FieldLabel>Partner&apos;s name</FieldLabel>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.ink }]}
                 value={identityPartner}
                 onChangeText={setIdentityPartner}
                 placeholder="Their name"
@@ -570,7 +575,7 @@ export default function JourneySettings() {
 
             <Row onPress={() => setShowDatePicker(true)}>
               <FieldLabel>Wedding date</FieldLabel>
-              <Text style={[styles.input, !dateIso && styles.inputPlaceholder]}>
+              <Text style={[styles.input, { color: dateIso ? tokens.ink : FrostColors.muted }]}>
                 {dateIso ? formatDisplayDate(dateIso) : 'Select date'}
               </Text>
             </Row>
@@ -603,7 +608,7 @@ export default function JourneySettings() {
             <Row>
               <FieldLabel>Wedding city</FieldLabel>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.ink }]}
                 value={identityCity}
                 onChangeText={setIdentityCity}
                 placeholder="Your city"
@@ -617,6 +622,7 @@ export default function JourneySettings() {
               onPress={saveIdentity}
               saving={identitySaving}
               saved={identitySaved}
+              inkColor={tokens.ink}
             />
           </View>
 
@@ -641,7 +647,7 @@ export default function JourneySettings() {
             <Row>
               <FieldLabel>Estimated guest count</FieldLabel>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.ink }]}
                 value={guestCount}
                 onChangeText={setGuestCount}
                 placeholder="e.g. 300"
@@ -655,8 +661,8 @@ export default function JourneySettings() {
             <Row>
               <View style={styles.toggleRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>Show budget figures</Text>
-                  <Text style={styles.rowSub}>Hide or reveal amounts across the app</Text>
+                  <Text style={[styles.rowLabel, { color: tokens.ink }]}>Show budget figures</Text>
+                  <Text style={[styles.rowSub, { color: tokens.soft }]}>Hide or reveal amounts across the app</Text>
                 </View>
                 <GoldSwitch
                   value={budgetVisible}
@@ -670,6 +676,7 @@ export default function JourneySettings() {
               onPress={savePreferences}
               saving={prefsSaving}
               saved={prefsSaved}
+              inkColor={tokens.ink}
             />
           </View>
 
@@ -697,7 +704,7 @@ export default function JourneySettings() {
             <Row>
               <FieldLabel>City for discovery</FieldLabel>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.ink }]}
                 value={discoveryCity}
                 onChangeText={setDiscoveryCity}
                 placeholder="e.g. Delhi, Mumbai"
@@ -711,6 +718,7 @@ export default function JourneySettings() {
               onPress={saveDiscovery}
               saving={discoverySaving}
               saved={discoverySaved}
+              inkColor={tokens.ink}
             />
           </View>
 
@@ -730,8 +738,8 @@ export default function JourneySettings() {
               <Row key={item.key}>
                 <View style={styles.toggleRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.rowLabel}>{item.label}</Text>
-                    <Text style={styles.rowSub}>{item.sub}</Text>
+                    <Text style={[styles.rowLabel, { color: tokens.ink }]}>{item.label}</Text>
+                    <Text style={[styles.rowSub, { color: tokens.soft }]}>{item.sub}</Text>
                   </View>
                   <GoldSwitch
                     value={item.value}
@@ -744,10 +752,10 @@ export default function JourneySettings() {
             <Row onPress={() => setShowTimePicker(true)}>
               <View style={styles.toggleRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>Morning briefing time</Text>
-                  <Text style={styles.rowSub}>When DreamAi briefs you each morning</Text>
+                  <Text style={[styles.rowLabel, { color: tokens.ink }]}>Morning briefing time</Text>
+                  <Text style={[styles.rowSub, { color: tokens.soft }]}>When DreamAi briefs you each morning</Text>
                 </View>
-                <Text style={styles.timeChip}>{morningTime}</Text>
+                <Text style={[styles.timeChip, { color: tokens.ink }]}>{morningTime}</Text>
               </View>
             </Row>
 
@@ -790,8 +798,8 @@ export default function JourneySettings() {
             <Row>
               <View style={styles.toggleRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>{tierLabel}</Text>
-                  <Text style={styles.rowSub}>{TIER_PERKS[tier]}</Text>
+                  <Text style={[styles.rowLabel, { color: tokens.ink }]}>{tierLabel}</Text>
+                  <Text style={[styles.rowSub, { color: tokens.soft }]}>{TIER_PERKS[tier]}</Text>
                 </View>
                 <View style={styles.tierBadge}>
                   <Text style={styles.tierBadgeText}>{tierLabel.toUpperCase()}</Text>
@@ -803,10 +811,10 @@ export default function JourneySettings() {
               <Row disabled>
                 <View style={styles.toggleRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.rowLabel}>
+                    <Text style={[styles.rowLabel, { color: tokens.ink }]}>
                       Upgrade to {tier === 'lite' ? 'Signature' : 'Platinum'}
                     </Text>
-                    <Text style={styles.rowSub}>
+                    <Text style={[styles.rowSub, { color: tokens.soft }]}>
                       {tier === 'lite' ? '₹999' : '₹2,999'} one-time
                     </Text>
                   </View>
@@ -818,7 +826,7 @@ export default function JourneySettings() {
             <Row>
               <FieldLabel>WhatsApp number</FieldLabel>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: tokens.ink }]}
                 value={whatsappNumber}
                 onChangeText={setWhatsappNumber}
                 placeholder="+91 XXXXX XXXXX"
@@ -834,6 +842,7 @@ export default function JourneySettings() {
               onPress={saveAccount}
               saving={accountSaving}
               saved={accountSaved}
+              inkColor={tokens.ink}
             />
 
             {/* Sign out */}

@@ -24,11 +24,15 @@ import FrostConfirmSheet from '../../../../components/frost/FrostConfirmSheet';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 import {
   fetchMyReminders, toggleReminderComplete, deleteReminder, Reminder,
 } from '../../../../services/frostApi';
 
 export default function JourneyReminders() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [reminders, setReminders] = useState<Reminder[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +96,7 @@ export default function JourneyReminders() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FrostColors.goldMuted} />
         }
       >
-        <Text style={styles.heading}>What I remember.</Text>
+        <Text style={[styles.heading, { color: tokens.ink }]}>What I remember.</Text>
 
         {hasPending || hasDone ? (
           <FrostGestureHint storageKey="reminders" text="Tap to know. Hold to act." />
@@ -101,9 +105,9 @@ export default function JourneyReminders() {
         {loading ? (
           <View style={styles.stateWrap}><Text style={styles.loadingDots}>…</Text></View>
         ) : error ? (
-          <Text style={styles.errorText}>I couldn't reach the page. Pull down to try again.</Text>
+          <Text style={[styles.errorText, { color: tokens.soft }]}>I couldn't reach the page. Pull down to try again.</Text>
         ) : isEmpty ? (
-          <Text style={styles.emptyText}>Your list is clear.</Text>
+          <Text style={[styles.emptyText, { color: tokens.soft }]}>Your list is clear.</Text>
         ) : (
           <>
             {hasPending ? (
@@ -114,6 +118,8 @@ export default function JourneyReminders() {
                     reminder={r}
                     onToggle={() => handleToggle(r)}
                     onLongPress={() => handleLongPress(r)}
+                    inkColor={tokens.ink}
+                    hairlineColor={tokens.hairline}
                   />
                 ))}
               </View>
@@ -121,13 +127,15 @@ export default function JourneyReminders() {
 
             {hasDone ? (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>DONE</Text>
+                <Text style={[styles.sectionLabel, { color: tokens.soft }]}>DONE</Text>
                 {done.map(r => (
                   <ReminderRow
                     key={r.id}
                     reminder={r}
                     onToggle={() => handleToggle(r)}
                     onLongPress={() => handleLongPress(r)}
+                    inkColor={tokens.ink}
+                    hairlineColor={tokens.hairline}
                     muted
                   />
                 ))}
@@ -154,12 +162,14 @@ export default function JourneyReminders() {
 // ─── Row ────────────────────────────────────────────────────────────────────
 
 function ReminderRow({
-  reminder, onToggle, onLongPress, muted = false,
+  reminder, onToggle, onLongPress, muted = false, inkColor, hairlineColor,
 }: {
   reminder: Reminder;
   onToggle: () => void;
   onLongPress: () => void;
   muted?: boolean;
+  inkColor: string;
+  hairlineColor: string;
 }) {
   const dueLabel = formatDueDate(reminder.due_date);
   return (
@@ -169,11 +179,17 @@ function ReminderRow({
       delayLongPress={420}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed, muted && styles.rowMuted]}
     >
-      <View style={[styles.checkbox, reminder.is_complete && styles.checkboxComplete]}>
+      <View style={[
+        styles.checkbox,
+        reminder.is_complete ? styles.checkboxComplete : { borderColor: hairlineColor },
+      ]}>
         {reminder.is_complete ? <View style={styles.checkboxFill} /> : null}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.rowText, reminder.is_complete && styles.rowTextStrike]}>{reminder.text}</Text>
+        <Text style={[
+          styles.rowText,
+          reminder.is_complete ? styles.rowTextStrike : { color: inkColor },
+        ]}>{reminder.text}</Text>
         {dueLabel ? <Text style={styles.rowWhen}>{dueLabel}</Text> : null}
       </View>
     </Pressable>

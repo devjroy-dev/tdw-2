@@ -18,14 +18,18 @@ import FrostCanvasShell from '../../../../components/frost/FrostCanvasShell';
 import {
   FrostColors, FrostType, FrostSpace, FrostFonts,
 } from '../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../constants/museTokens';
+import { useMuseLook } from '../../../../hooks/useMuseLook';
 
 export default function JourneyBroadcast() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostCanvasShell eyebrow="JOURNEY · MY PEOPLE" mode="frost">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.center}>
-          <Text style={styles.title}>My people.</Text>
-          <Text style={styles.body}>Send a single message to many.{'\n'}Coming soon.</Text>
+          <Text style={[styles.title, { color: tokens.ink }]}>My people.</Text>
+          <Text style={[styles.body, { color: tokens.soft }]}>Send a single message to many.{'\n'}Coming soon.</Text>
         </View>
       </ScrollView>
     </FrostCanvasShell>

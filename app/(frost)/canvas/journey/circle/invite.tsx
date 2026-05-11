@@ -36,6 +36,8 @@ import FrostedSurface from '../../../../../components/frost/FrostedSurface';
 import {
   FrostColors, FrostType, FrostFonts, FrostSpace, FrostRadius,
 } from '../../../../../constants/frost';
+import { MUSE_LOOKS } from '../../../../../constants/museTokens';
+import { useMuseLook } from '../../../../../hooks/useMuseLook';
 import { RAILWAY_URL } from '../../../../../constants/tokens';
 import { getCoupleSession } from '../../../../../utils/session';
 
@@ -60,6 +62,8 @@ const ROLES: RoleOption[] = [
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function CircleInvite() {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const [role, setRole] = useState<Role | null>(null);
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
@@ -157,12 +161,12 @@ export default function CircleInvite() {
             hitSlop={16}
             style={styles.backBtn}
           >
-            <ChevronLeft size={24} color={FrostColors.ink} strokeWidth={1.5} />
+            <ChevronLeft size={24} color={tokens.ink} strokeWidth={1.5} />
           </Pressable>
 
           {/* Heading */}
-          <Text style={styles.heading}>Bring someone in.</Text>
-          <Text style={styles.sub}>
+          <Text style={[styles.heading, { color: tokens.ink }]}>Bring someone in.</Text>
+          <Text style={[styles.sub, { color: tokens.soft }]}>
             They&apos;ll see your wedding, in their own quiet way.
           </Text>
 
@@ -184,10 +188,14 @@ export default function CircleInvite() {
                     ]}
                   >
                     <View style={styles.roleInner}>
-                      <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>
+                      <Text style={[
+                        styles.roleLabel,
+                        selected && styles.roleLabelSelected,
+                        { color: selected ? tokens.brass : tokens.soft },
+                      ]}>
                         {opt.label}
                       </Text>
-                      <Text style={[styles.roleSub, selected && styles.roleSubSelected]}>
+                      <Text style={[styles.roleSub, { color: tokens.soft }]}>
                         {opt.sub}
                       </Text>
                     </View>
@@ -207,7 +215,7 @@ export default function CircleInvite() {
                   onChangeText={setName}
                   placeholder="Their name"
                   placeholderTextColor={FrostColors.muted}
-                  style={styles.input}
+                  style={[styles.input, { color: tokens.ink }]}
                   returnKeyType="next"
                   editable={!sending}
                 />
@@ -225,7 +233,7 @@ export default function CircleInvite() {
                   onChangeText={setRelationship}
                   placeholder="Mother / Sister / Best friend"
                   placeholderTextColor={FrostColors.muted}
-                  style={styles.input}
+                  style={[styles.input, { color: tokens.ink }]}
                   returnKeyType="next"
                   editable={!sending}
                 />
@@ -243,7 +251,7 @@ export default function CircleInvite() {
                   onChangeText={setPhone}
                   placeholder="+91 — optional"
                   placeholderTextColor={FrostColors.muted}
-                  style={styles.input}
+                  style={[styles.input, { color: tokens.ink }]}
                   keyboardType="phone-pad"
                   returnKeyType="done"
                   editable={!sending}
