@@ -10,7 +10,7 @@ export default function Index() {
         const vendorRaw = await AsyncStorage.getItem('vendor_session');
         if (vendorRaw) {
           const vs = JSON.parse(vendorRaw);
-          if (vs?.vendorId || vs?.id) { router.replace('/vendor-dashboard' as any); return; }
+          if (vs?.vendorId || vs?.id) { router.replace('/(vendor)/today' as any); return; }
         }
         const coupleRaw = await AsyncStorage.getItem('couple_session');
         if (coupleRaw) {

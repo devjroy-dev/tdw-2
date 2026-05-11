@@ -453,7 +453,7 @@ export default function CoupleLoginScreen() {
       if (role === 'Maker') {
         await setVendorSession({ vendorId: finalUserId, id: finalUserId, phone: '+91' + bare, name: null });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/vendor-dashboard' as any);
+        router.replace('/(vendor)/today' as any);
       } else {
         await setCoupleSession({ id: finalUserId, userId: finalUserId, phone: '+91' + bare, pin_set: true, couple_tier: 'lite' });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -484,7 +484,7 @@ export default function CoupleLoginScreen() {
       }
       if (role === 'Maker') {
         await setVendorSession({ vendorId: d.userId, id: d.userId, phone: '+91' + bare, name: d.name, vendor_tier: d.vendor_tier || 'essential' });
-        router.replace('/vendor-dashboard' as any);
+        router.replace('/(vendor)/today' as any);
       } else {
         await setCoupleSession({ id: d.userId, userId: d.userId, phone: '+91' + bare, pin_set: true, name: d.name, couple_tier: d.couple_tier || 'lite', dreamer_type: d.dreamer_type });
         router.replace('/(frost)/landing' as any);
