@@ -86,6 +86,22 @@ export default function BlindSwipe() {
     return () => { cancelled = true; };
   }, []);
 
+  // Prefetch next 3 images so swipes feel instant.
+  // Uses the same optimized URL we render, so the cache hit is on the variant we display.
+  useEffect(() => {
+    if (!images.length) return;
+    const lookahead = 3;
+    for (let i = 1; i <= lookahead; i++) {
+      const nextIdx = idx + i;
+      if (nextIdx < images.length) {
+        const next = images[nextIdx];
+        if (next?.imageUrl) {
+          Image.prefetch(optimizeCloudinary(next.imageUrl)).catch(() => {});
+        }
+      }
+    }
+  }, [idx, images]);
+
   // Card position
   const pan       = useRef(new Animated.ValueXY()).current;
   const heartPop  = useRef(new Animated.Value(0)).current;
