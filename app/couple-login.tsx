@@ -241,6 +241,8 @@ export default function CoupleLoginScreen() {
   const [pinPhase, setPinPhase] = useState<'enter' | 'confirm'>('enter');
   const [pinError, setPinError] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
+  const [retrievedName, setRetrievedName] = useState<string | null>(null);
+  const [retrievedTier, setRetrievedTier] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -287,6 +289,44 @@ export default function CoupleLoginScreen() {
       if (d.valid) { setScreen('invite_phone'); setInviteError(''); }
       else setInviteError(d.error || 'Invalid or expired code.');
     } catch { setInviteError('Could not verify. Try again.'); }
+    setLoading(false);
+  };
+
+  const checkPinAndRoute = async () => {
+    const bare = phone.replace(/\D/g, '').slice(-10);
+    if (bare.length < 10) return;
+    setLoading(true);
+    setOtpError('');
+    try {
+      const r = await fetch(
+        `${API}/api/v2/auth/pin-status?phone=${bare}&role=${apiRole(role)}`
+      );
+      const d = await r.json();
+      if (!d.found) {
+        setOtpError(
+          role === 'Maker'
+            ? 'No vendor account found. Request an invite to join.'
+            : 'No account found. Request an invite to join.'
+        );
+        setLoading(false);
+        return;
+      }
+      if (d.pin_set) {
+        // Returning user with PIN — skip OTP, go straight to PIN entry
+        setUserId(d.userId);
+        if (d.name) setRetrievedName(d.name);
+        if (d.couple_tier) setRetrievedTier(d.couple_tier);
+        setScreen('pin_login');
+        setPin(['', '', '', '']);
+        setPinError('');
+      } else {
+        // Account exists but PIN not yet set — fall back to OTP path
+        // (legacy migration scenario)
+        await sendOtp(false);
+      }
+    } catch (e) {
+      setOtpError('Could not verify. Try again.');
+    }
     setLoading(false);
   };
 
@@ -547,7 +587,7 @@ export default function CoupleLoginScreen() {
 
     if (screen === 'invite_code') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
             <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
@@ -578,7 +618,7 @@ export default function CoupleLoginScreen() {
     if (screen === 'invite_phone' || screen === 'signin_phone') {
       const isInvite = screen === 'invite_phone';
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity
             onPress={() => goBack(isInvite ? 'invite_code' : 'role_picked', { keepRole: true })}
             style={s.backBtn}
@@ -586,7 +626,7 @@ export default function CoupleLoginScreen() {
             <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
           <Text style={titleStyle}>{isInvite ? 'Welcome. Let\'s begin.' : 'Welcome back.'}</Text>
-          <Text style={subtitleStyle}>Enter your number. We'll send a code.</Text>
+          <Text style={subtitleStyle}>{isInvite ? 'Enter your number. We\'ll send a code.' : 'Enter your number to continue.'}</Text>
 
           <Text style={labelStyle}>Phone number</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: FrostSpace.m,
@@ -607,8 +647,8 @@ export default function CoupleLoginScreen() {
           </View>
           {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
           <GoldBtn
-            label="Send code →"
-            onPress={() => sendOtp(isInvite)}
+            label="Continue →"
+            onPress={() => isInvite ? sendOtp(true) : checkPinAndRoute()}
             disabled={phone.length < 10}
             loading={loading}
           />
@@ -618,7 +658,7 @@ export default function CoupleLoginScreen() {
 
     if (screen === 'invite_otp' || screen === 'signin_otp') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity
             onPress={() => goBack(screen === 'invite_otp' ? 'invite_phone' : 'signin_phone', { keepRole: true })}
             style={s.backBtn}
@@ -656,7 +696,10 @@ export default function CoupleLoginScreen() {
     if (screen === 'set_pin') {
       const isConfirm = pinPhase === 'confirm';
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
+        >
           <Text style={titleStyle}>{isConfirm ? 'Confirm your PIN.' : 'Set a 4-digit PIN.'}</Text>
           <Text style={subtitleStyle}>
             {isConfirm ? 'Re-enter to confirm.' : 'You\'ll use this to sign in next time.'}
@@ -681,7 +724,10 @@ export default function CoupleLoginScreen() {
 
     if (screen === 'pin_login') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
+        >
           <Text style={titleStyle}>Enter your PIN.</Text>
           <Text style={subtitleStyle}>Welcome back. Sign in with your 4-digit PIN.</Text>
 
@@ -700,7 +746,7 @@ export default function CoupleLoginScreen() {
 
     if (screen === 'request_form') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
             <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
