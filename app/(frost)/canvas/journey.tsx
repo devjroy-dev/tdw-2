@@ -117,6 +117,8 @@ export default function CanvasJourney() {
 }
 
 function PrimaryTile({ tool, badge }: { tool: PrimaryTool; badge?: string }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostedSurface mode="button" onPress={() => router.push(tool.route as any)} radius={FrostRadius.box} style={styles.primaryTile}>
       <View style={styles.primaryInner}>
@@ -136,6 +138,8 @@ function PrimaryTile({ tool, badge }: { tool: PrimaryTool; badge?: string }) {
 }
 
 function SecondaryTile({ tool }: { tool: SecondaryTool }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <FrostedSurface mode="button" onPress={() => router.push(tool.route as any)} radius={FrostRadius.md} style={styles.secondaryTile}>
       <View style={styles.secondaryInner}>
