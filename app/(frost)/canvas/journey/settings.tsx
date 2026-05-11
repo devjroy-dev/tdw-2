@@ -810,7 +810,7 @@ export default function JourneySettings() {
           <View style={styles.section}>
             <SectionLabel>NOTIFICATIONS</SectionLabel>
             <Text style={styles.sectionHint}>
-              Push wiring activates in the next update. Preferences are saved.
+              Choose what we ping you about. Tap to toggle.
             </Text>
 
             {([
