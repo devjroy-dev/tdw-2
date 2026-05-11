@@ -587,30 +587,40 @@ export default function CoupleLoginScreen() {
 
     if (screen === 'invite_code') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
-            <Text style={s.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={titleStyle}>Enter your invite.</Text>
-          <Text style={subtitleStyle}>Your {role === 'Maker' ? 'Maker' : 'Dreamer'} code unlocks access.</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
+              <Text style={s.backText}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={titleStyle}>Enter your invite.</Text>
+            <Text style={subtitleStyle}>Your {role === 'Maker' ? 'Maker' : 'Dreamer'} code unlocks access.</Text>
 
-          <Text style={labelStyle}>Invite code</Text>
-          <TextInput
-            value={inviteCode}
-            onChangeText={t => { setInviteCode(t.toUpperCase()); setInviteError(''); }}
-            placeholder="XXXXXX"
-            placeholderTextColor="rgba(248,247,245,0.25)"
-            autoCapitalize="characters"
-            maxLength={8}
-            style={[inputStyle, { textAlign: 'center', letterSpacing: 6, fontSize: 24 }]}
-          />
-          {inviteError ? <Text style={s.errorText}>{inviteError}</Text> : null}
-          <GoldBtn
-            label="Continue →"
-            onPress={validateInvite}
-            disabled={!inviteCode.trim()}
-            loading={loading}
-          />
+            <Text style={labelStyle}>Invite code</Text>
+            <TextInput
+              value={inviteCode}
+              onChangeText={t => { setInviteCode(t.toUpperCase()); setInviteError(''); }}
+              placeholder="XXXXXX"
+              placeholderTextColor="rgba(248,247,245,0.25)"
+              autoCapitalize="characters"
+              maxLength={8}
+              style={[inputStyle, { textAlign: 'center', letterSpacing: 6, fontSize: 24 }]}
+            />
+            {inviteError ? <Text style={s.errorText}>{inviteError}</Text> : null}
+            <GoldBtn
+              label="Continue →"
+              onPress={validateInvite}
+              disabled={!inviteCode.trim()}
+              loading={loading}
+            />
+          </ScrollView>
         </KeyboardAvoidingView>
       );
     }
@@ -618,77 +628,97 @@ export default function CoupleLoginScreen() {
     if (screen === 'invite_phone' || screen === 'signin_phone') {
       const isInvite = screen === 'invite_phone';
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity
-            onPress={() => goBack(isInvite ? 'invite_code' : 'role_picked', { keepRole: true })}
-            style={s.backBtn}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={s.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={titleStyle}>{isInvite ? 'Welcome. Let\'s begin.' : 'Welcome back.'}</Text>
-          <Text style={subtitleStyle}>{isInvite ? 'Enter your number. We\'ll send a code.' : 'Enter your number to continue.'}</Text>
+            <TouchableOpacity
+              onPress={() => goBack(isInvite ? 'invite_code' : 'role_picked', { keepRole: true })}
+              style={s.backBtn}
+            >
+              <Text style={s.backText}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={titleStyle}>{isInvite ? 'Welcome. Let\'s begin.' : 'Welcome back.'}</Text>
+            <Text style={subtitleStyle}>{isInvite ? 'Enter your number. We\'ll send a code.' : 'Enter your number to continue.'}</Text>
 
-          <Text style={labelStyle}>Phone number</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: FrostSpace.m,
-            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.25)' }}>
-            <Text style={{ fontFamily: FrostFonts.body, fontSize: 15, color: 'rgba(248,247,245,0.5)',
-              paddingRight: 10, borderRightWidth: StyleSheet.hairlineWidth,
-              borderRightColor: 'rgba(255,255,255,0.2)', marginRight: 10 }}>+91</Text>
-            <TextInput
-              value={phone}
-              onChangeText={t => setPhone(t.replace(/\D/g, '').slice(0, 10))}
-              placeholder="00000 00000"
-              placeholderTextColor="rgba(248,247,245,0.25)"
-              keyboardType="phone-pad"
-              maxLength={10}
-              style={{ flex: 1, fontFamily: FrostFonts.body, fontSize: 16,
-                color: '#F8F7F5', paddingVertical: 10 }}
+            <Text style={labelStyle}>Phone number</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: FrostSpace.m,
+              borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.25)' }}>
+              <Text style={{ fontFamily: FrostFonts.body, fontSize: 15, color: 'rgba(248,247,245,0.5)',
+                paddingRight: 10, borderRightWidth: StyleSheet.hairlineWidth,
+                borderRightColor: 'rgba(255,255,255,0.2)', marginRight: 10 }}>+91</Text>
+              <TextInput
+                value={phone}
+                onChangeText={t => setPhone(t.replace(/\D/g, '').slice(0, 10))}
+                placeholder="00000 00000"
+                placeholderTextColor="rgba(248,247,245,0.25)"
+                keyboardType="phone-pad"
+                maxLength={10}
+                style={{ flex: 1, fontFamily: FrostFonts.body, fontSize: 16,
+                  color: '#F8F7F5', paddingVertical: 10 }}
+              />
+            </View>
+            {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
+            <GoldBtn
+              label="Continue →"
+              onPress={() => isInvite ? sendOtp(true) : checkPinAndRoute()}
+              disabled={phone.length < 10}
+              loading={loading}
             />
-          </View>
-          {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
-          <GoldBtn
-            label="Continue →"
-            onPress={() => isInvite ? sendOtp(true) : checkPinAndRoute()}
-            disabled={phone.length < 10}
-            loading={loading}
-          />
+          </ScrollView>
         </KeyboardAvoidingView>
       );
     }
 
     if (screen === 'invite_otp' || screen === 'signin_otp') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity
-            onPress={() => goBack(screen === 'invite_otp' ? 'invite_phone' : 'signin_phone', { keepRole: true })}
-            style={s.backBtn}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={s.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={titleStyle}>Check your messages.</Text>
-          <Text style={subtitleStyle}>Enter the 6-digit code sent to +91 {phone}</Text>
+            <TouchableOpacity
+              onPress={() => goBack(screen === 'invite_otp' ? 'invite_phone' : 'signin_phone', { keepRole: true })}
+              style={s.backBtn}
+            >
+              <Text style={s.backText}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={titleStyle}>Check your messages.</Text>
+            <Text style={subtitleStyle}>Enter the 6-digit code sent to +91 {phone}</Text>
 
-          <OtpRow value={otp} onChange={setOtp} onComplete={verifyOtp} />
-          {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
+            <OtpRow value={otp} onChange={setOtp} onComplete={verifyOtp} />
+            {otpError ? <Text style={s.errorText}>{otpError}</Text> : null}
 
-          <GoldBtn
-            label="Verify →"
-            onPress={verifyOtp}
-            disabled={otp.join('').length < 6}
-            loading={loading}
-          />
+            <GoldBtn
+              label="Verify →"
+              onPress={verifyOtp}
+              disabled={otp.join('').length < 6}
+              loading={loading}
+            />
 
-          <TouchableOpacity
-            onPress={() => sendOtp(screen === 'invite_otp')}
-            disabled={resendTimer > 0}
-            style={{ alignItems: 'center', marginTop: FrostSpace.s }}
-          >
-            <Text style={{ fontFamily: FrostFonts.body, fontSize: 12,
-              color: resendTimer > 0 ? 'rgba(248,247,245,0.25)' : 'rgba(248,247,245,0.5)',
-              textDecorationLine: resendTimer > 0 ? 'none' : 'underline' }}>
-              {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend code'}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => sendOtp(screen === 'invite_otp')}
+              disabled={resendTimer > 0}
+              style={{ alignItems: 'center', marginTop: FrostSpace.s }}
+            >
+              <Text style={{ fontFamily: FrostFonts.body, fontSize: 12,
+                color: resendTimer > 0 ? 'rgba(248,247,245,0.25)' : 'rgba(248,247,245,0.5)',
+                textDecorationLine: resendTimer > 0 ? 'none' : 'underline' }}>
+                {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend code'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </KeyboardAvoidingView>
       );
     }
@@ -697,27 +727,35 @@ export default function CoupleLoginScreen() {
       const isConfirm = pinPhase === 'confirm';
       return (
         <KeyboardAvoidingView
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
         >
-          <Text style={titleStyle}>{isConfirm ? 'Confirm your PIN.' : 'Set a 4-digit PIN.'}</Text>
-          <Text style={subtitleStyle}>
-            {isConfirm ? 'Re-enter to confirm.' : 'You\'ll use this to sign in next time.'}
-          </Text>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={titleStyle}>{isConfirm ? 'Confirm your PIN.' : 'Set a 4-digit PIN.'}</Text>
+            <Text style={subtitleStyle}>
+              {isConfirm ? 'Re-enter to confirm.' : 'You\'ll use this to sign in next time.'}
+            </Text>
 
-          <PinRow
-            value={isConfirm ? pinConfirm : pin}
-            onChange={isConfirm ? setPinConfirm : setPin}
-            onComplete={submitPin}
-          />
-          {pinError ? <Text style={s.errorText}>{pinError}</Text> : null}
+            <PinRow
+              value={isConfirm ? pinConfirm : pin}
+              onChange={isConfirm ? setPinConfirm : setPin}
+              onComplete={submitPin}
+            />
+            {pinError ? <Text style={s.errorText}>{pinError}</Text> : null}
 
-          <GoldBtn
-            label={isConfirm ? 'Save PIN →' : 'Next →'}
-            onPress={submitPin}
-            disabled={(isConfirm ? pinConfirm : pin).join('').length < 4}
-            loading={loading}
-          />
+            <GoldBtn
+              label={isConfirm ? 'Save PIN →' : 'Next →'}
+              onPress={submitPin}
+              disabled={(isConfirm ? pinConfirm : pin).join('').length < 4}
+              loading={loading}
+            />
+          </ScrollView>
         </KeyboardAvoidingView>
       );
     }
@@ -725,65 +763,83 @@ export default function CoupleLoginScreen() {
     if (screen === 'pin_login') {
       return (
         <KeyboardAvoidingView
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
         >
-          <Text style={titleStyle}>Enter your PIN.</Text>
-          <Text style={subtitleStyle}>Welcome back. Sign in with your 4-digit PIN.</Text>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={titleStyle}>Enter your PIN.</Text>
+            <Text style={subtitleStyle}>Welcome back. Sign in with your 4-digit PIN.</Text>
 
-          <PinRow value={pin} onChange={setPin} onComplete={verifyPinLogin} />
-          {pinError ? <Text style={s.errorText}>{pinError}</Text> : null}
+            <PinRow value={pin} onChange={setPin} onComplete={verifyPinLogin} />
+            {pinError ? <Text style={s.errorText}>{pinError}</Text> : null}
 
-          <GoldBtn
-            label="Sign in →"
-            onPress={verifyPinLogin}
-            disabled={pin.join('').length < 4}
-            loading={loading}
-          />
+            <GoldBtn
+              label="Sign in →"
+              onPress={verifyPinLogin}
+              disabled={pin.join('').length < 4}
+              loading={loading}
+            />
+          </ScrollView>
         </KeyboardAvoidingView>
       );
     }
 
     if (screen === 'request_form') {
       return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
-            <Text style={s.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={titleStyle}>Request an invite.</Text>
-          <Text style={subtitleStyle}>
-            {role === 'Maker' ? 'Tell us about your craft.' : 'Tell us about your wedding.'}
-          </Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <TouchableOpacity onPress={() => goBack('role_picked', { keepRole: true })} style={s.backBtn}>
+              <Text style={s.backText}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={titleStyle}>Request an invite.</Text>
+            <Text style={subtitleStyle}>
+              {role === 'Maker' ? 'Tell us about your craft.' : 'Tell us about your wedding.'}
+            </Text>
 
-          <Text style={labelStyle}>Name</Text>
-          <TextInput value={reqName} onChangeText={setReqName} style={inputStyle}
-            placeholder="Full name" placeholderTextColor="rgba(248,247,245,0.25)" />
+            <Text style={labelStyle}>Name</Text>
+            <TextInput value={reqName} onChangeText={setReqName} style={inputStyle}
+              placeholder="Full name" placeholderTextColor="rgba(248,247,245,0.25)" />
 
-          <Text style={labelStyle}>Email</Text>
-          <TextInput value={reqEmail} onChangeText={setReqEmail} style={inputStyle}
-            placeholder="you@example.com" placeholderTextColor="rgba(248,247,245,0.25)"
-            keyboardType="email-address" autoCapitalize="none" />
+            <Text style={labelStyle}>Email</Text>
+            <TextInput value={reqEmail} onChangeText={setReqEmail} style={inputStyle}
+              placeholder="you@example.com" placeholderTextColor="rgba(248,247,245,0.25)"
+              keyboardType="email-address" autoCapitalize="none" />
 
-          <Text style={labelStyle}>Phone</Text>
-          <TextInput
-            value={reqPhone}
-            onChangeText={t => setReqPhone(t.replace(/\D/g, '').slice(0, 10))}
-            style={inputStyle}
-            placeholder="00000 00000" placeholderTextColor="rgba(248,247,245,0.25)"
-            keyboardType="phone-pad" maxLength={10} />
+            <Text style={labelStyle}>Phone</Text>
+            <TextInput
+              value={reqPhone}
+              onChangeText={t => setReqPhone(t.replace(/\D/g, '').slice(0, 10))}
+              style={inputStyle}
+              placeholder="00000 00000" placeholderTextColor="rgba(248,247,245,0.25)"
+              keyboardType="phone-pad" maxLength={10} />
 
-          <Text style={labelStyle}>Instagram</Text>
-          <TextInput value={reqInstagram} onChangeText={setReqInstagram} style={inputStyle}
-            placeholder="@handle" placeholderTextColor="rgba(248,247,245,0.25)"
-            autoCapitalize="none" />
+            <Text style={labelStyle}>Instagram</Text>
+            <TextInput value={reqInstagram} onChangeText={setReqInstagram} style={inputStyle}
+              placeholder="@handle" placeholderTextColor="rgba(248,247,245,0.25)"
+              autoCapitalize="none" />
 
-          <Text style={labelStyle}>{role === 'Maker' ? 'City / category' : 'City'}</Text>
-          <TextInput value={reqCity} onChangeText={setReqCity} style={inputStyle}
-            placeholder={role === 'Maker' ? 'e.g. Mumbai · Photography' : 'e.g. Mumbai'}
-            placeholderTextColor="rgba(248,247,245,0.25)" />
+            <Text style={labelStyle}>{role === 'Maker' ? 'City / category' : 'City'}</Text>
+            <TextInput value={reqCity} onChangeText={setReqCity} style={inputStyle}
+              placeholder={role === 'Maker' ? 'e.g. Mumbai · Photography' : 'e.g. Mumbai'}
+              placeholderTextColor="rgba(248,247,245,0.25)" />
 
-          {reqError ? <Text style={s.errorText}>{reqError}</Text> : null}
-          <GoldBtn label="Submit →" onPress={submitRequest} loading={loading} />
+            {reqError ? <Text style={s.errorText}>{reqError}</Text> : null}
+            <GoldBtn label="Submit →" onPress={submitRequest} loading={loading} />
+          </ScrollView>
         </KeyboardAvoidingView>
       );
     }
