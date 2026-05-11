@@ -40,6 +40,7 @@ import {
 } from '../../../constants/frost';
 import FrostedSurface from '../../../components/frost/FrostedSurface';
 import { fetchDiscoverHeroes, type DiscoverHero } from '../../../services/frostApi';
+import { optimizeCloudinary } from '../../../utils/cloudinary';
 
 const NAV_OPTIONS: Array<{ id: keyof typeof FrostCopy.discoverCanvas.options; route: string }> = [
   { id: 'blindSwipe', route: '/(frost)/canvas/discover/blind-swipe' },
@@ -165,14 +166,14 @@ export default function CanvasDiscover() {
       >
         <View style={StyleSheet.absoluteFill}>
           <Image
-            source={{ uri: currentHero.image_url }}
+            source={{ uri: optimizeCloudinary(currentHero.image_url) }}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
         </View>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroFade }]}>
           <Image
-            source={{ uri: peekHero.image_url }}
+            source={{ uri: optimizeCloudinary(peekHero.image_url) }}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />

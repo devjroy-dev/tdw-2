@@ -30,6 +30,7 @@ import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostCopy,
 } from '../../../../constants/frost';
 import { saveToMuse } from '../../../../services/frostApi';
+import { optimizeCloudinary, optimizeCloudinaryThumb } from '../../../../utils/cloudinary';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -355,7 +356,7 @@ export default function BlindSwipe() {
           ]}
           pointerEvents="none"
         >
-          <Image source={{ uri: peek.imageUrl }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: optimizeCloudinaryThumb(peek.imageUrl) }} style={styles.image} resizeMode="cover" />
         </Animated.View>
       ) : null}
 
@@ -373,7 +374,7 @@ export default function BlindSwipe() {
         ]}
         {...panResponder.panHandlers}
       >
-        <Image source={{ uri: current.imageUrl }} style={styles.image} resizeMode="cover" />
+        <Image source={{ uri: optimizeCloudinary(current.imageUrl) }} style={styles.image} resizeMode="cover" />
 
         {/* Live heart indicator (during right drag) */}
         <Animated.View

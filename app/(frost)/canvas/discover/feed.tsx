@@ -33,6 +33,7 @@ import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostMaterial, FrostRadius, FrostCopy,
 } from '../../../../constants/frost';
 import { saveToMuse } from '../../../../services/frostApi';
+import { optimizeCloudinary } from '../../../../utils/cloudinary';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -273,7 +274,7 @@ export default function DiscoveryFeed() {
       >
         {/* Full-bleed photo */}
         <Image
-          source={{ uri: photo.imageUrl }}
+          source={{ uri: optimizeCloudinary(photo.imageUrl) }}
           style={StyleSheet.absoluteFillObject}
           resizeMode="cover"
         />

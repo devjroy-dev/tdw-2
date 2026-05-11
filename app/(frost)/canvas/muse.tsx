@@ -43,6 +43,7 @@ import {
   fetchMuseSaves,
   type MuseSave,
 } from '../../../services/frostApi';
+import { optimizeCloudinary } from '../../../utils/cloudinary';
 
 const CEREMONY_FILTERS: { id: string; label: string }[] = [
   { id: 'all',       label: 'All' },
@@ -311,7 +312,7 @@ export default function CanvasMuse() {
           onPress={() => setExpandedSave(null)}
         >
           <Image
-            source={{ uri: expandedSave.image_url }}
+            source={{ uri: optimizeCloudinary(expandedSave.image_url) }}
             style={styles.expandedImage}
             resizeMode="contain"
           />
