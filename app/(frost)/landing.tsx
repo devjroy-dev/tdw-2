@@ -455,13 +455,6 @@ export default function FrostLanding() {
     ]).start(() => setToast(null));
   }, [toastFade]);
 
-  const flipContent = useCallback(() => {
-    const next: ContentMode = contentMode === 'dream' ? 'sanctuary' : 'dream';
-    Haptics.selectionAsync?.();
-    persistContentMode(next);
-    showToast(next === 'sanctuary' ? 'Now in Sanctuary' : 'Now in Dream');
-  }, [contentMode, persistContentMode, showToast]);
-
   const persistMode = useCallback(async (m: HomeModeKey) => {
     setHomeMode(m);
     try { await AsyncStorage.setItem(MODE_STORAGE_KEY, m); } catch {}
@@ -607,20 +600,6 @@ export default function FrostLanding() {
                   <Text style={styles.mosaicDaysWord}>{FrostCopy.landing.daysWord}</Text>
                 </View>
               </LinearGradient>
-            </Pressable>
-            {/* Mode badge sits absolute over the hero. Tap flips Content. Doesn't propagate. */}
-            <Pressable
-              onPress={flipContent}
-              hitSlop={12}
-              style={styles.mosaicBadgePressable}
-              accessibilityLabel={`Flip to ${isSanctuary ? 'Dream' : 'Sanctuary'} mode`}
-            >
-              {SHOW_MODE_PICKER ? (
-                <Text style={styles.mosaicModeBadge}>{homeMode}</Text>
-              ) : null}
-              <Text style={styles.mosaicModeBadgeContent}>
-                {isSanctuary ? 'SANCTUARY' : 'DREAM'}
-              </Text>
             </Pressable>
           </View>
 
@@ -1046,28 +1025,7 @@ function makeStyles(m: ModeDescriptor) {
       fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
       color: m.soft,
     },
-    // Mode badge: tappable surface positioned over the hero's bottom area.
-    // Tap flips Content (Dream ↔ Sanctuary). Tone label sits on top, content
-    // label sits below — together they're the single discoverable affordance.
-    mosaicBadgePressable: {
-      position: 'absolute',
-      bottom: 18,
-      alignSelf: 'center',
-      alignItems: 'center',
-      paddingVertical: 6, paddingHorizontal: 12,
-    },
-    mosaicModeBadge: {
-      fontFamily: FrostFonts.label, fontWeight: '300',
-      fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
-      color: m.brassMuted, opacity: 0.7,
-    },
-    mosaicModeBadgeContent: {
-      marginTop: 4,
-      fontFamily: FrostFonts.label, fontWeight: '300',
-      fontSize: 9, letterSpacing: 4.4, textTransform: 'uppercase',
-      color: m.brass, opacity: 0.8,
-    },
-    // Toast — shown when bride flips Content via badge.
+    // Toast — shown when content/tone changes via picker.
     // Italic Cormorant on inverted page colors (mode-aware via inline override).
     toastWrap: {
       position: 'absolute',
