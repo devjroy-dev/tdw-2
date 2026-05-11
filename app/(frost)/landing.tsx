@@ -763,7 +763,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goPages} onLongPress={goPages}
+                onLongPress={goPages}
                 accessibilityLabel="Pages"
                 style={{ flex: 1.25 }}
               >
