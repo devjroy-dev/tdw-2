@@ -863,8 +863,8 @@ export default function JourneySettings() {
 
           {/* Toast */}
           {!!toast && (
-            <View style={styles.toast} pointerEvents="none">
-              <Text style={styles.toastText}>{toast}</Text>
+            <View style={[styles.toast, { backgroundColor: tokens.ink }]} pointerEvents="none">
+              <Text style={[styles.toastText, { color: tokens.pagePaper }]}>{toast}</Text>
             </View>
           )}
         </ScrollView>
@@ -1079,12 +1079,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: FrostSpace.l,
     paddingVertical: FrostSpace.s,
     borderRadius: FrostRadius.pill,
-    backgroundColor: FrostColors.ink,
     marginTop: FrostSpace.xl,
+    // backgroundColor applied inline via tokens.ink — mode-aware
   },
   toastText: {
     fontFamily: FrostFonts.body,
     fontSize: 12,
-    color: FrostColors.white,
+    // color applied inline via tokens.pagePaper — mode-aware
   },
 });
