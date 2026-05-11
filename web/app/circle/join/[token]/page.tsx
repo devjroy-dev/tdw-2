@@ -112,7 +112,7 @@ export default function CircleJoinPage() {
       // Save partial session
       localStorage.setItem('circle_session', JSON.stringify(d.data));
       if (d.data.pin_set) {
-        router.push('/circle/home');
+        router.push('/coplanner');
       } else {
         setStep('pin');
         setPin(['', '', '', '']);
@@ -144,7 +144,7 @@ export default function CircleJoinPage() {
       const sr = await fetch(`${API}/api/v2/circle/session/${userId}`);
       const sd = await sr.json();
       if (sd.success) localStorage.setItem('circle_session', JSON.stringify(sd.data));
-      router.push('/circle/home');
+      router.push('/coplanner');
     } catch { showToast('Something went wrong.'); }
     setLoading(false);
   };
