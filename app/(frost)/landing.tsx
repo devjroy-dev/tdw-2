@@ -749,7 +749,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goMoments} onLongPress={goMoments}
+                onLongPress={goMoments}
                 accessibilityLabel="Moments"
                 style={{ flex: 1.5 }}
               >
