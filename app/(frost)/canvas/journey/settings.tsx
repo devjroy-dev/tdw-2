@@ -149,13 +149,15 @@ function Pill({ label, selected, onPress }: {
 function GoldSwitch({ value, onValueChange }: {
   value: boolean; onValueChange: (v: boolean) => void;
 }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: FrostColors.hairline, true: FrostColors.goldTrue }}
+      trackColor={{ false: tokens.hairline, true: FrostColors.goldTrue }}
       thumbColor={FrostColors.white}
-      ios_backgroundColor={FrostColors.hairline}
+      ios_backgroundColor={tokens.hairline}
     />
   );
 }
