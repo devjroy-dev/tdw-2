@@ -111,7 +111,12 @@ export default function FrostCanvasShell({
         <View
           style={[
             styles.bottomBar,
-            { paddingBottom: insets.bottom },
+            {
+              backgroundColor: look === 'E1'
+                ? 'rgba(27,22,18,0.92)'   // dark frosted bar over dark page
+                : 'rgba(244,242,238,0.92)', // cream frosted bar over cream page
+              paddingBottom: insets.bottom,
+            },
           ]}
         >
           {bottomBar}
@@ -218,7 +223,7 @@ const styles = StyleSheet.create({
   },
 
   bottomBar: {
-    backgroundColor: 'rgba(244,242,238,0.92)',
+    // backgroundColor applied inline based on look — mode-aware
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: FrostColors.hairline,
   },
