@@ -592,6 +592,7 @@ export default function CoupleLoginScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
         >
           <ScrollView
             style={{ flex: 1 }}
@@ -634,6 +635,7 @@ export default function CoupleLoginScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
         >
           <ScrollView
             style={{ flex: 1 }}
@@ -685,6 +687,7 @@ export default function CoupleLoginScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
         >
           <ScrollView
             style={{ flex: 1 }}
@@ -799,6 +802,7 @@ export default function CoupleLoginScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
         >
           <ScrollView
             style={{ flex: 1 }}
