@@ -8,6 +8,7 @@ import {
 
 const CLOUDINARY_CLOUD  = 'dccso5ljv';
 const CLOUDINARY_PRESET = 'dream_wedding_uploads';
+const MAX_UPLOAD_BYTES  = 10 * 1024 * 1024; // 10 MB
 
 export default function AddMuseSheet({
   onClose, onSaved,
@@ -68,6 +69,10 @@ export default function AddMuseSheet({
   };
 
   const onFile = async (file: File) => {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setErr('Photo is too large. Please choose one under 10 MB.');
+      return;
+    }
     const secure = await uploadFile(file);
     if (secure) await save(secure);
   };
@@ -167,6 +172,11 @@ export default function AddMuseSheet({
             style={{ display: 'none' }}
           />
         </label>
+
+        <p style={{
+          fontFamily: FONT_BODY, fontWeight: 300, fontSize: 11,
+          color: MUTED, margin: '8px 0 0', textAlign: 'center',
+        }}>JPG or PNG, up to 10 MB.</p>
 
         {errorMsg && (
           <p style={{

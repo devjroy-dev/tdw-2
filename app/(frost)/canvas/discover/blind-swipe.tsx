@@ -30,6 +30,7 @@ import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostCopy,
 } from '../../../../constants/frost';
 import { saveToMuse } from '../../../../services/frostApi';
+import { optimizeCloudinary, optimizeCloudinaryThumb } from '../../../../utils/cloudinary';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -84,6 +85,22 @@ export default function BlindSwipe() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Prefetch next 3 images so swipes feel instant.
+  // Uses the same optimized URL we render, so the cache hit is on the variant we display.
+  useEffect(() => {
+    if (!images.length) return;
+    const lookahead = 3;
+    for (let i = 1; i <= lookahead; i++) {
+      const nextIdx = idx + i;
+      if (nextIdx < images.length) {
+        const next = images[nextIdx];
+        if (next?.imageUrl) {
+          Image.prefetch(optimizeCloudinary(next.imageUrl)).catch(() => {});
+        }
+      }
+    }
+  }, [idx, images]);
 
   // Card position
   const pan       = useRef(new Animated.ValueXY()).current;
@@ -355,7 +372,7 @@ export default function BlindSwipe() {
           ]}
           pointerEvents="none"
         >
-          <Image source={{ uri: peek.imageUrl }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: optimizeCloudinaryThumb(peek.imageUrl) }} style={styles.image} resizeMode="cover" />
         </Animated.View>
       ) : null}
 
@@ -373,7 +390,7 @@ export default function BlindSwipe() {
         ]}
         {...panResponder.panHandlers}
       >
-        <Image source={{ uri: current.imageUrl }} style={styles.image} resizeMode="cover" />
+        <Image source={{ uri: optimizeCloudinary(current.imageUrl) }} style={styles.image} resizeMode="cover" />
 
         {/* Live heart indicator (during right drag) */}
         <Animated.View

@@ -236,7 +236,7 @@ export default function JourneyCircle() {
             renderItem={({ item: m }) => {
               const isMe = m.sender_role === 'bride';
               return (
-                <View style={[styles.bubble, isMe ? styles.bubbleMe : [styles.bubbleThem, { backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.08)' : 'rgba(255,253,248,0.80)' }]]}>
+                <View style={[styles.bubble, isMe ? styles.bubbleMe : [styles.bubbleThem, { backgroundColor: look === 'E1' ? 'rgba(255,253,248,0.16)' : 'rgba(255,253,248,0.80)' }]]}>
                   {!isMe && (
                     <Text style={styles.bubbleSender}>{m.sender_name}</Text>
                   )}
@@ -260,6 +260,7 @@ export default function JourneyCircle() {
                 onChangeText={setComposing}
                 placeholder="Message…"
                 placeholderTextColor={FrostColors.muted}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 multiline
                 returnKeyType="send"
                 onSubmitEditing={handleSend}
@@ -312,16 +313,19 @@ const styles = StyleSheet.create({
   // Timeline
   timelineCard:  { marginBottom: FrostSpace.s },
   timelineInner: { padding: FrostSpace.xl },
-  timelineTitle: { fontFamily: FrostFonts.display, fontSize: 22, color: '#1A1815', fontStyle: 'italic' },
-  timelineSub:   { ...FrostType.bodySmall, color: '#3A3733', marginTop: FrostSpace.xs },
+  // color applied inline via tokens.ink / tokens.soft — mode-aware
+  timelineTitle: { fontFamily: FrostFonts.display, fontSize: 22, fontStyle: 'italic' },
+  timelineSub:   { ...FrostType.bodySmall, marginTop: FrostSpace.xs },
 
   // Feed
   feedRow:     { flexDirection: 'row', alignItems: 'flex-start', marginBottom: FrostSpace.m, gap: FrostSpace.m },
   feedDot:     { width: 5, height: 5, borderRadius: 3, backgroundColor: FrostColors.goldMuted, marginTop: 6 },
   feedBody:    { flex: 1 },
-  feedLine:    { ...FrostType.bodySmall, color: '#3A3733' },
+  // color applied inline via tokens.soft — mode-aware
+  feedLine:    { ...FrostType.bodySmall },
   feedTime:    { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 2 },
-  emptyHint:   { ...FrostType.bodySmall, color: '#5A5650', fontStyle: 'italic', marginBottom: FrostSpace.m },
+  // color applied inline via tokens.soft — mode-aware
+  emptyHint:   { ...FrostType.bodySmall, fontStyle: 'italic', marginBottom: FrostSpace.m },
 
   // Invite button
   inviteBtn:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: FrostSpace.m, paddingVertical: 5, borderRadius: FrostRadius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.buttonFrostBorder },
@@ -333,16 +337,19 @@ const styles = StyleSheet.create({
   threadAvatar:  { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(168,146,75,0.10)', alignItems: 'center', justifyContent: 'center' },
   threadBody:    { flex: 1 },
   threadTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  threadLabel:   { fontFamily: FrostFonts.displayMedium, fontSize: 15, color: '#1A1815' },
+  // color applied inline via inkColor prop — mode-aware
+  threadLabel:   { fontFamily: FrostFonts.displayMedium, fontSize: 15 },
   threadTime:    { ...FrostType.eyebrowSmall, fontSize: 9 },
-  threadPreview: { ...FrostType.bodySmall, fontSize: 12, color: '#5A5650', marginTop: 2 },
+  // color applied inline via softColor prop — mode-aware
+  threadPreview: { ...FrostType.bodySmall, fontSize: 12, marginTop: 2 },
 
   // Sheet
   sheetOuter:     { flex: 1 }, // bg applied inline via tokens
   sheetHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: FrostSpace.xl, paddingVertical: FrostSpace.l, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.hairline, gap: FrostSpace.m },
   sheetClose:     { padding: FrostSpace.xs },
   sheetTitleWrap: { flex: 1 },
-  sheetTitle:     { fontFamily: FrostFonts.display, fontSize: 20, color: '#1A1815', fontStyle: 'italic' },
+  // color applied inline via tokens.ink — mode-aware
+  sheetTitle:     { fontFamily: FrostFonts.display, fontSize: 20, fontStyle: 'italic' },
   sheetRole:      { ...FrostType.eyebrowSmall, marginTop: 2 },
   messageList:    { padding: FrostSpace.xl, gap: FrostSpace.m },
 
@@ -351,7 +358,8 @@ const styles = StyleSheet.create({
   bubbleMe:       { alignSelf: 'flex-end', backgroundColor: FrostColors.goldTrue, borderRadius: FrostRadius.md, borderBottomRightRadius: 4, padding: FrostSpace.m },
   bubbleThem:     { alignSelf: 'flex-start', backgroundColor: 'rgba(255,253,248,0.80)', borderRadius: FrostRadius.md, borderBottomLeftRadius: 4, padding: FrostSpace.m, borderWidth: StyleSheet.hairlineWidth, borderColor: FrostColors.buttonFrostBorder },
   bubbleSender:   { ...FrostType.eyebrowSmall, fontSize: 9, marginBottom: 3, color: FrostColors.soft },
-  bubbleText:     { fontFamily: FrostFonts.bodyMedium, fontSize: 14, color: '#1A1815', lineHeight: 20 },
+  // color applied inline via tokens.ink — mode-aware
+  bubbleText:     { fontFamily: FrostFonts.bodyMedium, fontSize: 14, lineHeight: 20 },
   bubbleTextMe:   { color: '#FFFFFF' },
   bubbleTime:     { ...FrostType.eyebrowSmall, fontSize: 9, marginTop: 4, color: FrostColors.soft },
   bubbleTimeMe:   { color: 'rgba(255,255,255,0.65)' },
@@ -359,6 +367,7 @@ const styles = StyleSheet.create({
   // Composer
   composer:       {},
   composerInner:  { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: FrostSpace.l, paddingVertical: FrostSpace.m, gap: FrostSpace.m },
-  composerInput:  { flex: 1, fontFamily: FrostFonts.bodyMedium, fontSize: 15, color: '#1A1815', maxHeight: 100, paddingVertical: FrostSpace.xs },
+  // color applied inline via tokens.ink — mode-aware
+  composerInput:  { flex: 1, fontFamily: FrostFonts.bodyMedium, fontSize: 15, maxHeight: 100, paddingVertical: FrostSpace.xs },
   sendBtn:        { paddingBottom: FrostSpace.xs },
 });

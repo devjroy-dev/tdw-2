@@ -26,6 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FrostFonts } from '../../constants/frost';
 import type { MuseLookTokens } from '../../constants/museTokens';
 import type { MuseSave } from '../../services/frostApi';
+import { optimizeCloudinaryThumb } from '../../utils/cloudinary';
 
 interface MuseGridProps {
   saves: MuseSave[];
@@ -117,7 +118,7 @@ function MuseTile({
     >
       {save.image_url ? (
         <Image
-          source={{ uri: save.image_url }}
+          source={{ uri: optimizeCloudinaryThumb(save.image_url) }}
           style={styles.image}
           resizeMode="cover"
         />

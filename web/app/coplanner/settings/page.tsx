@@ -19,6 +19,8 @@ export default function CoplannerSettings() {
   const roleLbl = ROLE_LABEL[session.role] || 'Circle';
 
   const signOut = () => {
+    if (typeof window === 'undefined') return;
+    if (!window.confirm('Sign out of your Circle?')) return;
     try {
       localStorage.removeItem('circle_session');
       localStorage.removeItem('circle_last_path');

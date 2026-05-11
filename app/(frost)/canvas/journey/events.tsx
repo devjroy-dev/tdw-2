@@ -87,6 +87,8 @@ export default function JourneyEvents() {
 // ─── Node ───────────────────────────────────────────────────────────────────
 
 function EventNode({ event, highlight }: { event: CoupleEvent; highlight: boolean }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const { month, day } = formatEventDate(event.event_date);
   const counts: string[] = [];
   if (event.task_count && event.task_count > 0) counts.push(`${event.task_count} reminder${event.task_count === 1 ? '' : 's'}`);
@@ -95,13 +97,17 @@ function EventNode({ event, highlight }: { event: CoupleEvent; highlight: boolea
 
   return (
     <View style={styles.node}>
-      <View style={[styles.dateCircle, highlight && styles.dateCircleHighlight]}>
-        <Text style={styles.dateMonth}>{month}</Text>
-        <Text style={styles.dateDay}>{day}</Text>
+      <View style={[
+        styles.dateCircle,
+        { backgroundColor: tokens.cardFill, borderColor: tokens.hairline },
+        highlight && styles.dateCircleHighlight,
+      ]}>
+        <Text style={[styles.dateMonth, { color: tokens.soft }]}>{month}</Text>
+        <Text style={[styles.dateDay, { color: tokens.ink }]}>{day}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardName}>{event.event_name || event.event_type || 'Event'}</Text>
-        {event.venue ? <Text style={styles.cardVenue}>{event.venue}</Text> : null}
+        <Text style={[styles.cardName, { color: tokens.ink }]}>{event.event_name || event.event_type || 'Event'}</Text>
+        {event.venue ? <Text style={[styles.cardVenue, { color: tokens.soft }]}>{event.venue}</Text> : null}
         {countLine ? <Text style={styles.cardCount}>{countLine}</Text> : null}
       </View>
     </View>

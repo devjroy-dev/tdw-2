@@ -411,6 +411,8 @@ function ExpenseRow({
   inkColor: string;
   softColor: string;
 }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   const who = expense.vendor_name || expense.description || 'Untitled';
   const amount = paid
     ? (expense.actual_amount || expense.planned_amount || 0)
@@ -436,9 +438,14 @@ function ExpenseRow({
           <Pressable
             onPress={(ev) => { ev.stopPropagation?.(); onMarkPaid(); }}
             disabled={busy}
-            style={({ pressed }) => [styles.markPaidBtn, pressed && styles.markPaidPressed, busy && styles.markPaidBusy]}
+            style={({ pressed }) => [
+              styles.markPaidBtn,
+              { backgroundColor: tokens.brass },
+              pressed && styles.markPaidPressed,
+              busy && styles.markPaidBusy,
+            ]}
           >
-            <Text style={styles.markPaidText}>{busy ? '…' : 'MARK PAID'}</Text>
+            <Text style={[styles.markPaidText, { color: tokens.pagePaper }]}>{busy ? '…' : 'MARK PAID'}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -536,7 +543,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 100,
-    backgroundColor: FrostColors.ink,
+    // backgroundColor applied inline via tokens.brass — mode-consistent primary CTA
   },
   markPaidPressed: { opacity: 0.85 },
   markPaidBusy: { opacity: 0.6 },
@@ -544,7 +551,7 @@ const styles = StyleSheet.create({
     fontFamily: FrostFonts.labelMedium,
     fontSize: 9,
     letterSpacing: 1.2,
-    color: FrostColors.white,
+    // color applied inline via tokens.pagePaper — mode-aware contrast on brass
   },
 
   stateWrap: { paddingTop: 80, alignItems: 'center' },

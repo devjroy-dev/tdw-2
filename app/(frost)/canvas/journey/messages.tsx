@@ -211,7 +211,8 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
             value={composing}
             onChangeText={setComposing}
             placeholder="Reply…"
-            placeholderTextColor={FrostColors.muted}
+            placeholderTextColor={tokens.soft}
+            keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
             multiline
           />
           <Pressable
@@ -232,10 +233,19 @@ function ThreadView({ thread, onBack }: { thread: EnquiryThread; onBack: () => v
 }
 
 function MessageBubble({ message }: { message: EnquiryMessage }) {
+  const look = useMuseLook();
   const fromMe = message.from_role === 'couple';
   return (
     <View style={[styles.bubbleRow, fromMe ? styles.bubbleRight : styles.bubbleLeft]}>
-      <View style={[styles.bubble, fromMe ? styles.bubbleMe : styles.bubbleThem]}>
+      <View style={[
+        styles.bubble,
+        fromMe
+          ? styles.bubbleMe
+          : [
+              styles.bubbleThem,
+              { backgroundColor: look === 'E1' ? 'rgba(245,240,232,0.12)' : 'rgba(236,233,228,0.7)' },
+            ],
+      ]}>
         <Text style={[styles.bubbleText, fromMe && styles.bubbleTextMe]}>{message.content}</Text>
       </View>
     </View>
@@ -338,7 +348,7 @@ const styles = StyleSheet.create({
     backgroundColor: FrostColors.ink,
   },
   bubbleThem: {
-    backgroundColor: 'rgba(236,233,228,0.7)', // overridden inline per mode
+    // backgroundColor applied inline per mode (look === 'E1' ? cream@0.12 : cream@0.7)
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FrostColors.hairline,
   },

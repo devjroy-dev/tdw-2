@@ -217,10 +217,13 @@ export default function CoplannerDreamAi() {
         <input
           type="text"
           placeholder="Ask Dream Ai"
+          aria-label="Ask Dream Ai"
           value={composing}
           onChange={e => setComposing(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           disabled={sending}
+          onFocus={(e) => { e.currentTarget.style.outline = `2px solid ${GOLD}`; e.currentTarget.style.outlineOffset = '2px'; }}
+          onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
           style={{
             flex: 1, height: 44,
             background: 'rgba(255,255,255,0.05)',

@@ -265,16 +265,23 @@ function ModePickerSheet({
   onPickContent: (c: ContentMode) => void;
   onClose: () => void;
 }) {
+  // Render the sheet in the bride's current mode so it sits tonally on top of
+  // the home it's overlaying. Reach into MODES[currentMode] directly — same
+  // descriptor the page uses.
+  const m = MODES[currentMode];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={pickerStyles.backdrop} onPress={onClose}>
-        <Pressable style={pickerStyles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[pickerStyles.sheet, { backgroundColor: m.cardFill }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={pickerStyles.handle} />
           <Text style={pickerStyles.title}>Pick a home rendition</Text>
-          <Text style={pickerStyles.sub}>Pick tone and content. The sheet stays open for both.</Text>
+          <Text style={[pickerStyles.sub, { color: m.soft }]}>Pick tone and content. The sheet stays open for both.</Text>
           <ScrollView style={{ maxHeight: 540 }}>
             {/* CONTENT section */}
-            <Text style={pickerStyles.sectionEyebrow}>CONTENT</Text>
+            <Text style={[pickerStyles.sectionEyebrow, { color: m.soft }]}>CONTENT</Text>
             {CONTENT_OPTIONS.map((c) => {
               const isCurrent = c.key === contentMode;
               return (
@@ -284,30 +291,30 @@ function ModePickerSheet({
                   style={[pickerStyles.row, isCurrent && pickerStyles.rowActive]}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[pickerStyles.rowTitle, isCurrent && pickerStyles.rowTitleActive]}>
+                    <Text style={[pickerStyles.rowTitle, { color: m.ink }, isCurrent && pickerStyles.rowTitleActive]}>
                       {c.title}
                     </Text>
-                    <Text style={pickerStyles.rowSub}>{c.sub}</Text>
+                    <Text style={[pickerStyles.rowSub, { color: m.soft }]}>{c.sub}</Text>
                   </View>
                   {isCurrent ? <View style={pickerStyles.dot} /> : null}
                 </Pressable>
               );
             })}
             {/* TONE section */}
-            <Text style={pickerStyles.sectionEyebrow}>TONE</Text>
-            {CYCLE_ORDER.map((m) => {
-              const isCurrent = m === currentMode;
+            <Text style={[pickerStyles.sectionEyebrow, { color: m.soft }]}>TONE</Text>
+            {CYCLE_ORDER.map((mk) => {
+              const isCurrent = mk === currentMode;
               return (
                 <Pressable
-                  key={m}
-                  onPress={() => onPick(m)}
+                  key={mk}
+                  onPress={() => onPick(mk)}
                   style={[pickerStyles.row, isCurrent && pickerStyles.rowActive]}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[pickerStyles.rowTitle, isCurrent && pickerStyles.rowTitleActive]}>
-                      {MODE_LABELS[m].title}
+                    <Text style={[pickerStyles.rowTitle, { color: m.ink }, isCurrent && pickerStyles.rowTitleActive]}>
+                      {MODE_LABELS[mk].title}
                     </Text>
-                    <Text style={pickerStyles.rowSub}>{MODE_LABELS[m].sub}</Text>
+                    <Text style={[pickerStyles.rowSub, { color: m.soft }]}>{MODE_LABELS[mk].sub}</Text>
                   </View>
                   {isCurrent ? <View style={pickerStyles.dot} /> : null}
                 </Pressable>
@@ -330,7 +337,7 @@ const pickerStyles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1B1612',
+    // backgroundColor applied inline via MODES[currentMode].cardFill — mode-aware
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingBottom: 40,
@@ -350,7 +357,8 @@ const pickerStyles = StyleSheet.create({
   },
   sub: {
     fontFamily: FrostFonts.body, fontSize: 12,
-    color: 'rgba(245,240,232,0.55)', textAlign: 'center', marginBottom: 16,
+    // color applied inline via m.soft — mode-aware
+    textAlign: 'center', marginBottom: 16,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
@@ -364,12 +372,13 @@ const pickerStyles = StyleSheet.create({
   },
   rowTitle: {
     fontFamily: FrostFonts.display, fontStyle: 'italic',
-    fontSize: 16, color: '#F5F0E8',
+    fontSize: 16,
+    // color applied inline via m.ink — mode-aware
   },
-  rowTitleActive: { color: '#BFA04D' },
+  rowTitleActive: { color: '#BFA04D' }, // brass — mode-consistent
   rowSub: {
     fontFamily: FrostFonts.body, fontSize: 12, marginTop: 2,
-    color: 'rgba(245,240,232,0.55)',
+    // color applied inline via m.soft — mode-aware
   },
   dot: {
     width: 8, height: 8, borderRadius: 4, backgroundColor: '#BFA04D',
@@ -387,7 +396,7 @@ const pickerStyles = StyleSheet.create({
   sectionEyebrow: {
     fontFamily: FrostFonts.label, fontSize: 9, fontWeight: '300',
     letterSpacing: 3.6, textTransform: 'uppercase',
-    color: 'rgba(245,240,232,0.42)',
+    // color applied inline via m.soft — mode-aware
     marginTop: 14, marginBottom: 8, paddingHorizontal: 14,
   },
 });
@@ -445,13 +454,6 @@ export default function FrostLanding() {
       Animated.timing(toastFade, { toValue: 0, duration: 280, easing: Easing.in(Easing.quad), useNativeDriver: true }),
     ]).start(() => setToast(null));
   }, [toastFade]);
-
-  const flipContent = useCallback(() => {
-    const next: ContentMode = contentMode === 'dream' ? 'sanctuary' : 'dream';
-    Haptics.selectionAsync?.();
-    persistContentMode(next);
-    showToast(next === 'sanctuary' ? 'Now in Sanctuary' : 'Now in Dream');
-  }, [contentMode, persistContentMode, showToast]);
 
   const persistMode = useCallback(async (m: HomeModeKey) => {
     setHomeMode(m);
@@ -598,20 +600,6 @@ export default function FrostLanding() {
                   <Text style={styles.mosaicDaysWord}>{FrostCopy.landing.daysWord}</Text>
                 </View>
               </LinearGradient>
-            </Pressable>
-            {/* Mode badge sits absolute over the hero. Tap flips Content. Doesn't propagate. */}
-            <Pressable
-              onPress={flipContent}
-              hitSlop={12}
-              style={styles.mosaicBadgePressable}
-              accessibilityLabel={`Flip to ${isSanctuary ? 'Dream' : 'Sanctuary'} mode`}
-            >
-              {SHOW_MODE_PICKER ? (
-                <Text style={styles.mosaicModeBadge}>{homeMode}</Text>
-              ) : null}
-              <Text style={styles.mosaicModeBadgeContent}>
-                {isSanctuary ? 'SANCTUARY' : 'DREAM'}
-              </Text>
             </Pressable>
           </View>
 
@@ -761,7 +749,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goMoments} onLongPress={goMoments}
+                onLongPress={goMoments}
                 accessibilityLabel="Moments"
                 style={{ flex: 1.5 }}
               >
@@ -775,7 +763,7 @@ export default function FrostLanding() {
               </Pressable>
 
               <Pressable
-                onPress={goPages} onLongPress={goPages}
+                onLongPress={goPages}
                 accessibilityLabel="Pages"
                 style={{ flex: 1.25 }}
               >
@@ -816,10 +804,10 @@ export default function FrostLanding() {
             pointerEvents="none"
             style={[
               styles.toastWrap,
-              { opacity: toastFade, bottom: insets.bottom + 60 },
+              { backgroundColor: mode.ink, opacity: toastFade, bottom: insets.bottom + 60 },
             ]}
           >
-            <Text style={styles.toastText}>{toast}</Text>
+            <Text style={[styles.toastText, { color: mode.pagePaper }]}>{toast}</Text>
           </Animated.View>
         ) : null}
       </View>
@@ -984,7 +972,7 @@ function makeStyles(m: ModeDescriptor) {
       position: 'absolute', top: 10, left: 10,
       fontFamily: FrostFonts.label, fontWeight: '300',
       fontSize: 8, letterSpacing: 3,
-      color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase',
+      color: m.ink, textTransform: 'uppercase',
       textShadowColor: 'rgba(0,0,0,0.55)',
       textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
     },
@@ -1037,42 +1025,22 @@ function makeStyles(m: ModeDescriptor) {
       fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
       color: m.soft,
     },
-    // Mode badge: tappable surface positioned over the hero's bottom area.
-    // Tap flips Content (Dream ↔ Sanctuary). Tone label sits on top, content
-    // label sits below — together they're the single discoverable affordance.
-    mosaicBadgePressable: {
-      position: 'absolute',
-      bottom: 18,
-      alignSelf: 'center',
-      alignItems: 'center',
-      paddingVertical: 6, paddingHorizontal: 12,
-    },
-    mosaicModeBadge: {
-      fontFamily: FrostFonts.label, fontWeight: '300',
-      fontSize: 9, letterSpacing: 3.5, textTransform: 'uppercase',
-      color: m.brassMuted, opacity: 0.7,
-    },
-    mosaicModeBadgeContent: {
-      marginTop: 4,
-      fontFamily: FrostFonts.label, fontWeight: '300',
-      fontSize: 9, letterSpacing: 4.4, textTransform: 'uppercase',
-      color: m.brass, opacity: 0.8,
-    },
-    // Toast — shown when bride flips Content via badge.
-    // Italic Cormorant brass on dim charcoal, fade-in fade-out.
+    // Toast — shown when content/tone changes via picker.
+    // Italic Cormorant on inverted page colors (mode-aware via inline override).
     toastWrap: {
       position: 'absolute',
       left: 32, right: 32,
       paddingVertical: 12, paddingHorizontal: 18,
       borderRadius: 22,
-      backgroundColor: 'rgba(18,14,11,0.88)',
+      // backgroundColor applied inline via m.ink — mode-aware inversion
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: 'rgba(191,160,77,0.22)',
       alignItems: 'center',
     },
     toastText: {
       fontFamily: 'CormorantGaramond_300Light_Italic',
-      fontSize: 16, color: '#BFA04D',
+      fontSize: 16,
+      // color applied inline via m.pagePaper — mode-aware inversion
       letterSpacing: 0.4,
     },
 

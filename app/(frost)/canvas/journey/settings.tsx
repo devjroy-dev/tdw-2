@@ -86,6 +86,29 @@ function formatDisplayDate(iso: string | null): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Map a thrown error to user-facing copy that distinguishes network failure
+// from server-side rejection. Save handlers attach `.status` + `.serverMessage`
+// to the thrown error so this can branch.
+function classifyError(err: any): string {
+  if (!err) return 'Could not save. Try again.';
+
+  // Network errors (fetch threw before getting a response)
+  const msg = String(err.message ?? '').toLowerCase();
+  if (msg.includes('network') || msg.includes('fetch') || err.code === 'NETWORK_ERROR') {
+    return 'No connection. Check your network and try again.';
+  }
+
+  // HTTP status-based branches
+  if (typeof err.status === 'number') {
+    if (err.status >= 500) return 'Server hiccup. Please try again in a moment.';
+    if (err.status === 404) return 'Save endpoint not available. Reach out to us.';
+    if (err.status === 401 || err.status === 403) return 'Session expired. Sign out and back in.';
+    if (err.status >= 400 && err.serverMessage) return err.serverMessage as string;
+  }
+
+  return 'Could not save. Try again.';
+}
+
 async function uploadToCloudinary(uri: string): Promise<string> {
   const filename = uri.split('/').pop() ?? 'photo.jpg';
   const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
@@ -149,13 +172,15 @@ function Pill({ label, selected, onPress }: {
 function GoldSwitch({ value, onValueChange }: {
   value: boolean; onValueChange: (v: boolean) => void;
 }) {
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
   return (
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: FrostColors.hairline, true: FrostColors.goldTrue }}
+      trackColor={{ false: tokens.hairline, true: FrostColors.goldTrue }}
       thumbColor={FrostColors.white}
-      ios_backgroundColor={FrostColors.hairline}
+      ios_backgroundColor={tokens.hairline}
     />
   );
 }
@@ -172,11 +197,11 @@ function SaveButton({ label, onPress, saving, saved, inkColor }: {
       radius={FrostRadius.pill}
       style={styles.saveBtnOuter}
     >
-      <View style={styles.saveBtnInner}>
+      <View style={[styles.saveBtnInner, saved && { backgroundColor: '#5A8C5C' }]}>
         {saving ? (
           <ActivityIndicator size="small" color={inkColor} />
         ) : (
-          <Text style={[styles.saveBtnText, { color: inkColor }]}>
+          <Text style={[styles.saveBtnText, { color: saved ? '#FAFAF8' : inkColor }]}>
             {saved ? '✓  SAVED' : label.toUpperCase()}
           </Text>
         )}
@@ -371,13 +396,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setIdentitySaved);
       showToast('Identity saved.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setIdentitySaving(false); }
   }
 
@@ -396,13 +434,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setPrefsSaved);
       showToast('Preferences saved.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setPrefsSaving(false); }
   }
 
@@ -415,13 +466,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ discovery_categories: selectedCats, discovery_city: discoveryCity.trim() }),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setDiscoverySaved);
       showToast('Discovery preferences saved.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setDiscoverySaving(false); }
   }
 
@@ -442,7 +506,14 @@ export default function JourneySettings() {
     if (!userId) return;
     setAccountSaving(true);
     try {
-      const clean = whatsappNumber.replace(/\D/g, '').slice(-10);
+      // Left-to-right parse: strip non-digits, drop a leading 91 if the
+      // remainder is longer than 10 (handles +91 / 91 prefix), then take the
+      // FIRST 10 digits (handles trailing junk like '+91 98765 43210 XXX').
+      let digits = whatsappNumber.replace(/\D/g, '');
+      if (digits.length > 10 && digits.startsWith('91')) {
+        digits = digits.slice(2);
+      }
+      const clean = digits.slice(0, 10);
       if (clean.length !== 10) { showToast('Enter a valid 10-digit number.'); return; }
       const fullPhone = '+91' + clean;
       const res = await fetch(`${API}/api/v2/couple/profile/${userId}`, {
@@ -450,13 +521,26 @@ export default function JourneySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone }),
       });
+      if (!res.ok) {
+        let serverMessage = '';
+        try { serverMessage = (await res.json())?.error ?? ''; } catch {}
+        const err: any = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        err.serverMessage = serverMessage;
+        throw err;
+      }
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? 'Save failed');
+      if (!json.success) {
+        const err: any = new Error(json.error ?? 'Save failed');
+        err.status = 400;
+        err.serverMessage = json.error;
+        throw err;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       flashSaved(setAccountSaved);
       showToast('WhatsApp number updated.');
     } catch (e: any) {
-      showToast(e?.message ?? 'Could not save. Try again.');
+      showToast(classifyError(e));
     } finally { setAccountSaving(false); }
   }
 
@@ -553,10 +637,11 @@ export default function JourneySettings() {
               <FieldLabel>Bride&apos;s name</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={identityName}
                 onChangeText={setIdentityName}
                 placeholder="Your name"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -565,10 +650,11 @@ export default function JourneySettings() {
               <FieldLabel>Partner&apos;s name</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={identityPartner}
                 onChangeText={setIdentityPartner}
                 placeholder="Their name"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -609,10 +695,11 @@ export default function JourneySettings() {
               <FieldLabel>Wedding city</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={identityCity}
                 onChangeText={setIdentityCity}
                 placeholder="Your city"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -648,10 +735,11 @@ export default function JourneySettings() {
               <FieldLabel>Estimated guest count</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={guestCount}
                 onChangeText={setGuestCount}
                 placeholder="e.g. 300"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 keyboardType="number-pad"
                 maxLength={5}
                 returnKeyType="done"
@@ -705,10 +793,11 @@ export default function JourneySettings() {
               <FieldLabel>City for discovery</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={discoveryCity}
                 onChangeText={setDiscoveryCity}
                 placeholder="e.g. Delhi, Mumbai"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 returnKeyType="done"
               />
             </Row>
@@ -726,7 +815,7 @@ export default function JourneySettings() {
           <View style={styles.section}>
             <SectionLabel>NOTIFICATIONS</SectionLabel>
             <Text style={styles.sectionHint}>
-              Push wiring activates in the next update. Preferences are saved.
+              Choose what we ping you about. Tap to toggle.
             </Text>
 
             {([
@@ -818,7 +907,7 @@ export default function JourneySettings() {
                       {tier === 'lite' ? '₹999' : '₹2,999'} one-time
                     </Text>
                   </View>
-                  <Text style={styles.upgradeBadge}>Available from August 1</Text>
+                  <Text style={styles.upgradeBadge}>Available from August 1, 2026</Text>
                 </View>
               </Row>
             )}
@@ -827,10 +916,11 @@ export default function JourneySettings() {
               <FieldLabel>WhatsApp number</FieldLabel>
               <TextInput
                 style={[styles.input, { color: tokens.ink }]}
+                keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                 value={whatsappNumber}
                 onChangeText={setWhatsappNumber}
                 placeholder="+91 XXXXX XXXXX"
-                placeholderTextColor={FrostColors.muted}
+                placeholderTextColor={tokens.soft}
                 keyboardType="phone-pad"
                 maxLength={15}
                 returnKeyType="done"
@@ -853,16 +943,16 @@ export default function JourneySettings() {
               style={styles.signOutOuter}
             >
               <View style={styles.signOutInner}>
-                <LogOut size={16} color={FrostColors.muted} strokeWidth={1.5} />
-                <Text style={styles.signOutText}>Sign out</Text>
+                <LogOut size={16} color={tokens.ink} strokeWidth={1.5} />
+                <Text style={[styles.signOutText, { color: tokens.ink }]}>Sign out</Text>
               </View>
             </FrostedSurface>
           </View>
 
           {/* Toast */}
           {!!toast && (
-            <View style={styles.toast} pointerEvents="none">
-              <Text style={styles.toastText}>{toast}</Text>
+            <View style={[styles.toast, { backgroundColor: tokens.ink }]} pointerEvents="none">
+              <Text style={[styles.toastText, { color: tokens.pagePaper }]}>{toast}</Text>
             </View>
           )}
         </ScrollView>
@@ -1069,7 +1159,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontFamily: FrostFonts.bodyMedium,
     fontSize: 14,
-    color: FrostColors.muted,
+    // color applied inline via tokens.ink — mode-aware
   },
 
   toast: {
@@ -1077,12 +1167,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: FrostSpace.l,
     paddingVertical: FrostSpace.s,
     borderRadius: FrostRadius.pill,
-    backgroundColor: FrostColors.ink,
     marginTop: FrostSpace.xl,
+    // backgroundColor applied inline via tokens.ink — mode-aware
   },
   toastText: {
     fontFamily: FrostFonts.body,
     fontSize: 12,
-    color: FrostColors.white,
+    // color applied inline via tokens.pagePaper — mode-aware
   },
 });

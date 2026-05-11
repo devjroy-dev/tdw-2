@@ -214,8 +214,9 @@ export default function CircleInvite() {
                   value={name}
                   onChangeText={setName}
                   placeholder="Their name"
-                  placeholderTextColor={FrostColors.muted}
+                  placeholderTextColor={tokens.soft}
                   style={[styles.input, { color: tokens.ink }]}
+                  keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                   returnKeyType="next"
                   editable={!sending}
                 />
@@ -232,8 +233,9 @@ export default function CircleInvite() {
                   value={relationship}
                   onChangeText={setRelationship}
                   placeholder="Mother / Sister / Best friend"
-                  placeholderTextColor={FrostColors.muted}
+                  placeholderTextColor={tokens.soft}
                   style={[styles.input, { color: tokens.ink }]}
+                  keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                   returnKeyType="next"
                   editable={!sending}
                 />
@@ -250,8 +252,9 @@ export default function CircleInvite() {
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="+91 — optional"
-                  placeholderTextColor={FrostColors.muted}
+                  placeholderTextColor={tokens.soft}
                   style={[styles.input, { color: tokens.ink }]}
+                  keyboardAppearance={look === 'E1' ? 'dark' : 'light'}
                   keyboardType="phone-pad"
                   returnKeyType="done"
                   editable={!sending}

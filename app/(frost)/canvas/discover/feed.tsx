@@ -33,6 +33,7 @@ import {
   FrostColors, FrostType, FrostSpace, FrostFonts, FrostMaterial, FrostRadius, FrostCopy,
 } from '../../../../constants/frost';
 import { saveToMuse } from '../../../../services/frostApi';
+import { optimizeCloudinary } from '../../../../utils/cloudinary';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -120,6 +121,21 @@ export default function DiscoveryFeed() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Prefetch next 3 photos so swipes feel instant.
+  useEffect(() => {
+    if (!photos.length) return;
+    const lookahead = 3;
+    for (let i = 1; i <= lookahead; i++) {
+      const nextIdx = photoIdx + i;
+      if (nextIdx < photos.length) {
+        const next = photos[nextIdx];
+        if (next?.imageUrl) {
+          Image.prefetch(optimizeCloudinary(next.imageUrl)).catch(() => {});
+        }
+      }
+    }
+  }, [photoIdx, photos]);
 
   // Current photo (safe index)
   const photo = photos.length > 0 ? photos[photoIdx % photos.length] : null;
@@ -273,7 +289,7 @@ export default function DiscoveryFeed() {
       >
         {/* Full-bleed photo */}
         <Image
-          source={{ uri: photo.imageUrl }}
+          source={{ uri: optimizeCloudinary(photo.imageUrl) }}
           style={StyleSheet.absoluteFillObject}
           resizeMode="cover"
         />

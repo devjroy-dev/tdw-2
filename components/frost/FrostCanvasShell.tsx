@@ -24,6 +24,8 @@ import { X } from 'lucide-react-native';
 import {
   FrostColors, FrostType, FrostSpace, FrostLayout,
 } from '../../constants/frost';
+import { MUSE_LOOKS } from '../../constants/museTokens';
+import { useMuseLook } from '../../hooks/useMuseLook';
 import FrostPane from './FrostPane';
 
 type Mode = 'image' | 'frost' | 'plain';
@@ -62,13 +64,15 @@ export default function FrostCanvasShell({
   dim = false,
 }: FrostCanvasShellProps) {
   const insets = useSafeAreaInsets();
+  const look = useMuseLook();
+  const tokens = MUSE_LOOKS[look];
 
   const resolvedMode: Mode = mode ?? (imageUri ? 'image' : 'frost');
   const resolvedStatusBar =
     statusBarStyle === 'auto'
       ? resolvedMode === 'image'
         ? 'light'
-        : 'dark'
+        : (tokens.statusBarStyle === 'light-content' ? 'light' : 'dark')
       : statusBarStyle;
 
   const onCloseInternal = onClose ?? (() => router.back());
@@ -107,7 +111,12 @@ export default function FrostCanvasShell({
         <View
           style={[
             styles.bottomBar,
-            { paddingBottom: insets.bottom },
+            {
+              backgroundColor: look === 'E1'
+                ? 'rgba(27,22,18,0.92)'   // dark frosted bar over dark page
+                : 'rgba(244,242,238,0.92)', // cream frosted bar over cream page
+              paddingBottom: insets.bottom,
+            },
           ]}
         >
           {bottomBar}
@@ -214,7 +223,7 @@ const styles = StyleSheet.create({
   },
 
   bottomBar: {
-    backgroundColor: 'rgba(244,242,238,0.92)',
+    // backgroundColor applied inline based on look — mode-aware
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: FrostColors.hairline,
   },
