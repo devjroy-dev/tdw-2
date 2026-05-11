@@ -16,9 +16,18 @@ export default function Index() {
         if (coupleRaw) {
           const cs = JSON.parse(coupleRaw);
           if (cs?.id || cs?.userId) {
-            if (cs?.dreamer_type === 'co_planner') { router.replace('/(circle)/landing' as any); return; }
-            if (cs?.pin_set) { router.replace('/couple-pin-login' as any); } 
-            else { router.replace('/(frost)/landing' as any); }
+            // Co-planner shortcut
+            if (cs?.dreamer_type === 'co_planner') {
+              router.replace('/(circle)/landing' as any);
+              return;
+            }
+            // Fully set up — go to PIN login (which then routes to Frost)
+            if (cs?.pin_set && cs?.name) {
+              router.replace('/couple-pin-login' as any);
+              return;
+            }
+            // Partial account (no PIN, or no name) — send back to login to finish setup
+            router.replace('/couple-login' as any);
             return;
           }
         }
